@@ -1,0 +1,58 @@
+{
+  "website": "https://www.chungwillwritingservices.sg/",
+  "audit_type": "free",
+  "saved_at": "2026-03-16T19:14:37.184276",
+  "scores": {
+    "content_score": 13,
+    "schema_score": 0,
+    "visibility_score": 4.0,
+    "average_query_score": 4.0,
+    "raw_score": 17.0,
+    "normalized_score": 26.15
+  },
+  "summary": {
+    "verdict": "LOW OPPORTUNITY",
+    "opportunity_level": "Weak foundation"
+  },
+  "business_profile": {
+    "title": "Will Writing Services Pte Ltd",
+    "description": "",
+    "email": "vuiloong@chungwillwritingservices.sg",
+    "phone": "202236783",
+    "services_detected": [
+      "service"
+    ]
+  },
+  "visibility_snapshot": {
+    "queries_tested": 5,
+    "brand_appearances": 0
+  },
+  "top_competitors": [
+    {
+      "domain": "noblewills.com",
+      "appearances": 4
+    },
+    {
+      "domain": "simplywills.com.sg",
+      "appearances": 3
+    },
+    {
+      "domain": "preceptsgroup.com",
+      "appearances": 2
+    },
+    {
+      "domain": "willwriting.sg",
+      "appearances": 2
+    },
+    {
+      "domain": "estateplanner.sg",
+      "appearances": 2
+    }
+  ],
+  "top_content_gaps": [],
+  "top_recommendations": [
+    "1. Add at least one FAQ page or FAQ section.",
+    "2. Publish more educational articles to improve topical authority.",
+    "3. Add or improve schema markup such as Organization and FAQPage."
+  ]
+}

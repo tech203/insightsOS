@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | History{% endblock %}
+{% block page_title %}{{ client.name }} · History{% endblock %}
+{% block page_subtitle %}Review the saved audit timeline, compare score movement over time, and open past reports for validation and review.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run New Audit</a>
+{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Audits</div>
+        <div class="stat-value">{{ client.audits|length }}</div>
+        <div class="stat-note">Saved historical reports</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Latest Score</div>
+        <div class="stat-value">
+            {% if client.latest_audit %}
+                {{ client.latest_audit.normalized_score }}
+            {% else %}
+                —
+            {% endif %}
+        </div>
+        <div class="stat-note">Most recent normalized score</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Previous Score</div>
+        <div class="stat-value">
+            {% if client.previous_audit %}
+                {{ client.previous_audit.normalized_score }}
+            {% else %}
+                —
+            {% endif %}
+        </div>
+        <div class="stat-note">Previous saved audit</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Trend</div>
+        <div class="stat-value">
+            {% if client.comparison %}
+                {{ client.comparison.overall_change|capitalize }}
+            {% else %}
+                N/A
+            {% endif %}
+        </div>
+        <div class="stat-note">Latest comparison result</div>
+    </div>
+</section>
+
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Latest vs Previous</h2>
+                <p class="panel-subtitle">Side-by-side summary of the two most recent saved audits.</p>
+            </div>
+        </div>
+
+        {% if client.comparison %}
+        <div class="delta-grid">
+            <div class="delta-box">
+                <div class="delta-label">Normalized Delta</div>
+                <div class="delta-value {% if client.comparison.normalized_delta > 0 %}positive{% elif client.comparison.normalized_delta < 0 %}negative{% endif %}">
+                    {{ "+" if client.comparison.normalized_delta > 0 else "" }}{{ client.comparison.normalized_delta }}
+                </div>
+            </div>
+
+            <div class="delta-box">
+                <div class="delta-label">Visibility Delta</div>
+                <div class="delta-value {% if client.comparison.visibility_delta > 0 %}positive{% elif client.comparison.visibility_delta < 0 %}negative{% endif %}">
+                    {{ "+" if client.comparison.visibility_delta > 0 else "" }}{{ client.comparison.visibility_delta }}
+                </div>
+            </div>
+
+            <div class="delta-box">
+                <div class="delta-label">Content Delta</div>
+                <div class="delta-value {% if client.comparison.content_delta > 0 %}positive{% elif client.comparison.content_delta < 0 %}negative{% endif %}">
+                    {{ "+" if client.comparison.content_delta > 0 else "" }}{{ client.comparison.content_delta }}
+                </div>
+            </div>
+
+            <div class="delta-box">
+                <div class="delta-label">Schema Delta</div>
+                <div class="delta-value {% if client.comparison.schema_delta > 0 %}positive{% elif client.comparison.schema_delta < 0 %}negative{% endif %}">
+                    {{ "+" if client.comparison.schema_delta > 0 else "" }}{{ client.comparison.schema_delta }}
+                </div>
+            </div>
+        </div>
+
+        <div class="comparison-banner {{ client.comparison.overall_change }}">
+            Current trend:
+            <strong>{{ client.comparison.overall_change|capitalize }}</strong>
+        </div>
+        {% else %}
+        <div class="empty-state compact">
+            <h3>Not enough history yet</h3>
+            <p>You need at least two saved audits to compare change over time.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>History Notes</h2>
+                <p class="panel-subtitle">How to use this page for client reporting and internal review.</p>
+            </div>
+        </div>
+
+        <ul class="compact-list">
+            <li>Use normalized score to explain overall AEO progress simply.</li>
+            <li>Use visibility score to show answer-presence movement.</li>
+            <li>Use content and schema scores to explain why progress may be slow.</li>
+            <li>Open older audits to validate what changed between runs.</li>
+            <li>Pair this page with Visibility and Actions for a stronger client narrative.</li>
+        </ul>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Audit Timeline</h2>
+            <p class="panel-subtitle">Saved reports in reverse chronological order.</p>
+        </div>
+    </div>
+
+    {% if client.audits %}
+    <div class="simple-table">
+        <div class="simple-table-row head history-grid-row">
+            <div>Saved At</div>
+            <div>Audit Type</div>
+            <div>Website</div>
+            <div>Normalized</div>
+            <div>Visibility</div>
+            <div>Content</div>
+            <div>Schema</div>
+            <div>Opportunity</div>
+            <div>Open</div>
+        </div>
+
+        {% for audit in client.audits %}
+        <div class="simple-table-row history-grid-row">
+            <div>{{ audit.saved_at|pretty_datetime }}</div>
+            <div>{{ audit.audit_type }}</div>
+            <div>{{ audit.website }}</div>
+            <div>{{ audit.normalized_score }}</div>
+            <div>{{ audit.visibility_score }}</div>
+            <div>{{ audit.content_score }}</div>
+            <div>{{ audit.schema_score }}</div>
+            <div>{{ audit.opportunity_level }}</div>
+            <div>
+                <div class="history-links">
+                    <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="text-link">Summary</a>
+                    <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="text-link">Full</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <h3>No audit history yet</h3>
+        <p>This client does not have any saved audit reports yet.</p>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Recent Audit Cards</h2>
+            <p class="panel-subtitle">A more visual summary of the latest saved runs.</p>
+        </div>
+    </div>
+
+    {% if client.audits %}
+    <div class="competitor-query-grid">
+        {% for audit in client.audits[:6] %}
+        <article class="action-card">
+            <div class="action-card-top">
+                <span class="priority-badge low">{{ audit.audit_type|capitalize }}</span>
+                <h3>{{ audit.saved_at|pretty_datetime }}</h3>
+            </div>
+
+            <p><strong>Verdict:</strong> {{ audit.verdict }}</p>
+            <p><strong>Opportunity:</strong> {{ audit.opportunity_level }}</p>
+            <p><strong>Scores:</strong> N {{ audit.normalized_score }} · V {{ audit.visibility_score }} · C {{ audit.content_score }} · S {{ audit.schema_score }}</p>
+
+            <div class="card-actions">
+                <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-secondary">Summary</a>
+                <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="btn btn-secondary">Full</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

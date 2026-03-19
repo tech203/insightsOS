@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Brief Result{% endblock %}
+{% block page_title %}{{ client.name }} · Brief Result{% endblock %}
+{% block page_subtitle %}Review the generated content brief, then save it into the queue or use it to prepare a full draft.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
+<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">Open Draft Generator</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Generated Brief</h2>
+                <p class="panel-subtitle">Review and edit before saving to the content queue.</p>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}" class="form-stack">
+            <div class="form-grid-2">
+                <div class="form-field form-field-full">
+                    <label for="target_query">Target Query</label>
+                    <input
+                        type="text"
+                        id="target_query"
+                        name="target_query"
+                        value="{{ result.target_query if result and result.target_query is defined else '' }}"
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="content_type">Content Type</label>
+                    <input
+                        type="text"
+                        id="content_type"
+                        name="content_type"
+                        value="{{ result.content_type if result and result.content_type is defined else '' }}"
+                    >
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="brief_text">Brief Content</label>
+                    <textarea id="brief_text" name="brief_text" class="editor-textarea">{% if result.brief is defined %}{{ result.brief }}{% else %}{{ result | tojson(indent=2) }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button type="submit" class="btn btn-primary">Save to Queue</button>
+                <a
+                    href="{{ url_for('generate_client_content_draft',
+                        client_id=client.id,
+                        target_query=(result.target_query if result and result.target_query is defined else ''),
+                        brief_context=(result.brief if result and result.brief is defined else ''),
+                        brand_context=client.notes
+                    ) }}"
+                    class="btn btn-secondary"
+                >
+                    Use for Draft
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Next Actions</h2>
+                <p class="panel-subtitle">Choose what to do with this brief.</p>
+            </div>
+        </div>
+
+        <div class="action-list">
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge low">Queue</span>
+                    <h3>Save for the team</h3>
+                </div>
+                <p>Store the brief in the content queue so writers or strategists can pick it up later.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge medium">Draft</span>
+                    <h3>Turn into full draft</h3>
+                </div>
+                <p>Use this brief as structured context for the draft generator.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge high">Refine</span>
+                    <h3>Edit before saving</h3>
+                </div>
+                <p>You can edit the brief text directly in the box before saving it into the queue.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

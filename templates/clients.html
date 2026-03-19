@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Clients | AEO Agents{% endblock %}
+{% block page_title %}Clients{% endblock %}
+{% block page_subtitle %}Manage all client workspaces, recent audits, visibility movement, and next actions from one view.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('create_client') }}" class="btn btn-primary">+ Add Client</a>
+{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Clients</div>
+        <div class="stat-value">{{ clients|length }}</div>
+        <div class="stat-note">Active workspaces</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Clients With Audits</div>
+        <div class="stat-value">{{ clients | selectattr("audit_count") | list | length }}</div>
+        <div class="stat-note">Clients with at least one saved audit</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">High Priority Actions</div>
+        <div class="stat-value">
+            {{
+                clients
+                | map(attribute='recommended_actions')
+                | map('length')
+                | sum
+            }}
+        </div>
+        <div class="stat-note">Recommended improvements generated</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Agency Workspace</div>
+        <div class="stat-value">Live</div>
+        <div class="stat-note">Multi-client operating view</div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Client Portfolio</h2>
+            <p class="panel-subtitle">Each client card combines business info, latest audit signals, and next-step actions.</p>
+        </div>
+        <a href="{{ url_for('create_client') }}" class="btn btn-primary">New Client</a>
+    </div>
+
+    {% if clients %}
+    <div class="client-card-grid">
+        {% for client in clients %}
+        <article class="client-card">
+            <div class="client-card-top">
+                <div>
+                    <h3 class="client-name">{{ client.name }}</h3>
+                    <div class="client-meta">
+                        <span class="meta-chip">{{ client.industry or "N/A" }}</span>
+                        <span class="meta-chip">{{ client.location or "N/A" }}</span>
+                        <span class="meta-chip">{{ client.owner_type or "company" }}</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="text-link">Open Workspace</a>
+            </div>
+
+            <div class="client-domain">
+                <a href="https://{{ client.website_normalized or client.website }}" target="_blank">
+                    {{ client.website }}
+                </a>
+            </div>
+
+            <div class="metric-strip">
+                <div class="metric-box">
+                    <div class="metric-box-label">Audits</div>
+                    <div class="metric-box-value">{{ client.audit_count }}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-box-label">Latest Score</div>
+                    <div class="metric-box-value">
+                        {% if client.latest_audit %}
+                            {{ client.latest_audit.normalized_score }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-box-label">Visibility</div>
+                    <div class="metric-box-value">
+                        {% if client.latest_audit %}
+                            {{ client.latest_audit.visibility_score }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-box-label">Opportunity</div>
+                    <div class="metric-box-value small">
+                        {% if client.latest_audit %}
+                            {{ client.latest_audit.opportunity_level }}
+                        {% else %}
+                            No audit
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if client.comparison %}
+            <div class="comparison-banner {{ client.comparison.overall_change }}">
+                <strong>Status:</strong>
+                {{ client.comparison.overall_change|capitalize }}
+                {% if client.comparison.normalized_delta %}
+                    <span class="delta-pill">
+                        {{ "+" if client.comparison.normalized_delta > 0 else "" }}{{ client.comparison.normalized_delta }}
+                    </span>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="comparison-banner neutral">
+                <strong>Status:</strong> No comparison available yet
+            </div>
+            {% endif %}
+
+            <div class="section-stack">
+                <div>
+                    <div class="mini-heading">Latest Verdict</div>
+                    <p class="muted-text">
+                        {% if client.latest_audit %}
+                            {{ client.latest_audit.verdict }}
+                        {% else %}
+                            No audit saved yet for this client.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div>
+                    <div class="mini-heading">Recommended Actions</div>
+                    {% if client.recommended_actions %}
+                    <ul class="compact-list">
+                        {% for action in client.recommended_actions[:3] %}
+                        <li>
+                            <span class="priority-dot {{ action.priority }}"></span>
+                            {{ action.title }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="muted-text">Run an audit to generate recommended actions.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Visibility</a>
+                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary">Actions</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No clients yet</h3>
+        <p>Create your first client workspace to start running AEO audits and content workflows.</p>
+        <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

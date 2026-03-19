@@ -1,0 +1,561 @@
+{
+  "website": "https://www.keongsaikbakery.com/",
+  "audit_type": "detailed",
+  "saved_at": "2026-03-16T19:14:45.167013",
+  "business_profile": {
+    "title": "Keong Saik Bakery | Heritage with a Twist\n",
+    "description": "A bakery passionate about blending traditional and modern flavours.",
+    "email": null,
+    "phone": "01-03 339940 90219626 ",
+    "services_detected": []
+  },
+  "visibility_data": {
+    "queries_tested": 15,
+    "appearances": 0,
+    "average_query_score": 4.0,
+    "visibility_score": 4.0
+  },
+  "ai_answer_results": [
+    {
+      "engine": "chatgpt",
+      "query": "best cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries.",
+        "Lady M** – Renowned for their Mille Crêpes cakes.",
+        "Awfully Chocolate** – Great for rich chocolate cakes and desserts.",
+        "Lune Croissanterie** – Known for innovative, flaky croissants.",
+        "Baker & Cook** – Offers a wide range of cakes and rustic pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For the best cakes and pastries in Singapore, you can try these popular spots known for quality and variety: - **Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Awfully Chocolate** – Great for rich chocolate cakes and desserts. - **Lune Croissanterie** – Known for innovative, flaky croissants. - **Baker & Cook** – Offers a wide range of cakes and rustic pastries. These bakeries are highly rated and offer delicious options for cakes and pastries in Singapore.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for croissants and artisanal pastries.",
+        "Lady M** – Renowned for their Mille Crêpes cakes.",
+        "Awfully Chocolate** – Great for rich chocolate cakes and desserts.",
+        "Baker & Cook** – Offers a wide range of cakes, tarts, and breads.",
+        "Lune Croissanterie** – Known for premium croissants and pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For top cakes and pastries in Singapore, you can check out these popular bakeries known for quality and variety: - **Tiong Bahru Bakery** – Famous for croissants and artisanal pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Awfully Chocolate** – Great for rich chocolate cakes and desserts. - **Baker & Cook** – Offers a wide range of cakes, tarts, and breads. - **Lune Croissanterie** – Known for premium croissants and pastries. These spots are favorites among locals and visitors for delicious cakes and pastries.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "cakes and pastries services Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Awfully Chocolate** – famous for rich chocolate cakes and pastries.",
+        "Tiong Bahru Bakery** – offers artisanal pastries and breads.",
+        "Cedele** – known for healthier cakes and pastries with natural ingredients.",
+        "Ladurée Singapore** – luxury French pastries and macarons.",
+        "The Patissier** – custom cakes and creative pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For cakes and pastries services in Singapore, you have many great options known for quality and variety. Some popular providers include: - **Awfully Chocolate** – famous for rich chocolate cakes and pastries. - **Tiong Bahru Bakery** – offers artisanal pastries and breads. - **Cedele** – known for healthier cakes and pastries with natural ingredients. - **Ladurée Singapore** – luxury French pastries and macarons. - **The Patissier** – custom cakes and creative pastries. You can order online or visit their outlets for fresh cakes and pastries. Many also offer delivery and customized cake services for events.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "recommended cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries.",
+        "Lady M** – Known for their signature Mille Crêpes cakes.",
+        "Awfully Chocolate** – Great for rich chocolate cakes and desserts.",
+        "Ladurée** – Offers exquisite French pastries and macarons.",
+        "Cedele** – Healthy and tasty cakes with natural ingredients."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For delicious cakes and pastries in Singapore, here are some highly recommended places: - **Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries. - **Lady M** – Known for their signature Mille Crêpes cakes. - **Awfully Chocolate** – Great for rich chocolate cakes and desserts. - **Ladurée** – Offers exquisite French pastries and macarons. - **Cedele** – Healthy and tasty cakes with natural ingredients. - **Baker & Cook** – Rustic breads and delightful pastries. These spots are popular for quality and variety, perfect for any sweet craving!",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "cakes and pastries company Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Awfully Chocolate** – famous for rich chocolate cakes and pastries",
+        "Tiong Bahru Bakery** – artisanal pastries and breads with French influence",
+        "Ladurée Singapore** – luxury French macarons and cakes",
+        "Cedele** – wholesome cakes and pastries with natural ingredients",
+        "The Patissier** – creative and elegant cakes and desserts"
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Here are some popular cakes and pastries companies in Singapore known for quality and variety: - **Awfully Chocolate** – famous for rich chocolate cakes and pastries - **Tiong Bahru Bakery** – artisanal pastries and breads with French influence - **Ladurée Singapore** – luxury French macarons and cakes - **Cedele** – wholesome cakes and pastries with natural ingredients - **The Patissier** – creative and elegant cakes and desserts These brands offer both in-store and online ordering options for convenience. Would you like recommendations for a specific type of cake or occasion?",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "how much does cakes and pastries cost Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Cakes:** Typically range from SGD 30 to SGD 100+ for specialty or custom cakes. Popular bakeries like Awfully Chocolate, Baker & Cook, and Plain Vanilla offer cakes starting around SGD 40.",
+        "Pastries:** Usually cost between SGD 3 to SGD 8 each. Well-known spots like Tiong Bahru Bakery and Cedele have pastries in this range."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "In Singapore, the cost of cakes and pastries varies depending on the bakery and type: - **Cakes:** Typically range from SGD 30 to SGD 100+ for specialty or custom cakes. Popular bakeries like Awfully Chocolate, Baker & Cook, and Plain Vanilla offer cakes starting around SGD 40. - **Pastries:** Usually cost between SGD 3 to SGD 8 each. Well-known spots like Tiong Bahru Bakery and Cedele have pastries in this range. Prices can be higher for premium ingredients or customized designs.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "how to choose cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "**Occasion & Taste**: Decide if you want something rich (chocolate, mousse) or light (fruit tarts, chiffon).",
+        "**Freshness**: Look for bakeries known for daily fresh bakes like Tiong Bahru Bakery or Baker & Cook.",
+        "**Ingredients**: Check if they use quality ingredients, especially if you prefer organic or less sugar.",
+        "**Reviews & Recommendations**: Read customer reviews on platforms like Burpple or Google.",
+        "**Customization**: For special occasions, choose bakeries offering custom designs, such as Awfully Chocolate or Lady M."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "When choosing cakes and pastries in Singapore, consider these tips: 1. **Occasion & Taste**: Decide if you want something rich (chocolate, mousse) or light (fruit tarts, chiffon). 2. **Freshness**: Look for bakeries known for daily fresh bakes like Tiong Bahru Bakery or Baker & Cook. 3. **Ingredients**: Check if they use quality ingredients, especially if you prefer organic or less sugar. 4. **Reviews & Recommendations**: Read customer reviews on platforms like Burpple or Google. 5. **Customization**: For special occasions, choose bakeries offering custom designs, such as Awfully Chocolate or Lady M. 6. **Dietary Needs**: If needed, find options for gluten-free, vegan, or halal-certified pastries. Popular bakeries in Singapore include: - Tiong Bahru Bakery - Awfully Chocolate - Baker & Cook - Lady M - Cedele These tips should help you pick the perfect cakes and pastries!",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "what is the best cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries.",
+        "Lady M** – Known for their delicate Mille Crêpes cakes.",
+        "Awfully Chocolate** – Popular for rich, moist chocolate cakes.",
+        "Lune Croissanterie** – Highly rated for flaky, expertly crafted croissants.",
+        "Baker & Cook** – Offers a great variety of cakes and rustic pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Some of the best cakes and pastries in Singapore come from renowned bakeries known for quality and taste: - **Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries. - **Lady M** – Known for their delicate Mille Crêpes cakes. - **Awfully Chocolate** – Popular for rich, moist chocolate cakes. - **Lune Croissanterie** – Highly rated for flaky, expertly crafted croissants. - **Baker & Cook** – Offers a great variety of cakes and rustic pastries. These spots are favorites among locals and visitors for delicious cakes and pastries in Singapore.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "who are the top cakes and pastries companies Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Awfully Chocolate** – famous for rich chocolate cakes and desserts",
+        "Cedele** – offers a wide range of healthy cakes and pastries",
+        "Tiong Bahru Bakery** – known for artisanal pastries and croissants",
+        "Ladurée Singapore** – luxury French pastries and macarons",
+        "The Patissier** – creative and beautifully crafted cakes and desserts"
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Some of the top cakes and pastries companies in Singapore known for quality and variety include: - **Awfully Chocolate** – famous for rich chocolate cakes and desserts - **Cedele** – offers a wide range of healthy cakes and pastries - **Tiong Bahru Bakery** – known for artisanal pastries and croissants - **Ladurée Singapore** – luxury French pastries and macarons - **The Patissier** – creative and beautifully crafted cakes and desserts These brands are popular for both everyday treats and special occasions.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "affordable cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "BreadTalk**: Known for a wide variety of affordable cakes and pastries.",
+        "Polar Puffs & Cakes**: Offers budget-friendly cakes and classic pastries.",
+        "Four Leaves**: Well-loved for affordable and tasty cakes.",
+        "PrimaDéli**: Good range of cakes and pastries at reasonable prices.",
+        "Baker & Cook**: Slightly higher price but good value for quality pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For affordable cakes and pastries in Singapore, you can check out these popular options: - **BreadTalk**: Known for a wide variety of affordable cakes and pastries. - **Polar Puffs & Cakes**: Offers budget-friendly cakes and classic pastries. - **Four Leaves**: Well-loved for affordable and tasty cakes. - **PrimaDéli**: Good range of cakes and pastries at reasonable prices. - **Baker & Cook**: Slightly higher price but good value for quality pastries. These bakeries have outlets island-wide and often run promotions, so you can get good deals.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "cakes and pastries companies in Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Awfully Chocolate** – famous for rich chocolate cakes and desserts.",
+        "Tiong Bahru Bakery** – known for artisanal pastries and croissants.",
+        "Ladurée Singapore** – offers French-style cakes and macarons.",
+        "Cedele** – healthy and wholesome cakes and pastries.",
+        "The Patissier** – creative and beautifully crafted cakes."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Here are some popular cakes and pastries companies in Singapore known for their quality and variety: - **Awfully Chocolate** – famous for rich chocolate cakes and desserts. - **Tiong Bahru Bakery** – known for artisanal pastries and croissants. - **Ladurée Singapore** – offers French-style cakes and macarons. - **Cedele** – healthy and wholesome cakes and pastries. - **The Patissier** – creative and beautifully crafted cakes. - **Bakerzin** – wide range of cakes and desserts. These bakeries have multiple outlets across Singapore and offer both dine-in and delivery options.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "compare cakes and pastries services Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Cakes Services:**",
+        "Focus on custom cakes for occasions like birthdays, weddings, and corporate events.",
+        "Offer personalized designs, flavors, and sizes.",
+        "Examples: Awfully Chocolate, The Patissier, and Lady M.",
+        "Pastries Services:**"
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "In Singapore, both cakes and pastries services are popular, but they cater to slightly different needs: **Cakes Services:** - Focus on custom cakes for occasions like birthdays, weddings, and corporate events. - Offer personalized designs, flavors, and sizes. - Examples: Awfully Chocolate, The Patissier, and Lady M. **Pastries Services:** - Specialize in a variety of baked goods like croissants, tarts, eclairs, and danishes. - Great for daily treats, brunch, or gifting. - Examples: Tiong Bahru Bakery, Baker & Cook, and Cedele. If you want custom celebration cakes, go for cake specialists. For everyday indulgence or gifting, pastry shops offer a wider variety of baked goods. Some bakeries like Tiong Bahru Bakery and The Patissier offer both cakes and pastries with high quality.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top rated cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for croissants and artisanal pastries.",
+        "Lady M** – Renowned for their Mille Crêpes cakes.",
+        "Ladurée** – Offers exquisite French pastries and macarons.",
+        "Cedele** – Known for wholesome cakes and breads.",
+        "Awfully Chocolate** – Specializes in rich chocolate cakes."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For top-rated cakes and pastries in Singapore, you can check out these popular bakeries known for quality and delicious treats: - **Tiong Bahru Bakery** – Famous for croissants and artisanal pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Ladurée** – Offers exquisite French pastries and macarons. - **Cedele** – Known for wholesome cakes and breads. - **Awfully Chocolate** – Specializes in rich chocolate cakes. These spots are highly rated by locals and visitors alike for their taste and quality.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "cakes and pastries experts Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Renowned for artisanal pastries and croissants.",
+        "Lady M** – Famous for their Mille Crêpes cakes.",
+        "Cedele** – Offers a wide range of cakes and healthy pastries.",
+        "Baker & Cook** – Known for handcrafted breads and pastries.",
+        "Lune Croissanterie** – Highly rated for buttery, flaky croissants and pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For cakes and pastries experts in Singapore, you can consider these well-known bakeries and patisseries: - **Tiong Bahru Bakery** – Renowned for artisanal pastries and croissants. - **Lady M** – Famous for their Mille Crêpes cakes. - **Cedele** – Offers a wide range of cakes and healthy pastries. - **Baker & Cook** – Known for handcrafted breads and pastries. - **Lune Croissanterie** – Highly rated for buttery, flaky croissants and pastries. These places are celebrated for quality and craftsmanship in cakes and pastries. Would you like recommendations for custom cake makers or specialty desserts?",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "trusted cakes and pastries Singapore",
+      "brand_name": "Keong Saik Bakery | Heritage with a Twist\n",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Awfully Chocolate** – Known for rich chocolate cakes and pastries.",
+        "Tiong Bahru Bakery** – Famous for artisanal pastries and croissants.",
+        "Cedele** – Offers a wide range of cakes, breads, and healthy pastries.",
+        "Lady M** – Renowned for their Mille Crêpes cakes.",
+        "Baker & Cook** – Great for freshly baked breads and pastries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For trusted cakes and pastries in Singapore, you can consider these popular and well-reviewed bakeries: - **Awfully Chocolate** – Known for rich chocolate cakes and pastries. - **Tiong Bahru Bakery** – Famous for artisanal pastries and croissants. - **Cedele** – Offers a wide range of cakes, breads, and healthy pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Baker & Cook** – Great for freshly baked breads and pastries. These bakeries have strong reputations for quality and taste. You can order online or visit their outlets across Singapore.",
+      "score": 4
+    }
+  ],
+  "competitor_data": {
+    "all_results": [
+      [
+        "sethlui.com",
+        6
+      ],
+      [
+        "bestinsingapore.com",
+        6
+      ],
+      [
+        "eatbook.sg",
+        4
+      ],
+      [
+        "patisserie-cle.com",
+        3
+      ],
+      [
+        "secretsingapore.co",
+        3
+      ],
+      [
+        "thehoneycombers.com",
+        3
+      ],
+      [
+        "foodadvisor.com.sg",
+        2
+      ],
+      [
+        "bestinsingapore.co",
+        2
+      ],
+      [
+        "lepakmou.com",
+        2
+      ],
+      [
+        "edithpatisserie.com",
+        2
+      ]
+    ],
+    "direct_competitors": [
+      [
+        "eatbook.sg",
+        4
+      ],
+      [
+        "patisserie-cle.com",
+        3
+      ],
+      [
+        "secretsingapore.co",
+        3
+      ],
+      [
+        "foodadvisor.com.sg",
+        2
+      ],
+      [
+        "lepakmou.com",
+        2
+      ],
+      [
+        "edithpatisserie.com",
+        2
+      ],
+      [
+        "bobthebakerboy.com",
+        2
+      ],
+      [
+        "katrina.ae",
+        2
+      ],
+      [
+        "danielfooddiary.com",
+        1
+      ],
+      [
+        "cedele.com",
+        1
+      ]
+    ],
+    "directory_sites": [
+      [
+        "bestinsingapore.com",
+        6
+      ],
+      [
+        "bestinsingapore.co",
+        2
+      ],
+      [
+        "thebestsingapore.com",
+        2
+      ],
+      [
+        "bestinsingapore.org",
+        2
+      ],
+      [
+        "singaporebestchoice.com",
+        1
+      ],
+      [
+        "bestinhood.com",
+        1
+      ]
+    ],
+    "media_sites": [
+      [
+        "sethlui.com",
+        6
+      ],
+      [
+        "thehoneycombers.com",
+        3
+      ],
+      [
+        "tripadvisor.com",
+        2
+      ],
+      [
+        "ladyironchef.com",
+        2
+      ],
+      [
+        "tripadvisor.com.sg",
+        1
+      ],
+      [
+        "m.yelp.com",
+        1
+      ],
+      [
+        "blog.moneysmart.sg",
+        1
+      ],
+      [
+        "timeout.com",
+        1
+      ],
+      [
+        "yelp.com",
+        1
+      ]
+    ],
+    "spam_sites": []
+  },
+  "content_gaps": [
+    "how much does cakes and pastries cost Singapore",
+    "how to choose cakes and pastries Singapore",
+    "what is the best cakes and pastries Singapore",
+    "who are the top cakes and pastries companies Singapore"
+  ],
+  "question_coverage": {
+    "topic": "cakes and pastries",
+    "pages_used": [
+      "https://www.keongsaikbakery.com/",
+      "https://www.keongsaikbakery.com/pages/faqs",
+      "https://www.keongsaikbakery.com/pages/about-us",
+      "https://www.keongsaikbakery.com/policies/terms-of-service",
+      "https://www.keongsaikbakery.com/pages/contact-us",
+      "https://www.keongsaikbakery.com/pages/corporate-orders-enquiries",
+      "https://www.keongsaikbakery.com/pages/careers",
+      "https://www.keongsaikbakery.com/hello@keongsaikbakery.com"
+    ],
+    "results": [
+      {
+        "question": "What's the difference between cake and pastry?",
+        "status": "Answered",
+        "score": 0.8
+      },
+      {
+        "question": "What Is The Difference Between Cake And Pastry?",
+        "status": "Answered",
+        "score": 0.75
+      },
+      {
+        "question": "Are Cakes Considered Pastry?",
+        "status": "Weak",
+        "score": 0.67
+      },
+      {
+        "question": "How do the storage and handling methods differ between pastry andcake? The storage and handling methods for pastry andcakediffer significantly, as they require different conditions to maintain their texture and flavor?",
+        "status": "Weak",
+        "score": 0.59
+      },
+      {
+        "question": "What is cakes and pastries?",
+        "status": "Answered",
+        "score": 1.0
+      },
+      {
+        "question": "How does cakes and pastries work?",
+        "status": "Answered",
+        "score": 1.0
+      },
+      {
+        "question": "What are the benefits of cakes and pastries?",
+        "status": "Weak",
+        "score": 0.67
+      },
+      {
+        "question": "What are the risks of cakes and pastries?",
+        "status": "Weak",
+        "score": 0.67
+      },
+      {
+        "question": "How much does cakes and pastries cost?",
+        "status": "Answered",
+        "score": 0.75
+      },
+      {
+        "question": "Is cakes and pastries worth it?",
+        "status": "Answered",
+        "score": 1.0
+      },
+      {
+        "question": "Who is cakes and pastries suitable for?",
+        "status": "Weak",
+        "score": 0.67
+      },
+      {
+        "question": "How do I choose cakes and pastries?",
+        "status": "Answered",
+        "score": 0.75
+      }
+    ]
+  },
+  "audit_data": {
+    "pages_checked": 10,
+    "service_pages": 2,
+    "blog_pages": 0,
+    "faq_pages": 2,
+    "question_headings": 0,
+    "schema_types": [
+      "Organization",
+      "Product"
+    ],
+    "content_score": 10,
+    "schema_score": 3,
+    "content_score_breakdown": {
+      "service_score": 4,
+      "blog_score": 0,
+      "faq_score": 6,
+      "question_score": 0
+    }
+  },
+  "final_report": {
+    "raw_score": 17.0,
+    "max_total_score": 65,
+    "normalized_score": 26.15,
+    "summary": "Weak foundation",
+    "verdict": "LOW OPPORTUNITY",
+    "report_text": "\n==================================================\n          AI VISIBILITY STRATEGY AUDIT\n==================================================\n\nWebsite: https://www.keongsaikbakery.com/\n\nVERDICT\n-------\nLOW OPPORTUNITY\n\nSCORES\n------\nContent Score: 10 / 30\nSchema Score: 3 / 15\nVisibility Score: 4.0 / 20\n\nRaw Score: 17.0 / 65\nNormalized Score: 26.15 / 100\nOpportunity Level: Weak foundation\n\nEXECUTIVE SUMMARY\n-----------------\nThis detailed audit evaluates the website's current structural readiness for\nAI-powered visibility, observed visibility signals, competitor landscape,\nand content opportunities. It is intended to support a deeper implementation strategy.\n\nBUSINESS PROFILE\n----------------\nTitle: Keong Saik Bakery | Heritage with a Twist\n\nDescription: A bakery passionate about blending traditional and modern flavours.\nEmail: None\nPhone: 01-03 339940 90219626 \nDetected Services: None\n\nAI VISIBILITY BREAKDOWN\n-----------------------\nQueries Tested: 15\nBrand Appearances in AI Answers: 0\nAverage Query Score: 4.0 / 20\nVisibility Score: 4.0 / 20\n\nAI ANSWER DETAILS\n-----------------\n• Query: best cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries., Lady M** – Renowned for their Mille Crêpes cakes., Awfully Chocolate** – Great for rich chocolate cakes and desserts., Lune Croissanterie** – Known for innovative, flaky croissants., Baker & Cook** – Offers a wide range of cakes and rustic pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For the best cakes and pastries in Singapore, you can try these popular spots known for quality and variety: - **Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Awfully Chocolate** – Great for rich chocolate cakes and desserts. - **Lune Croissanterie** – Known for innovative, flaky croissants. - **Baker & Cook** – Offers a wide range of cakes and rustic pastries. These bakeries are highly rated and offer delicious options for cakes and pastries in Singapore.\n\n• Query: top cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Tiong Bahru Bakery** – Famous for croissants and artisanal pastries., Lady M** – Renowned for their Mille Crêpes cakes., Awfully Chocolate** – Great for rich chocolate cakes and desserts., Baker & Cook** – Offers a wide range of cakes, tarts, and breads., Lune Croissanterie** – Known for premium croissants and pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For top cakes and pastries in Singapore, you can check out these popular bakeries known for quality and variety: - **Tiong Bahru Bakery** – Famous for croissants and artisanal pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Awfully Chocolate** – Great for rich chocolate cakes and desserts. - **Baker & Cook** – Offers a wide range of cakes, tarts, and breads. - **Lune Croissanterie** – Known for premium croissants and pastries. These spots are favorites among locals and visitors for delicious cakes and pastries.\n\n• Query: cakes and pastries services Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Awfully Chocolate** – famous for rich chocolate cakes and pastries., Tiong Bahru Bakery** – offers artisanal pastries and breads., Cedele** – known for healthier cakes and pastries with natural ingredients., Ladurée Singapore** – luxury French pastries and macarons., The Patissier** – custom cakes and creative pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For cakes and pastries services in Singapore, you have many great options known for quality and variety. Some popular providers include: - **Awfully Chocolate** – famous for rich chocolate cakes and pastries. - **Tiong Bahru Bakery** – offers artisanal pastries and breads. - **Cedele** – known for healthier cakes and pastries with natural ingredients. - **Ladurée Singapore** – luxury French pastries and macarons. - **The Patissier** – custom cakes and creative pastries. You can order online or visit their outlets for fresh cakes and pastries. Many also offer delivery and customized cake services for events.\n\n• Query: recommended cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries., Lady M** – Known for their signature Mille Crêpes cakes., Awfully Chocolate** – Great for rich chocolate cakes and desserts., Ladurée** – Offers exquisite French pastries and macarons., Cedele** – Healthy and tasty cakes with natural ingredients.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For delicious cakes and pastries in Singapore, here are some highly recommended places: - **Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries. - **Lady M** – Known for their signature Mille Crêpes cakes. - **Awfully Chocolate** – Great for rich chocolate cakes and desserts. - **Ladurée** – Offers exquisite French pastries and macarons. - **Cedele** – Healthy and tasty cakes with natural ingredients. - **Baker & Cook** – Rustic breads and delightful pastries. These spots are popular for quality and variety, perfect for any sweet craving!\n\n• Query: cakes and pastries company Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Awfully Chocolate** – famous for rich chocolate cakes and pastries, Tiong Bahru Bakery** – artisanal pastries and breads with French influence, Ladurée Singapore** – luxury French macarons and cakes, Cedele** – wholesome cakes and pastries with natural ingredients, The Patissier** – creative and elegant cakes and desserts\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Here are some popular cakes and pastries companies in Singapore known for quality and variety: - **Awfully Chocolate** – famous for rich chocolate cakes and pastries - **Tiong Bahru Bakery** – artisanal pastries and breads with French influence - **Ladurée Singapore** – luxury French macarons and cakes - **Cedele** – wholesome cakes and pastries with natural ingredients - **The Patissier** – creative and elegant cakes and desserts These brands offer both in-store and online ordering options for convenience. Would you like recommendations for a specific type of cake or occasion?\n\n• Query: how much does cakes and pastries cost Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Cakes:** Typically range from SGD 30 to SGD 100+ for specialty or custom cakes. Popular bakeries like Awfully Chocolate, Baker & Cook, and Plain Vanilla offer cakes starting around SGD 40., Pastries:** Usually cost between SGD 3 to SGD 8 each. Well-known spots like Tiong Bahru Bakery and Cedele have pastries in this range.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: In Singapore, the cost of cakes and pastries varies depending on the bakery and type: - **Cakes:** Typically range from SGD 30 to SGD 100+ for specialty or custom cakes. Popular bakeries like Awfully Chocolate, Baker & Cook, and Plain Vanilla offer cakes starting around SGD 40. - **Pastries:** Usually cost between SGD 3 to SGD 8 each. Well-known spots like Tiong Bahru Bakery and Cedele have pastries in this range. Prices can be higher for premium ingredients or customized designs.\n\n• Query: how to choose cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: **Occasion & Taste**: Decide if you want something rich (chocolate, mousse) or light (fruit tarts, chiffon)., **Freshness**: Look for bakeries known for daily fresh bakes like Tiong Bahru Bakery or Baker & Cook., **Ingredients**: Check if they use quality ingredients, especially if you prefer organic or less sugar., **Reviews & Recommendations**: Read customer reviews on platforms like Burpple or Google., **Customization**: For special occasions, choose bakeries offering custom designs, such as Awfully Chocolate or Lady M.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: When choosing cakes and pastries in Singapore, consider these tips: 1. **Occasion & Taste**: Decide if you want something rich (chocolate, mousse) or light (fruit tarts, chiffon). 2. **Freshness**: Look for bakeries known for daily fresh bakes like Tiong Bahru Bakery or Baker & Cook. 3. **Ingredients**: Check if they use quality ingredients, especially if you prefer organic or less sugar. 4. **Reviews & Recommendations**: Read customer reviews on platforms like Burpple or Google. 5. **Customization**: For special occasions, choose bakeries offering custom designs, such as Awfully Chocolate or Lady M. 6. **Dietary Needs**: If needed, find options for gluten-free, vegan, or halal-certified pastries. Popular bakeries in Singapore include: - Tiong Bahru Bakery - Awfully Chocolate - Baker & Cook - Lady M - Cedele These tips should help you pick the perfect cakes and pastries!\n\n• Query: what is the best cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries., Lady M** – Known for their delicate Mille Crêpes cakes., Awfully Chocolate** – Popular for rich, moist chocolate cakes., Lune Croissanterie** – Highly rated for flaky, expertly crafted croissants., Baker & Cook** – Offers a great variety of cakes and rustic pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Some of the best cakes and pastries in Singapore come from renowned bakeries known for quality and taste: - **Tiong Bahru Bakery** – Famous for buttery croissants and artisanal pastries. - **Lady M** – Known for their delicate Mille Crêpes cakes. - **Awfully Chocolate** – Popular for rich, moist chocolate cakes. - **Lune Croissanterie** – Highly rated for flaky, expertly crafted croissants. - **Baker & Cook** – Offers a great variety of cakes and rustic pastries. These spots are favorites among locals and visitors for delicious cakes and pastries in Singapore.\n\n• Query: who are the top cakes and pastries companies Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Awfully Chocolate** – famous for rich chocolate cakes and desserts, Cedele** – offers a wide range of healthy cakes and pastries, Tiong Bahru Bakery** – known for artisanal pastries and croissants, Ladurée Singapore** – luxury French pastries and macarons, The Patissier** – creative and beautifully crafted cakes and desserts\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Some of the top cakes and pastries companies in Singapore known for quality and variety include: - **Awfully Chocolate** – famous for rich chocolate cakes and desserts - **Cedele** – offers a wide range of healthy cakes and pastries - **Tiong Bahru Bakery** – known for artisanal pastries and croissants - **Ladurée Singapore** – luxury French pastries and macarons - **The Patissier** – creative and beautifully crafted cakes and desserts These brands are popular for both everyday treats and special occasions.\n\n• Query: affordable cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: BreadTalk**: Known for a wide variety of affordable cakes and pastries., Polar Puffs & Cakes**: Offers budget-friendly cakes and classic pastries., Four Leaves**: Well-loved for affordable and tasty cakes., PrimaDéli**: Good range of cakes and pastries at reasonable prices., Baker & Cook**: Slightly higher price but good value for quality pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For affordable cakes and pastries in Singapore, you can check out these popular options: - **BreadTalk**: Known for a wide variety of affordable cakes and pastries. - **Polar Puffs & Cakes**: Offers budget-friendly cakes and classic pastries. - **Four Leaves**: Well-loved for affordable and tasty cakes. - **PrimaDéli**: Good range of cakes and pastries at reasonable prices. - **Baker & Cook**: Slightly higher price but good value for quality pastries. These bakeries have outlets island-wide and often run promotions, so you can get good deals.\n\n• Query: cakes and pastries companies in Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Awfully Chocolate** – famous for rich chocolate cakes and desserts., Tiong Bahru Bakery** – known for artisanal pastries and croissants., Ladurée Singapore** – offers French-style cakes and macarons., Cedele** – healthy and wholesome cakes and pastries., The Patissier** – creative and beautifully crafted cakes.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Here are some popular cakes and pastries companies in Singapore known for their quality and variety: - **Awfully Chocolate** – famous for rich chocolate cakes and desserts. - **Tiong Bahru Bakery** – known for artisanal pastries and croissants. - **Ladurée Singapore** – offers French-style cakes and macarons. - **Cedele** – healthy and wholesome cakes and pastries. - **The Patissier** – creative and beautifully crafted cakes. - **Bakerzin** – wide range of cakes and desserts. These bakeries have multiple outlets across Singapore and offer both dine-in and delivery options.\n\n• Query: compare cakes and pastries services Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Cakes Services:**, Focus on custom cakes for occasions like birthdays, weddings, and corporate events., Offer personalized designs, flavors, and sizes., Examples: Awfully Chocolate, The Patissier, and Lady M., Pastries Services:**\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: In Singapore, both cakes and pastries services are popular, but they cater to slightly different needs: **Cakes Services:** - Focus on custom cakes for occasions like birthdays, weddings, and corporate events. - Offer personalized designs, flavors, and sizes. - Examples: Awfully Chocolate, The Patissier, and Lady M. **Pastries Services:** - Specialize in a variety of baked goods like croissants, tarts, eclairs, and danishes. - Great for daily treats, brunch, or gifting. - Examples: Tiong Bahru Bakery, Baker & Cook, and Cedele. If you want custom celebration cakes, go for cake specialists. For everyday indulgence or gifting, pastry shops offer a wider variety of baked goods. Some bakeries like Tiong Bahru Bakery and The Patissier offer both cakes and pastries with high quality.\n\n• Query: top rated cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Tiong Bahru Bakery** – Famous for croissants and artisanal pastries., Lady M** – Renowned for their Mille Crêpes cakes., Ladurée** – Offers exquisite French pastries and macarons., Cedele** – Known for wholesome cakes and breads., Awfully Chocolate** – Specializes in rich chocolate cakes.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For top-rated cakes and pastries in Singapore, you can check out these popular bakeries known for quality and delicious treats: - **Tiong Bahru Bakery** – Famous for croissants and artisanal pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Ladurée** – Offers exquisite French pastries and macarons. - **Cedele** – Known for wholesome cakes and breads. - **Awfully Chocolate** – Specializes in rich chocolate cakes. These spots are highly rated by locals and visitors alike for their taste and quality.\n\n• Query: cakes and pastries experts Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Tiong Bahru Bakery** – Renowned for artisanal pastries and croissants., Lady M** – Famous for their Mille Crêpes cakes., Cedele** – Offers a wide range of cakes and healthy pastries., Baker & Cook** – Known for handcrafted breads and pastries., Lune Croissanterie** – Highly rated for buttery, flaky croissants and pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For cakes and pastries experts in Singapore, you can consider these well-known bakeries and patisseries: - **Tiong Bahru Bakery** – Renowned for artisanal pastries and croissants. - **Lady M** – Famous for their Mille Crêpes cakes. - **Cedele** – Offers a wide range of cakes and healthy pastries. - **Baker & Cook** – Known for handcrafted breads and pastries. - **Lune Croissanterie** – Highly rated for buttery, flaky croissants and pastries. These places are celebrated for quality and craftsmanship in cakes and pastries. Would you like recommendations for custom cake makers or specialty desserts?\n\n• Query: trusted cakes and pastries Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Awfully Chocolate** – Known for rich chocolate cakes and pastries., Tiong Bahru Bakery** – Famous for artisanal pastries and croissants., Cedele** – Offers a wide range of cakes, breads, and healthy pastries., Lady M** – Renowned for their Mille Crêpes cakes., Baker & Cook** – Great for freshly baked breads and pastries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For trusted cakes and pastries in Singapore, you can consider these popular and well-reviewed bakeries: - **Awfully Chocolate** – Known for rich chocolate cakes and pastries. - **Tiong Bahru Bakery** – Famous for artisanal pastries and croissants. - **Cedele** – Offers a wide range of cakes, breads, and healthy pastries. - **Lady M** – Renowned for their Mille Crêpes cakes. - **Baker & Cook** – Great for freshly baked breads and pastries. These bakeries have strong reputations for quality and taste. You can order online or visit their outlets across Singapore.\n\n\nWEBSITE STRUCTURE\n-----------------\nPages Checked: 10\nService Pages: 2\nBlog Pages: 0\nFAQ Pages: 2\nQuestion Headings: 0\nSchema Types: Organization, Product\n\nCONTENT SCORE BREAKDOWN\n-----------------------\nService Score: 4 / 10\nBlog Score: 0 / 10\nFAQ Score: 6 / 6\nQuestion Score: 0 / 4\n\nDIRECT COMPETITORS\n------------------\n• eatbook.sg (4 appearances in analyzed results)\n• patisserie-cle.com (3 appearances in analyzed results)\n• secretsingapore.co (3 appearances in analyzed results)\n• foodadvisor.com.sg (2 appearances in analyzed results)\n• lepakmou.com (2 appearances in analyzed results)\n• edithpatisserie.com (2 appearances in analyzed results)\n• bobthebakerboy.com (2 appearances in analyzed results)\n• katrina.ae (2 appearances in analyzed results)\n• danielfooddiary.com (1 appearances in analyzed results)\n• cedele.com (1 appearances in analyzed results)\n\nDIRECTORY / LIST SITES\n----------------------\n• bestinsingapore.com (6 appearances in analyzed results)\n• bestinsingapore.co (2 appearances in analyzed results)\n• thebestsingapore.com (2 appearances in analyzed results)\n• bestinsingapore.org (2 appearances in analyzed results)\n• singaporebestchoice.com (1 appearances in analyzed results)\n• bestinhood.com (1 appearances in analyzed results)\n\nMEDIA / INFORMATION SITES\n-------------------------\n• sethlui.com (6 appearances in analyzed results)\n• thehoneycombers.com (3 appearances in analyzed results)\n• tripadvisor.com (2 appearances in analyzed results)\n• ladyironchef.com (2 appearances in analyzed results)\n• tripadvisor.com.sg (1 appearances in analyzed results)\n• m.yelp.com (1 appearances in analyzed results)\n• blog.moneysmart.sg (1 appearances in analyzed results)\n• timeout.com (1 appearances in analyzed results)\n• yelp.com (1 appearances in analyzed results)\n\nLOW-QUALITY / SPAM SITES\n------------------------\n• No major spam-like domains detected.\n\nCONTENT GAP OPPORTUNITIES\n-------------------------\n• how much does cakes and pastries cost Singapore\n• how to choose cakes and pastries Singapore\n• what is the best cakes and pastries Singapore\n• who are the top cakes and pastries companies Singapore\n\nQUESTION COVERAGE AUDIT\n-----------------------\n• What's the difference between cake and pastry? — Answered (0.8)\n• What Is The Difference Between Cake And Pastry? — Answered (0.75)\n• Are Cakes Considered Pastry? — Weak (0.67)\n• How do the storage and handling methods differ between pastry andcake? The storage and handling methods for pastry andcakediffer significantly, as they require different conditions to maintain their texture and flavor? — Weak (0.59)\n• What is cakes and pastries? — Answered (1.0)\n• How does cakes and pastries work? — Answered (1.0)\n• What are the benefits of cakes and pastries? — Weak (0.67)\n• What are the risks of cakes and pastries? — Weak (0.67)\n• How much does cakes and pastries cost? — Answered (0.75)\n• Is cakes and pastries worth it? — Answered (1.0)\n• Who is cakes and pastries suitable for? — Weak (0.67)\n• How do I choose cakes and pastries? — Answered (0.75)\n\nQUESTION COVERAGE PAGES USED\n----------------------------\n• https://www.keongsaikbakery.com/\n• https://www.keongsaikbakery.com/pages/faqs\n• https://www.keongsaikbakery.com/pages/about-us\n• https://www.keongsaikbakery.com/policies/terms-of-service\n• https://www.keongsaikbakery.com/pages/contact-us\n• https://www.keongsaikbakery.com/pages/corporate-orders-enquiries\n• https://www.keongsaikbakery.com/pages/careers\n• https://www.keongsaikbakery.com/hello@keongsaikbakery.com\n\nRECOMMENDATIONS\n---------------\n1. Publish more educational articles to improve topical authority.\n2. Add or improve schema markup such as Organization and FAQPage.\n3. Improve AI visibility through stronger content, entity signals, and authority mentions.\n\n90-DAY IMPLEMENTATION DIRECTION\n-------------------------------\nPhase 1: Fix structural gaps (FAQ, schema, key pages)\nPhase 2: Publish educational topic-cluster content\nPhase 3: Improve entity signals and authority mentions\nPhase 4: Monitor AI visibility and refine query coverage\n"
+  }
+}

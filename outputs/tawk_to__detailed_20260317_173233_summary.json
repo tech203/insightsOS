@@ -1,0 +1,66 @@
+{
+  "website": "https://www.tawk.to/",
+  "audit_type": "detailed",
+  "saved_at": "2026-03-17T17:32:33.877074",
+  "client_id": "tech-astra-collective",
+  "client_name": "Tech | Astra Collective",
+  "user_id": 2,
+  "scores": {
+    "content_score": 20,
+    "schema_score": 0,
+    "visibility_score": 4.0,
+    "average_query_score": 4.0,
+    "raw_score": 24.0,
+    "normalized_score": 36.92
+  },
+  "summary": {
+    "verdict": "MODERATE OPPORTUNITY",
+    "opportunity_level": "Moderate opportunity"
+  },
+  "business_profile": {
+    "title": "tawk.to – \"100% FREE live chat software for your website!\"",
+    "description": "www.tawk.to is 100% Free Live Chat Software to monitor and chat with visitors on your website or from a free customizable page.",
+    "email": null,
+    "phone": null,
+    "services_detected": [
+      "service"
+    ]
+  },
+  "visibility_snapshot": {
+    "queries_tested": 15,
+    "brand_appearances": 0
+  },
+  "top_competitors": [
+    {
+      "domain": "clutch.co",
+      "appearances": 4
+    },
+    {
+      "domain": "thinkstack.ai",
+      "appearances": 4
+    },
+    {
+      "domain": "revechat.com",
+      "appearances": 4
+    },
+    {
+      "domain": "asi.sg",
+      "appearances": 4
+    },
+    {
+      "domain": "otg-lab.com",
+      "appearances": 4
+    }
+  ],
+  "top_content_gaps": [
+    "how much does Chatbot cost Singapore",
+    "how to choose Chatbot Singapore",
+    "what is the best Chatbot Singapore",
+    "who are the top Chatbot companies Singapore"
+  ],
+  "top_recommendations": [
+    "1. Publish more educational articles to improve topical authority.",
+    "2. Add or improve schema markup such as Organization and FAQPage.",
+    "3. Improve AI visibility through stronger content, entity signals, and authority mentions."
+  ]
+}

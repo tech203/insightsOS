@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | AEO Agents</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-shell">
+        <section class="auth-brand-panel">
+            <div class="auth-brand-top">
+                <div class="brand-mark large">A</div>
+                <div>
+                    <h1>AEO Agents</h1>
+                    <p>Build a repeatable workflow for AI visibility audits, client reporting, and content execution.</p>
+                </div>
+            </div>
+
+            <div class="auth-feature-stack">
+                <div class="auth-feature-card">
+                    <h3>3 starter credits</h3>
+                    <p>New accounts begin with starter credits so you can test the workflow immediately.</p>
+                </div>
+                <div class="auth-feature-card">
+                    <h3>Agency-ready workspace</h3>
+                    <p>Organize multiple clients, audit history, actions, and content queue items in one system.</p>
+                </div>
+                <div class="auth-feature-card">
+                    <h3>Referral support</h3>
+                    <p>Use referral codes during signup to unlock referral rewards when qualification rules are met.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-form-panel">
+            <div class="auth-form-card">
+                <div class="auth-form-header">
+                    <h2>Create your account</h2>
+                    <p>Start your AEO workspace and get access to credits, audits, and content tools.</p>
+                </div>
+
+                {% if error %}
+                <div class="comparison-banner declined">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+                {% endif %}
+
+                <form method="POST" class="form-stack">
+                    <div class="form-field">
+                        <label for="name">Name</label>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            placeholder="Your name"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Create a password"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="referral_code">Referral Code</label>
+                        <input
+                            type="text"
+                            id="referral_code"
+                            name="referral_code"
+                            placeholder="Optional"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+                </form>
+
+                <div class="auth-footer-links">
+                    <span>Already have an account?</span>
+                    <a href="{{ url_for('login') }}" class="text-link">Log in</a>
+                </div>
+
+                <div class="auth-footer-links">
+                    <a href="{{ url_for('aeo_agency_page') }}" class="text-link">Back to landing page</a>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

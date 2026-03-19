@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Draft Result{% endblock %}
+{% block page_title %}{{ client.name }} · Draft Result{% endblock %}
+{% block page_subtitle %}Review the generated draft, make edits if needed, then save it into the content queue for production or publishing.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">New Draft</a>
+<a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">Open Queue</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Generated Draft</h2>
+                <p class="panel-subtitle">Edit the draft before saving it to the queue.</p>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('save_generated_draft', client_id=client.id) }}" class="form-stack">
+            <div class="form-grid-2">
+                <div class="form-field form-field-full">
+                    <label for="target_query">Target Query</label>
+                    <input
+                        type="text"
+                        id="target_query"
+                        name="target_query"
+                        value="{{ result.target_query if result and result.target_query is defined else '' }}"
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="content_type">Content Type</label>
+                    <input
+                        type="text"
+                        id="content_type"
+                        name="content_type"
+                        value="{{ result.content_type if result and result.content_type is defined else '' }}"
+                    >
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="draft_text">Draft Content</label>
+                    <textarea id="draft_text" name="draft_text" class="editor-textarea">{% if result.draft is defined %}{{ result.draft }}{% else %}{{ result | tojson(indent=2) }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button type="submit" class="btn btn-primary">Save to Queue</button>
+                <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Another</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Recommended Workflow</h2>
+                <p class="panel-subtitle">A practical way to move this draft forward.</p>
+            </div>
+        </div>
+
+        <div class="action-list">
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge low">Step 1</span>
+                    <h3>Edit the first draft</h3>
+                </div>
+                <p>Adjust claims, examples, CTA, tone, and any client-specific facts before publishing.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge medium">Step 2</span>
+                    <h3>Save to queue</h3>
+                </div>
+                <p>Store the draft in the queue so it can be tracked through production.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge high">Step 3</span>
+                    <h3>Publish and re-audit</h3>
+                </div>
+                <p>After the page is live, run another audit later to check whether visibility improved.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

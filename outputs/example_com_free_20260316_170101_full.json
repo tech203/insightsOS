@@ -1,0 +1,301 @@
+{
+  "website": "https://example.com",
+  "audit_type": "free",
+  "saved_at": "2026-03-16T17:01:01.480643",
+  "business_profile": {
+    "title": "Example Domain",
+    "description": "",
+    "email": null,
+    "phone": null,
+    "services_detected": []
+  },
+  "visibility_data": {
+    "queries_tested": 5,
+    "appearances": 0,
+    "average_query_score": 4.0,
+    "visibility_score": 4.0
+  },
+  "ai_answer_results": [
+    {
+      "engine": "chatgpt",
+      "query": "best interior designer singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Design Intervention** – Known for modern, functional designs.",
+        "The Interior Lab** – Specializes in contemporary and luxury interiors.",
+        "Furnihaus** – Offers bespoke and stylish home designs.",
+        "Space Matrix** – Great for commercial and office interiors.",
+        "PES Studio** – Renowned for minimalist and elegant aesthetics."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Some of the best interior designers in Singapore known for quality and creativity include: - **Design Intervention** – Known for modern, functional designs. - **The Interior Lab** – Specializes in contemporary and luxury interiors. - **Furnihaus** – Offers bespoke and stylish home designs. - **Space Matrix** – Great for commercial and office interiors. - **PES Studio** – Renowned for minimalist and elegant aesthetics. Choosing depends on your style preference and budget. Many firms offer free consultations to discuss your project.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top interior designer singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "IDIN Architects** – Known for modern and innovative designs.",
+        "The Interior Lab** – Specializes in residential and commercial spaces.",
+        "Space Matrix** – Renowned for corporate and office interiors.",
+        "Design Intervention** – Focuses on bespoke and luxury interiors.",
+        "Orange Cube** – Offers contemporary and stylish design solutions."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Some of the top interior designers in Singapore known for their quality and creativity include: - **IDIN Architects** – Known for modern and innovative designs. - **The Interior Lab** – Specializes in residential and commercial spaces. - **Space Matrix** – Renowned for corporate and office interiors. - **Design Intervention** – Focuses on bespoke and luxury interiors. - **Orange Cube** – Offers contemporary and stylish design solutions. These firms have strong portfolios and good client reviews, making them great choices depending on your style and project needs.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "interior designer services singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Design Intervention** – Known for modern and functional designs.",
+        "The Interior Lab** – Offers personalized and innovative interiors.",
+        "Furnihaus** – Specializes in bespoke furniture and interior design.",
+        "Space Matrix** – Focuses on commercial and residential spaces.",
+        "Free Space Intent** – Provides holistic and sustainable design solutions."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For interior designer services in Singapore, you can consider reputable firms and freelancers known for quality and creativity. Some well-regarded options include: - **Design Intervention** – Known for modern and functional designs. - **The Interior Lab** – Offers personalized and innovative interiors. - **Furnihaus** – Specializes in bespoke furniture and interior design. - **Space Matrix** – Focuses on commercial and residential spaces. - **Free Space Intent** – Provides holistic and sustainable design solutions. These firms typically offer services from concept development to project management, tailored to your style and budget. You can also explore platforms like **Renopedia** or **Qanvast** to find and compare interior designers with reviews and portfolios.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "recommended interior designer singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Design Intervention** – Known for modern, elegant residential and commercial designs.",
+        "The Interior Lab** – Specializes in bespoke, functional spaces with a contemporary touch.",
+        "Furnitecture** – Offers innovative and stylish interior solutions.",
+        "Space Matrix** – Great for corporate and large-scale projects.",
+        "PES Design** – Renowned for luxury and sophisticated interiors."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Here are some highly recommended interior designers in Singapore known for quality and creativity: - **Design Intervention** – Known for modern, elegant residential and commercial designs. - **The Interior Lab** – Specializes in bespoke, functional spaces with a contemporary touch. - **Furnitecture** – Offers innovative and stylish interior solutions. - **Space Matrix** – Great for corporate and large-scale projects. - **PES Design** – Renowned for luxury and sophisticated interiors. You can check their portfolios online and read client reviews to find the best fit for your style and budget.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "interior designer company singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Design Intervention** – Known for modern and functional designs.",
+        "The Interior Lab** – Specializes in residential and commercial spaces.",
+        "Space Matrix** – Focuses on innovative office interiors.",
+        "Furnihaus** – Offers bespoke furniture and interior design services.",
+        "Livspace** – Popular for end-to-end home interior solutions with transparent pricing."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "If you're looking for interior designer companies in Singapore, here are some reputable options: - **Design Intervention** – Known for modern and functional designs. - **The Interior Lab** – Specializes in residential and commercial spaces. - **Space Matrix** – Focuses on innovative office interiors. - **Furnihaus** – Offers bespoke furniture and interior design services. - **Livspace** – Popular for end-to-end home interior solutions with transparent pricing. These companies have strong portfolios and good client reviews. Depending on your style and budget, you can contact them for consultations.",
+      "score": 4
+    }
+  ],
+  "competitor_data": {
+    "all_results": [
+      [
+        "spacefactor.com.sg",
+        4
+      ],
+      [
+        "bestinsingapore.co",
+        4
+      ],
+      [
+        "bing.com",
+        3
+      ],
+      [
+        "hometrust.sg",
+        3
+      ],
+      [
+        "artmuseinterior.com",
+        2
+      ],
+      [
+        "thesingaporeblog.com",
+        2
+      ],
+      [
+        "urbanhomedesign.com.sg",
+        1
+      ],
+      [
+        "sixides.com",
+        1
+      ],
+      [
+        "swissinterior.com.sg",
+        1
+      ],
+      [
+        "kitchenate.sg",
+        1
+      ]
+    ],
+    "direct_competitors": [
+      [
+        "spacefactor.com.sg",
+        4
+      ],
+      [
+        "bing.com",
+        3
+      ],
+      [
+        "hometrust.sg",
+        3
+      ],
+      [
+        "artmuseinterior.com",
+        2
+      ],
+      [
+        "urbanhomedesign.com.sg",
+        1
+      ],
+      [
+        "sixides.com",
+        1
+      ],
+      [
+        "swissinterior.com.sg",
+        1
+      ],
+      [
+        "kitchenate.sg",
+        1
+      ],
+      [
+        "fineline.com.sg",
+        1
+      ]
+    ],
+    "directory_sites": [
+      [
+        "bestinsingapore.co",
+        4
+      ],
+      [
+        "singaporebrand.com.sg",
+        1
+      ]
+    ],
+    "media_sites": [
+      [
+        "thesingaporeblog.com",
+        2
+      ],
+      [
+        "thehoneycombers.com",
+        1
+      ]
+    ],
+    "spam_sites": []
+  },
+  "content_gaps": [],
+  "question_coverage": {
+    "topic": "interior designer",
+    "pages_used": [
+      "https://example.com"
+    ],
+    "results": [
+      {
+        "question": "What does an interior designer do?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "What Do Interior Designers Do?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "What matters most is how you live your life, the habits you present, the way you respond to things like clutter or mess, and your priorities?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "What's your job like as an interior designer? : r/InteriorDesign?",
+        "status": "Missing",
+        "score": 0.22
+      },
+      {
+        "question": "Is hiring an interior designer worth it for a $45k+ kitchen/ bathroom?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "Is hiring aninteriordesignerworth it for a $45k+ kitchen/ bathroom remodel? (self?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "Is Hiring an Interior Designer Worth It Reddit: Insights and Tips from?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How to Start and Operate Your Own Design Firm: A Guide for Interior Designers and Architects (book)?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How to Start and Operate Your Own Design Firm: A Guide for Interior Designers and Architects is a practical guidebook by Albert W?",
+        "status": "Missing",
+        "score": 0.07
+      },
+      {
+        "question": "How do I get into interior design with no experience/education?",
+        "status": "Missing",
+        "score": 0.22
+      }
+    ]
+  },
+  "audit_data": {
+    "pages_checked": 1,
+    "service_pages": 0,
+    "blog_pages": 0,
+    "faq_pages": 0,
+    "question_headings": 0,
+    "schema_types": [],
+    "content_score": 0,
+    "schema_score": 0,
+    "content_score_breakdown": {
+      "service_score": 0,
+      "blog_score": 0,
+      "faq_score": 0,
+      "question_score": 0
+    }
+  },
+  "final_report": {
+    "raw_score": 4.0,
+    "max_total_score": 65,
+    "normalized_score": 6.15,
+    "summary": "Weak foundation",
+    "verdict": "LOW OPPORTUNITY",
+    "report_text": "\n==================================================\n             AI VISIBILITY SNAPSHOT\n==================================================\n\nWebsite: https://example.com\n\nVERDICT\n-------\nLOW OPPORTUNITY\n\nSCORE\n-----\nRaw Score: 4.0 / 65\nNormalized Score: 6.15 / 100\nOpportunity Level: Weak foundation\n\nWHAT THIS MEANS\n---------------\nThis free snapshot gives a quick view of how prepared the website appears for\nAI-powered discovery and recommendation systems. It is designed as a high-level\nscreening report, not a full implementation audit.\n\nBUSINESS PROFILE\n----------------\nTitle: Example Domain\nDescription: \nEmail: None\nPhone: None\nDetected Services: None\n\nAI VISIBILITY SNAPSHOT\n----------------------\nQueries Tested: 5\nBrand Appearances in AI Answers: 0\nAverage Query Score: 4.0 / 20\nVisibility Score: 4.0 / 20\n\nAI ANSWER EXAMPLES\n------------------\n• Query: best interior designer singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Answer Type: list-led\n  Score: 4 / 20\n• Query: top interior designer singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Answer Type: list-led\n  Score: 4 / 20\n• Query: interior designer services singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Answer Type: list-led\n  Score: 4 / 20\n\nDIRECT COMPETITORS\n------------------\n• spacefactor.com.sg (4 appearances in analyzed results)\n• bing.com (3 appearances in analyzed results)\n• hometrust.sg (3 appearances in analyzed results)\n\nDIRECTORY / LIST SITES\n----------------------\n• bestinsingapore.co (4 appearances in analyzed results)\n• singaporebrand.com.sg (1 appearances in analyzed results)\n\nMEDIA / INFORMATION SITES\n-------------------------\n• thesingaporeblog.com (2 appearances in analyzed results)\n• thehoneycombers.com (1 appearances in analyzed results)\n\nTOP CONTENT OPPORTUNITIES\n-------------------------\n• No major content gaps detected in this quick pass.\n\nQUESTION COVERAGE SNAPSHOT\n--------------------------\n• What does an interior designer do? — Missing (0.0)\n• What Do Interior Designers Do? — Missing (0.0)\n• What matters most is how you live your life, the habits you present, the way you respond to things like clutter or mess, and your priorities? — Missing (0.0)\n• What's your job like as an interior designer? : r/InteriorDesign? — Missing (0.22)\n• Is hiring an interior designer worth it for a $45k+ kitchen/ bathroom? — Missing (0.0)\n\nTOP RECOMMENDATIONS\n-------------------\n1. Add at least one FAQ page or FAQ section.\n2. Publish more educational articles to improve topical authority.\n3. Add or improve schema markup such as Organization and FAQPage.\n\nNEXT STEP\n---------\nBook a strategy session to review these findings and map a deeper\nAI Visibility plan with more queries, more competitor analysis,\nand a 90-day implementation roadmap.\n"
+  }
+}

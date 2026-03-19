@@ -1,0 +1,40 @@
+[
+  {
+    "id": "chung-will-writing",
+    "name": "Chung Will Writing Services",
+    "website": "https://example.com",
+    "industry": "Will Writing",
+    "location": "Singapore",
+    "owner_type": "company",
+    "notes": "Main legal/will-writing client."
+  },
+  {
+    "id": "nova-dental",
+    "name": "Nova Dental",
+    "website": "https://novadental.com",
+    "industry": "Dental",
+    "location": "Singapore",
+    "owner_type": "agency",
+    "notes": "Agency-managed dental client."
+  },
+  {
+    "id": "tech-astra-collective",
+    "user_id": 2,
+    "name": "Tech | Astra Collective",
+    "website": "https://www.tawk.to/",
+    "industry": "Chatbot",
+    "location": "Singapore",
+    "owner_type": "company",
+    "notes": ""
+  },
+  {
+    "id": "darbot-ai",
+    "user_id": 1,
+    "name": "DarBot AI",
+    "website": "darbotai.com",
+    "industry": "Chatbot",
+    "location": "Singapore",
+    "owner_type": "company",
+    "notes": ""
+  }
+]

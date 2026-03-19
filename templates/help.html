@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Help | AEO Agents{% endblock %}
+{% block page_title %}Help{% endblock %}
+{% block page_subtitle %}Reference glossary and product guidance for the main audit, visibility, and content workflow concepts in the platform.{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>How to Use the Platform</h2>
+            <p class="panel-subtitle">A quick guide to the most important pages in the workspace.</p>
+        </div>
+    </div>
+
+    <div class="landing-grid-3">
+        <div class="workspace-link-card">
+            <h3>Clients</h3>
+            <p>Create a client workspace, run audits, and access visibility, competitors, actions, and history.</p>
+        </div>
+        <div class="workspace-link-card">
+            <h3>Audit Library</h3>
+            <p>Review saved summaries and full reports across all client workspaces.</p>
+        </div>
+        <div class="workspace-link-card">
+            <h3>Content Queue</h3>
+            <p>Store generated briefs and drafts, then move them through workflow stages.</p>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Glossary</h2>
+            <p class="panel-subtitle">Reference terms available from your current help content source.</p>
+        </div>
+    </div>
+
+    {% if glossary %}
+    <div class="help-glossary-grid">
+        {% for term, definition in glossary.items() %}
+        <article class="action-card">
+            <div class="action-card-top">
+                <span class="priority-badge low">Term</span>
+                <h3>{{ term }}</h3>
+            </div>
+            <p>{{ definition }}</p>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <h3>No glossary entries found</h3>
+        <p>Your HELP_GLOSSARY source is currently empty.</p>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Recommended Workflow</h2>
+            <p class="panel-subtitle">A simple sequence for operating the tool effectively.</p>
+        </div>
+    </div>
+
+    <div class="landing-workflow">
+        <div class="workflow-step">
+            <div class="workflow-number">1</div>
+            <h3>Add client</h3>
+            <p>Create a workspace with the client website and business context.</p>
+        </div>
+        <div class="workflow-step">
+            <div class="workflow-number">2</div>
+            <h3>Run audit</h3>
+            <p>Generate the latest report and save it into history.</p>
+        </div>
+        <div class="workflow-step">
+            <div class="workflow-number">3</div>
+            <h3>Review gaps</h3>
+            <p>Open Visibility, Competitors, and Actions to understand what needs to change.</p>
+        </div>
+        <div class="workflow-step">
+            <div class="workflow-number">4</div>
+            <h3>Produce content</h3>
+            <p>Generate briefs and drafts, then save them to the queue for execution.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

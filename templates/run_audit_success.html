@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Audit Complete{% endblock %}
+{% block page_title %}{{ client.name }} · Audit Complete{% endblock %}
+{% block page_subtitle %}The audit finished successfully. Open the saved reports, review the results, and continue into the action workflow.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Audit Completed</h2>
+                <p class="panel-subtitle">Your latest run has been saved and is ready for review.</p>
+            </div>
+        </div>
+
+        <div class="comparison-banner improved">
+            <strong>Success:</strong> The audit has been generated and saved.
+        </div>
+
+        <div class="info-list">
+            <div class="info-row">
+                <span>Client</span>
+                <strong>{{ client.name }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Website</span>
+                <strong>{{ result.website if result and result.website is defined else client.website }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Audit Type</span>
+                <strong>{{ result.audit_type if result and result.audit_type is defined else "N/A" }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Summary File</span>
+                <strong>{{ result.summary_filename if result and result.summary_filename is defined else "Saved" }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Full File</span>
+                <strong>{{ result.full_filename if result and result.full_filename is defined else "Saved" }}</strong>
+            </div>
+        </div>
+
+        <div class="card-actions">
+            {% if result and result.summary_filename is defined %}
+            <a href="{{ url_for('audit_summary', summary_filename=result.summary_filename) }}" class="btn btn-primary">Open Summary</a>
+            {% endif %}
+            {% if result and result.summary_filename is defined %}
+            <a href="{{ url_for('audit_full', summary_filename=result.summary_filename) }}" class="btn btn-secondary">Open Full Audit</a>
+            {% endif %}
+            <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Open Visibility</a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Recommended Next Step</h2>
+                <p class="panel-subtitle">Use the saved audit to move directly into execution.</p>
+            </div>
+        </div>
+
+        <div class="workspace-links-grid">
+            <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="workspace-link-card">
+                <h3>Visibility</h3>
+                <p>Check whether the brand is present across tracked queries and where gaps still exist.</p>
+            </a>
+            <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="workspace-link-card">
+                <h3>Competitors</h3>
+                <p>Review where competing brands appear in answers and identify counter-content opportunities.</p>
+            </a>
+            <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="workspace-link-card">
+                <h3>Actions</h3>
+                <p>Turn the audit into a prioritized execution plan.</p>
+            </a>
+            <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="workspace-link-card">
+                <h3>Generate Brief</h3>
+                <p>Create a structured brief from a missed or important target query.</p>
+            </a>
+            <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="workspace-link-card">
+                <h3>Generate Draft</h3>
+                <p>Move straight into content production while the audit findings are fresh.</p>
+            </a>
+            <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="workspace-link-card">
+                <h3>History</h3>
+                <p>Track how this run compares against future audits over time.</p>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Content Draft{% endblock %}
+{% block page_title %}{{ client.name }} · Content Draft{% endblock %}
+{% block page_subtitle %}Generate a first draft for a target query using brand context and optional brief context. This uses 2 credits.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Draft Generator</h2>
+                <p class="panel-subtitle">Use this when you are ready to turn a query into usable content.</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="comparison-banner declined">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="form-stack">
+            <input type="hidden" name="action_mode" value="generate">
+
+            <div class="form-grid-2">
+                <div class="form-field form-field-full">
+                    <label for="target_query">Target Query</label>
+                    <input
+                        type="text"
+                        id="target_query"
+                        name="target_query"
+                        value="{{ form_data.get('target_query', '') if form_data else '' }}"
+                        placeholder="e.g. aeo vs seo"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="content_type">Content Type</label>
+                    <select id="content_type" name="content_type">
+                        <option value="service_page" {% if form_data and form_data.get('content_type') == 'service_page' %}selected{% endif %}>service_page</option>
+                        <option value="blog_post" {% if form_data and form_data.get('content_type') == 'blog_post' %}selected{% endif %}>blog_post</option>
+                        <option value="comparison_page" {% if form_data and form_data.get('content_type') == 'comparison_page' %}selected{% endif %}>comparison_page</option>
+                        <option value="faq_page" {% if form_data and form_data.get('content_type') == 'faq_page' %}selected{% endif %}>faq_page</option>
+                        <option value="location_page" {% if form_data and form_data.get('content_type') == 'location_page' %}selected{% endif %}>location_page</option>
+                        <option value="guide" {% if form_data and form_data.get('content_type') == 'guide' %}selected{% endif %}>guide</option>
+                    </select>
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="brief_context">Brief Context</label>
+                    <textarea
+                        id="brief_context"
+                        name="brief_context"
+                        placeholder="Paste a generated brief or outline here."
+                    >{{ form_data.get('brief_context', '') if form_data else '' }}</textarea>
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="brand_context">Brand Context</label>
+                    <textarea
+                        id="brand_context"
+                        name="brand_context"
+                        placeholder="Add brand positioning, offer details, location angle, proof, or differentiators."
+                    >{{ form_data.get('brand_context', '') if form_data else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button type="submit" class="btn btn-primary">Generate Draft</button>
+                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Drafting Tips</h2>
+                <p class="panel-subtitle">How to get stronger first drafts.</p>
+            </div>
+        </div>
+
+        <ul class="compact-list">
+            <li>Use specific target queries, not vague broad topics.</li>
+            <li>Paste a brief if one exists so structure is clearer.</li>
+            <li>Add differentiators, tone, pricing angle, trust proof, and audience context.</li>
+            <li>Use comparison_page when trying to counter competitors directly.</li>
+            <li>Use faq_page or guide when the query is informational and broad.</li>
+        </ul>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Summary | AEO Agents{% endblock %}
+{% block page_title %}Audit Summary{% endblock %}
+{% block page_subtitle %}Quick summary view of the saved audit result with scores, verdict, and key summary findings.{% endblock %}
+
+{% block topbar_actions %}
+{% if data.client_id %}
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
+{% endif %}
+{% if full_filename %}
+<a href="{{ url_for('audit_full', summary_filename=summary_filename) }}" class="btn btn-primary">Open Full Audit</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="workspace-hero">
+    <div class="workspace-hero-main">
+        <div class="hero-label-row">
+            <span class="meta-chip">{{ data.audit_type or "N/A" }}</span>
+            <span class="meta-chip">{{ data.saved_at|pretty_datetime }}</span>
+            {% if data.client_name %}
+            <span class="meta-chip">{{ data.client_name }}</span>
+            {% endif %}
+        </div>
+
+        <h2 class="workspace-client-name">{{ data.website or "Unknown Website" }}</h2>
+
+        <div class="workspace-notes">
+            <div class="mini-heading">Verdict</div>
+            <p>{{ data.summary.verdict if data.summary and data.summary.verdict else "No verdict available." }}</p>
+        </div>
+    </div>
+
+    <div class="workspace-hero-side">
+        <div class="summary-score-card">
+            <div class="summary-score-label">Normalized Score</div>
+            <div class="summary-score-value">
+                {{ data.scores.normalized_score if data.scores and data.scores.normalized_score is not none else 0 }}
+            </div>
+            <div class="summary-score-meta">{{ data.summary.opportunity_level if data.summary and data.summary.opportunity_level else "N/A" }}</div>
+        </div>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Visibility Score</div>
+        <div class="stat-value">{{ data.scores.visibility_score if data.scores and data.scores.visibility_score is not none else 0 }}</div>
+        <div class="stat-note">Answer presence signal</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Content Score</div>
+        <div class="stat-value">{{ data.scores.content_score if data.scores and data.scores.content_score is not none else 0 }}</div>
+        <div class="stat-note">Content support level</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Schema Score</div>
+        <div class="stat-value">{{ data.scores.schema_score if data.scores and data.scores.schema_score is not none else 0 }}</div>
+        <div class="stat-note">Structured data signal</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Opportunity Level</div>
+        <div class="stat-value">{{ data.summary.opportunity_level if data.summary and data.summary.opportunity_level else "N/A" }}</div>
+        <div class="stat-note">Overall opportunity read</div>
+    </div>
+</section>
+
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Audit Metadata</h2>
+                <p class="panel-subtitle">Saved audit identifiers and context.</p>
+            </div>
+        </div>
+
+        <div class="info-list">
+            <div class="info-row">
+                <span>Summary File</span>
+                <strong>{{ summary_filename }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Full File</span>
+                <strong>{{ full_filename or "Not available" }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Audit Type</span>
+                <strong>{{ data.audit_type or "N/A" }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Saved At</span>
+                <strong>{{ data.saved_at|pretty_datetime }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Client</span>
+                <strong>{{ data.client_name or "Unassigned" }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Summary Interpretation</h2>
+                <p class="panel-subtitle">Use this view for fast client readouts and internal review.</p>
+            </div>
+        </div>
+
+        <ul class="compact-list">
+            <li>Normalized score gives the fastest overall progress signal.</li>
+            <li>Visibility score indicates how present the brand is in answers.</li>
+            <li>Content score highlights whether enough relevant content exists.</li>
+            <li>Schema score shows support from structured data and clarity signals.</li>
+            <li>Use the full audit for deeper query-level and competitor details.</li>
+        </ul>
+    </div>
+</section>
+
+{% if data.summary %}
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Summary Data</h2>
+            <p class="panel-subtitle">Primary summary block stored with the audit.</p>
+        </div>
+    </div>
+
+    <div class="json-pretty-block">{{ data.summary | tojson(indent=2) }}</div>
+</section>
+{% endif %}
+{% endblock %}

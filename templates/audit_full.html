@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Full Audit | AEO Agents{% endblock %}
+{% block page_title %}Full Audit{% endblock %}
+{% block page_subtitle %}Detailed audit view with the full saved payload for validation, debugging, and deeper analysis.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Back to Summary</a>
+{% if data.client_id %}
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-primary">Open Client</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="workspace-hero">
+    <div class="workspace-hero-main">
+        <div class="hero-label-row">
+            <span class="meta-chip">{{ data.audit_type or "N/A" }}</span>
+            <span class="meta-chip">{{ data.saved_at|pretty_datetime if data.saved_at else "N/A" }}</span>
+            {% if data.client_name %}
+            <span class="meta-chip">{{ data.client_name }}</span>
+            {% endif %}
+        </div>
+
+        <h2 class="workspace-client-name">{{ data.website or "Unknown Website" }}</h2>
+
+        <div class="workspace-notes">
+            <div class="mini-heading">Full Audit File</div>
+            <p>{{ full_filename or "N/A" }}</p>
+        </div>
+    </div>
+
+    <div class="workspace-hero-side">
+        <div class="summary-score-card">
+            <div class="summary-score-label">Quick Access</div>
+            <div class="summary-score-value">JSON</div>
+            <div class="summary-score-meta">Full structured payload</div>
+        </div>
+    </div>
+</section>
+
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Top-Level Keys</h2>
+                <p class="panel-subtitle">Useful for understanding what this stored file contains.</p>
+            </div>
+        </div>
+
+        <div class="chip-cluster">
+            {% for key in data.keys() %}
+            <span class="meta-chip">{{ key }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>How to Use This View</h2>
+                <p class="panel-subtitle">Helpful when validating outputs from your agents and runners.</p>
+            </div>
+        </div>
+
+        <ul class="compact-list">
+            <li>Use this page to inspect the full saved payload from the audit runner.</li>
+            <li>Cross-check score logic against the stored fields.</li>
+            <li>Validate query-level output, competitors, and AI answer results.</li>
+            <li>Use it for debugging template mismatches or backend changes.</li>
+            <li>Use the summary page when you want a cleaner client-facing snapshot.</li>
+        </ul>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Full JSON Payload</h2>
+            <p class="panel-subtitle">Complete saved audit content.</p>
+        </div>
+    </div>
+
+    <div class="json-pretty-block json-large">{{ data | tojson(indent=2) }}</div>
+</section>
+
+{% if data.ai_answer_results %}
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>AI Answer Results Snapshot</h2>
+            <p class="panel-subtitle">Quick table preview from the full audit payload.</p>
+        </div>
+    </div>
+
+    <div class="simple-table">
+        <div class="simple-table-row head full-audit-ai-row">
+            <div>Query</div>
+            <div>Brand Mentioned</div>
+            <div>Brand Position</div>
+            <div>Score</div>
+        </div>
+
+        {% for row in data.ai_answer_results[:12] %}
+        <div class="simple-table-row full-audit-ai-row">
+            <div>{{ row.query if row.query is defined else "N/A" }}</div>
+            <div>
+                {% if row.brand_mentioned is defined %}
+                    {{ "Yes" if row.brand_mentioned else "No" }}
+                {% elif row.client_mentioned is defined %}
+                    {{ "Yes" if row.client_mentioned else "No" }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </div>
+            <div>{{ row.brand_position if row.brand_position is defined and row.brand_position is not none else "—" }}</div>
+            <div>{{ row.score if row.score is defined else "N/A" }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

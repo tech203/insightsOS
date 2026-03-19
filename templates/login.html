@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | AEO Agents</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-shell">
+        <section class="auth-brand-panel">
+            <div class="auth-brand-top">
+                <div class="brand-mark large">A</div>
+                <div>
+                    <h1>AEO Agents</h1>
+                    <p>Agency workspace for AI answer visibility, competitor analysis, and content execution.</p>
+                </div>
+            </div>
+
+            <div class="auth-feature-stack">
+                <div class="auth-feature-card">
+                    <h3>Audit client websites</h3>
+                    <p>Run AEO audits, compare historical results, and track score movement over time.</p>
+                </div>
+                <div class="auth-feature-card">
+                    <h3>Find visibility gaps</h3>
+                    <p>See where brands are missing from AI answers and where competitors are winning.</p>
+                </div>
+                <div class="auth-feature-card">
+                    <h3>Turn insights into content</h3>
+                    <p>Generate briefs, drafts, and store them in a production-ready content queue.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-form-panel">
+            <div class="auth-form-card">
+                <div class="auth-form-header">
+                    <h2>Welcome back</h2>
+                    <p>Log in to continue managing your clients and audits.</p>
+                </div>
+
+                {% if error %}
+                <div class="comparison-banner declined">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+                {% endif %}
+
+                <form method="POST" class="form-stack">
+                    <div class="form-field">
+                        <label for="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full">Log In</button>
+                </form>
+
+                <div class="auth-footer-links">
+                    <span>New here?</span>
+                    <a href="{{ url_for('signup') }}" class="text-link">Create an account</a>
+                </div>
+
+                <div class="auth-footer-links">
+                    <a href="{{ url_for('aeo_agency_page') }}" class="text-link">Back to landing page</a>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

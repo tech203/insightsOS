@@ -1,0 +1,723 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Growth Plan{% endblock %}
+{% block page_title %}{{ client.name }} · Growth Plan{% endblock %}
+{% block page_subtitle %}Your strategic action plan based on the latest audit, visibility gaps, and highest-priority next steps.{% endblock %}
+{% block body_class %}growth-plan-layout{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary">Open Actions</a>
+<button class="btn btn-primary" onclick="window.print()">Export PDF</button>
+{% endblock %}
+
+{% block content %}
+<div class="workspace-page growth-plan-page">
+    <section class="growth-plan-hero">
+        <div class="growth-plan-hero-main">
+            <div class="hero-label-row">
+                <span class="meta-chip">{{ client.industry or "Industry N/A" }}</span>
+                <span class="meta-chip">{{ client.location or "Location N/A" }}</span>
+                <span class="meta-chip">Growth Plan</span>
+                {% if audit and audit.opportunity_level %}
+                <span class="meta-chip tone-soft">{{ audit.opportunity_level }}</span>
+                {% endif %}
+            </div>
+
+            <h2 class="growth-plan-title">
+                {% if audit %}
+                    {% if audit.normalized_score >= 70 %}
+                        Strong momentum. The next step is to expand what is already working.
+                    {% elif audit.normalized_score >= 50 %}
+                        Good foundation, but there are still clear visibility gaps to close.
+                    {% else %}
+                        Your brand is still being missed in important AI answer scenarios.
+                    {% endif %}
+                {% else %}
+                    No growth plan is available yet.
+                {% endif %}
+            </h2>
+
+            <p class="growth-plan-summary">
+                {% if summary %}
+                    {{ summary }}
+                {% elif audit %}
+                    {{ client.name }} has meaningful upside in AI visibility, content coverage, and structured data clarity. The best near-term gains will come from fixing missed-answer scenarios, improving core commercial pages, and publishing direct-answer content tied to real customer questions.
+                {% else %}
+                    Run the first audit to generate a growth plan, recommended actions, and next-step content opportunities.
+                {% endif %}
+            </p>
+
+            <div class="hero-tag-row">
+                <span class="hero-tag">Client-ready summary</span>
+                <span class="hero-tag">Priority actions</span>
+                <span class="hero-tag">Exportable to PDF</span>
+            </div>
+        </div>
+
+        <div class="growth-plan-hero-side">
+            <div class="score-card featured">
+                <div class="score-label">Overall Readiness</div>
+                <div class="score-value">
+                    {% if audit and audit.normalized_score is not none %}{{ audit.normalized_score }}{% else %}—{% endif %}
+                </div>
+                <div class="score-sub">
+                    {% if audit and audit.opportunity_level %}{{ audit.opportunity_level }}{% else %}No audit yet{% endif %}
+                </div>
+            </div>
+
+            <div class="score-grid-mini">
+                <div class="mini-score">
+                    <span class="mini-label">Visibility</span>
+                    <span class="mini-value">{% if audit and audit.visibility_score is not none %}{{ audit.visibility_score }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="mini-score">
+                    <span class="mini-label">Content</span>
+                    <span class="mini-value">{% if audit and audit.content_score is not none %}{{ audit.content_score }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="mini-score">
+                    <span class="mini-label">Schema</span>
+                    <span class="mini-value">{% if audit and audit.schema_score is not none %}{{ audit.schema_score }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="mini-score">
+                    <span class="mini-label">Reports</span>
+                    <span class="mini-value">{{ audit_count or 0 }}</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="growth-grid">
+        <div class="panel-card panel-span-7">
+            <div class="panel-head">
+                <div>
+                    <h3>Executive Summary</h3>
+                    <p>What is happening now, why it matters, and what should happen next.</p>
+                </div>
+            </div>
+
+            <div class="summary-block">
+                <div class="summary-point">
+                    <div class="summary-badge high">1</div>
+                    <div>
+                        <h4>Current situation</h4>
+                        <p>
+                            {% if audit %}
+                                {{ client.name }} currently has an overall score of <strong>{{ audit.normalized_score }}</strong>. The strongest visible weakness today is answer-engine presence, especially where prospects are looking for direct answers, comparisons, and trust signals.
+                            {% else %}
+                                There is not enough data yet to describe the current situation.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="summary-point">
+                    <div class="summary-badge medium">2</div>
+                    <div>
+                        <h4>Why this matters</h4>
+                        <p>
+                            When the brand is absent from AI answers, competitors shape the buying conversation first. That means less visibility, lower trust at discovery stage, and fewer chances to influence high-intent prospects before they click through.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="summary-point">
+                    <div class="summary-badge low">3</div>
+                    <div>
+                        <h4>Recommended direction</h4>
+                        <p>
+                            Prioritise pages that improve brand-to-service clarity, strengthen FAQ coverage, and answer the exact commercial questions your prospects are already asking. Then re-audit to confirm which improvements are moving visibility upward.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card panel-span-5">
+            <div class="panel-head">
+                <div>
+                    <h3>What to Focus On</h3>
+                    <p>The clearest signals to guide your next round of work.</p>
+                </div>
+            </div>
+
+            <div class="signal-list">
+                <div class="signal-item">
+                    <span class="signal-label">Opportunity Level</span>
+                    <span class="signal-pill high">{{ audit.opportunity_level if audit and audit.opportunity_level else "High" }}</span>
+                </div>
+                <div class="signal-item">
+                    <span class="signal-label">Primary Priority</span>
+                    <span class="signal-text">Improve visibility in AI answers</span>
+                </div>
+                <div class="signal-item">
+                    <span class="signal-label">Fastest Win</span>
+                    <span class="signal-text">FAQ + comparison page rollout</span>
+                </div>
+                <div class="signal-item">
+                    <span class="signal-label">Support Needed</span>
+                    <span class="signal-text">Content clarity + schema support</span>
+                </div>
+                <div class="signal-item">
+                    <span class="signal-label">Next Checkpoint</span>
+                    <span class="signal-text">Re-audit after content updates</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card panel-span-8">
+            <div class="panel-head">
+                <div>
+                    <h3>Priority Actions</h3>
+                    <p>These are the highest-value next steps based on the latest audit and comparison signals.</p>
+                </div>
+                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="text-link">Open full actions</a>
+            </div>
+
+            <div class="priority-actions">
+                {% if actions %}
+                    {% for action in actions %}
+                    <div class="priority-action-card">
+                        <div class="priority-action-top">
+                            <span class="action-priority {{ action.priority|lower if action.priority else 'medium' }}">
+                                {{ action.priority|capitalize if action.priority else "Medium" }}
+                            </span>
+                            <h4>{{ action.title }}</h4>
+                        </div>
+
+                        <p class="action-issue"><strong>Issue:</strong> {{ action.issue }}</p>
+                        <p class="action-recommendation"><strong>Recommended action:</strong> {{ action.recommended_action }}</p>
+
+                        {% if action.support_signal %}
+                        <p class="action-support"><strong>Why this matters:</strong> {{ action.support_signal }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state-box">
+                        <h4>No action plan yet</h4>
+                        <p>Run an audit first to generate a prioritized action list.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="panel-card panel-span-4">
+            <div class="panel-head">
+                <div>
+                    <h3>Fastest Wins</h3>
+                    <p>Start here if you want the quickest visible improvements.</p>
+                </div>
+            </div>
+
+            <div class="quick-wins">
+                <div class="quick-win">
+                    <span class="quick-win-number">01</span>
+                    <div>
+                        <h4>Add a homepage FAQ section</h4>
+                        <p>Cover pricing, trust, service scope, and why the brand is different.</p>
+                    </div>
+                </div>
+
+                <div class="quick-win">
+                    <span class="quick-win-number">02</span>
+                    <div>
+                        <h4>Create one comparison page</h4>
+                        <p>Target a competitor-heavy or high-intent query where the brand is currently absent.</p>
+                    </div>
+                </div>
+
+                <div class="quick-win">
+                    <span class="quick-win-number">03</span>
+                    <div>
+                        <h4>Improve schema coverage</h4>
+                        <p>Add or refine Organization, FAQPage, LocalBusiness, and service-related structured data.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card panel-span-12">
+            <div class="panel-head">
+                <div>
+                    <h3>Recommended Next Step</h3>
+                    <p>Choose the path that helps the team move from insight to execution.</p>
+                </div>
+            </div>
+
+            <div class="execution-grid">
+                <a class="execution-card" href="{{ url_for('generate_client_content_brief', client_id=client.id) }}">
+                    <div class="execution-icon">📝</div>
+                    <div>
+                        <h4>Generate Content Brief</h4>
+                        <p>Create a structured brief for a missed query or high-value opportunity.</p>
+                    </div>
+                </a>
+
+                <a class="execution-card" href="{{ url_for('generate_client_content_draft', client_id=client.id) }}">
+                    <div class="execution-icon">✍️</div>
+                    <div>
+                        <h4>Generate Draft</h4>
+                        <p>Turn the plan into a first draft that can move straight into production.</p>
+                    </div>
+                </a>
+
+                <a class="execution-card" href="{{ url_for('client_presentation_page', client_id=client.id) }}">
+                    <div class="execution-icon">🎤</div>
+                    <div>
+                        <h4>Open Presentation</h4>
+                        <p>Use the client-facing presentation page for walkthroughs and PDF export.</p>
+                    </div>
+                </a>
+
+                <a class="execution-card" href="{{ url_for('run_client_audit', client_id=client.id) }}">
+                    <div class="execution-icon">🔁</div>
+                    <div>
+                        <h4>Re-Run Audit Later</h4>
+                        <p>Measure whether the recommended updates improved visibility and readiness.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+.workspace-page {
+    padding: 28px;
+}
+
+.growth-plan-hero,
+.panel-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 26px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.growth-plan-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 28px;
+    margin-bottom: 24px;
+}
+
+.growth-plan-title {
+    margin: 16px 0 0;
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #15233b;
+    max-width: 760px;
+}
+
+.growth-plan-summary {
+    margin: 16px 0 0;
+    font-size: 17px;
+    line-height: 1.6;
+    color: #5f6b7c;
+    max-width: 760px;
+}
+
+.hero-tag-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+}
+
+.hero-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: #f6f8fc;
+    border: 1px solid #e6ebf3;
+    color: #3c4a5f;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.score-card.featured {
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    border: 1px solid #ffd8c6;
+    border-radius: 22px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+}
+
+.score-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #6f7b8f;
+    margin-bottom: 10px;
+}
+
+.score-value {
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.score-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.score-grid-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.mini-score {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.mini-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.mini-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.growth-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.panel-card {
+    padding: 26px;
+}
+
+.panel-span-12 { grid-column: span 12; }
+.panel-span-8 { grid-column: span 8; }
+.panel-span-7 { grid-column: span 7; }
+.panel-span-5 { grid-column: span 5; }
+.panel-span-4 { grid-column: span 4; }
+
+.panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.panel-head h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-head p {
+    margin: 8px 0 0;
+    font-size: 15px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.text-link {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ff6a2b;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.summary-block,
+.priority-actions,
+.quick-wins,
+.signal-list {
+    display: grid;
+    gap: 16px;
+}
+
+.summary-point,
+.quick-win,
+.signal-item,
+.priority-action-card {
+    border-radius: 18px;
+    border: 1px solid #e8edf5;
+    background: #f9fbff;
+    padding: 18px;
+}
+
+.summary-point {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.summary-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.summary-badge.high {
+    background: #ffe2dd;
+    color: #c2412d;
+}
+
+.summary-badge.medium {
+    background: #ffefc7;
+    color: #a16207;
+}
+
+.summary-badge.low {
+    background: #dff4e6;
+    color: #15803d;
+}
+
+.summary-point h4,
+.quick-win h4,
+.priority-action-top h4 {
+    margin: 0 0 6px;
+    color: #16243c;
+    font-weight: 800;
+}
+
+.summary-point p,
+.quick-win p,
+.action-issue,
+.action-recommendation,
+.action-support {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #586577;
+}
+
+.signal-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.signal-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #657286;
+}
+
+.signal-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: #16243c;
+    text-align: right;
+}
+
+.signal-pill,
+.action-priority {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.signal-pill.high,
+.action-priority.high {
+    background: #ffe2dd;
+    color: #c2412d;
+}
+
+.signal-pill.medium,
+.action-priority.medium {
+    background: #ffefc7;
+    color: #a16207;
+}
+
+.signal-pill.low,
+.action-priority.low {
+    background: #dff4e6;
+    color: #15803d;
+}
+
+.priority-action-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.quick-win {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.quick-win-number {
+    min-width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.execution-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.execution-card {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 18px;
+    border: 1px solid #e8edf5;
+    border-radius: 20px;
+    background: #fbfcfe;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.execution-card:hover {
+    transform: translateY(-2px);
+    border-color: #ffd6c4;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+
+.execution-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #fff2ea;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.execution-card h4 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.execution-card p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #627084;
+}
+
+.empty-state-box {
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px dashed #d6dde8;
+    background: #fafcff;
+    text-align: center;
+}
+
+.empty-state-box h4 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    color: #16243c;
+}
+
+.empty-state-box p {
+    margin: 0;
+    font-size: 15px;
+    color: #6b7280;
+}
+
+@media print {
+    .topbar,
+    .btn,
+    .sidebar,
+    .no-print {
+        display: none !important;
+    }
+
+    body,
+    .workspace-page,
+    .growth-plan-page {
+        background: #ffffff !important;
+    }
+
+    .growth-plan-hero,
+    .panel-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+}
+
+@media (max-width: 1200px) {
+    .growth-plan-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-span-8,
+    .panel-span-7,
+    .panel-span-5,
+    .panel-span-4 {
+        grid-column: span 12;
+    }
+
+    .execution-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .workspace-page {
+        padding: 18px;
+    }
+
+    .growth-plan-title {
+        font-size: 28px;
+    }
+
+    .execution-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .signal-item,
+    .priority-action-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .signal-text {
+        text-align: left;
+    }
+}
+</style>
+{% endblock %}

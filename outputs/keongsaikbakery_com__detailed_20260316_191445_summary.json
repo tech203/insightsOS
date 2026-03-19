@@ -1,0 +1,61 @@
+{
+  "website": "https://www.keongsaikbakery.com/",
+  "audit_type": "detailed",
+  "saved_at": "2026-03-16T19:14:45.167282",
+  "scores": {
+    "content_score": 10,
+    "schema_score": 3,
+    "visibility_score": 4.0,
+    "average_query_score": 4.0,
+    "raw_score": 17.0,
+    "normalized_score": 26.15
+  },
+  "summary": {
+    "verdict": "LOW OPPORTUNITY",
+    "opportunity_level": "Weak foundation"
+  },
+  "business_profile": {
+    "title": "Keong Saik Bakery | Heritage with a Twist\n",
+    "description": "A bakery passionate about blending traditional and modern flavours.",
+    "email": null,
+    "phone": "01-03 339940 90219626 ",
+    "services_detected": []
+  },
+  "visibility_snapshot": {
+    "queries_tested": 15,
+    "brand_appearances": 0
+  },
+  "top_competitors": [
+    {
+      "domain": "eatbook.sg",
+      "appearances": 4
+    },
+    {
+      "domain": "patisserie-cle.com",
+      "appearances": 3
+    },
+    {
+      "domain": "secretsingapore.co",
+      "appearances": 3
+    },
+    {
+      "domain": "foodadvisor.com.sg",
+      "appearances": 2
+    },
+    {
+      "domain": "lepakmou.com",
+      "appearances": 2
+    }
+  ],
+  "top_content_gaps": [
+    "how much does cakes and pastries cost Singapore",
+    "how to choose cakes and pastries Singapore",
+    "what is the best cakes and pastries Singapore",
+    "who are the top cakes and pastries companies Singapore"
+  ],
+  "top_recommendations": [
+    "1. Publish more educational articles to improve topical authority.",
+    "2. Add or improve schema markup such as Organization and FAQPage.",
+    "3. Improve AI visibility through stronger content, entity signals, and authority mentions."
+  ]
+}

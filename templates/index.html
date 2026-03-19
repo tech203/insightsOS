@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Growth Reports | AEO Agents{% endblock %}
+{% block page_title %}Growth Reports{% endblock %}
+{% block page_subtitle %}See your latest reports, track progress, and open the next best action for each website.{% endblock %}
+
+{% block topbar_actions %}
+<a href="/clients" class="btn btn-primary">Open Clients</a>
+{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Reports Generated</div>
+        <div class="stat-value">{{ total_audits }}</div>
+        <div class="stat-note">All saved reports in your workspace</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Showing</div>
+        <div class="stat-value">{{ audits|length }}</div>
+        <div class="stat-note">Reports in the current view</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Sort by</div>
+        <div class="stat-value">
+            {% if selected_sort == "saved_at" %}
+                Most Recent
+            {% elif selected_sort == "website" %}
+                Website
+            {% elif selected_sort == "normalized_score" %}
+                Overall Score
+            {% elif selected_sort == "visibility_score" %}
+                Visibility Score
+            {% elif selected_sort == "audit_type" %}
+                Report Type
+            {% else %}
+                Most Recent
+            {% endif %}
+        </div>
+        <div class="stat-note">
+            {% if selected_order == "asc" %}Oldest first{% else %}Newest first{% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Report Type</div>
+        <div class="stat-value">
+            {% if selected_type == "all" %}
+                All
+            {% elif selected_type == "free" %}
+                Starter
+            {% elif selected_type == "full" %}
+                Full
+            {% else %}
+                {{ selected_type|capitalize }}
+            {% endif %}
+        </div>
+        <div class="stat-note">Current filter selection</div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Find Reports</h2>
+            <p class="panel-subtitle">Search by website, verdict, or opportunity level.</p>
+        </div>
+    </div>
+
+    <form method="GET" action="{{ url_for('index') }}" class="form-stack">
+        <div class="form-grid-4">
+            <div class="form-field">
+                <label for="q">Search</label>
+                <input
+                    type="text"
+                    id="q"
+                    name="q"
+                    value="{{ search_term }}"
+                    placeholder="Search website, verdict, or opportunity"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="type">Report Type</label>
+                <select id="type" name="type">
+                    <option value="all" {% if selected_type == "all" %}selected{% endif %}>All</option>
+                    <option value="free" {% if selected_type == "free" %}selected{% endif %}>Starter</option>
+                    <option value="full" {% if selected_type == "full" %}selected{% endif %}>Full</option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="sort">Sort by</label>
+                <select id="sort" name="sort">
+                    <option value="saved_at" {% if selected_sort == "saved_at" %}selected{% endif %}>Most Recent</option>
+                    <option value="website" {% if selected_sort == "website" %}selected{% endif %}>Website</option>
+                    <option value="normalized_score" {% if selected_sort == "normalized_score" %}selected{% endif %}>Overall Score</option>
+                    <option value="visibility_score" {% if selected_sort == "visibility_score" %}selected{% endif %}>Visibility Score</option>
+                    <option value="audit_type" {% if selected_sort == "audit_type" %}selected{% endif %}>Report Type</option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="order">Order</label>
+                <select id="order" name="order">
+                    <option value="desc" {% if selected_order == "desc" %}selected{% endif %}>Newest first</option>
+                    <option value="asc" {% if selected_order == "asc" %}selected{% endif %}>Oldest first</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Your Reports</h2>
+            <p class="panel-subtitle">Open a report summary, full report, or jump straight to the growth plan.</p>
+        </div>
+    </div>
+
+    {% if audits %}
+    <div class="audit-library-grid">
+        {% for audit in audits %}
+        <article class="action-card audit-library-card">
+            <div class="action-card-top">
+                <span class="priority-badge low">
+                    {% if audit.audit_type == "free" %}Starter{% else %}{{ audit.audit_type|capitalize }}{% endif %}
+                </span>
+                <h3>{{ audit.website }}</h3>
+            </div>
+
+            <div class="queue-meta-grid">
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Client</div>
+                    <div class="metric-box-value small">{{ audit.client_name or "Unassigned" }}</div>
+                </div>
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Last Updated</div>
+                    <div class="metric-box-value small">{{ audit.saved_at|pretty_datetime }}</div>
+                </div>
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Opportunity</div>
+                    <div class="metric-box-value small">{{ audit.opportunity_level }}</div>
+                </div>
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Summary</div>
+                    <div class="metric-box-value small">{{ audit.verdict }}</div>
+                </div>
+            </div>
+
+            <div class="metric-strip metric-strip-4">
+                <div class="metric-box">
+                    <div class="metric-box-label">Overall Score</div>
+                    <div class="metric-box-value">{{ audit.normalized_score }}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-box-label">Visibility</div>
+                    <div class="metric-box-value">{{ audit.visibility_score }}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-box-label">Content</div>
+                    <div class="metric-box-value">{{ audit.content_score }}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-box-label">Schema</div>
+                    <div class="metric-box-value">{{ audit.schema_score }}</div>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-secondary">View Summary</a>
+                <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="btn btn-secondary">Full Report</a>
+                {% if audit.client_slug %}
+                <a href="/client/{{ client.id }}/growth-plan" class="btn btn-primary">View Growth Plan</a>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No reports found</h3>
+        <p>Try clearing your filters or run a new audit from a client workspace.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

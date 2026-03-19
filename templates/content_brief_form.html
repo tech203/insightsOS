@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Content Brief{% endblock %}
+{% block page_title %}{{ client.name }} · Content Brief{% endblock %}
+{% block page_subtitle %}Generate a content brief from a target query so the team can build pages that improve answer visibility and brand presence.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Brief Generator</h2>
+                <p class="panel-subtitle">This uses 1 credit and creates a structured brief tied to a target query.</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="comparison-banner declined">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="form-stack">
+            <div class="form-grid-2">
+                <div class="form-field form-field-full">
+                    <label for="target_query">Target Query</label>
+                    <input
+                        type="text"
+                        id="target_query"
+                        name="target_query"
+                        value="{{ form_data.get('target_query', '') if form_data else '' }}"
+                        placeholder="e.g. what is answer engine optimization"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="content_type">Content Type</label>
+                    <select id="content_type" name="content_type">
+                        <option value="service_page" {% if form_data and form_data.get('content_type') == 'service_page' %}selected{% endif %}>service_page</option>
+                        <option value="blog_post" {% if form_data and form_data.get('content_type') == 'blog_post' %}selected{% endif %}>blog_post</option>
+                        <option value="comparison_page" {% if form_data and form_data.get('content_type') == 'comparison_page' %}selected{% endif %}>comparison_page</option>
+                        <option value="faq_page" {% if form_data and form_data.get('content_type') == 'faq_page' %}selected{% endif %}>faq_page</option>
+                        <option value="location_page" {% if form_data and form_data.get('content_type') == 'location_page' %}selected{% endif %}>location_page</option>
+                        <option value="guide" {% if form_data and form_data.get('content_type') == 'guide' %}selected{% endif %}>guide</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="brand_context">Brand Context</label>
+                    <textarea
+                        id="brand_context"
+                        name="brand_context"
+                        placeholder="Add brand positioning, differentiators, offer details, pricing context, or local relevance."
+                    >{{ form_data.get('brand_context', '') if form_data else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button type="submit" class="btn btn-primary">Generate Brief</button>
+                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Best Use Cases</h2>
+                <p class="panel-subtitle">When a brief is usually the best next move.</p>
+            </div>
+        </div>
+
+        <ul class="compact-list">
+            <li>Brand is not mentioned for an important tracked query.</li>
+            <li>A competitor keeps appearing for the same question cluster.</li>
+            <li>You need a content plan before drafting.</li>
+            <li>The client needs approval before a full draft is created.</li>
+            <li>You want to build comparison pages or FAQ pages more systematically.</li>
+        </ul>
+
+        <div class="mini-heading">Suggested Inputs</div>
+        <div class="chip-cluster">
+            {% if client.query_comparison and client.query_comparison.rows %}
+                {% for row in client.query_comparison.rows[:6] %}
+                <span class="meta-chip">{{ row.query }}</span>
+                {% endfor %}
+            {% else %}
+                <span class="meta-chip">service comparison query</span>
+                <span class="meta-chip">faq query</span>
+                <span class="meta-chip">definition query</span>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

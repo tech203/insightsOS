@@ -1,0 +1,567 @@
+{
+  "website": "https://example.com",
+  "audit_type": "detailed",
+  "saved_at": "2026-03-16T19:17:31.285473",
+  "business_profile": {
+    "title": "Example Domain",
+    "description": "",
+    "email": null,
+    "phone": null,
+    "services_detected": []
+  },
+  "visibility_data": {
+    "queries_tested": 15,
+    "appearances": 0,
+    "average_query_score": 4.0,
+    "visibility_score": 4.0
+  },
+  "ai_answer_results": [
+    {
+      "engine": "chatgpt",
+      "query": "best Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – Specializes in customized wills and estate planning.",
+        "Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Offer comprehensive legal will drafting.",
+        "Will Writing Singapore** – A dedicated service focusing on straightforward will preparation.",
+        "Providend** – Financial advisory firm that also assists with wills and estate planning."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For the best will writing services in Singapore, you can consider reputable firms known for professionalism and legal expertise: - **WillCraft** – Specializes in customized wills and estate planning. - **Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Offer comprehensive legal will drafting. - **Will Writing Singapore** – A dedicated service focusing on straightforward will preparation. - **Providend** – Financial advisory firm that also assists with wills and estate planning. Choosing a service depends on your needs—simple wills can be handled by specialized will writers, while complex estates may require a law firm. Always check credentials and reviews before proceeding.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – Specializes in customized wills and estate planning.",
+        "Singapore Wills** – Offers straightforward will drafting and legal advice.",
+        "Legacy Asia** – Provides comprehensive estate and trust services.",
+        "Law firms like Rajah & Tann or Allen & Gledhill** – Have dedicated estate planning teams."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For top will writing services in Singapore, you can consider these reputable providers: - **WillCraft** – Specializes in customized wills and estate planning. - **Singapore Wills** – Offers straightforward will drafting and legal advice. - **Legacy Asia** – Provides comprehensive estate and trust services. - **Law firms like Rajah & Tann or Allen & Gledhill** – Have dedicated estate planning teams. These options offer professional, reliable will writing tailored to Singapore laws.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Will Writing services Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – specializes in customized wills and estate planning.",
+        "Singapore Wills** – offers straightforward will drafting and legal advice.",
+        "Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For will writing services in Singapore, you can consider the following reputable providers: - **WillCraft** – specializes in customized wills and estate planning. - **Singapore Wills** – offers straightforward will drafting and legal advice. - **Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills. Many of these services offer online consultations and document preparation to make the process convenient. It's a good idea to compare pricing and check reviews before choosing.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "recommended Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – specializes in will writing and estate planning with clear packages.",
+        "Singapore Wills** – offers personalized will drafting and legal advice.",
+        "Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For will writing services in Singapore, you can consider reputable providers like: - **WillCraft** – specializes in will writing and estate planning with clear packages. - **Singapore Wills** – offers personalized will drafting and legal advice. - **Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills. Many of these services also offer online consultations and document preparation for convenience. Make sure to choose a provider experienced in Singapore law to ensure your will is valid and tailored to your needs.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Will Writing company Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – specializes in will writing and estate planning.",
+        "Will Writing Singapore** – offers customized will drafting and legal advice.",
+        "Providend** – provides comprehensive estate planning including wills.",
+        "Law firms** such as Rajah & Tann or Allen & Gledhill also offer will drafting services."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For will writing services in Singapore, you can consider reputable companies like: - **WillCraft** – specializes in will writing and estate planning. - **Will Writing Singapore** – offers customized will drafting and legal advice. - **Providend** – provides comprehensive estate planning including wills. - **Law firms** such as Rajah & Tann or Allen & Gledhill also offer will drafting services. Many of these providers offer online consultations and document preparation to make the process convenient.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "how much does Will Writing cost Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Law firms specializing in estate planning",
+        "Online will writing services like Willing or AsiaWill",
+        "Financial advisory firms offering will drafting"
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "In Singapore, will writing costs typically range from SGD 200 to SGD 800, depending on the complexity of the will and the service provider. Simple wills may be on the lower end, while more detailed or customized wills can cost more. Popular providers include: - Law firms specializing in estate planning - Online will writing services like Willing or AsiaWill - Financial advisory firms offering will drafting It's a good idea to compare quotes and check if the service includes legal advice or just document preparation.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "how to choose Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "**Reputation and Experience**: Look for firms or professionals with a strong track record and positive client reviews. Established law firms or specialized will writing companies are often reliable.",
+        "**Qualifications**: Ensure the service is provided by qualified lawyers or certified will writers familiar with Singapore’s laws.",
+        "**Customization**: Choose a provider that offers personalized wills tailored to your specific needs and family situation.",
+        "**Transparency and Fees**: Check for clear pricing with no hidden costs. Some firms offer fixed fees for will drafting.",
+        "**Additional Services**: Some providers also offer estate planning, trust setup, or will storage services."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "When choosing a will writing service in Singapore, consider these key factors: 1. **Reputation and Experience**: Look for firms or professionals with a strong track record and positive client reviews. Established law firms or specialized will writing companies are often reliable. 2. **Qualifications**: Ensure the service is provided by qualified lawyers or certified will writers familiar with Singapore’s laws. 3. **Customization**: Choose a provider that offers personalized wills tailored to your specific needs and family situation. 4. **Transparency and Fees**: Check for clear pricing with no hidden costs. Some firms offer fixed fees for will drafting. 5. **Additional Services**: Some providers also offer estate planning, trust setup, or will storage services. Popular options in Singapore include: - **RHTLaw Asia** - **Simmons & Simmons LLP** - **WillCraft** - **Will Writing Singapore** You can also consider online platforms like **Willing.sg** for a more affordable and convenient option. Always verify credentials and read reviews before proceeding.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "what is the best Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft**: Specializes in customized wills with clear pricing and legal expertise.",
+        "Will Writing Singapore**: Offers straightforward will drafting with consultation from qualified lawyers.",
+        "Providend**: Provides comprehensive estate planning including will writing and trust services.",
+        "Law firms like Rajah & Tann or Allen & Gledhill**: For more complex estate planning needs."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For the best will writing services in Singapore, consider reputable providers known for professionalism and legal compliance: - **WillCraft**: Specializes in customized wills with clear pricing and legal expertise. - **Will Writing Singapore**: Offers straightforward will drafting with consultation from qualified lawyers. - **Providend**: Provides comprehensive estate planning including will writing and trust services. - **Law firms like Rajah & Tann or Allen & Gledhill**: For more complex estate planning needs. Choosing a service depends on your specific needs—simple wills can be handled by dedicated will writing firms, while complex estates may require law firms. Always ensure the provider is accredited and offers clear legal advice.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "who are the top Will Writing companies Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – Specializes in straightforward will writing and estate planning.",
+        "Will Registry Singapore** – Offers secure will storage and drafting services.",
+        "Providend** – Provides comprehensive estate planning including wills.",
+        "Legacy Asia** – Focuses on personalized will writing and trust services.",
+        "Singapore Wills** – Known for affordable and quick will preparation."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Some of the top will writing companies in Singapore known for their reliable services include: - **WillCraft** – Specializes in straightforward will writing and estate planning. - **Will Registry Singapore** – Offers secure will storage and drafting services. - **Providend** – Provides comprehensive estate planning including wills. - **Legacy Asia** – Focuses on personalized will writing and trust services. - **Singapore Wills** – Known for affordable and quick will preparation. These companies typically offer consultations to tailor wills to your needs, so it's good to compare their services and fees.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "affordable Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – Offers straightforward will writing packages at reasonable prices.",
+        "LegalVision Singapore** – Provides affordable online will drafting with legal review.",
+        "Singapore Wills** – Specializes in cost-effective will preparation and estate planning.",
+        "Law firms with fixed fees** – Some smaller firms offer flat-rate will writing services."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For affordable will writing services in Singapore, you can consider: - **WillCraft** – Offers straightforward will writing packages at reasonable prices. - **LegalVision Singapore** – Provides affordable online will drafting with legal review. - **Singapore Wills** – Specializes in cost-effective will preparation and estate planning. - **Law firms with fixed fees** – Some smaller firms offer flat-rate will writing services. Prices typically start from around SGD 200 to 500 depending on complexity. Online platforms can be cheaper and convenient if your estate is straightforward.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Will Writing companies in Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Simmons & Simmons LLP** – well-known for estate planning and will drafting.",
+        "RHTLaw Asia LLP** – provides comprehensive will writing and trust services.",
+        "WillCraft** – specializes in affordable and straightforward will writing.",
+        "Asia Law Network** – an online platform connecting you with lawyers for will drafting."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "In Singapore, several companies and law firms offer will writing services. Some reputable options include: - **Simmons & Simmons LLP** – well-known for estate planning and will drafting. - **RHTLaw Asia LLP** – provides comprehensive will writing and trust services. - **WillCraft** – specializes in affordable and straightforward will writing. - **Asia Law Network** – an online platform connecting you with lawyers for will drafting. You can also consider banks like DBS or OCBC, which offer will writing services for their customers. It's advisable to choose a provider with clear pricing and good reviews.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "compare Will Writing services Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft**: Specializes in customized wills with legal consultation. Prices start around SGD 300. Good for personalized service and complex estates.",
+        "Asia Law Network**: Online platform offering will writing with lawyer reviews. Prices range from SGD 200 to 500 depending on complexity. Convenient and transparent.",
+        "LegalZoom Singapore**: Provides online will templates and lawyer assistance. Affordable and quick, suitable for straightforward wills.",
+        "Singapore Wills**: Focuses on simple, affordable wills starting at about SGD 150. Ideal for basic needs without complex assets."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "In Singapore, several providers offer Will Writing services, each varying in price, customization, and legal support. Here's a quick comparison: - **WillCraft**: Specializes in customized wills with legal consultation. Prices start around SGD 300. Good for personalized service and complex estates. - **Asia Law Network**: Online platform offering will writing with lawyer reviews. Prices range from SGD 200 to 500 depending on complexity. Convenient and transparent. - **LegalZoom Singapore**: Provides online will templates and lawyer assistance. Affordable and quick, suitable for straightforward wills. - **Singapore Wills**: Focuses on simple, affordable wills starting at about SGD 150. Ideal for basic needs without complex assets. For complex estates or trusts, consulting a law firm like Rajah & Tann or Allen & Gledhill may be beneficial. For simple wills, online platforms offer convenience and cost savings.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top rated Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – Specializes in customized wills and estate planning with clear pricing.",
+        "Will Writing Singapore** – Offers straightforward will drafting and legal advice.",
+        "Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Provide comprehensive estate planning including wills.",
+        "WillPro** – Known for easy online will creation with legal support."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For top-rated will writing services in Singapore, you can consider these reputable providers known for professionalism and reliability: - **WillCraft** – Specializes in customized wills and estate planning with clear pricing. - **Will Writing Singapore** – Offers straightforward will drafting and legal advice. - **Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Provide comprehensive estate planning including wills. - **WillPro** – Known for easy online will creation with legal support. Choosing a service depends on your needs—whether you prefer online convenience or personalized legal consultation.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Will Writing experts Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – specializes in will writing and estate planning.",
+        "Singapore Wills** – offers customized will drafting and legal advice.",
+        "Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills.",
+        "Will writing services by financial advisory firms** such as Providend or MoneyOwl."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For will writing services in Singapore, you can consider these reputable providers: - **WillCraft** – specializes in will writing and estate planning. - **Singapore Wills** – offers customized will drafting and legal advice. - **Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills. - **Will writing services by financial advisory firms** such as Providend or MoneyOwl. These experts ensure your will complies with Singapore law and reflects your wishes clearly. It's a good idea to compare services and fees before choosing.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "trusted Will Writing Singapore",
+      "brand_name": "Example Domain",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "WillCraft** – specializes in will writing and estate planning with clear, professional advice.",
+        "Will Writing Singapore** – offers personalized will drafting and legal consultation.",
+        "Providend** – a financial advisory firm that also provides will writing services."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For trusted will writing services in Singapore, you can consider reputable firms like: - **WillCraft** – specializes in will writing and estate planning with clear, professional advice. - **Will Writing Singapore** – offers personalized will drafting and legal consultation. - **Providend** – a financial advisory firm that also provides will writing services. These providers are known for their expertise and reliability in Singapore’s legal context. Always ensure the service includes proper legal certification and clear explanations of your estate planning options.",
+      "score": 4
+    }
+  ],
+  "competitor_data": {
+    "all_results": [
+      [
+        "dollarsandsense.sg",
+        5
+      ],
+      [
+        "gabeslotnick.com",
+        5
+      ],
+      [
+        "newsnblogs.com",
+        4
+      ],
+      [
+        "thesmartlocal.com",
+        3
+      ],
+      [
+        "willwriting.sg",
+        3
+      ],
+      [
+        "singaporebrand.com.sg",
+        3
+      ],
+      [
+        "makeawillsingapore.com",
+        3
+      ],
+      [
+        "theharddata.com",
+        3
+      ],
+      [
+        "preceptsgroup.com",
+        3
+      ],
+      [
+        "watershore.com",
+        3
+      ]
+    ],
+    "direct_competitors": [
+      [
+        "dollarsandsense.sg",
+        5
+      ],
+      [
+        "gabeslotnick.com",
+        5
+      ],
+      [
+        "thesmartlocal.com",
+        3
+      ],
+      [
+        "willwriting.sg",
+        3
+      ],
+      [
+        "makeawillsingapore.com",
+        3
+      ],
+      [
+        "theharddata.com",
+        3
+      ],
+      [
+        "preceptsgroup.com",
+        3
+      ],
+      [
+        "watershore.com",
+        3
+      ],
+      [
+        "singaporeassignmenthelp.com",
+        3
+      ],
+      [
+        "smartwealth.sg",
+        2
+      ]
+    ],
+    "directory_sites": [
+      [
+        "singaporebrand.com.sg",
+        3
+      ],
+      [
+        "finestservices.com.sg",
+        1
+      ]
+    ],
+    "media_sites": [
+      [
+        "privatetrustcompanysingap33333.idblogz.com",
+        1
+      ],
+      [
+        "josueslcuj.bloggip.com",
+        1
+      ]
+    ],
+    "spam_sites": [
+      [
+        "newsnblogs.com",
+        4
+      ],
+      [
+        "dominickhsxcj.topbloghub.com",
+        2
+      ]
+    ]
+  },
+  "content_gaps": [
+    "how much does Will Writing cost Singapore",
+    "how to choose Will Writing Singapore",
+    "what is the best Will Writing Singapore",
+    "who are the top Will Writing companies Singapore"
+  ],
+  "question_coverage": {
+    "topic": "Will Writing",
+    "pages_used": [
+      "https://example.com"
+    ],
+    "results": [
+      {
+        "question": "How to Write a Will (with Pictures)?",
+        "status": "Missing",
+        "score": 0.25
+      },
+      {
+        "question": "When you write your ownwill, you will need to know your state's requirements and decide how to fulfill them?",
+        "status": "Missing",
+        "score": 0.13
+      },
+      {
+        "question": "How to make a will (updated for 2026)?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How To Write a Will: Setting Up a Last Will and Testament?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How to Write a Will?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How to Write a Will: A Clear Step?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "What assets and property do you own?Without a will or other essential plans, the government—not you—determines how your assets are distributed and who will care for your children?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "Why is writing a will important?ButwritingaWillis an important, necessary part of every Estate Plan?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "When you have an effectiveWillin place, you can rest easy knowing that you’ve set up your family and loved ones with the protection they need when they’ll need it most?",
+        "status": "Missing",
+        "score": 0.12
+      },
+      {
+        "question": "when you’re no longer there to protect them yourself?",
+        "status": "Missing",
+        "score": 0.12
+      },
+      {
+        "question": "What is the most important part of a will preparation process?The process ofestablishing guardianshipfor your children, minor or adult dependents, and even your pets may be the most important (and often the most difficult) part of the Will preparation process?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "What assets and property do you own?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "can anyone recommend a cost effective way of?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "can anyone recommend a cost effective way ofwritingup a will without having to spend thousands?",
+        "status": "Missing",
+        "score": 0.09
+      },
+      {
+        "question": "However, many legal advisers say that awillshould be made out much sooner?",
+        "status": "Missing",
+        "score": 0.08
+      },
+      {
+        "question": "When you write your ownwill, youwillneed to know your state's requirements and decide how to fulfill them?",
+        "status": "Missing",
+        "score": 0.08
+      },
+      {
+        "question": "When it comes to creating awill, you have two choices?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How much does it cost to write a will online?Online will writing services generally costbetween $60 and $100, depending on how complicated your will is?",
+        "status": "Missing",
+        "score": 0.06
+      },
+      {
+        "question": "When you write your own will, you will need to know your state's requirements and decide how to fulfill them?",
+        "status": "Missing",
+        "score": 0.12
+      },
+      {
+        "question": "Are online will makers a good idea?Onlinewillmakers and DIY templates offer a cost?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "However, they may not be suitable for complex estate scenarios?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "Should I write a letter to my beneficiaries after drafting a will?If you wish to explain your decisions, it’s best to do so in a separate letterto the beneficiaries?",
+        "status": "Missing",
+        "score": 0.11
+      },
+      {
+        "question": "What happens after a will is written & legally validated?After yourwillis written and legally validated, the final steps are to store it safely and communicate its existence and contents to your executors, guardians, and beneficiaries?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How to Write a Will: A Comprehensive Guide to Will Writing?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "How to Write a LEGAL Will in 5 Minutes (Simple Step?",
+        "status": "Missing",
+        "score": 0.0
+      }
+    ]
+  },
+  "audit_data": {
+    "pages_checked": 1,
+    "service_pages": 0,
+    "blog_pages": 0,
+    "faq_pages": 0,
+    "question_headings": 0,
+    "schema_types": [],
+    "content_score": 0,
+    "schema_score": 0,
+    "content_score_breakdown": {
+      "service_score": 0,
+      "blog_score": 0,
+      "faq_score": 0,
+      "question_score": 0
+    }
+  },
+  "final_report": {
+    "raw_score": 4.0,
+    "max_total_score": 65,
+    "normalized_score": 6.15,
+    "summary": "Weak foundation",
+    "verdict": "LOW OPPORTUNITY",
+    "report_text": "\n==================================================\n          AI VISIBILITY STRATEGY AUDIT\n==================================================\n\nWebsite: https://example.com\n\nVERDICT\n-------\nLOW OPPORTUNITY\n\nSCORES\n------\nContent Score: 0 / 30\nSchema Score: 0 / 15\nVisibility Score: 4.0 / 20\n\nRaw Score: 4.0 / 65\nNormalized Score: 6.15 / 100\nOpportunity Level: Weak foundation\n\nEXECUTIVE SUMMARY\n-----------------\nThis detailed audit evaluates the website's current structural readiness for\nAI-powered visibility, observed visibility signals, competitor landscape,\nand content opportunities. It is intended to support a deeper implementation strategy.\n\nBUSINESS PROFILE\n----------------\nTitle: Example Domain\nDescription: \nEmail: None\nPhone: None\nDetected Services: None\n\nAI VISIBILITY BREAKDOWN\n-----------------------\nQueries Tested: 15\nBrand Appearances in AI Answers: 0\nAverage Query Score: 4.0 / 20\nVisibility Score: 4.0 / 20\n\nAI ANSWER DETAILS\n-----------------\n• Query: best Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – Specializes in customized wills and estate planning., Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Offer comprehensive legal will drafting., Will Writing Singapore** – A dedicated service focusing on straightforward will preparation., Providend** – Financial advisory firm that also assists with wills and estate planning.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For the best will writing services in Singapore, you can consider reputable firms known for professionalism and legal expertise: - **WillCraft** – Specializes in customized wills and estate planning. - **Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Offer comprehensive legal will drafting. - **Will Writing Singapore** – A dedicated service focusing on straightforward will preparation. - **Providend** – Financial advisory firm that also assists with wills and estate planning. Choosing a service depends on your needs—simple wills can be handled by specialized will writers, while complex estates may require a law firm. Always check credentials and reviews before proceeding.\n\n• Query: top Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – Specializes in customized wills and estate planning., Singapore Wills** – Offers straightforward will drafting and legal advice., Legacy Asia** – Provides comprehensive estate and trust services., Law firms like Rajah & Tann or Allen & Gledhill** – Have dedicated estate planning teams.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For top will writing services in Singapore, you can consider these reputable providers: - **WillCraft** – Specializes in customized wills and estate planning. - **Singapore Wills** – Offers straightforward will drafting and legal advice. - **Legacy Asia** – Provides comprehensive estate and trust services. - **Law firms like Rajah & Tann or Allen & Gledhill** – Have dedicated estate planning teams. These options offer professional, reliable will writing tailored to Singapore laws.\n\n• Query: Will Writing services Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – specializes in customized wills and estate planning., Singapore Wills** – offers straightforward will drafting and legal advice., Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For will writing services in Singapore, you can consider the following reputable providers: - **WillCraft** – specializes in customized wills and estate planning. - **Singapore Wills** – offers straightforward will drafting and legal advice. - **Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills. Many of these services offer online consultations and document preparation to make the process convenient. It's a good idea to compare pricing and check reviews before choosing.\n\n• Query: recommended Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – specializes in will writing and estate planning with clear packages., Singapore Wills** – offers personalized will drafting and legal advice., Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For will writing services in Singapore, you can consider reputable providers like: - **WillCraft** – specializes in will writing and estate planning with clear packages. - **Singapore Wills** – offers personalized will drafting and legal advice. - **Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills. Many of these services also offer online consultations and document preparation for convenience. Make sure to choose a provider experienced in Singapore law to ensure your will is valid and tailored to your needs.\n\n• Query: Will Writing company Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – specializes in will writing and estate planning., Will Writing Singapore** – offers customized will drafting and legal advice., Providend** – provides comprehensive estate planning including wills., Law firms** such as Rajah & Tann or Allen & Gledhill also offer will drafting services.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For will writing services in Singapore, you can consider reputable companies like: - **WillCraft** – specializes in will writing and estate planning. - **Will Writing Singapore** – offers customized will drafting and legal advice. - **Providend** – provides comprehensive estate planning including wills. - **Law firms** such as Rajah & Tann or Allen & Gledhill also offer will drafting services. Many of these providers offer online consultations and document preparation to make the process convenient.\n\n• Query: how much does Will Writing cost Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Law firms specializing in estate planning, Online will writing services like Willing or AsiaWill, Financial advisory firms offering will drafting\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: In Singapore, will writing costs typically range from SGD 200 to SGD 800, depending on the complexity of the will and the service provider. Simple wills may be on the lower end, while more detailed or customized wills can cost more. Popular providers include: - Law firms specializing in estate planning - Online will writing services like Willing or AsiaWill - Financial advisory firms offering will drafting It's a good idea to compare quotes and check if the service includes legal advice or just document preparation.\n\n• Query: how to choose Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: **Reputation and Experience**: Look for firms or professionals with a strong track record and positive client reviews. Established law firms or specialized will writing companies are often reliable., **Qualifications**: Ensure the service is provided by qualified lawyers or certified will writers familiar with Singapore’s laws., **Customization**: Choose a provider that offers personalized wills tailored to your specific needs and family situation., **Transparency and Fees**: Check for clear pricing with no hidden costs. Some firms offer fixed fees for will drafting., **Additional Services**: Some providers also offer estate planning, trust setup, or will storage services.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: When choosing a will writing service in Singapore, consider these key factors: 1. **Reputation and Experience**: Look for firms or professionals with a strong track record and positive client reviews. Established law firms or specialized will writing companies are often reliable. 2. **Qualifications**: Ensure the service is provided by qualified lawyers or certified will writers familiar with Singapore’s laws. 3. **Customization**: Choose a provider that offers personalized wills tailored to your specific needs and family situation. 4. **Transparency and Fees**: Check for clear pricing with no hidden costs. Some firms offer fixed fees for will drafting. 5. **Additional Services**: Some providers also offer estate planning, trust setup, or will storage services. Popular options in Singapore include: - **RHTLaw Asia** - **Simmons & Simmons LLP** - **WillCraft** - **Will Writing Singapore** You can also consider online platforms like **Willing.sg** for a more affordable and convenient option. Always verify credentials and read reviews before proceeding.\n\n• Query: what is the best Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft**: Specializes in customized wills with clear pricing and legal expertise., Will Writing Singapore**: Offers straightforward will drafting with consultation from qualified lawyers., Providend**: Provides comprehensive estate planning including will writing and trust services., Law firms like Rajah & Tann or Allen & Gledhill**: For more complex estate planning needs.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For the best will writing services in Singapore, consider reputable providers known for professionalism and legal compliance: - **WillCraft**: Specializes in customized wills with clear pricing and legal expertise. - **Will Writing Singapore**: Offers straightforward will drafting with consultation from qualified lawyers. - **Providend**: Provides comprehensive estate planning including will writing and trust services. - **Law firms like Rajah & Tann or Allen & Gledhill**: For more complex estate planning needs. Choosing a service depends on your specific needs—simple wills can be handled by dedicated will writing firms, while complex estates may require law firms. Always ensure the provider is accredited and offers clear legal advice.\n\n• Query: who are the top Will Writing companies Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – Specializes in straightforward will writing and estate planning., Will Registry Singapore** – Offers secure will storage and drafting services., Providend** – Provides comprehensive estate planning including wills., Legacy Asia** – Focuses on personalized will writing and trust services., Singapore Wills** – Known for affordable and quick will preparation.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Some of the top will writing companies in Singapore known for their reliable services include: - **WillCraft** – Specializes in straightforward will writing and estate planning. - **Will Registry Singapore** – Offers secure will storage and drafting services. - **Providend** – Provides comprehensive estate planning including wills. - **Legacy Asia** – Focuses on personalized will writing and trust services. - **Singapore Wills** – Known for affordable and quick will preparation. These companies typically offer consultations to tailor wills to your needs, so it's good to compare their services and fees.\n\n• Query: affordable Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – Offers straightforward will writing packages at reasonable prices., LegalVision Singapore** – Provides affordable online will drafting with legal review., Singapore Wills** – Specializes in cost-effective will preparation and estate planning., Law firms with fixed fees** – Some smaller firms offer flat-rate will writing services.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For affordable will writing services in Singapore, you can consider: - **WillCraft** – Offers straightforward will writing packages at reasonable prices. - **LegalVision Singapore** – Provides affordable online will drafting with legal review. - **Singapore Wills** – Specializes in cost-effective will preparation and estate planning. - **Law firms with fixed fees** – Some smaller firms offer flat-rate will writing services. Prices typically start from around SGD 200 to 500 depending on complexity. Online platforms can be cheaper and convenient if your estate is straightforward.\n\n• Query: Will Writing companies in Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Simmons & Simmons LLP** – well-known for estate planning and will drafting., RHTLaw Asia LLP** – provides comprehensive will writing and trust services., WillCraft** – specializes in affordable and straightforward will writing., Asia Law Network** – an online platform connecting you with lawyers for will drafting.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: In Singapore, several companies and law firms offer will writing services. Some reputable options include: - **Simmons & Simmons LLP** – well-known for estate planning and will drafting. - **RHTLaw Asia LLP** – provides comprehensive will writing and trust services. - **WillCraft** – specializes in affordable and straightforward will writing. - **Asia Law Network** – an online platform connecting you with lawyers for will drafting. You can also consider banks like DBS or OCBC, which offer will writing services for their customers. It's advisable to choose a provider with clear pricing and good reviews.\n\n• Query: compare Will Writing services Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft**: Specializes in customized wills with legal consultation. Prices start around SGD 300. Good for personalized service and complex estates., Asia Law Network**: Online platform offering will writing with lawyer reviews. Prices range from SGD 200 to 500 depending on complexity. Convenient and transparent., LegalZoom Singapore**: Provides online will templates and lawyer assistance. Affordable and quick, suitable for straightforward wills., Singapore Wills**: Focuses on simple, affordable wills starting at about SGD 150. Ideal for basic needs without complex assets.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: In Singapore, several providers offer Will Writing services, each varying in price, customization, and legal support. Here's a quick comparison: - **WillCraft**: Specializes in customized wills with legal consultation. Prices start around SGD 300. Good for personalized service and complex estates. - **Asia Law Network**: Online platform offering will writing with lawyer reviews. Prices range from SGD 200 to 500 depending on complexity. Convenient and transparent. - **LegalZoom Singapore**: Provides online will templates and lawyer assistance. Affordable and quick, suitable for straightforward wills. - **Singapore Wills**: Focuses on simple, affordable wills starting at about SGD 150. Ideal for basic needs without complex assets. For complex estates or trusts, consulting a law firm like Rajah & Tann or Allen & Gledhill may be beneficial. For simple wills, online platforms offer convenience and cost savings.\n\n• Query: top rated Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – Specializes in customized wills and estate planning with clear pricing., Will Writing Singapore** – Offers straightforward will drafting and legal advice., Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Provide comprehensive estate planning including wills., WillPro** – Known for easy online will creation with legal support.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For top-rated will writing services in Singapore, you can consider these reputable providers known for professionalism and reliability: - **WillCraft** – Specializes in customized wills and estate planning with clear pricing. - **Will Writing Singapore** – Offers straightforward will drafting and legal advice. - **Lawyers at firms like Rajah & Tann or Allen & Gledhill** – Provide comprehensive estate planning including wills. - **WillPro** – Known for easy online will creation with legal support. Choosing a service depends on your needs—whether you prefer online convenience or personalized legal consultation.\n\n• Query: Will Writing experts Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – specializes in will writing and estate planning., Singapore Wills** – offers customized will drafting and legal advice., Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills., Will writing services by financial advisory firms** such as Providend or MoneyOwl.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For will writing services in Singapore, you can consider these reputable providers: - **WillCraft** – specializes in will writing and estate planning. - **Singapore Wills** – offers customized will drafting and legal advice. - **Law firms like Rajah & Tann or Allen & Gledhill** – provide comprehensive estate planning including wills. - **Will writing services by financial advisory firms** such as Providend or MoneyOwl. These experts ensure your will complies with Singapore law and reflects your wishes clearly. It's a good idea to compare services and fees before choosing.\n\n• Query: trusted Will Writing Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: WillCraft** – specializes in will writing and estate planning with clear, professional advice., Will Writing Singapore** – offers personalized will drafting and legal consultation., Providend** – a financial advisory firm that also provides will writing services.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For trusted will writing services in Singapore, you can consider reputable firms like: - **WillCraft** – specializes in will writing and estate planning with clear, professional advice. - **Will Writing Singapore** – offers personalized will drafting and legal consultation. - **Providend** – a financial advisory firm that also provides will writing services. These providers are known for their expertise and reliability in Singapore’s legal context. Always ensure the service includes proper legal certification and clear explanations of your estate planning options.\n\n\nWEBSITE STRUCTURE\n-----------------\nPages Checked: 1\nService Pages: 0\nBlog Pages: 0\nFAQ Pages: 0\nQuestion Headings: 0\nSchema Types: None\n\nCONTENT SCORE BREAKDOWN\n-----------------------\nService Score: 0 / 10\nBlog Score: 0 / 10\nFAQ Score: 0 / 6\nQuestion Score: 0 / 4\n\nDIRECT COMPETITORS\n------------------\n• dollarsandsense.sg (5 appearances in analyzed results)\n• gabeslotnick.com (5 appearances in analyzed results)\n• thesmartlocal.com (3 appearances in analyzed results)\n• willwriting.sg (3 appearances in analyzed results)\n• makeawillsingapore.com (3 appearances in analyzed results)\n• theharddata.com (3 appearances in analyzed results)\n• preceptsgroup.com (3 appearances in analyzed results)\n• watershore.com (3 appearances in analyzed results)\n• singaporeassignmenthelp.com (3 appearances in analyzed results)\n• smartwealth.sg (2 appearances in analyzed results)\n\nDIRECTORY / LIST SITES\n----------------------\n• singaporebrand.com.sg (3 appearances in analyzed results)\n• finestservices.com.sg (1 appearances in analyzed results)\n\nMEDIA / INFORMATION SITES\n-------------------------\n• privatetrustcompanysingap33333.idblogz.com (1 appearances in analyzed results)\n• josueslcuj.bloggip.com (1 appearances in analyzed results)\n\nLOW-QUALITY / SPAM SITES\n------------------------\n• newsnblogs.com (4 appearances in analyzed results)\n• dominickhsxcj.topbloghub.com (2 appearances in analyzed results)\n\nCONTENT GAP OPPORTUNITIES\n-------------------------\n• how much does Will Writing cost Singapore\n• how to choose Will Writing Singapore\n• what is the best Will Writing Singapore\n• who are the top Will Writing companies Singapore\n\nQUESTION COVERAGE AUDIT\n-----------------------\n• How to Write a Will (with Pictures)? — Missing (0.25)\n• When you write your ownwill, you will need to know your state's requirements and decide how to fulfill them? — Missing (0.13)\n• How to make a will (updated for 2026)? — Missing (0.0)\n• How To Write a Will: Setting Up a Last Will and Testament? — Missing (0.0)\n• How to Write a Will? — Missing (0.0)\n• How to Write a Will: A Clear Step? — Missing (0.0)\n• What assets and property do you own?Without a will or other essential plans, the government—not you—determines how your assets are distributed and who will care for your children? — Missing (0.0)\n• Why is writing a will important?ButwritingaWillis an important, necessary part of every Estate Plan? — Missing (0.0)\n• When you have an effectiveWillin place, you can rest easy knowing that you’ve set up your family and loved ones with the protection they need when they’ll need it most? — Missing (0.12)\n• when you’re no longer there to protect them yourself? — Missing (0.12)\n• What is the most important part of a will preparation process?The process ofestablishing guardianshipfor your children, minor or adult dependents, and even your pets may be the most important (and often the most difficult) part of the Will preparation process? — Missing (0.0)\n• What assets and property do you own? — Missing (0.0)\n• can anyone recommend a cost effective way of? — Missing (0.0)\n• can anyone recommend a cost effective way ofwritingup a will without having to spend thousands? — Missing (0.09)\n• However, many legal advisers say that awillshould be made out much sooner? — Missing (0.08)\n• When you write your ownwill, youwillneed to know your state's requirements and decide how to fulfill them? — Missing (0.08)\n• When it comes to creating awill, you have two choices? — Missing (0.0)\n• How much does it cost to write a will online?Online will writing services generally costbetween $60 and $100, depending on how complicated your will is? — Missing (0.06)\n• When you write your own will, you will need to know your state's requirements and decide how to fulfill them? — Missing (0.12)\n• Are online will makers a good idea?Onlinewillmakers and DIY templates offer a cost? — Missing (0.0)\n• However, they may not be suitable for complex estate scenarios? — Missing (0.0)\n• Should I write a letter to my beneficiaries after drafting a will?If you wish to explain your decisions, it’s best to do so in a separate letterto the beneficiaries? — Missing (0.11)\n• What happens after a will is written & legally validated?After yourwillis written and legally validated, the final steps are to store it safely and communicate its existence and contents to your executors, guardians, and beneficiaries? — Missing (0.0)\n• How to Write a Will: A Comprehensive Guide to Will Writing? — Missing (0.0)\n• How to Write a LEGAL Will in 5 Minutes (Simple Step? — Missing (0.0)\n\nQUESTION COVERAGE PAGES USED\n----------------------------\n• https://example.com\n\nRECOMMENDATIONS\n---------------\n1. Add at least one FAQ page or FAQ section.\n2. Publish more educational articles to improve topical authority.\n3. Add or improve schema markup such as Organization and FAQPage.\n4. Improve AI visibility through stronger content, entity signals, and authority mentions.\n\n90-DAY IMPLEMENTATION DIRECTION\n-------------------------------\nPhase 1: Fix structural gaps (FAQ, schema, key pages)\nPhase 2: Publish educational topic-cluster content\nPhase 3: Improve entity signals and authority mentions\nPhase 4: Monitor AI visibility and refine query coverage\n"
+  }
+}

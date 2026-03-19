@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Run Audit{% endblock %}
+{% block page_title %}{{ client.name }} · Run Audit{% endblock %}
+{% block page_subtitle %}Launch a new AEO audit for this client. This will use 1 credit and generate fresh visibility, content, and schema analysis.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Audit Setup</h2>
+                <p class="panel-subtitle">Check the target business details before running the audit.</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="comparison-banner declined">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="form-stack">
+            <div class="form-grid-2">
+                <div class="form-field">
+                    <label for="website">Website</label>
+                    <input
+                        type="text"
+                        id="website"
+                        name="website"
+                        value="{{ form_data.website if form_data else '' }}"
+                        placeholder="example.com"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="industry">Industry</label>
+                    <input
+                        type="text"
+                        id="industry"
+                        name="industry"
+                        value="{{ form_data.industry if form_data else '' }}"
+                        placeholder="e.g. Live chat software"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="location">Target Location</label>
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value="{{ form_data.location if form_data else '' }}"
+                        placeholder="e.g. Singapore"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="audit_type">Audit Type</label>
+                    <select id="audit_type" name="audit_type">
+                        <option value="free" {% if form_data and form_data.audit_type == "free" %}selected{% endif %}>Free</option>
+                        <option value="full" {% if form_data and form_data.audit_type == "full" %}selected{% endif %}>Full</option>
+                    </select>
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="topic">Optional Topic / Focus Area</label>
+                    <input
+                        type="text"
+                        id="topic"
+                        name="topic"
+                        value="{{ form_data.topic if form_data else '' }}"
+                        placeholder="e.g. AI customer support, local SEO, clinic FAQs"
+                    >
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button type="submit" class="btn btn-primary">Run Audit</button>
+                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Credit & Output Summary</h2>
+                <p class="panel-subtitle">What happens when you run this audit.</p>
+            </div>
+        </div>
+
+        <div class="action-list">
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge high">1 Credit</span>
+                    <h3>Credit deduction</h3>
+                </div>
+                <p>This audit consumes 1 credit from the current logged-in user wallet.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge medium">Saved Output</span>
+                    <h3>Summary + full report</h3>
+                </div>
+                <p>The system saves both a summary file and a full audit file for later review and comparison.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge low">Next Steps</span>
+                    <h3>Use the output for action planning</h3>
+                </div>
+                <p>After the audit, use Visibility, Competitors, Actions, and Content tools to turn findings into work items.</p>
+            </div>
+        </div>
+
+        <div class="mini-heading">Current Client</div>
+        <div class="info-list">
+            <div class="info-row">
+                <span>Client</span>
+                <strong>{{ client.name }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Website</span>
+                <strong>{{ client.website }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Industry</span>
+                <strong>{{ client.industry or "N/A" }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Location</span>
+                <strong>{{ client.location or "N/A" }}</strong>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

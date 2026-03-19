@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if mode == "edit" %}Edit Client{% else %}Add Client{% endif %} | AEO Agents
+{% endblock %}
+
+{% block page_title %}
+    {% if mode == "edit" %}Edit Client{% else %}Add Client{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+    {% if mode == "edit" %}
+        Update client details, positioning context, and website info.
+    {% else %}
+        Create a new client workspace for audits, visibility tracking, action planning, and content production.
+    {% endif %}
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients_page') }}{% endif %}" class="btn btn-secondary">
+    {% if client %}Back to Client{% else %}Back to Clients{% endif %}
+</a>
+{% endblock %}
+
+{% block content %}
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>{% if mode == "edit" %}Client Details{% else %}Client Details{% endif %}</h2>
+                <p class="panel-subtitle">
+                    {% if mode == "edit" %}
+                        Update the main business fields for this client workspace.
+                    {% else %}
+                        Fill in the main business fields so the workspace starts with the right context.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="comparison-banner declined">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="form-stack">
+            <div class="form-grid-2">
+                <div class="form-field">
+                    <label for="name">Client Name</label>
+                    <input type="text" id="name" name="name" value="{{ form_data.get('name', '') if form_data else '' }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="website">Website</label>
+                    <input type="text" id="website" name="website" value="{{ form_data.get('website', '') if form_data else '' }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="industry">Industry</label>
+                    <input type="text" id="industry" name="industry" value="{{ form_data.get('industry', '') if form_data else '' }}">
+                </div>
+
+                <div class="form-field">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location" value="{{ form_data.get('location', '') if form_data else '' }}">
+                </div>
+
+                <div class="form-field">
+                    <label for="owner_type">Owner Type</label>
+                    <select id="owner_type" name="owner_type">
+                        {% set selected_owner_type = form_data.get('owner_type', 'company') if form_data else 'company' %}
+                        <option value="company" {% if selected_owner_type == 'company' %}selected{% endif %}>company</option>
+                        <option value="personal_brand" {% if selected_owner_type == 'personal_brand' %}selected{% endif %}>personal_brand</option>
+                        <option value="agency" {% if selected_owner_type == 'agency' %}selected{% endif %}>agency</option>
+                        <option value="local_business" {% if selected_owner_type == 'local_business' %}selected{% endif %}>local_business</option>
+                    </select>
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes">{{ form_data.get('notes', '') if form_data else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if mode == "edit" %}Save Changes{% else %}Create Client Workspace{% endif %}
+                </button>
+
+                <a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients_page') }}{% endif %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    {% if mode == "edit" and client %}
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Danger Zone</h2>
+                <p class="panel-subtitle">Deleting a client will also remove related queue items for that client.</p>
+            </div>
+        </div>
+
+        <div class="comparison-banner declined">
+            <strong>Warning:</strong> This action cannot be undone from the UI.
+        </div>
+
+        <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}">
+            <button type="submit" class="btn btn-danger">Delete Client</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>What This Creates</h2>
+                <p class="panel-subtitle">The new client will immediately become available across the agency workspace.</p>
+            </div>
+        </div>
+
+        <div class="action-list">
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge low">Workspace</span>
+                    <h3>Client profile</h3>
+                </div>
+                <p>A dedicated workspace for audits, visibility tracking, competitor review, and recommendations.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge medium">Content Flow</span>
+                    <h3>Briefs and drafts</h3>
+                </div>
+                <p>You can generate content briefs and drafts linked directly to this client and save them into the queue.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge high">Execution</span>
+                    <h3>Audit-ready workspace</h3>
+                </div>
+                <p>Once created, you can immediately run the first audit and start building the visibility history.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

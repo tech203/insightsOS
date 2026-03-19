@@ -1,0 +1,487 @@
+{
+  "website": "https://www.tawk.to/",
+  "audit_type": "detailed",
+  "saved_at": "2026-03-17T17:32:33.876875",
+  "client_id": "tech-astra-collective",
+  "client_name": "Tech | Astra Collective",
+  "user_id": 2,
+  "business_profile": {
+    "title": "tawk.to – \"100% FREE live chat software for your website!\"",
+    "description": "www.tawk.to is 100% Free Live Chat Software to monitor and chat with visitors on your website or from a free customizable page.",
+    "email": null,
+    "phone": null,
+    "services_detected": [
+      "service"
+    ]
+  },
+  "visibility_data": {
+    "queries_tested": 15,
+    "appearances": 0,
+    "average_query_score": 4.0,
+    "visibility_score": 4.0
+  },
+  "ai_answer_results": [
+    {
+      "engine": "chatgpt",
+      "query": "best Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Haptik**: Popular for conversational AI and customer support chatbots.",
+        "Active.Ai**: Specializes in banking and financial service chatbots.",
+        "Bot MD**: Focuses on healthcare chatbots.",
+        "Yellow.ai**: Offers AI chatbots for multiple industries with multilingual support."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For the best chatbot solutions in Singapore, you can consider these top providers known for their AI and customer service chatbots: - **Haptik**: Popular for conversational AI and customer support chatbots. - **Active.Ai**: Specializes in banking and financial service chatbots. - **Bot MD**: Focuses on healthcare chatbots. - **Yellow.ai**: Offers AI chatbots for multiple industries with multilingual support. These companies provide robust chatbot platforms tailored to different business needs in Singapore.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Active.Ai** – Specializes in conversational AI for banking and finance.",
+        "BotStar** – Offers easy-to-build chatbots for customer support and sales.",
+        "Haptik** – Provides AI chatbots for enterprises across industries.",
+        "Yellow.ai** – Known for multilingual, omnichannel chatbot platforms.",
+        "ViSenze** – Focuses on AI-driven visual and conversational commerce."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For top chatbots in Singapore, you can consider these popular providers known for AI chatbot solutions: - **Active.Ai** – Specializes in conversational AI for banking and finance. - **BotStar** – Offers easy-to-build chatbots for customer support and sales. - **Haptik** – Provides AI chatbots for enterprises across industries. - **Yellow.ai** – Known for multilingual, omnichannel chatbot platforms. - **ViSenze** – Focuses on AI-driven visual and conversational commerce. These companies have strong presence in Singapore and offer customizable chatbot solutions for businesses.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Chatbot services Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Bot MD** – specializes in healthcare chatbots.",
+        "Haptik** – offers AI-powered conversational platforms.",
+        "Active.Ai** – focuses on banking and financial services chatbots.",
+        "Yellow Messenger** – provides enterprise-grade chatbot solutions.",
+        "AiChat** – delivers omnichannel chatbot services for customer engagement."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For chatbot services in Singapore, you can consider these reputable providers: - **Bot MD** – specializes in healthcare chatbots. - **Haptik** – offers AI-powered conversational platforms. - **Active.Ai** – focuses on banking and financial services chatbots. - **Yellow Messenger** – provides enterprise-grade chatbot solutions. - **AiChat** – delivers omnichannel chatbot services for customer engagement. These companies offer customizable chatbot solutions for various industries, including retail, finance, healthcare, and more.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "recommended Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Active.Ai** – Specializes in AI-powered chatbots for banking and finance.",
+        "BotStar** – Offers easy-to-use chatbot platforms suitable for various industries.",
+        "Haptik** – Provides conversational AI solutions with strong regional presence.",
+        "Yellow.ai** – Known for enterprise-grade chatbots with multilingual support."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For chatbot services in Singapore, here are some recommended providers known for quality and local expertise: - **Active.Ai** – Specializes in AI-powered chatbots for banking and finance. - **BotStar** – Offers easy-to-use chatbot platforms suitable for various industries. - **Haptik** – Provides conversational AI solutions with strong regional presence. - **Yellow.ai** – Known for enterprise-grade chatbots with multilingual support. These companies offer tailored chatbot solutions for customer service, sales, and engagement in Singapore’s market.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Chatbot company Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Bot MD** – specializes in healthcare chatbots.",
+        "Active.Ai** – focuses on AI chatbots for banking and finance.",
+        "Haptik** – offers conversational AI solutions across industries.",
+        "BotStar** – provides chatbot building platforms for businesses.",
+        "Yellow.ai** – delivers AI-powered chatbots for customer support and engagement."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "If you're looking for chatbot companies in Singapore, here are some well-known providers: - **Bot MD** – specializes in healthcare chatbots. - **Active.Ai** – focuses on AI chatbots for banking and finance. - **Haptik** – offers conversational AI solutions across industries. - **BotStar** – provides chatbot building platforms for businesses. - **Yellow.ai** – delivers AI-powered chatbots for customer support and engagement. These companies offer a range of chatbot services tailored to different business needs.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "how much does Chatbot cost Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Basic chatbot platforms** (e.g., ManyChat, Tidio): Free plans available; paid plans range from SGD 20 to SGD 100+ per month.",
+        "Custom chatbot development** by agencies or freelancers: One-time fees typically start from SGD 2,000 and can go up to SGD 20,000+ depending on features and integrations.",
+        "Enterprise chatbot solutions** (e.g., IBM Watson, Google Dialogflow): Pricing often based on usage and can be higher, sometimes billed monthly or annually."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "The cost of a chatbot in Singapore varies widely depending on the type, complexity, and provider. Here’s a general idea: - **Basic chatbot platforms** (e.g., ManyChat, Tidio): Free plans available; paid plans range from SGD 20 to SGD 100+ per month. - **Custom chatbot development** by agencies or freelancers: One-time fees typically start from SGD 2,000 and can go up to SGD 20,000+ depending on features and integrations. - **Enterprise chatbot solutions** (e.g., IBM Watson, Google Dialogflow): Pricing often based on usage and can be higher, sometimes billed monthly or annually. For a simple chatbot, platforms like Chatfuel or MobileMonkey are affordable and easy to start with. For advanced needs, local digital agencies in Singapore can provide tailored quotes.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "how to choose Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "**Purpose & Features**: Define your chatbot’s goal—customer support, sales, booking, etc. Look for features like NLP, multilingual support (English, Mandarin, Malay), and integration with your platforms (website, WhatsApp, Facebook).",
+        "**Local Expertise**: Choose providers familiar with Singapore’s market and languages for better user experience.",
+        "**Customization & Scalability**: Ensure the chatbot can be tailored to your brand and can grow with your business.",
+        "**Ease of Use**: Check if the platform offers an intuitive interface for managing conversations without heavy coding.",
+        "**Support & Pricing**: Compare customer support quality and pricing plans."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "To choose a chatbot provider in Singapore, consider these key factors: 1. **Purpose & Features**: Define your chatbot’s goal—customer support, sales, booking, etc. Look for features like NLP, multilingual support (English, Mandarin, Malay), and integration with your platforms (website, WhatsApp, Facebook). 2. **Local Expertise**: Choose providers familiar with Singapore’s market and languages for better user experience. 3. **Customization & Scalability**: Ensure the chatbot can be tailored to your brand and can grow with your business. 4. **Ease of Use**: Check if the platform offers an intuitive interface for managing conversations without heavy coding. 5. **Support & Pricing**: Compare customer support quality and pricing plans. Popular chatbot providers in Singapore include: - **Active.Ai** (specializes in banking and finance) - **BotStar** (user-friendly, multi-channel) - **Haptik** (AI-driven, enterprise focus) - **Yellow.ai** (versatile, supports multiple industries) Evaluate demos or trials to find the best fit for your needs.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "what is the best Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Haptik**: Known for AI-driven conversational bots, widely used by enterprises.",
+        "BotStar**: Offers easy-to-build chatbots with multi-channel support.",
+        "Active.Ai**: Focuses on banking and financial services chatbots.",
+        "Yellow.ai**: Provides AI chatbots for customer engagement across industries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "The best chatbot in Singapore depends on your needs—whether for customer service, sales, or general inquiries. Some top chatbot providers popular in Singapore include: - **Haptik**: Known for AI-driven conversational bots, widely used by enterprises. - **BotStar**: Offers easy-to-build chatbots with multi-channel support. - **Active.Ai**: Focuses on banking and financial services chatbots. - **Yellow.ai**: Provides AI chatbots for customer engagement across industries. For a tailored solution, consider your industry and integration needs. Many local digital agencies also offer custom chatbot development.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "who are the top Chatbot companies Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Haptik** – Offers AI-powered chatbot platforms for customer support and engagement.",
+        "Bot MD** – Specializes in healthcare chatbots to assist medical professionals.",
+        "Active.Ai** – Provides conversational AI for banking and financial services.",
+        "Yellow Messenger** – Enterprise-grade chatbot solutions across industries.",
+        "ViSenze** – Known for AI visual search and chatbot integrations."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Some of the top chatbot companies in Singapore known for their AI and conversational solutions include: - **Haptik** – Offers AI-powered chatbot platforms for customer support and engagement. - **Bot MD** – Specializes in healthcare chatbots to assist medical professionals. - **Active.Ai** – Provides conversational AI for banking and financial services. - **Yellow Messenger** – Enterprise-grade chatbot solutions across industries. - **ViSenze** – Known for AI visual search and chatbot integrations. These companies are recognized for their innovation and strong presence in Singapore’s chatbot market.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "affordable Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "BotStar**: A popular chatbot builder based in Singapore, offering flexible pricing and easy integration.",
+        "Haptik**: Provides AI chatbots with customizable plans suitable for small to medium businesses.",
+        "Tars**: Known for cost-effective chatbot solutions focused on lead generation and customer support.",
+        "ManyChat**: Offers affordable chatbot services with a user-friendly interface, suitable for SMEs."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For affordable chatbots in Singapore, you can consider these providers: - **BotStar**: A popular chatbot builder based in Singapore, offering flexible pricing and easy integration. - **Haptik**: Provides AI chatbots with customizable plans suitable for small to medium businesses. - **Tars**: Known for cost-effective chatbot solutions focused on lead generation and customer support. - **ManyChat**: Offers affordable chatbot services with a user-friendly interface, suitable for SMEs. These platforms often have free trials or starter plans, so you can test them before committing.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Chatbot companies in Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Bot MD** – specializes in healthcare chatbots.",
+        "Active.Ai** – focuses on AI-powered banking chatbots.",
+        "Haptik** – offers conversational AI solutions across industries.",
+        "BotStar** – provides chatbot building platforms for businesses.",
+        "Yellow Messenger** – enterprise-grade chatbot and automation solutions."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "Here are some notable chatbot companies in Singapore: - **Bot MD** – specializes in healthcare chatbots. - **Active.Ai** – focuses on AI-powered banking chatbots. - **Haptik** – offers conversational AI solutions across industries. - **BotStar** – provides chatbot building platforms for businesses. - **Yellow Messenger** – enterprise-grade chatbot and automation solutions. These companies offer a range of chatbot services for customer support, sales, and automation.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "compare Chatbot services Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Haptik**: An Indian-origin chatbot platform with strong presence in Singapore, offering AI-powered conversational bots for customer service, lead generation, and automation. Known for easy integration and multilingual support.",
+        "Active.Ai**: Focuses on banking and financial services chatbots, popular among Singaporean banks. Provides natural language processing tailored for finance, enabling secure and personalized customer interactions.",
+        "Yellow Messenger**: A global conversational AI platform with offices in Singapore, supporting omni-channel chatbots for customer support, HR, and sales automation. Offers low-code bot building and analytics.",
+        "BotStar**: A user-friendly chatbot builder with drag-and-drop interface, suitable for SMEs in Singapore. Supports Facebook Messenger, website chat, and WhatsApp integration.",
+        "IBM Watson Assistant**: Enterprise-grade AI chatbot with strong NLP capabilities, customizable for various industries. Available in Singapore with local support and cloud hosting options."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "In Singapore, several chatbot service providers stand out for businesses looking to implement AI-driven customer support or engagement tools. Here's a quick comparison of popular options: - **Haptik**: An Indian-origin chatbot platform with strong presence in Singapore, offering AI-powered conversational bots for customer service, lead generation, and automation. Known for easy integration and multilingual support. - **Active.Ai**: Focuses on banking and financial services chatbots, popular among Singaporean banks. Provides natural language processing tailored for finance, enabling secure and personalized customer interactions. - **Yellow Messenger**: A global conversational AI platform with offices in Singapore, supporting omni-channel chatbots for customer support, HR, and sales automation. Offers low-code bot building and analytics. - **BotStar**: A user-friendly chatbot builder with drag-and-drop interface, suitable for SMEs in Singapore. Supports Facebook Messenger, website chat, and WhatsApp integration. - **IBM Watson Assistant**: Enterprise-grade AI chatbot with strong NLP capabilities, customizable for various industries. Available in Singapore with local support and cloud hosting options. Choosing the right chatbot depends on your industry, budget, and integration needs. For finance, Active.Ai is strong; for general customer service, Haptik or Yellow Messenger are good options; for easy DIY bots, BotStar is suitable.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "top rated Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Active.Ai** – Specializes in conversational AI for banking and finance.",
+        "BotStar** – Offers easy-to-build chatbots for businesses with strong local presence.",
+        "Haptik** – Provides AI-driven chatbots for customer support and engagement.",
+        "Yellow Messenger** – Enterprise-grade chatbot platform with multilingual support."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For top-rated chatbots in Singapore, you can consider these popular providers known for quality AI chatbot solutions: - **Active.Ai** – Specializes in conversational AI for banking and finance. - **BotStar** – Offers easy-to-build chatbots for businesses with strong local presence. - **Haptik** – Provides AI-driven chatbots for customer support and engagement. - **Yellow Messenger** – Enterprise-grade chatbot platform with multilingual support. These companies have strong reputations in Singapore and Southeast Asia for delivering effective chatbot solutions.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "Chatbot experts Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "Bot MD** – specializes in healthcare chatbots and AI solutions.",
+        "Hubble** – offers AI chatbot development for customer service and sales.",
+        "BotCore** – provides enterprise chatbot platforms with multilingual support.",
+        "Active.Ai** – focuses on banking and financial services chatbots.",
+        "ViSenze** – known for AI-driven visual and conversational commerce solutions."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For chatbot experts in Singapore, you can consider these reputable companies and providers: - **Bot MD** – specializes in healthcare chatbots and AI solutions. - **Hubble** – offers AI chatbot development for customer service and sales. - **BotCore** – provides enterprise chatbot platforms with multilingual support. - **Active.Ai** – focuses on banking and financial services chatbots. - **ViSenze** – known for AI-driven visual and conversational commerce solutions. These companies have strong local presence and expertise in chatbot development tailored to various industries.",
+      "score": 4
+    },
+    {
+      "engine": "chatgpt",
+      "query": "trusted Chatbot Singapore",
+      "brand_name": "tawk.to – \"100% FREE live chat software for your website!\"",
+      "brand_mentioned": false,
+      "brand_position": null,
+      "competitors_mentioned": [
+        "BotMD**: Specializes in healthcare chatbots, widely used in Singapore hospitals.",
+        "Active.Ai**: Offers AI-powered chatbots for banking and financial services.",
+        "Haptik**: Provides conversational AI solutions for customer support and engagement.",
+        "Yellow.ai**: Known for enterprise-grade chatbots across various industries."
+      ],
+      "directories_mentioned": [],
+      "media_mentioned": [],
+      "answer_type": "list-led",
+      "answer": "For trusted chatbots in Singapore, you can consider these reputable providers: - **BotMD**: Specializes in healthcare chatbots, widely used in Singapore hospitals. - **Active.Ai**: Offers AI-powered chatbots for banking and financial services. - **Haptik**: Provides conversational AI solutions for customer support and engagement. - **Yellow.ai**: Known for enterprise-grade chatbots across various industries. These companies have strong local presence and proven track records in Singapore.",
+      "score": 4
+    }
+  ],
+  "competitor_data": {
+    "all_results": [
+      [
+        "clutch.co",
+        4
+      ],
+      [
+        "thinkstack.ai",
+        4
+      ],
+      [
+        "revechat.com",
+        4
+      ],
+      [
+        "asi.sg",
+        4
+      ],
+      [
+        "otg-lab.com",
+        4
+      ],
+      [
+        "brewinteractive.com",
+        3
+      ],
+      [
+        "awebstar.com.sg",
+        3
+      ],
+      [
+        "themanifest.com",
+        3
+      ],
+      [
+        "cardinaldigital.com",
+        2
+      ],
+      [
+        "mybeautifuladventures.com",
+        2
+      ]
+    ],
+    "direct_competitors": [
+      [
+        "clutch.co",
+        4
+      ],
+      [
+        "thinkstack.ai",
+        4
+      ],
+      [
+        "revechat.com",
+        4
+      ],
+      [
+        "asi.sg",
+        4
+      ],
+      [
+        "otg-lab.com",
+        4
+      ],
+      [
+        "brewinteractive.com",
+        3
+      ],
+      [
+        "awebstar.com.sg",
+        3
+      ],
+      [
+        "themanifest.com",
+        3
+      ],
+      [
+        "cardinaldigital.com",
+        2
+      ],
+      [
+        "mybeautifuladventures.com",
+        2
+      ]
+    ],
+    "directory_sites": [],
+    "media_sites": [
+      [
+        "mediaplus.com.sg",
+        1
+      ]
+    ],
+    "spam_sites": []
+  },
+  "content_gaps": [
+    "how much does Chatbot cost Singapore",
+    "how to choose Chatbot Singapore",
+    "what is the best Chatbot Singapore",
+    "who are the top Chatbot companies Singapore"
+  ],
+  "question_coverage": {
+    "topic": "Chatbot",
+    "pages_used": [
+      "https://www.tawk.to/",
+      "https://www.tawk.to/va-faqs/",
+      "https://www.tawk.to/services/hire-a-health-services-va/",
+      "https://www.tawk.to/blog",
+      "https://www.tawk.to/services/hire-chat-agents/",
+      "https://www.tawk.to/services/hire-an-e-commerce-va/",
+      "https://www.tawk.to/services/hire-a-digital-marketing-va/",
+      "https://www.tawk.to/services/hire-a-real-estate-va/",
+      "https://www.tawk.to/services/hire-virtual-assistant/"
+    ],
+    "results": [
+      {
+        "question": "What Is a Chatbot?",
+        "status": "Missing",
+        "score": 0.0
+      },
+      {
+        "question": "However, if your customer asks thechatbotaquestionlike “Which color is better, yellow or black?” and you don’t train it to answer this?",
+        "status": "Answered",
+        "score": 0.82
+      },
+      {
+        "question": "is testing a new AI?",
+        "status": "Answered",
+        "score": 1.0
+      },
+      {
+        "question": "What Is a Chatbot? Definition, Types, and Examples?",
+        "status": "Missing",
+        "score": 0.25
+      },
+      {
+        "question": "What Is a Chatbot? How Do They Work?",
+        "status": "Weak",
+        "score": 0.67
+      },
+      {
+        "question": "How Do Chatbots Work? Exploring AI's Role in Chatbot Architecture?",
+        "status": "Weak",
+        "score": 0.62
+      },
+      {
+        "question": "What is your favorite AI chatbot?",
+        "status": "Weak",
+        "score": 0.5
+      },
+      {
+        "question": "What is a Chatbot ? How does it works?",
+        "status": "Weak",
+        "score": 0.5
+      },
+      {
+        "question": "What Is a Chatbot? Everything You Need To Know?",
+        "status": "Answered",
+        "score": 0.8
+      }
+    ]
+  },
+  "audit_data": {
+    "pages_checked": 11,
+    "service_pages": 5,
+    "blog_pages": 0,
+    "faq_pages": 6,
+    "question_headings": 65,
+    "schema_types": [],
+    "content_score": 20,
+    "schema_score": 0,
+    "content_score_breakdown": {
+      "service_score": 10,
+      "blog_score": 0,
+      "faq_score": 6,
+      "question_score": 4
+    }
+  },
+  "final_report": {
+    "raw_score": 24.0,
+    "max_total_score": 65,
+    "normalized_score": 36.92,
+    "summary": "Moderate opportunity",
+    "verdict": "MODERATE OPPORTUNITY",
+    "report_text": "\n==================================================\n          AI VISIBILITY STRATEGY AUDIT\n==================================================\n\nWebsite: https://www.tawk.to/\n\nVERDICT\n-------\nMODERATE OPPORTUNITY\n\nSCORES\n------\nContent Score: 20 / 30\nSchema Score: 0 / 15\nVisibility Score: 4.0 / 20\n\nRaw Score: 24.0 / 65\nNormalized Score: 36.92 / 100\nOpportunity Level: Moderate opportunity\n\nEXECUTIVE SUMMARY\n-----------------\nThis detailed audit evaluates the website's current structural readiness for\nAI-powered visibility, observed visibility signals, competitor landscape,\nand content opportunities. It is intended to support a deeper implementation strategy.\n\nBUSINESS PROFILE\n----------------\nTitle: tawk.to – \"100% FREE live chat software for your website!\"\nDescription: www.tawk.to is 100% Free Live Chat Software to monitor and chat with visitors on your website or from a free customizable page.\nEmail: None\nPhone: None\nDetected Services: service\n\nAI VISIBILITY BREAKDOWN\n-----------------------\nQueries Tested: 15\nBrand Appearances in AI Answers: 0\nAverage Query Score: 4.0 / 20\nVisibility Score: 4.0 / 20\n\nAI ANSWER DETAILS\n-----------------\n• Query: best Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Haptik**: Popular for conversational AI and customer support chatbots., Active.Ai**: Specializes in banking and financial service chatbots., Bot MD**: Focuses on healthcare chatbots., Yellow.ai**: Offers AI chatbots for multiple industries with multilingual support.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For the best chatbot solutions in Singapore, you can consider these top providers known for their AI and customer service chatbots: - **Haptik**: Popular for conversational AI and customer support chatbots. - **Active.Ai**: Specializes in banking and financial service chatbots. - **Bot MD**: Focuses on healthcare chatbots. - **Yellow.ai**: Offers AI chatbots for multiple industries with multilingual support. These companies provide robust chatbot platforms tailored to different business needs in Singapore.\n\n• Query: top Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Active.Ai** – Specializes in conversational AI for banking and finance., BotStar** – Offers easy-to-build chatbots for customer support and sales., Haptik** – Provides AI chatbots for enterprises across industries., Yellow.ai** – Known for multilingual, omnichannel chatbot platforms., ViSenze** – Focuses on AI-driven visual and conversational commerce.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For top chatbots in Singapore, you can consider these popular providers known for AI chatbot solutions: - **Active.Ai** – Specializes in conversational AI for banking and finance. - **BotStar** – Offers easy-to-build chatbots for customer support and sales. - **Haptik** – Provides AI chatbots for enterprises across industries. - **Yellow.ai** – Known for multilingual, omnichannel chatbot platforms. - **ViSenze** – Focuses on AI-driven visual and conversational commerce. These companies have strong presence in Singapore and offer customizable chatbot solutions for businesses.\n\n• Query: Chatbot services Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Bot MD** – specializes in healthcare chatbots., Haptik** – offers AI-powered conversational platforms., Active.Ai** – focuses on banking and financial services chatbots., Yellow Messenger** – provides enterprise-grade chatbot solutions., AiChat** – delivers omnichannel chatbot services for customer engagement.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For chatbot services in Singapore, you can consider these reputable providers: - **Bot MD** – specializes in healthcare chatbots. - **Haptik** – offers AI-powered conversational platforms. - **Active.Ai** – focuses on banking and financial services chatbots. - **Yellow Messenger** – provides enterprise-grade chatbot solutions. - **AiChat** – delivers omnichannel chatbot services for customer engagement. These companies offer customizable chatbot solutions for various industries, including retail, finance, healthcare, and more.\n\n• Query: recommended Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Active.Ai** – Specializes in AI-powered chatbots for banking and finance., BotStar** – Offers easy-to-use chatbot platforms suitable for various industries., Haptik** – Provides conversational AI solutions with strong regional presence., Yellow.ai** – Known for enterprise-grade chatbots with multilingual support.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For chatbot services in Singapore, here are some recommended providers known for quality and local expertise: - **Active.Ai** – Specializes in AI-powered chatbots for banking and finance. - **BotStar** – Offers easy-to-use chatbot platforms suitable for various industries. - **Haptik** – Provides conversational AI solutions with strong regional presence. - **Yellow.ai** – Known for enterprise-grade chatbots with multilingual support. These companies offer tailored chatbot solutions for customer service, sales, and engagement in Singapore’s market.\n\n• Query: Chatbot company Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Bot MD** – specializes in healthcare chatbots., Active.Ai** – focuses on AI chatbots for banking and finance., Haptik** – offers conversational AI solutions across industries., BotStar** – provides chatbot building platforms for businesses., Yellow.ai** – delivers AI-powered chatbots for customer support and engagement.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: If you're looking for chatbot companies in Singapore, here are some well-known providers: - **Bot MD** – specializes in healthcare chatbots. - **Active.Ai** – focuses on AI chatbots for banking and finance. - **Haptik** – offers conversational AI solutions across industries. - **BotStar** – provides chatbot building platforms for businesses. - **Yellow.ai** – delivers AI-powered chatbots for customer support and engagement. These companies offer a range of chatbot services tailored to different business needs.\n\n• Query: how much does Chatbot cost Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Basic chatbot platforms** (e.g., ManyChat, Tidio): Free plans available; paid plans range from SGD 20 to SGD 100+ per month., Custom chatbot development** by agencies or freelancers: One-time fees typically start from SGD 2,000 and can go up to SGD 20,000+ depending on features and integrations., Enterprise chatbot solutions** (e.g., IBM Watson, Google Dialogflow): Pricing often based on usage and can be higher, sometimes billed monthly or annually.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: The cost of a chatbot in Singapore varies widely depending on the type, complexity, and provider. Here’s a general idea: - **Basic chatbot platforms** (e.g., ManyChat, Tidio): Free plans available; paid plans range from SGD 20 to SGD 100+ per month. - **Custom chatbot development** by agencies or freelancers: One-time fees typically start from SGD 2,000 and can go up to SGD 20,000+ depending on features and integrations. - **Enterprise chatbot solutions** (e.g., IBM Watson, Google Dialogflow): Pricing often based on usage and can be higher, sometimes billed monthly or annually. For a simple chatbot, platforms like Chatfuel or MobileMonkey are affordable and easy to start with. For advanced needs, local digital agencies in Singapore can provide tailored quotes.\n\n• Query: how to choose Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: **Purpose & Features**: Define your chatbot’s goal—customer support, sales, booking, etc. Look for features like NLP, multilingual support (English, Mandarin, Malay), and integration with your platforms (website, WhatsApp, Facebook)., **Local Expertise**: Choose providers familiar with Singapore’s market and languages for better user experience., **Customization & Scalability**: Ensure the chatbot can be tailored to your brand and can grow with your business., **Ease of Use**: Check if the platform offers an intuitive interface for managing conversations without heavy coding., **Support & Pricing**: Compare customer support quality and pricing plans.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: To choose a chatbot provider in Singapore, consider these key factors: 1. **Purpose & Features**: Define your chatbot’s goal—customer support, sales, booking, etc. Look for features like NLP, multilingual support (English, Mandarin, Malay), and integration with your platforms (website, WhatsApp, Facebook). 2. **Local Expertise**: Choose providers familiar with Singapore’s market and languages for better user experience. 3. **Customization & Scalability**: Ensure the chatbot can be tailored to your brand and can grow with your business. 4. **Ease of Use**: Check if the platform offers an intuitive interface for managing conversations without heavy coding. 5. **Support & Pricing**: Compare customer support quality and pricing plans. Popular chatbot providers in Singapore include: - **Active.Ai** (specializes in banking and finance) - **BotStar** (user-friendly, multi-channel) - **Haptik** (AI-driven, enterprise focus) - **Yellow.ai** (versatile, supports multiple industries) Evaluate demos or trials to find the best fit for your needs.\n\n• Query: what is the best Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Haptik**: Known for AI-driven conversational bots, widely used by enterprises., BotStar**: Offers easy-to-build chatbots with multi-channel support., Active.Ai**: Focuses on banking and financial services chatbots., Yellow.ai**: Provides AI chatbots for customer engagement across industries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: The best chatbot in Singapore depends on your needs—whether for customer service, sales, or general inquiries. Some top chatbot providers popular in Singapore include: - **Haptik**: Known for AI-driven conversational bots, widely used by enterprises. - **BotStar**: Offers easy-to-build chatbots with multi-channel support. - **Active.Ai**: Focuses on banking and financial services chatbots. - **Yellow.ai**: Provides AI chatbots for customer engagement across industries. For a tailored solution, consider your industry and integration needs. Many local digital agencies also offer custom chatbot development.\n\n• Query: who are the top Chatbot companies Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Haptik** – Offers AI-powered chatbot platforms for customer support and engagement., Bot MD** – Specializes in healthcare chatbots to assist medical professionals., Active.Ai** – Provides conversational AI for banking and financial services., Yellow Messenger** – Enterprise-grade chatbot solutions across industries., ViSenze** – Known for AI visual search and chatbot integrations.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Some of the top chatbot companies in Singapore known for their AI and conversational solutions include: - **Haptik** – Offers AI-powered chatbot platforms for customer support and engagement. - **Bot MD** – Specializes in healthcare chatbots to assist medical professionals. - **Active.Ai** – Provides conversational AI for banking and financial services. - **Yellow Messenger** – Enterprise-grade chatbot solutions across industries. - **ViSenze** – Known for AI visual search and chatbot integrations. These companies are recognized for their innovation and strong presence in Singapore’s chatbot market.\n\n• Query: affordable Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: BotStar**: A popular chatbot builder based in Singapore, offering flexible pricing and easy integration., Haptik**: Provides AI chatbots with customizable plans suitable for small to medium businesses., Tars**: Known for cost-effective chatbot solutions focused on lead generation and customer support., ManyChat**: Offers affordable chatbot services with a user-friendly interface, suitable for SMEs.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For affordable chatbots in Singapore, you can consider these providers: - **BotStar**: A popular chatbot builder based in Singapore, offering flexible pricing and easy integration. - **Haptik**: Provides AI chatbots with customizable plans suitable for small to medium businesses. - **Tars**: Known for cost-effective chatbot solutions focused on lead generation and customer support. - **ManyChat**: Offers affordable chatbot services with a user-friendly interface, suitable for SMEs. These platforms often have free trials or starter plans, so you can test them before committing.\n\n• Query: Chatbot companies in Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Bot MD** – specializes in healthcare chatbots., Active.Ai** – focuses on AI-powered banking chatbots., Haptik** – offers conversational AI solutions across industries., BotStar** – provides chatbot building platforms for businesses., Yellow Messenger** – enterprise-grade chatbot and automation solutions.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: Here are some notable chatbot companies in Singapore: - **Bot MD** – specializes in healthcare chatbots. - **Active.Ai** – focuses on AI-powered banking chatbots. - **Haptik** – offers conversational AI solutions across industries. - **BotStar** – provides chatbot building platforms for businesses. - **Yellow Messenger** – enterprise-grade chatbot and automation solutions. These companies offer a range of chatbot services for customer support, sales, and automation.\n\n• Query: compare Chatbot services Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Haptik**: An Indian-origin chatbot platform with strong presence in Singapore, offering AI-powered conversational bots for customer service, lead generation, and automation. Known for easy integration and multilingual support., Active.Ai**: Focuses on banking and financial services chatbots, popular among Singaporean banks. Provides natural language processing tailored for finance, enabling secure and personalized customer interactions., Yellow Messenger**: A global conversational AI platform with offices in Singapore, supporting omni-channel chatbots for customer support, HR, and sales automation. Offers low-code bot building and analytics., BotStar**: A user-friendly chatbot builder with drag-and-drop interface, suitable for SMEs in Singapore. Supports Facebook Messenger, website chat, and WhatsApp integration., IBM Watson Assistant**: Enterprise-grade AI chatbot with strong NLP capabilities, customizable for various industries. Available in Singapore with local support and cloud hosting options.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: In Singapore, several chatbot service providers stand out for businesses looking to implement AI-driven customer support or engagement tools. Here's a quick comparison of popular options: - **Haptik**: An Indian-origin chatbot platform with strong presence in Singapore, offering AI-powered conversational bots for customer service, lead generation, and automation. Known for easy integration and multilingual support. - **Active.Ai**: Focuses on banking and financial services chatbots, popular among Singaporean banks. Provides natural language processing tailored for finance, enabling secure and personalized customer interactions. - **Yellow Messenger**: A global conversational AI platform with offices in Singapore, supporting omni-channel chatbots for customer support, HR, and sales automation. Offers low-code bot building and analytics. - **BotStar**: A user-friendly chatbot builder with drag-and-drop interface, suitable for SMEs in Singapore. Supports Facebook Messenger, website chat, and WhatsApp integration. - **IBM Watson Assistant**: Enterprise-grade AI chatbot with strong NLP capabilities, customizable for various industries. Available in Singapore with local support and cloud hosting options. Choosing the right chatbot depends on your industry, budget, and integration needs. For finance, Active.Ai is strong; for general customer service, Haptik or Yellow Messenger are good options; for easy DIY bots, BotStar is suitable.\n\n• Query: top rated Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Active.Ai** – Specializes in conversational AI for banking and finance., BotStar** – Offers easy-to-build chatbots for businesses with strong local presence., Haptik** – Provides AI-driven chatbots for customer support and engagement., Yellow Messenger** – Enterprise-grade chatbot platform with multilingual support.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For top-rated chatbots in Singapore, you can consider these popular providers known for quality AI chatbot solutions: - **Active.Ai** – Specializes in conversational AI for banking and finance. - **BotStar** – Offers easy-to-build chatbots for businesses with strong local presence. - **Haptik** – Provides AI-driven chatbots for customer support and engagement. - **Yellow Messenger** – Enterprise-grade chatbot platform with multilingual support. These companies have strong reputations in Singapore and Southeast Asia for delivering effective chatbot solutions.\n\n• Query: Chatbot experts Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: Bot MD** – specializes in healthcare chatbots and AI solutions., Hubble** – offers AI chatbot development for customer service and sales., BotCore** – provides enterprise chatbot platforms with multilingual support., Active.Ai** – focuses on banking and financial services chatbots., ViSenze** – known for AI-driven visual and conversational commerce solutions.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For chatbot experts in Singapore, you can consider these reputable companies and providers: - **Bot MD** – specializes in healthcare chatbots and AI solutions. - **Hubble** – offers AI chatbot development for customer service and sales. - **BotCore** – provides enterprise chatbot platforms with multilingual support. - **Active.Ai** – focuses on banking and financial services chatbots. - **ViSenze** – known for AI-driven visual and conversational commerce solutions. These companies have strong local presence and expertise in chatbot development tailored to various industries.\n\n• Query: trusted Chatbot Singapore\n  Brand Mentioned: False\n  Brand Position: None\n  Competitors Mentioned: BotMD**: Specializes in healthcare chatbots, widely used in Singapore hospitals., Active.Ai**: Offers AI-powered chatbots for banking and financial services., Haptik**: Provides conversational AI solutions for customer support and engagement., Yellow.ai**: Known for enterprise-grade chatbots across various industries.\n  Directories Mentioned: None\n  Media Mentioned: None\n  Answer Type: list-led\n  Query Score: 4 / 20\n  Answer: For trusted chatbots in Singapore, you can consider these reputable providers: - **BotMD**: Specializes in healthcare chatbots, widely used in Singapore hospitals. - **Active.Ai**: Offers AI-powered chatbots for banking and financial services. - **Haptik**: Provides conversational AI solutions for customer support and engagement. - **Yellow.ai**: Known for enterprise-grade chatbots across various industries. These companies have strong local presence and proven track records in Singapore.\n\n\nWEBSITE STRUCTURE\n-----------------\nPages Checked: 11\nService Pages: 5\nBlog Pages: 0\nFAQ Pages: 6\nQuestion Headings: 65\nSchema Types: None\n\nCONTENT SCORE BREAKDOWN\n-----------------------\nService Score: 10 / 10\nBlog Score: 0 / 10\nFAQ Score: 6 / 6\nQuestion Score: 4 / 4\n\nDIRECT COMPETITORS\n------------------\n• clutch.co (4 appearances in analyzed results)\n• thinkstack.ai (4 appearances in analyzed results)\n• revechat.com (4 appearances in analyzed results)\n• asi.sg (4 appearances in analyzed results)\n• otg-lab.com (4 appearances in analyzed results)\n• brewinteractive.com (3 appearances in analyzed results)\n• awebstar.com.sg (3 appearances in analyzed results)\n• themanifest.com (3 appearances in analyzed results)\n• cardinaldigital.com (2 appearances in analyzed results)\n• mybeautifuladventures.com (2 appearances in analyzed results)\n\nDIRECTORY / LIST SITES\n----------------------\n• No major directory/list sites detected.\n\nMEDIA / INFORMATION SITES\n-------------------------\n• mediaplus.com.sg (1 appearances in analyzed results)\n\nLOW-QUALITY / SPAM SITES\n------------------------\n• No major spam-like domains detected.\n\nCONTENT GAP OPPORTUNITIES\n-------------------------\n• how much does Chatbot cost Singapore\n• how to choose Chatbot Singapore\n• what is the best Chatbot Singapore\n• who are the top Chatbot companies Singapore\n\nQUESTION COVERAGE AUDIT\n-----------------------\n• What Is a Chatbot? — Missing (0.0)\n• However, if your customer asks thechatbotaquestionlike “Which color is better, yellow or black?” and you don’t train it to answer this? — Answered (0.82)\n• is testing a new AI? — Answered (1.0)\n• What Is a Chatbot? Definition, Types, and Examples? — Missing (0.25)\n• What Is a Chatbot? How Do They Work? — Weak (0.67)\n• How Do Chatbots Work? Exploring AI's Role in Chatbot Architecture? — Weak (0.62)\n• What is your favorite AI chatbot? — Weak (0.5)\n• What is a Chatbot ? How does it works? — Weak (0.5)\n• What Is a Chatbot? Everything You Need To Know? — Answered (0.8)\n\nQUESTION COVERAGE PAGES USED\n----------------------------\n• https://www.tawk.to/\n• https://www.tawk.to/va-faqs/\n• https://www.tawk.to/services/hire-a-health-services-va/\n• https://www.tawk.to/blog\n• https://www.tawk.to/services/hire-chat-agents/\n• https://www.tawk.to/services/hire-an-e-commerce-va/\n• https://www.tawk.to/services/hire-a-digital-marketing-va/\n• https://www.tawk.to/services/hire-a-real-estate-va/\n• https://www.tawk.to/services/hire-virtual-assistant/\n\nRECOMMENDATIONS\n---------------\n1. Publish more educational articles to improve topical authority.\n2. Add or improve schema markup such as Organization and FAQPage.\n3. Improve AI visibility through stronger content, entity signals, and authority mentions.\n\n90-DAY IMPLEMENTATION DIRECTION\n-------------------------------\nPhase 1: Fix structural gaps (FAQ, schema, key pages)\nPhase 2: Publish educational topic-cluster content\nPhase 3: Improve entity signals and authority mentions\nPhase 4: Monitor AI visibility and refine query coverage\n"
+  }
+}

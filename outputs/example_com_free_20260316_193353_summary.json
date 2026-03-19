@@ -1,0 +1,58 @@
+{
+  "website": "https://example.com",
+  "audit_type": "free",
+  "saved_at": "2026-03-16T19:33:53.515243",
+  "client_id": "chung-will-writing",
+  "client_name": "Chung Will Writing Services",
+  "scores": {
+    "content_score": 0,
+    "schema_score": 0,
+    "visibility_score": 4.0,
+    "average_query_score": 4.0,
+    "raw_score": 4.0,
+    "normalized_score": 6.15
+  },
+  "summary": {
+    "verdict": "LOW OPPORTUNITY",
+    "opportunity_level": "Weak foundation"
+  },
+  "business_profile": {
+    "title": "Example Domain",
+    "description": "",
+    "email": null,
+    "phone": null,
+    "services_detected": []
+  },
+  "visibility_snapshot": {
+    "queries_tested": 5,
+    "brand_appearances": 0
+  },
+  "top_competitors": [
+    {
+      "domain": "willwriting.sg",
+      "appearances": 4
+    },
+    {
+      "domain": "raintreewills.sg",
+      "appearances": 3
+    },
+    {
+      "domain": "estateplanner.sg",
+      "appearances": 2
+    },
+    {
+      "domain": "thewillroom.com",
+      "appearances": 2
+    },
+    {
+      "domain": "singaporelegaladvice.com",
+      "appearances": 1
+    }
+  ],
+  "top_content_gaps": [],
+  "top_recommendations": [
+    "1. Add at least one FAQ page or FAQ section.",
+    "2. Publish more educational articles to improve topical authority.",
+    "3. Add or improve schema markup such as Organization and FAQPage."
+  ]
+}

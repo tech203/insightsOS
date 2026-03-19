@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Visibility{% endblock %}
+{% block page_title %}{{ client.name }} · Visibility{% endblock %}
+{% block page_subtitle %}Track brand mention movement across saved audits and review which queries are improving, declining, or still missing your brand.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run New Audit</a>
+{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Queries</div>
+        <div class="stat-value">
+            {% if client.query_comparison %}
+                {{ client.query_comparison.summary.total_queries }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="stat-note">Tracked across compared audits</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Improved</div>
+        <div class="stat-value">
+            {% if client.query_comparison %}
+                {{ client.query_comparison.summary.improved }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="stat-note">Queries with positive score change</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Declined</div>
+        <div class="stat-value">
+            {% if client.query_comparison %}
+                {{ client.query_comparison.summary.declined }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="stat-note">Queries with negative score change</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Missed Brand Mentions</div>
+        <div class="stat-value">
+            {% if client.query_comparison %}
+                {{ client.query_comparison.summary.missed_brand_mentions }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="stat-note">Queries where brand is still absent</div>
+    </div>
+</section>
+
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Latest Visibility Snapshot</h2>
+                <p class="panel-subtitle">Quick view of the most recent audit results and comparison status.</p>
+            </div>
+        </div>
+
+        {% if client.latest_audit %}
+        <div class="info-list">
+            <div class="info-row">
+                <span>Latest Audit</span>
+                <strong>{{ client.latest_audit.saved_at|pretty_datetime }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Visibility Score</span>
+                <strong>{{ client.latest_audit.visibility_score }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Normalized Score</span>
+                <strong>{{ client.latest_audit.normalized_score }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Verdict</span>
+                <strong>{{ client.latest_audit.verdict }}</strong>
+            </div>
+        </div>
+
+        {% if client.comparison %}
+        <div class="comparison-banner {{ client.comparison.overall_change }}">
+            Overall trend:
+            <strong>{{ client.comparison.overall_change|capitalize }}</strong>
+            <span class="delta-pill">
+                {{ "+" if client.comparison.visibility_delta > 0 else "" }}{{ client.comparison.visibility_delta }} visibility
+            </span>
+        </div>
+        {% else %}
+        <div class="comparison-banner neutral">
+            Only one audit available. Run another audit to unlock comparison insights.
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state compact">
+            <h3>No visibility data yet</h3>
+            <p>Run an audit first to start tracking brand mentions across queries.</p>
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run First Audit</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>What to Look For</h2>
+                <p class="panel-subtitle">Use this page to understand where answer visibility is weak and what should be fixed next.</p>
+            </div>
+        </div>
+
+        <div class="action-list">
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge high">High</span>
+                    <h3>Queries with no brand mention</h3>
+                </div>
+                <p>These are the clearest opportunities for new FAQ, landing page, and comparison content.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge medium">Medium</span>
+                    <h3>Declining queries</h3>
+                </div>
+                <p>These may need refreshed content, stronger trust signals, or more direct answer formatting.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge low">Low</span>
+                    <h3>Improving queries</h3>
+                </div>
+                <p>These show what content patterns are working, so they can be repeated in other topic clusters.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Query-Level Visibility Comparison</h2>
+            <p class="panel-subtitle">Compare query outcomes between the latest audit and the previous one.</p>
+        </div>
+    </div>
+
+    {% if client.query_comparison and client.query_comparison.rows %}
+    <div class="simple-table">
+        <div class="simple-table-row head visibility-grid-row">
+            <div>Query</div>
+            <div>Latest Brand Mention</div>
+            <div>Previous Brand Mention</div>
+            <div>Latest Position</div>
+            <div>Previous Position</div>
+            <div>Latest Score</div>
+            <div>Delta</div>
+            <div>Status</div>
+        </div>
+
+        {% for row in client.query_comparison.rows %}
+        <div class="simple-table-row visibility-grid-row">
+            <div>
+                <div class="table-primary">{{ row.query }}</div>
+            </div>
+            <div>{{ "Yes" if row.latest_brand_mentioned else "No" }}</div>
+            <div>{{ "Yes" if row.previous_brand_mentioned else "No" }}</div>
+            <div>{{ row.latest_brand_position if row.latest_brand_position is not none else "—" }}</div>
+            <div>{{ row.previous_brand_position if row.previous_brand_position is not none else "—" }}</div>
+            <div>{{ row.latest_score }}</div>
+            <div class="{% if row.score_delta > 0 %}positive-text{% elif row.score_delta < 0 %}negative-text{% endif %}">
+                {{ "+" if row.score_delta > 0 else "" }}{{ row.score_delta }}
+            </div>
+            <div>
+                <span class="status-pill {{ row.change_type }}">{{ row.change_type|capitalize }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <h3>No comparison data yet</h3>
+        <p>This page will populate after at least two audits are saved for the client.</p>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Fastest Opportunities</h2>
+            <p class="panel-subtitle">Queries where the brand is missing should usually be prioritized first.</p>
+        </div>
+        <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">Generate Brief</a>
+    </div>
+
+    {% if client.query_comparison and client.query_comparison.rows %}
+    {% set missing_rows = client.query_comparison.rows | selectattr("latest_brand_mentioned", "equalto", false) | list %}
+    {% if missing_rows %}
+    <div class="action-list">
+        {% for row in missing_rows[:6] %}
+        <div class="action-card">
+            <div class="action-card-top">
+                <span class="priority-badge high">Missed</span>
+                <h3>{{ row.query }}</h3>
+            </div>
+            <p><strong>Latest score:</strong> {{ row.latest_score }}</p>
+            <p><strong>Competitors seen:</strong>
+                {% if row.latest_competitors %}
+                    {{ row.latest_competitors|join(", ") }}
+                {% else %}
+                    None recorded
+                {% endif %}
+            </p>
+            <div class="card-actions">
+                <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Create Brief</a>
+                <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Create Draft</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="comparison-banner improved">
+        Great sign: the latest comparison does not show any missed brand mentions.
+    </div>
+    {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

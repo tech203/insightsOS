@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Content Queue | AEO Agents{% endblock %}
+{% block page_title %}Content Queue{% endblock %}
+{% block page_subtitle %}Manage saved briefs and drafts across all clients, move items through workflow stages, and keep production organized.{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+    {% set new_count = items | selectattr("status", "equalto", "new") | list | length %}
+    {% set in_progress_count = items | selectattr("status", "equalto", "in_progress") | list | length %}
+    {% set done_count = items | selectattr("status", "equalto", "done") | list | length %}
+
+    <div class="stat-card">
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value">{{ items|length }}</div>
+        <div class="stat-note">Saved briefs and drafts</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">New</div>
+        <div class="stat-value">{{ new_count }}</div>
+        <div class="stat-note">Ready to be worked on</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value">{{ in_progress_count }}</div>
+        <div class="stat-note">Currently being developed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Done</div>
+        <div class="stat-value">{{ done_count }}</div>
+        <div class="stat-note">Completed queue items</div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Queue Overview</h2>
+            <p class="panel-subtitle">Each item below is saved from generated brief or draft workflows.</p>
+        </div>
+    </div>
+
+    {% if selected_client_id %}
+    <div class="comparison-banner neutral">
+        Filtering by client: <strong>{{ selected_client_id }}</strong>
+        <a href="{{ url_for('content_queue_page') }}" class="text-link queue-banner-link">Clear filter</a>
+    </div>
+    {% endif %}
+
+    {% if items %}
+    <div class="queue-grid">
+        {% for item in items %}
+        <article class="action-card queue-card">
+            <div class="action-card-top">
+                <span class="priority-badge low">{{ item.item_type|capitalize if item.item_type else "Item" }}</span>
+                <h3>{{ item.title or "Untitled Item" }}</h3>
+            </div>
+
+            <div class="queue-meta-grid">
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Client</div>
+                    <div class="metric-box-value small">{{ item.client_name or "N/A" }}</div>
+                </div>
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Query</div>
+                    <div class="metric-box-value small">{{ item.target_query or "N/A" }}</div>
+                </div>
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Content Type</div>
+                    <div class="metric-box-value small">{{ item.content_type or "N/A" }}</div>
+                </div>
+                <div class="queue-meta-box">
+                    <div class="metric-box-label">Status</div>
+                    <div class="metric-box-value small">{{ item.status or "new" }}</div>
+                </div>
+            </div>
+
+            <div class="mini-heading">Saved Content</div>
+            <div class="queue-content-preview">{{ item.content or "" }}</div>
+
+            <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="queue-status-form">
+                {% if selected_client_id %}
+                <input type="hidden" name="client_id" value="{{ selected_client_id }}">
+                {% endif %}
+
+                <div class="form-field">
+                    <label for="status-{{ item.id }}">Update Status</label>
+                    <select id="status-{{ item.id }}" name="status">
+                        <option value="new" {% if item.status == "new" %}selected{% endif %}>new</option>
+                        <option value="in_progress" {% if item.status == "in_progress" %}selected{% endif %}>in_progress</option>
+                        <option value="done" {% if item.status == "done" %}selected{% endif %}>done</option>
+                    </select>
+                </div>
+
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary">Save Status</button>
+                    {% if item.client_id %}
+                    <a href="{{ url_for('client_detail', client_id=item.client_id) }}" class="btn btn-secondary">Open Client</a>
+                    {% endif %}
+                </div>
+            </form>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No content items yet</h3>
+        <p>Generate a brief or draft from a client workspace and save it to the queue.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

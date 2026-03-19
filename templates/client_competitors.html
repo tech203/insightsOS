@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Competitors{% endblock %}
+{% block page_title %}{{ client.name }} · Competitors{% endblock %}
+{% block page_subtitle %}Review which competitors are appearing in AI answers, where they are outranking the brand, and which queries need counter-positioning content.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">Generate Counter Brief</a>
+{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+    {% set ns = namespace(total_competitor_mentions=0) %}
+    {% if client.query_comparison and client.query_comparison.rows %}
+        {% for row in client.query_comparison.rows %}
+            {% if row.latest_competitors %}
+                {% set ns.total_competitor_mentions = ns.total_competitor_mentions + (row.latest_competitors|length) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    <div class="stat-card">
+        <div class="stat-label">Tracked Queries</div>
+        <div class="stat-value">
+            {% if client.query_comparison %}
+                {{ client.query_comparison.summary.total_queries }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="stat-note">Queries available for competitor review</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Missed Brand Mentions</div>
+        <div class="stat-value">
+            {% if client.query_comparison %}
+                {{ client.query_comparison.summary.missed_brand_mentions }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="stat-note">Queries where competitors may dominate</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Competitor Mentions Logged</div>
+        <div class="stat-value">{{ ns.total_competitor_mentions }}</div>
+        <div class="stat-note">Across latest comparison rows</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Counter Content Need</div>
+        <div class="stat-value">
+            {% if client.query_comparison and client.query_comparison.summary.missed_brand_mentions > 0 %}
+                High
+            {% else %}
+                Moderate
+            {% endif %}
+        </div>
+        <div class="stat-note">Based on absent brand coverage</div>
+    </div>
+</section>
+
+<section class="workspace-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Competitor Pressure Summary</h2>
+                <p class="panel-subtitle">Where the brand is absent, competitors usually gain mindshare first.</p>
+            </div>
+        </div>
+
+        <div class="action-list">
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge high">Priority</span>
+                    <h3>Queries without brand mentions</h3>
+                </div>
+                <p>These should usually be handled with direct-answer pages, comparison pages, or FAQ blocks tied to the target query.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge medium">Strategy</span>
+                    <h3>Competitor overlap</h3>
+                </div>
+                <p>Repeated competitor names across many queries may indicate stronger topic ownership or better entity clarity in AI-visible content.</p>
+            </div>
+
+            <div class="action-card">
+                <div class="action-card-top">
+                    <span class="priority-badge low">Execution</span>
+                    <h3>Build rebuttal content</h3>
+                </div>
+                <p>Create pages that explain differences, advantages, pricing clarity, use cases, and implementation steps where rivals are currently stronger.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Suggested Page Types</h2>
+                <p class="panel-subtitle">Useful content formats when competitors keep appearing.</p>
+            </div>
+        </div>
+
+        <ul class="compact-list">
+            <li>Alternative-to competitor pages</li>
+            <li>“Best tools for…” comparison roundups</li>
+            <li>Feature comparison landing pages</li>
+            <li>Implementation guides tied to high-intent queries</li>
+            <li>FAQ pages answering objections and trust questions</li>
+            <li>Industry pages mapped to the same competitor-heavy topics</li>
+        </ul>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Competitors by Query</h2>
+            <p class="panel-subtitle">See which brands are appearing on each query in the latest comparison set.</p>
+        </div>
+    </div>
+
+    {% if client.query_comparison and client.query_comparison.rows %}
+    <div class="competitor-query-grid">
+        {% for row in client.query_comparison.rows %}
+        <article class="action-card">
+            <div class="action-card-top">
+                {% if row.latest_brand_mentioned %}
+                <span class="priority-badge low">Brand Present</span>
+                {% else %}
+                <span class="priority-badge high">Brand Missing</span>
+                {% endif %}
+                <h3>{{ row.query }}</h3>
+            </div>
+
+            <p><strong>Latest score:</strong> {{ row.latest_score }}</p>
+            <p><strong>Score delta:</strong>
+                <span class="{% if row.score_delta > 0 %}positive-text{% elif row.score_delta < 0 %}negative-text{% endif %}">
+                    {{ "+" if row.score_delta > 0 else "" }}{{ row.score_delta }}
+                </span>
+            </p>
+
+            <div class="mini-heading">Latest Competitors</div>
+            {% if row.latest_competitors %}
+            <div class="chip-cluster">
+                {% for competitor in row.latest_competitors %}
+                <span class="meta-chip">{{ competitor }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted-text">No competitor names recorded for this query.</p>
+            {% endif %}
+
+            <div class="card-actions">
+                <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Create Brief</a>
+                <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Create Draft</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <h3>No competitor comparison data yet</h3>
+        <p>Save at least two audits so this page can compare query-level competitor presence.</p>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Queries to Counter First</h2>
+            <p class="panel-subtitle">These are usually the best candidates for competitor-aware content production.</p>
+        </div>
+    </div>
+
+    {% if client.query_comparison and client.query_comparison.rows %}
+    {% set weak_rows = client.query_comparison.rows | selectattr("latest_brand_mentioned", "equalto", false) | list %}
+    {% if weak_rows %}
+    <div class="simple-table">
+        <div class="simple-table-row head competitor-counter-row">
+            <div>Query</div>
+            <div>Competitors</div>
+            <div>Latest Score</div>
+            <div>Action</div>
+        </div>
+
+        {% for row in weak_rows[:8] %}
+        <div class="simple-table-row competitor-counter-row">
+            <div>{{ row.query }}</div>
+            <div>
+                {% if row.latest_competitors %}
+                    {{ row.latest_competitors|join(", ") }}
+                {% else %}
+                    None recorded
+                {% endif %}
+            </div>
+            <div>{{ row.latest_score }}</div>
+            <div>
+                <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="text-link">Generate brief</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="comparison-banner improved">
+        Good signal: the latest comparison does not show competitor-led gaps where the brand is absent.
+    </div>
+    {% endif %}
+    {% endif %}
+</section>
+{% endblock %}
