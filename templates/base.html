@@ -52,10 +52,10 @@
                         <span class="topbar-user-credits">
                             Credits:
                             <strong>
-                                {% if current_user.wallet %}
-                                    {{ current_user.wallet.balance }}
+                                {% if has_unlimited_credits %}
+                                    Unlimited
                                 {% else %}
-                                    0
+                                    {{ wallet_balance }}
                                 {% endif %}
                             </strong>
                         </span>
@@ -190,10 +190,10 @@
                         <div class="wallet-pill">
                             Credits:
                             <strong>
-                                {% if current_user.wallet %}
-                                    {{ current_user.wallet.balance }}
+                                {% if has_unlimited_credits %}
+                                    Unlimited
                                 {% else %}
-                                    0
+                                    {{ wallet_balance }}
                                 {% endif %}
                             </strong>
                         </div>
