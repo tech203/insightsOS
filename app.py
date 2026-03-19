@@ -691,9 +691,24 @@ def get_client_by_id(client_id):
 # =========================
 
 def refund_credits(user, amount, tx_type="refund", notes=""):
+    if user_has_unlimited_credits(user):
+        wallet = user.wallet
+        balance_after = wallet.balance if wallet else 0
+        tx = CreditTransaction(
+            user_id=user.id,
+            type=f"{tx_type}_bypass",
+            amount=0,
+            balance_after=balance_after,
+            notes=notes or "No refund needed for unlimited dev/admin user",
+        )
+        db.session.add(tx)
+        db.session.commit()
+        return True
+
     wallet = user.wallet
     if not wallet:
         return False
+
     wallet.balance += amount
     tx = CreditTransaction(
         user_id=user.id,
@@ -1464,11 +1479,6 @@ def inject_template_globals():
         "has_unlimited_credits": has_unlimited_credits,
     }
 
-
-@app.route("/aeo-agency")
-def aeo_agency_page():
-    return render_template("landing_aeo.html")
-
 @app.route("/make-me-admin")
 @login_required
 def make_me_admin():
@@ -1476,6 +1486,10 @@ def make_me_admin():
     current_user.plan = "dev_unlimited"
     db.session.commit()
     return "Your account now has unlimited dev credits."
+
+@app.route("/aeo-agency")
+def aeo_agency_page():
+    return render_template("landing_aeo.html")
 
 if __name__ == "__main__":
     ensure_data_dirs()
