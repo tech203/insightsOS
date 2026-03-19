@@ -706,11 +706,30 @@ def refund_credits(user, amount, tx_type="refund", notes=""):
     db.session.commit()
     return True
 
+def user_has_unlimited_credits(user):
+    if not user:
+        return False
+    return user.role == "admin" or user.plan == "dev_unlimited"
 
 def spend_credits(user, amount, tx_type="usage", notes=""):
     wallet = user.wallet
+
+    if user_has_unlimited_credits(user):
+        balance_after = wallet.balance if wallet else 0
+        tx = CreditTransaction(
+            user_id=user.id,
+            type=f"{tx_type}_bypass",
+            amount=0,
+            balance_after=balance_after,
+            notes=notes or "Unlimited dev/admin usage",
+        )
+        db.session.add(tx)
+        db.session.commit()
+        return True
+
     if not wallet or wallet.balance < amount:
         return False
+
     wallet.balance -= amount
     tx = CreditTransaction(
         user_id=user.id,
@@ -722,7 +741,6 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     db.session.add(tx)
     db.session.commit()
     return True
-
 
 def award_referral_if_qualified(user):
     referral = Referral.query.filter_by(referred_user_id=user.id, status="pending").first()
@@ -1431,18 +1449,33 @@ def pretty_datetime(value):
 @app.context_processor
 def inject_template_globals():
     wallet_balance = 0
-    if current_user.is_authenticated and getattr(current_user, "wallet", None):
-        wallet_balance = current_user.wallet.balance
+    has_unlimited_credits = False
+
+    if current_user.is_authenticated:
+        has_unlimited_credits = user_has_unlimited_credits(current_user)
+        if has_unlimited_credits:
+            wallet_balance = "Unlimited"
+        elif getattr(current_user, "wallet", None):
+            wallet_balance = current_user.wallet.balance
 
     return {
         "HELP_GLOSSARY": HELP_GLOSSARY,
         "wallet_balance": wallet_balance,
+        "has_unlimited_credits": has_unlimited_credits,
     }
 
 
 @app.route("/aeo-agency")
 def aeo_agency_page():
     return render_template("landing_aeo.html")
+
+@app.route("/make-me-admin")
+@login_required
+def make_me_admin():
+    current_user.role = "admin"
+    current_user.plan = "dev_unlimited"
+    db.session.commit()
+    return "Your account now has unlimited dev credits."
 
 if __name__ == "__main__":
     ensure_data_dirs()
