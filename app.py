@@ -1491,6 +1491,17 @@ def make_me_admin():
 def aeo_agency_page():
     return render_template("landing_aeo.html")
 
+@app.route("/debug-me")
+@login_required
+def debug_me():
+    return {
+        "email": current_user.email,
+        "role": current_user.role,
+        "plan": current_user.plan,
+        "wallet_balance": current_user.wallet.balance if current_user.wallet else None,
+        "has_unlimited": user_has_unlimited_credits(current_user),
+    }
+
 if __name__ == "__main__":
     ensure_data_dirs()
     with app.app_context():

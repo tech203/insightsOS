@@ -1,91 +1,209 @@
 {% extends "base.html" %}
 
-{% block title %}Help | AEO Agents{% endblock %}
-{% block page_title %}Help{% endblock %}
-{% block page_subtitle %}Reference glossary and product guidance for the main audit, visibility, and content workflow concepts in the platform.{% endblock %}
+{% block title %}Help Center | DarBot InsightOS{% endblock %}
+{% block page_title %}Help Center{% endblock %}
+{% block page_subtitle %}Simple explanations so you always know what to do next — even with zero technical knowledge.{% endblock %}
 
 {% block content %}
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>How to Use the Platform</h2>
-            <p class="panel-subtitle">A quick guide to the most important pages in the workspace.</p>
-        </div>
-    </div>
+<div class="help-page">
 
-    <div class="landing-grid-3">
-        <div class="workspace-link-card">
-            <h3>Clients</h3>
-            <p>Create a client workspace, run audits, and access visibility, competitors, actions, and history.</p>
-        </div>
-        <div class="workspace-link-card">
-            <h3>Audit Library</h3>
-            <p>Review saved summaries and full reports across all client workspaces.</p>
-        </div>
-        <div class="workspace-link-card">
-            <h3>Content Queue</h3>
-            <p>Store generated briefs and drafts, then move them through workflow stages.</p>
-        </div>
-    </div>
-</section>
+    <!-- HERO -->
+    <section class="help-hero">
+        <h2>How to use this platform (in 3 minutes)</h2>
+        <p>
+            You do NOT need to understand SEO or AEO.
+            Just follow this simple flow and the system will guide you.
+        </p>
 
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>Glossary</h2>
-            <p class="panel-subtitle">Reference terms available from your current help content source.</p>
-        </div>
-    </div>
-
-    {% if glossary %}
-    <div class="help-glossary-grid">
-        {% for term, definition in glossary.items() %}
-        <article class="action-card">
-            <div class="action-card-top">
-                <span class="priority-badge low">Term</span>
-                <h3>{{ term }}</h3>
+        <div class="help-steps">
+            <div class="help-step">
+                <div class="help-step-num">1</div>
+                <h4>Add your business</h4>
+                <p>Create a client and enter your website.</p>
             </div>
-            <p>{{ definition }}</p>
-        </article>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state compact">
-        <h3>No glossary entries found</h3>
-        <p>Your HELP_GLOSSARY source is currently empty.</p>
-    </div>
-    {% endif %}
-</section>
 
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>Recommended Workflow</h2>
-            <p class="panel-subtitle">A simple sequence for operating the tool effectively.</p>
-        </div>
-    </div>
+            <div class="help-step">
+                <div class="help-step-num">2</div>
+                <h4>Run a report</h4>
+                <p>See how visible your business is online.</p>
+            </div>
 
-    <div class="landing-workflow">
-        <div class="workflow-step">
-            <div class="workflow-number">1</div>
-            <h3>Add client</h3>
-            <p>Create a workspace with the client website and business context.</p>
+            <div class="help-step">
+                <div class="help-step-num">3</div>
+                <h4>Follow the growth plan</h4>
+                <p>Get clear actions — no technical guesswork.</p>
+            </div>
         </div>
-        <div class="workflow-step">
-            <div class="workflow-number">2</div>
-            <h3>Run audit</h3>
-            <p>Generate the latest report and save it into history.</p>
+    </section>
+
+    <!-- WHAT YOU SEE -->
+    <section class="help-section">
+        <h3>What each page means</h3>
+
+        <div class="help-grid">
+            <div class="help-card">
+                <h4>📊 Growth Dashboard</h4>
+                <p>
+                    Your overview. Shows reports, performance, and where to focus next.
+                </p>
+            </div>
+
+            <div class="help-card">
+                <h4>🏢 Clients</h4>
+                <p>
+                    Each business you manage lives here. Start here if you're new.
+                </p>
+            </div>
+
+            <div class="help-card">
+                <h4>📄 Growth Plan</h4>
+                <p>
+                    The most important page. Tells you what is wrong and what to fix.
+                </p>
+            </div>
+
+            <div class="help-card">
+                <h4>📝 Content Pipeline</h4>
+                <p>
+                    Where your ideas turn into actual content your team can use.
+                </p>
+            </div>
         </div>
-        <div class="workflow-step">
-            <div class="workflow-number">3</div>
-            <h3>Review gaps</h3>
-            <p>Open Visibility, Competitors, and Actions to understand what needs to change.</p>
+    </section>
+
+    <!-- KEY TERMS -->
+    <section class="help-section">
+        <h3>Simple meanings (no jargon)</h3>
+
+        <div class="help-grid">
+            <div class="help-card">
+                <h4>What is AEO?</h4>
+                <p>
+                    It means helping your business show up in AI answers and modern search tools.
+                </p>
+            </div>
+
+            <div class="help-card">
+                <h4>What is a Report?</h4>
+                <p>
+                    A scan of your website to see how visible and competitive you are.
+                </p>
+            </div>
+
+            <div class="help-card">
+                <h4>What is a Growth Plan?</h4>
+                <p>
+                    A simplified action list based on your report.
+                </p>
+            </div>
+
+            <div class="help-card">
+                <h4>What is Visibility?</h4>
+                <p>
+                    Whether people can find your business when they search or ask AI.
+                </p>
+            </div>
         </div>
-        <div class="workflow-step">
-            <div class="workflow-number">4</div>
-            <h3>Produce content</h3>
-            <p>Generate briefs and drafts, then save them to the queue for execution.</p>
+    </section>
+
+    <!-- WHAT TO DO NEXT -->
+    <section class="help-section">
+        <h3>What should I do next?</h3>
+
+        <div class="help-action">
+            <p>If you're new:</p>
+            <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Go to Clients</a>
         </div>
-    </div>
-</section>
+
+        <div class="help-action">
+            <p>If you already have reports:</p>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">View Dashboard</a>
+        </div>
+
+        <div class="help-action">
+            <p>If you want results:</p>
+            <p><strong>Open Growth Plan → follow the actions → create content</strong></p>
+        </div>
+    </section>
+
+</div>
+
+<style>
+.help-page {
+    padding: 28px;
+}
+
+.help-hero,
+.help-section,
+.help-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.help-hero h2 {
+    margin: 0 0 10px;
+    font-size: 28px;
+}
+
+.help-hero p {
+    color: #6b7280;
+}
+
+.help-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.help-step {
+    background: #f9fbff;
+    padding: 16px;
+    border-radius: 16px;
+}
+
+.help-step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: #ff6a2b;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.help-card h4 {
+    margin: 0 0 8px;
+}
+
+.help-card p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.help-action {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+    .help-steps,
+    .help-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 {% endblock %}
