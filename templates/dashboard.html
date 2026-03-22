@@ -1,0 +1,696 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | AEO Agents{% endblock %}
+
+{% block content %}
+{% set aeo_score = avg_visibility if avg_visibility is defined else 68 %}
+{% set vis_score = visibility_score if visibility_score is defined else 72 %}
+{% set cont_score = content_score if content_score is defined else 61 %}
+{% set ent_score = entity_score if entity_score is defined else 57 %}
+{% set tr_score = trust_score if trust_score is defined else 66 %}
+{% set credit_balance = wallet_balance if wallet_balance is defined else 14 %}
+
+<div class="dashboard-shell">
+
+    <section class="dashboard-hero-card">
+        <div class="dashboard-hero-copy">
+            <div class="dashboard-badges">
+                <span class="hero-badge hero-badge-primary">AEO Dashboard</span>
+                <span class="hero-badge">Live Workspace</span>
+                <span class="hero-badge">Action Focused</span>
+            </div>
+
+            <h1>See what needs attention and take the next best step fast.</h1>
+            <p>
+                This dashboard gives you a simple view of your AI visibility, content readiness,
+                and the actions most likely to improve discoverability.
+            </p>
+
+            <div class="dashboard-hero-actions">
+                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary">Start Audit</a>
+                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-secondary">Open Clients</a>
+            </div>
+        </div>
+
+        <div class="dashboard-score-panel">
+            <div class="score-panel-top">
+                <span class="score-panel-label">Overall AEO Score</span>
+                <span class="score-panel-status">Live</span>
+            </div>
+
+            <div class="score-panel-value">{{ aeo_score }}%</div>
+
+            <p class="score-panel-text">
+                {% if aeo_score >= 80 %}
+                    Strong visibility. Focus on consistency and expanding coverage.
+                {% elif aeo_score >= 60 %}
+                    Moderate visibility. You are discoverable, but not consistently recommended.
+                {% else %}
+                    Low visibility. There is clear room to improve discoverability and trust.
+                {% endif %}
+            </p>
+
+            <div class="score-progress">
+                <div class="score-progress-fill" style="width: {{ aeo_score }}%;"></div>
+            </div>
+
+            <div class="score-panel-foot">
+                <span>Best next move:</span>
+                <strong>
+                    {% if cont_score < vis_score %}
+                        Build content for missing questions
+                    {% elif ent_score < 60 %}
+                        Strengthen entity signals
+                    {% else %}
+                        Refresh your latest audit
+                    {% endif %}
+                </strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid-primary">
+        <article class="dashboard-card dashboard-priority-card">
+            <div class="card-kicker">Next Best Action</div>
+
+            <h2>
+                {% if cont_score < vis_score %}
+                    Generate content for missing questions
+                {% elif ent_score < 60 %}
+                    Improve brand and entity coverage
+                {% else %}
+                    Refresh your latest audit and review gaps
+                {% endif %}
+            </h2>
+
+            <p>
+                {% if cont_score < vis_score %}
+                    Your content coverage is lower than your visibility. This is one of the fastest ways to improve performance.
+                {% elif ent_score < 60 %}
+                    Your business signals are not yet strong enough across the web. Improving clarity and consistency can help AI systems understand you better.
+                {% else %}
+                    A fresh report can help you confirm what changed and where to focus next.
+                {% endif %}
+            </p>
+
+            <div class="priority-actions">
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-primary">
+                    Open Content Queue
+                </a>
+                <a href="{{ url_for('help_page') if url_for else '#' }}" class="btn btn-secondary">
+                    Read Guides
+                </a>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="section-row">
+                <h3 class="section-title">Quick Actions</h3>
+            </div>
+
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="quick-action-card">
+                    <span class="quick-action-icon">⌕</span>
+                    <div>
+                        <strong>Start Audit</strong>
+                        <small>Select a client first</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="quick-action-card">
+                    <span class="quick-action-icon">◫</span>
+                    <div>
+                        <strong>Clients</strong>
+                        <small>Open all workspaces</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="quick-action-card">
+                    <span class="quick-action-icon">✎</span>
+                    <div>
+                        <strong>Content Queue</strong>
+                        <small>Briefs and execution</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('help_page') if url_for else '#' }}" class="quick-action-card">
+                    <span class="quick-action-icon">?</span>
+                    <div>
+                        <strong>Glossary & Guides</strong>
+                        <small>Learn what each score means</small>
+                    </div>
+                </a>
+            </div>
+        </article>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid-secondary">
+        <article class="dashboard-card">
+            <div class="section-row">
+                <h3 class="section-title">Key Metrics</h3>
+                <span class="section-hint">Core visibility signals</span>
+            </div>
+
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Visibility</span>
+                    <strong class="metric-value">{{ vis_score }}</strong>
+                    <div class="mini-progress">
+                        <div class="mini-progress-fill" style="width: {{ vis_score * 5 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Content</span>
+                    <strong class="metric-value">{{ cont_score }}</strong>
+                    <div class="mini-progress">
+                        <div class="mini-progress-fill" style="width: {{ cont_score * 5 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Entity</span>
+                    <strong class="metric-value">{{ ent_score }}</strong>
+                    <div class="mini-progress">
+                        <div class="mini-progress-fill" style="width: {{ ent_score * 5 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Trust</span>
+                    <strong class="metric-value">{{ tr_score }}</strong>
+                    <div class="mini-progress">
+                        <div class="mini-progress-fill" style="width: {{ tr_score * 5 }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="section-row">
+                <h3 class="section-title">Recent Clients</h3>
+                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="section-link">View all</a>
+            </div>
+
+            <div class="client-stack">
+                {% if clients is defined and clients %}
+                    {% for client in clients[:4] %}
+                    <div class="client-row">
+                        <div class="client-row-main">
+                            <strong>{{ client.name or "Client" }}</strong>
+                            <small>{{ client.industry or "Industry not set" }}</small>
+                        </div>
+                        <div class="client-row-side">
+                            <span class="client-score-pill">{{ client.score or "—" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-inline-state">
+                        <strong>No recent clients yet</strong>
+                        <p>Add a client to start building workspaces, reports, and action plans.</p>
+                        <a href="{{ url_for('create_client') if url_for else '#' }}" class="btn btn-secondary">Add Client</a>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="dashboard-card dashboard-credits-card">
+            <div class="section-row">
+                <h3 class="section-title">Credits</h3>
+                <span class="section-hint">Usage balance</span>
+            </div>
+
+            <div class="credits-balance">{{ credit_balance }}</div>
+            <p class="credits-copy">
+                Use credits for reports and workspace actions. Top up when you need more capacity.
+            </p>
+
+            <a href="{{ url_for('pricing_page') if url_for else '#' }}" class="btn btn-primary full-width">
+                Buy Credits
+            </a>
+        </article>
+    </section>
+</div>
+
+<style>
+.dashboard-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.dashboard-hero-card,
+.dashboard-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.dashboard-hero-card {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.dashboard-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.hero-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.dashboard-hero-copy h1 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1.08;
+    font-weight: 800;
+    color: #15233b;
+    max-width: 760px;
+}
+
+.dashboard-hero-copy p {
+    margin: 16px 0 0;
+    font-size: 17px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.dashboard-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.dashboard-score-panel {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+.score-panel-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.score-panel-label,
+.score-panel-status {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.score-panel-label {
+    color: #6b7280;
+}
+
+.score-panel-status {
+    color: #ff6a2b;
+}
+
+.score-panel-value {
+    margin-top: 16px;
+    font-size: 58px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.score-panel-text {
+    margin: 14px 0 0;
+    color: #5f6d80;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+.score-progress {
+    width: 100%;
+    height: 12px;
+    background: #f0e2d9;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.score-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+}
+
+.score-panel-foot {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #f1dfd5;
+    display: grid;
+    gap: 6px;
+}
+
+.score-panel-foot span {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.score-panel-foot strong {
+    color: #15233b;
+    font-size: 15px;
+}
+
+.dashboard-grid {
+    display: grid;
+    gap: 24px;
+}
+
+.dashboard-grid-primary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.dashboard-grid-secondary {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(280px, 0.6fr);
+}
+
+.dashboard-card {
+    padding: 24px;
+}
+
+.dashboard-priority-card {
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.card-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.dashboard-priority-card h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.dashboard-priority-card p {
+    margin: 14px 0 0;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 15px;
+    max-width: 720px;
+}
+
+.priority-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.section-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-hint,
+.section-link {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.section-link {
+    text-decoration: none;
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.quick-action-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 18px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.quick-action-card strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+}
+
+.quick-action-card small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.metric-card {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.metric-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    color: #16243c;
+    margin-bottom: 12px;
+}
+
+.mini-progress {
+    width: 100%;
+    height: 8px;
+    background: #e9eef5;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.client-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.client-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+.client-row-main strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+}
+
+.client-row-main small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.client-score-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.empty-inline-state {
+    padding: 16px;
+    border-radius: 18px;
+    background: #fafcff;
+    border: 1px dashed #d6dde8;
+}
+
+.empty-inline-state strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.empty-inline-state p {
+    margin: 0 0 14px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.dashboard-credits-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.credits-balance {
+    font-size: 52px;
+    line-height: 1;
+    font-weight: 800;
+    color: #16243c;
+    margin-top: 8px;
+}
+
+.credits-copy {
+    margin: 12px 0 18px;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .dashboard-hero-card,
+    .dashboard-grid-primary,
+    .dashboard-grid-secondary {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-shell {
+        padding: 18px;
+    }
+
+    .dashboard-hero-card,
+    .dashboard-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .dashboard-hero-copy h1 {
+        font-size: 30px;
+    }
+
+    .dashboard-hero-actions,
+    .priority-actions {
+        flex-direction: column;
+    }
+
+    .dashboard-hero-actions .btn,
+    .priority-actions .btn,
+    .full-width {
+        width: 100%;
+    }
+
+    .quick-actions-grid,
+    .metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-row,
+    .client-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .score-panel-value {
+        font-size: 48px;
+    }
+}
+</style>
+{% endblock %}

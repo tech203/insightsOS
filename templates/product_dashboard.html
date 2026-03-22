@@ -1,656 +1,565 @@
 {% extends "base.html" %}
 
-{% block title %}Product Dashboard | DarBot InsightOS{% endblock %}
-{% block page_title %}Product Dashboard{% endblock %}
-{% block page_subtitle %}A simple, visual dashboard built for busy business owners who want more visibility without getting lost in technical details.{% endblock %}
-
-{% block topbar_actions %}
-<a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
-<a href="{{ url_for('index') }}" class="btn btn-secondary">Growth Reports</a>
-<a href="{{ url_for('help_page') }}" class="btn btn-primary">Help Center</a>
-{% endblock %}
+{% block title %}Dashboard | AEO Agents{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Your AI visibility performance and next best actions{% endblock %}
 
 {% block content %}
-<div class="product-dashboard-page">
 
-    <section class="pd-hero">
-        <div class="pd-hero-main">
-            <div class="pd-badge-row">
-                <span class="pd-badge">Simple</span>
-                <span class="pd-badge">Visual</span>
-                <span class="pd-badge">Action-Focused</span>
+{% set overall_score = avg_visibility if avg_visibility else 68 %}
+{% set vis_score = visibility_score or 72 %}
+{% set cont_score = content_score or 61 %}
+{% set ent_score = entity_score or 57 %}
+{% set tr_score = trust_score or 66 %}
+
+<div class="dashboard-v5">
+
+    <section class="dashboard-hero-card">
+        <div class="dashboard-hero-main">
+            <div class="hero-top">
+                <span class="hero-pill">Overall Visibility</span>
+                <span class="hero-status">Live</span>
             </div>
 
-            <h2 class="pd-hero-title">
-                See how visible your business is online — and what to do next.
-            </h2>
+            <h1 class="big-score">{{ overall_score }}%</h1>
 
-            <p class="pd-hero-copy">
-                DarBot InsightOS helps you understand whether your business is being found in AI answers,
-                where competitors are getting attention, and which content or website updates can help you gain more visibility.
+            <p class="hero-desc">
+                {% if overall_score >= 80 %}
+                    Your visibility is in a strong position. The next step is to scale what is already working and widen topic coverage.
+                {% elif overall_score >= 60 %}
+                    You are partially visible in AI search. There is clear opportunity to improve ranking consistency and content depth.
+                {% else %}
+                    Your brand is still underexposed in AI search. There is meaningful upside if you improve your content and visibility signals.
+                {% endif %}
             </p>
 
-            <div class="pd-hero-actions">
-                <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Start With Clients</a>
-                <a href="{{ url_for('help_page') }}" class="btn btn-secondary">How This Works</a>
-            </div>
-
-            <div class="pd-hero-note">
-                Built for busy founders, business owners, and teams who want clear answers — not technical clutter.
+            <div class="hero-bar">
+                <div class="hero-fill" style="width: {{ overall_score }}%;"></div>
             </div>
         </div>
 
-        <div class="pd-hero-visual">
-            <div class="pd-visual-card large">
-                <div class="pd-visual-icon">📈</div>
-                <div class="pd-visual-content">
-                    <h3>Visibility Snapshot</h3>
-                    <p>
-                        {% if latest_audit %}
-                            Your latest saved report shows an overall score of <strong>{{ latest_audit.normalized_score }}</strong>
-                            with <strong>{{ latest_audit.opportunity_level }}</strong> opportunity.
-                        {% else %}
-                            Run your first report to see your visibility snapshot here.
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-
-            <div class="pd-visual-grid">
-                <div class="pd-visual-card">
-                    <div class="pd-visual-icon">🏢</div>
-                    <div class="pd-visual-label">Clients</div>
-                    <div class="pd-visual-value">{{ total_clients }}</div>
-                </div>
-
-                <div class="pd-visual-card">
-                    <div class="pd-visual-icon">📄</div>
-                    <div class="pd-visual-label">Reports</div>
-                    <div class="pd-visual-value">{{ total_reports }}</div>
-                </div>
-
-                <div class="pd-visual-card">
-                    <div class="pd-visual-icon">🚀</div>
-                    <div class="pd-visual-label">Growth Plans</div>
-                    <div class="pd-visual-value">{{ reports_with_growth_plan }}</div>
-                </div>
-
-                <div class="pd-visual-card">
-                    <div class="pd-visual-icon">⚡</div>
-                    <div class="pd-visual-label">High Opportunity</div>
-                    <div class="pd-visual-value">{{ high_opportunity_count }}</div>
-                </div>
+        <div class="dashboard-hero-side">
+            <div class="hero-side-card">
+                <span class="hero-side-label">Best next move</span>
+                <strong class="hero-side-value">
+                    {% if cont_score < vis_score %}
+                        Close content gaps
+                    {% elif ent_score < 60 %}
+                        Strengthen entity clarity
+                    {% else %}
+                        Refresh your latest audit
+                    {% endif %}
+                </strong>
+                <p class="hero-side-text">
+                    {% if cont_score < vis_score %}
+                        Your content coverage is lower than your visibility score. Fixing this is likely the fastest way to improve results.
+                    {% elif ent_score < 60 %}
+                        Your business signals may still be unclear. Improving brand consistency can help AI systems understand you better.
+                    {% else %}
+                        Run another audit after key updates to validate what improved and what still needs work.
+                    {% endif %}
+                </p>
             </div>
         </div>
     </section>
 
-    <section class="pd-section">
-        <div class="pd-section-head">
-            <div>
-                <h3>Start Here</h3>
-                <p>Clear navigation for the most important parts of the platform.</p>
-            </div>
-        </div>
+    <section class="dashboard-grid">
 
-        <div class="pd-nav-grid">
-            <a href="{{ url_for('clients_page') }}" class="pd-nav-card featured">
-                <div class="pd-nav-icon">🏢</div>
-                <div class="pd-nav-body">
-                    <h4>Clients</h4>
-                    <p>Add businesses, manage websites, and run audits for each client or brand.</p>
-                </div>
-                <div class="pd-nav-arrow">→</div>
+        <section class="dashboard-card dashboard-priority-card">
+            <span class="card-tag">Next Step</span>
+
+            <h2>
+                {% if cont_score < vis_score %}
+                    Close your content gaps
+                {% elif ent_score < 60 %}
+                    Improve brand and entity clarity
+                {% else %}
+                    Re-run the audit and review your gaps
+                {% endif %}
+            </h2>
+
+            <p>
+                {% if cont_score < vis_score %}
+                    Your content coverage is lower than your visibility score. Creating targeted content is the fastest way to improve results.
+                {% elif ent_score < 60 %}
+                    Your business may not be clearly understood across the web. Better clarity and stronger signals can improve performance.
+                {% else %}
+                    A fresh audit will help you see whether your recent changes are lifting visibility and where the next opportunities are.
+                {% endif %}
+            </p>
+
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-primary full-width-btn">
+                Generate Content Brief
             </a>
+        </section>
 
-            <a href="{{ url_for('index') }}" class="pd-nav-card">
-                <div class="pd-nav-icon">📊</div>
-                <div class="pd-nav-body">
-                    <h4>Growth Reports</h4>
-                    <p>See saved reports, compare results, and open the latest visibility findings.</p>
+        <section class="dashboard-card">
+            <h3 class="section-title">Quick Actions</h3>
+
+            <div class="actions-grid">
+                <a href="{{ url_for('new_audit') }}" class="action-card">
+                    <span class="action-icon">🔎</span>
+                    <div>
+                        <strong>Run Audit</strong>
+                        <small>Refresh your visibility data</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('clients_page') }}" class="action-card">
+                    <span class="action-icon">🏢</span>
+                    <div>
+                        <strong>Clients</strong>
+                        <small>Open all workspaces</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('content_queue_page') }}" class="action-card">
+                    <span class="action-icon">✍️</span>
+                    <div>
+                        <strong>Content</strong>
+                        <small>Briefs, drafts, and workflow</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('help_page') }}" class="action-card">
+                    <span class="action-icon">📘</span>
+                    <div>
+                        <strong>Help</strong>
+                        <small>Glossary and guides</small>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section class="dashboard-card">
+            <h3 class="section-title">Snapshot</h3>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span>Visibility</span>
+                    <strong>{{ vis_score }}</strong>
                 </div>
-                <div class="pd-nav-arrow">→</div>
+
+                <div class="metric-card">
+                    <span>Content</span>
+                    <strong>{{ cont_score }}</strong>
+                </div>
+
+                <div class="metric-card">
+                    <span>Entity</span>
+                    <strong>{{ ent_score }}</strong>
+                </div>
+
+                <div class="metric-card">
+                    <span>Trust</span>
+                    <strong>{{ tr_score }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-card">
+            <div class="section-row">
+                <h3 class="section-title">Recent Clients</h3>
+                <a href="{{ url_for('clients_page') }}" class="section-link">View all</a>
+            </div>
+
+            {% if clients %}
+            <div class="client-list">
+                {% for client in clients[:3] %}
+                <div class="client-row">
+                    <div>
+                        <strong>{{ client.name }}</strong>
+                        <small>{{ client.industry or "Industry not set" }}</small>
+                    </div>
+                    <span class="pill-score">{{ client.score or "—" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-inline-state">
+                <strong>No clients yet</strong>
+                <p>Add your first client to start audits, growth plans, and content workflows.</p>
+                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="dashboard-card">
+            <h3 class="section-title">Credits</h3>
+
+            <div class="wallet-card">
+                <strong>{{ wallet_balance }}</strong>
+                <span>remaining</span>
+            </div>
+
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary full-width-btn">
+                Buy Credits
             </a>
+        </section>
 
-            <a href="{{ url_for('content_queue_page') }}" class="pd-nav-card">
-                <div class="pd-nav-icon">📝</div>
-                <div class="pd-nav-body">
-                    <h4>Content Pipeline</h4>
-                    <p>Store briefs and drafts so your team can turn ideas into published content.</p>
-                </div>
-                <div class="pd-nav-arrow">→</div>
-            </a>
-
-            <a href="{{ url_for('help_page') }}" class="pd-nav-card">
-                <div class="pd-nav-icon">❓</div>
-                <div class="pd-nav-body">
-                    <h4>Help Center</h4>
-                    <p>Simple guides that explain what each page means and what to do next.</p>
-                </div>
-                <div class="pd-nav-arrow">→</div>
-            </a>
-        </div>
-    </section>
-
-    <section class="pd-section">
-        <div class="pd-section-head">
-            <div>
-                <h3>How It Works</h3>
-                <p>A simple 4-step journey for business owners with zero AEO knowledge.</p>
-            </div>
-        </div>
-
-        <div class="pd-steps-grid">
-            <div class="pd-step-card">
-                <div class="pd-step-number">1</div>
-                <h4>Add Your Business</h4>
-                <p>Create a client workspace with your business name, website, industry, and location.</p>
-            </div>
-
-            <div class="pd-step-card">
-                <div class="pd-step-number">2</div>
-                <h4>Run A Report</h4>
-                <p>The system checks how visible your business is, where competitors appear, and which gaps matter most.</p>
-            </div>
-
-            <div class="pd-step-card">
-                <div class="pd-step-number">3</div>
-                <h4>Open The Growth Plan</h4>
-                <p>You get a clear, plain-English summary of what is happening and what should be improved first.</p>
-            </div>
-
-            <div class="pd-step-card">
-                <div class="pd-step-number">4</div>
-                <h4>Create Content</h4>
-                <p>Generate briefs and drafts so your team can act on the recommendations quickly.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="pd-section pd-story-section">
-        <div class="pd-section-head">
-            <div>
-                <h3>What You Will Learn</h3>
-                <p>No jargon. Just the information a busy owner actually cares about.</p>
-            </div>
-        </div>
-
-        <div class="pd-story-grid">
-            <div class="pd-story-card">
-                <div class="pd-story-icon">👀</div>
-                <h4>Are people finding my business?</h4>
-                <p>See whether your business appears when customers search in AI-powered tools and answer engines.</p>
-            </div>
-
-            <div class="pd-story-card">
-                <div class="pd-story-icon">⚔️</div>
-                <h4>Who is getting attention instead of me?</h4>
-                <p>Find out when competitors are being shown more often and where they are winning.</p>
-            </div>
-
-            <div class="pd-story-card">
-                <div class="pd-story-icon">🧩</div>
-                <h4>What is missing from my website?</h4>
-                <p>Understand whether your content, structure, or trust signals are too weak to support better visibility.</p>
-            </div>
-
-            <div class="pd-story-card">
-                <div class="pd-story-icon">✅</div>
-                <h4>What should I do next?</h4>
-                <p>Get clear action steps instead of raw technical reports or hard-to-read audit data.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="pd-section">
-        <div class="pd-section-head">
-            <div>
-                <h3>Simple Visual Snapshot</h3>
-                <p>A layman-friendly way to understand the key parts of visibility performance.</p>
-            </div>
-        </div>
-
-        {% if latest_audit %}
-        <div class="pd-meter-grid">
-            <div class="pd-meter-card">
-                <div class="pd-meter-top">
-                    <span>Overall Readiness</span>
-                    <strong>{{ latest_audit.normalized_score }}</strong>
-                </div>
-                <div class="pd-meter-track">
-                    <div class="pd-meter-fill fill-green" style="width: {{ latest_audit.normalized_score }}%;"></div>
-                </div>
-                <p class="pd-meter-note">How strong your overall visibility foundation is right now.</p>
-            </div>
-
-            <div class="pd-meter-card">
-                <div class="pd-meter-top">
-                    <span>AI Visibility</span>
-                    <strong>{{ latest_audit.visibility_score }}</strong>
-                </div>
-                <div class="pd-meter-track">
-                    <div class="pd-meter-fill fill-blue" style="width: {{ latest_audit.visibility_score * 5 }}%;"></div>
-                </div>
-                <p class="pd-meter-note">How often your brand is being surfaced in answer-style results.</p>
-            </div>
-
-            <div class="pd-meter-card">
-                <div class="pd-meter-top">
-                    <span>Content Readiness</span>
-                    <strong>{{ latest_audit.content_score }}</strong>
-                </div>
-                <div class="pd-meter-track">
-                    <div class="pd-meter-fill fill-orange" style="width: {{ latest_audit.content_score * 10 }}%;"></div>
-                </div>
-                <p class="pd-meter-note">How well your website appears to cover the questions customers ask.</p>
-            </div>
-
-            <div class="pd-meter-card">
-                <div class="pd-meter-top">
-                    <span>Technical Readiness</span>
-                    <strong>{{ latest_audit.schema_score }}</strong>
-                </div>
-                <div class="pd-meter-track">
-                    <div class="pd-meter-fill fill-purple" style="width: {{ latest_audit.schema_score * 10 }}%;"></div>
-                </div>
-                <p class="pd-meter-note">How clearly your website structure supports machines and answer engines.</p>
-            </div>
-        </div>
-        {% else %}
-        <div class="pd-empty-box">
-            <h4>No report yet</h4>
-            <p>Once you run your first audit, this section will turn into a simple visual explanation of your current visibility health.</p>
-        </div>
-        {% endif %}
-    </section>
-
-    <section class="pd-section">
-        <div class="pd-section-head">
-            <div>
-                <h3>Need Help?</h3>
-                <p>The help system should be comprehensive, but easy enough for a non-technical owner to understand quickly.</p>
-            </div>
-        </div>
-
-        <div class="pd-help-grid">
-            <div class="pd-help-card">
-                <h4>What is AEO?</h4>
-                <p>AEO simply means helping your business show up better in AI answers and modern search experiences.</p>
-            </div>
-
-            <div class="pd-help-card">
-                <h4>What is a Growth Plan?</h4>
-                <p>A one-page summary that explains what your report found and what your business should improve next.</p>
-            </div>
-
-            <div class="pd-help-card">
-                <h4>What is the Content Pipeline?</h4>
-                <p>A place to save briefs and drafts so content creation becomes a repeatable workflow.</p>
-            </div>
-
-            <div class="pd-help-card featured">
-                <h4>Open Help Center</h4>
-                <p>Use the Help Center for walkthroughs, definitions, and page-by-page explanations written in simple language.</p>
-                <a href="{{ url_for('help_page') }}" class="btn btn-primary">Go to Help Center</a>
-            </div>
-        </div>
     </section>
 </div>
 
 <style>
-.product-dashboard-page {
+.dashboard-v5 {
     padding: 28px;
+    display: grid;
+    gap: 24px;
 }
 
-.pd-hero,
-.pd-section,
-.pd-visual-card,
-.pd-nav-card,
-.pd-step-card,
-.pd-story-card,
-.pd-meter-card,
-.pd-help-card,
-.pd-empty-box {
+.dashboard-hero-card,
+.dashboard-card,
+.hero-side-card,
+.metric-card,
+.client-row,
+.empty-inline-state {
     background: #ffffff;
     border: 1px solid #e7ebf3;
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.pd-hero {
+.dashboard-hero-card {
     padding: 30px;
     display: grid;
-    grid-template-columns: 1.55fr 1fr;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
     gap: 24px;
-    margin-bottom: 24px;
+    align-items: start;
 }
 
-.pd-badge-row,
-.hero-label-row {
+.hero-top {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
 }
 
-.pd-badge {
+.hero-pill,
+.hero-status,
+.card-tag,
+.pill-score {
     display: inline-flex;
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.hero-pill,
+.card-tag {
     background: #fff2ea;
     color: #ff6a2b;
+}
+
+.hero-status {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+}
+
+.big-score {
+    margin: 18px 0 0;
+    font-size: 72px;
+    line-height: 1;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.hero-desc {
+    margin: 16px 0 0;
+    color: #617084;
+    font-size: 16px;
+    line-height: 1.65;
+    max-width: 760px;
+}
+
+.hero-bar {
+    width: 100%;
+    height: 12px;
+    background: #eceff5;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.hero-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+}
+
+.hero-side-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.hero-side-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.hero-side-value {
+    display: block;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.hero-side-text {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.dashboard-card {
+    padding: 24px;
+}
+
+.dashboard-priority-card {
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.dashboard-priority-card h2 {
+    margin: 12px 0 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.dashboard-priority-card p {
+    margin: 14px 0 18px;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 15px;
+}
+
+.full-width-btn {
+    width: 100%;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-link {
+    color: #6b7280;
     font-size: 13px;
     font-weight: 700;
 }
 
-.pd-hero-title {
-    margin: 0;
-    font-size: 36px;
-    line-height: 1.12;
-    font-weight: 800;
-    color: #15233b;
-    max-width: 760px;
-}
-
-.pd-hero-copy {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.6;
-    color: #5f6b7c;
-    max-width: 760px;
-}
-
-.pd-hero-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 22px;
-}
-
-.pd-hero-note {
-    margin-top: 16px;
-    font-size: 14px;
-    color: #6b7280;
-}
-
-.pd-hero-visual {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.pd-visual-card {
-    padding: 18px;
-}
-
-.pd-visual-card.large {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-    border-color: #ffd8c6;
-}
-
-.pd-visual-grid {
+.actions-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
 }
 
-.pd-visual-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-    background: #fff2ea;
-    display: inline-flex;
+.action-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: inherit;
+    text-decoration: none;
+}
+
+.action-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    background: #fff2ea;
+    font-size: 18px;
     flex-shrink: 0;
 }
 
-.pd-visual-content h3,
-.pd-section-head h3,
-.pd-nav-body h4,
-.pd-step-card h4,
-.pd-story-card h4,
-.pd-help-card h4 {
-    margin: 0 0 8px;
-    color: #15233b;
-    font-weight: 800;
-}
-
-.pd-visual-content p,
-.pd-section-head p,
-.pd-nav-body p,
-.pd-step-card p,
-.pd-story-card p,
-.pd-help-card p {
-    margin: 0;
-    color: #627084;
-    line-height: 1.55;
-}
-
-.pd-visual-label {
+.action-card strong {
     display: block;
-    font-size: 12px;
+    color: #16243c;
+    font-size: 15px;
+}
+
+.action-card small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.metric-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.metric-card span {
+    display: block;
+    font-size: 13px;
     font-weight: 700;
     color: #6b7280;
-    margin-top: 8px;
+    margin-bottom: 8px;
 }
 
-.pd-visual-value {
+.metric-card strong {
     display: block;
-    margin-top: 6px;
     font-size: 28px;
     font-weight: 800;
     color: #16243c;
 }
 
-.pd-section {
-    padding: 24px;
-    margin-bottom: 24px;
-}
-
-.pd-section-head {
-    margin-bottom: 18px;
-}
-
-.pd-nav-grid,
-.pd-steps-grid,
-.pd-story-grid,
-.pd-help-grid {
+.client-list {
     display: grid;
-    gap: 16px;
+    gap: 12px;
 }
 
-.pd-nav-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.pd-nav-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 18px;
-    text-decoration: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.pd-nav-card:hover {
-    transform: translateY(-2px);
-    border-color: #ffd6c4;
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-}
-
-.pd-nav-card.featured {
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-    border-color: #ffd8c6;
-}
-
-.pd-nav-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-    background: #fff2ea;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-}
-
-.pd-nav-body {
-    flex: 1;
-}
-
-.pd-nav-arrow {
-    font-size: 20px;
-    color: #ff6a2b;
-    font-weight: 800;
-}
-
-.pd-steps-grid,
-.pd-story-grid,
-.pd-help-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.pd-step-card,
-.pd-story-card,
-.pd-help-card {
-    padding: 20px;
-}
-
-.pd-step-number {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
-    background: #fff2ea;
-    color: #ff6a2b;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
-
-.pd-story-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 16px;
-    background: #f6f8fc;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    margin-bottom: 12px;
-}
-
-.pd-meter-grid {
-    display: grid;
-    gap: 14px;
-}
-
-.pd-meter-card {
-    padding: 16px;
-    background: #f9fbff;
-}
-
-.pd-meter-top {
+.client-row {
+    padding: 16px 18px;
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    align-items: center;
+    gap: 14px;
+    background: #f8fafc;
+}
+
+.client-row strong {
+    display: block;
+    color: #16243c;
     font-size: 15px;
-    font-weight: 700;
-    color: #16243c;
-    margin-bottom: 10px;
 }
 
-.pd-meter-track {
-    width: 100%;
-    height: 10px;
-    background: #ebeff6;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.pd-meter-fill {
-    height: 100%;
-    border-radius: 999px;
-}
-
-.fill-green { background: linear-gradient(90deg, #16a34a, #22c55e); }
-.fill-blue { background: linear-gradient(90deg, #2563eb, #3b82f6); }
-.fill-orange { background: linear-gradient(90deg, #ea580c, #f97316); }
-.fill-purple { background: linear-gradient(90deg, #7c3aed, #a855f7); }
-
-.pd-meter-note {
-    margin: 10px 0 0;
-    font-size: 14px;
-    color: #627084;
-}
-
-.pd-empty-box {
-    padding: 32px;
-    text-align: center;
-}
-
-.pd-empty-box h4 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    color: #16243c;
-}
-
-.pd-empty-box p {
-    margin: 0;
+.client-row small {
+    display: block;
+    margin-top: 4px;
     color: #6b7280;
-    line-height: 1.55;
+    font-size: 13px;
 }
 
-.pd-help-card.featured {
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-    border-color: #ffd8c6;
+.pill-score {
+    background: #fff2ea;
+    color: #ff6a2b;
+    min-width: 48px;
+    justify-content: center;
 }
 
-.pd-help-card.featured .btn {
-    margin-top: 12px;
+.wallet-card {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0 18px;
+}
+
+.wallet-card strong {
+    font-size: 52px;
+    line-height: 1;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.wallet-card span {
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.empty-inline-state {
+    padding: 20px;
+    border: 1px dashed #d6dde8;
+    background: #fafcff;
+}
+
+.empty-inline-state strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.empty-inline-state p {
+    margin: 0 0 14px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 @media (max-width: 1200px) {
-    .pd-hero {
+    .dashboard-hero-card,
+    .dashboard-grid {
         grid-template-columns: 1fr;
     }
 
-    .pd-nav-grid,
-    .pd-steps-grid,
-    .pd-story-grid,
-    .pd-help-grid {
+    .metrics-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 768px) {
-    .product-dashboard-page {
+    .dashboard-v5 {
         padding: 18px;
     }
 
-    .pd-hero-title {
-        font-size: 28px;
+    .dashboard-hero-card,
+    .dashboard-card,
+    .hero-side-card,
+    .metric-card,
+    .client-row,
+    .empty-inline-state {
+        padding: 18px;
+        border-radius: 20px;
     }
 
-    .pd-visual-grid,
-    .pd-nav-grid,
-    .pd-steps-grid,
-    .pd-story-grid,
-    .pd-help-grid {
+    .big-score {
+        font-size: 54px;
+    }
+
+    .actions-grid,
+    .metrics-grid {
         grid-template-columns: 1fr;
     }
 
-    .pd-hero-actions {
+    .section-row,
+    .client-row,
+    .hero-top {
         flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .full-width-btn,
+    .empty-inline-state .btn {
+        width: 100%;
     }
 }
 </style>
+
 {% endblock %}

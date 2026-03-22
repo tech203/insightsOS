@@ -2,131 +2,487 @@
 
 {% block title %}Audit Summary | AEO Agents{% endblock %}
 {% block page_title %}Audit Summary{% endblock %}
-{% block page_subtitle %}Quick summary view of the saved audit result with scores, verdict, and key summary findings.{% endblock %}
+{% block page_subtitle %}Quick summary view of the saved audit result with scores, verdict, and the clearest next interpretation.{% endblock %}
 
 {% block topbar_actions %}
 {% if data.client_id %}
 <a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
 {% endif %}
 {% if full_filename %}
-<a href="{{ url_for('audit_full', summary_filename=summary_filename) }}" class="btn btn-primary">Open Full Audit</a>
+<a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-primary">Open Full Audit</a>
 {% endif %}
 {% endblock %}
 
 {% block content %}
-<section class="workspace-hero">
-    <div class="workspace-hero-main">
-        <div class="hero-label-row">
-            <span class="meta-chip">{{ data.audit_type or "N/A" }}</span>
-            <span class="meta-chip">{{ data.saved_at|pretty_datetime }}</span>
-            {% if data.client_name %}
-            <span class="meta-chip">{{ data.client_name }}</span>
-            {% endif %}
-        </div>
 
-        <h2 class="workspace-client-name">{{ data.website or "Unknown Website" }}</h2>
+{% set normalized = data.scores.normalized_score if data.scores and data.scores.normalized_score is not none else 0 %}
+{% set visibility = data.scores.visibility_score if data.scores and data.scores.visibility_score is not none else 0 %}
+{% set content = data.scores.content_score if data.scores and data.scores.content_score is not none else 0 %}
+{% set schema = data.scores.schema_score if data.scores and data.scores.schema_score is not none else 0 %}
+{% set verdict = data.summary.verdict if data.summary and data.summary.verdict else "No verdict available." %}
+{% set opportunity = data.summary.opportunity_level if data.summary and data.summary.opportunity_level else "N/A" %}
 
-        <div class="workspace-notes">
-            <div class="mini-heading">Verdict</div>
-            <p>{{ data.summary.verdict if data.summary and data.summary.verdict else "No verdict available." }}</p>
-        </div>
-    </div>
+<div class="audit-summary-shell">
 
-    <div class="workspace-hero-side">
-        <div class="summary-score-card">
-            <div class="summary-score-label">Normalized Score</div>
-            <div class="summary-score-value">
-                {{ data.scores.normalized_score if data.scores and data.scores.normalized_score is not none else 0 }}
+    <section class="audit-summary-hero">
+        <div class="audit-summary-hero-main">
+            <div class="audit-summary-badge-row">
+                <span class="audit-summary-badge audit-summary-badge-primary">Saved Audit</span>
+                <span class="audit-summary-badge">{{ data.audit_type or "N/A" }}</span>
+                <span class="audit-summary-badge">{{ data.saved_at|pretty_datetime }}</span>
+                {% if data.client_name %}
+                <span class="audit-summary-badge">{{ data.client_name }}</span>
+                {% endif %}
             </div>
-            <div class="summary-score-meta">{{ data.summary.opportunity_level if data.summary and data.summary.opportunity_level else "N/A" }}</div>
-        </div>
-    </div>
-</section>
 
-<section class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-label">Visibility Score</div>
-        <div class="stat-value">{{ data.scores.visibility_score if data.scores and data.scores.visibility_score is not none else 0 }}</div>
-        <div class="stat-note">Answer presence signal</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Content Score</div>
-        <div class="stat-value">{{ data.scores.content_score if data.scores and data.scores.content_score is not none else 0 }}</div>
-        <div class="stat-note">Content support level</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Schema Score</div>
-        <div class="stat-value">{{ data.scores.schema_score if data.scores and data.scores.schema_score is not none else 0 }}</div>
-        <div class="stat-note">Structured data signal</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Opportunity Level</div>
-        <div class="stat-value">{{ data.summary.opportunity_level if data.summary and data.summary.opportunity_level else "N/A" }}</div>
-        <div class="stat-note">Overall opportunity read</div>
-    </div>
-</section>
+            <h1>{{ data.website or "Unknown Website" }}</h1>
+            <p class="audit-summary-subcopy">
+                {% if normalized >= 80 %}
+                    This audit shows a strong foundation with room to scale visibility and coverage further.
+                {% elif normalized >= 60 %}
+                    This audit shows moderate readiness, with clear gaps still limiting consistency in AI visibility.
+                {% else %}
+                    This audit shows meaningful room for improvement across visibility, content coverage, and technical clarity.
+                {% endif %}
+            </p>
 
-<section class="workspace-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Audit Metadata</h2>
-                <p class="panel-subtitle">Saved audit identifiers and context.</p>
+            <div class="audit-summary-verdict-card">
+                <span class="verdict-label">Verdict</span>
+                <p>{{ verdict }}</p>
             </div>
         </div>
 
-        <div class="info-list">
-            <div class="info-row">
-                <span>Summary File</span>
-                <strong>{{ summary_filename }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Full File</span>
-                <strong>{{ full_filename or "Not available" }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Audit Type</span>
-                <strong>{{ data.audit_type or "N/A" }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Saved At</span>
-                <strong>{{ data.saved_at|pretty_datetime }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Client</span>
-                <strong>{{ data.client_name or "Unassigned" }}</strong>
+        <div class="audit-summary-hero-side">
+            <div class="summary-score-card">
+                <div class="summary-score-label">Normalized Score</div>
+                <div class="summary-score-value">{{ normalized }}</div>
+                <div class="summary-score-meta">{{ opportunity }}</div>
+
+                <div class="summary-score-track">
+                    <div class="summary-score-fill" style="width: {{ normalized }}%;"></div>
+                </div>
+
+                <p class="summary-score-note">
+                    {% if normalized >= 80 %}
+                        Strong overall position.
+                    {% elif normalized >= 60 %}
+                        Moderate overall position.
+                    {% else %}
+                        Early-stage position with clear upside.
+                    {% endif %}
+                </p>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Summary Interpretation</h2>
-                <p class="panel-subtitle">Use this view for fast client readouts and internal review.</p>
+    <section class="audit-summary-stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Visibility Score</div>
+            <div class="stat-value">{{ visibility }}</div>
+            <div class="stat-note">Answer presence signal</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Content Score</div>
+            <div class="stat-value">{{ content }}</div>
+            <div class="stat-note">Content support level</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Schema Score</div>
+            <div class="stat-value">{{ schema }}</div>
+            <div class="stat-note">Structured data signal</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Opportunity Level</div>
+            <div class="stat-value">{{ opportunity }}</div>
+            <div class="stat-note">Overall opportunity read</div>
+        </div>
+    </section>
+
+    <section class="audit-summary-grid">
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Audit Metadata</h2>
+                    <p class="panel-subtitle">Saved audit identifiers and context.</p>
+                </div>
+            </div>
+
+            <div class="info-list">
+                <div class="info-row">
+                    <span>Summary File</span>
+                    <strong>{{ summary_filename }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Full File</span>
+                    <strong>{{ full_filename or "Not available" }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Audit Type</span>
+                    <strong>{{ data.audit_type or "N/A" }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Saved At</span>
+                    <strong>{{ data.saved_at|pretty_datetime }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Client</span>
+                    <strong>{{ data.client_name or "Unassigned" }}</strong>
+                </div>
             </div>
         </div>
 
-        <ul class="compact-list">
-            <li>Normalized score gives the fastest overall progress signal.</li>
-            <li>Visibility score indicates how present the brand is in answers.</li>
-            <li>Content score highlights whether enough relevant content exists.</li>
-            <li>Schema score shows support from structured data and clarity signals.</li>
-            <li>Use the full audit for deeper query-level and competitor details.</li>
-        </ul>
-    </div>
-</section>
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>How To Read This Summary</h2>
+                    <p class="panel-subtitle">Use this view for fast client readouts and internal review.</p>
+                </div>
+            </div>
 
-{% if data.summary %}
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>Summary Data</h2>
-            <p class="panel-subtitle">Primary summary block stored with the audit.</p>
+            <div class="guide-list">
+                <div class="guide-item">
+                    <strong>Normalized score</strong>
+                    <p>The fastest overall signal for how strong the audit result is.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Visibility score</strong>
+                    <p>Shows how present the brand is in answer scenarios.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Content score</strong>
+                    <p>Shows whether enough relevant coverage exists on the site.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Schema score</strong>
+                    <p>Shows support from structured data and machine-readable clarity.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Full audit</strong>
+                    <p>Open the full report for deeper query-level and competitor detail.</p>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="json-pretty-block">{{ data.summary | tojson(indent=2) }}</div>
-</section>
-{% endif %}
+        {% if data.summary %}
+        <div class="panel audit-summary-full">
+            <div class="panel-header">
+                <div>
+                    <h2>Stored Summary Data</h2>
+                    <p class="panel-subtitle">Primary summary block saved with the audit.</p>
+                </div>
+            </div>
+
+            <div class="json-pretty-block">{{ data.summary | tojson(indent=2) }}</div>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<style>
+.audit-summary-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.audit-summary-hero,
+.summary-score-card,
+.audit-summary-badge,
+.stat-card,
+.panel,
+.audit-summary-verdict-card,
+.guide-item {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.audit-summary-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.audit-summary-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.audit-summary-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    box-shadow: none;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.audit-summary-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.audit-summary-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+    word-break: break-word;
+}
+
+.audit-summary-subcopy {
+    margin: 16px 0 0;
+    color: #617084;
+    font-size: 16px;
+    line-height: 1.65;
+    max-width: 760px;
+}
+
+.audit-summary-verdict-card {
+    margin-top: 20px;
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.verdict-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.audit-summary-verdict-card p {
+    margin: 0;
+    color: #16243c;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.summary-score-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.summary-score-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.summary-score-value {
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+    margin-top: 14px;
+}
+
+.summary-score-meta {
+    margin-top: 10px;
+    color: #15233b;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.summary-score-track {
+    width: 100%;
+    height: 12px;
+    background: #eceff5;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.summary-score-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+}
+
+.summary-score-note {
+    margin: 16px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.audit-summary-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.stat-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.stat-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 30px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.stat-note {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.audit-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.audit-summary-full {
+    grid-column: 1 / -1;
+}
+
+.panel {
+    padding: 24px;
+}
+
+.panel-header {
+    margin-bottom: 18px;
+}
+
+.panel-header h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.info-list,
+.guide-list {
+    display: grid;
+    gap: 14px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+.info-row span {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.info-row strong {
+    color: #16243c;
+    font-size: 14px;
+    font-weight: 800;
+    text-align: right;
+    word-break: break-word;
+}
+
+.guide-item {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.guide-item strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.guide-item p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.json-pretty-block {
+    padding: 18px;
+    border-radius: 18px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 1200px) {
+    .audit-summary-hero,
+    .audit-summary-stats-grid,
+    .audit-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .audit-summary-shell {
+        padding: 18px;
+    }
+
+    .audit-summary-hero,
+    .summary-score-card,
+    .stat-card,
+    .panel,
+    .audit-summary-verdict-card,
+    .guide-item {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .audit-summary-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .summary-score-value {
+        font-size: 50px;
+    }
+
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .info-row strong {
+        text-align: left;
+    }
+}
+</style>
+
 {% endblock %}

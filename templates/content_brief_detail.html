@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+{% block title %}Content Brief | AEO Agents{% endblock %}
+
+{% block page_title %}Content Brief{% endblock %}
+{% block page_subtitle %}Turn visibility gaps into clear, structured content your team can draft and publish faster{% endblock %}
+
+{% block content %}
+<div class="brief-shell">
+
+    {% set brief_title = brief.title if brief is defined and brief.title else "Pricing Questions for Acme Dental" %}
+    {% set brief_description = brief.description if brief is defined and brief.description else "Create a conversion-focused page that answers cost, suitability, and treatment expectation questions clearly for potential customers." %}
+    {% set brief_client = brief.client_name if brief is defined and brief.client_name else "Acme Dental" %}
+    {% set brief_status = brief.status if brief is defined and brief.status else "Ready" %}
+    {% set brief_priority = brief.priority if brief is defined and brief.priority else "High" %}
+    {% set brief_type = brief.type if brief is defined and brief.type else "FAQ / Service Page" %}
+    {% set brief_goal = brief.goal if brief is defined and brief.goal else "Help potential customers understand pricing and whether the service is right for them." %}
+    {% set brief_audience = brief.audience if brief is defined and brief.audience else "People comparing providers and evaluating treatment options." %}
+    {% set brief_cta = brief.cta if brief is defined and brief.cta else "Book a consultation or contact the business for a quote." %}
+    {% set brief_why_title = brief.why_title if brief is defined and brief.why_title else "This topic supports decision-stage search intent" %}
+    {% set brief_why_text = brief.why_text if brief is defined and brief.why_text else "People close to making a decision often ask pricing, suitability, and what-to-expect questions. If your site answers them clearly, your business is more likely to appear in AI-assisted recommendations and customer research journeys." %}
+    {% set brief_tone = brief.tone if brief is defined and brief.tone else "Helpful, clear, trustworthy" %}
+    {% set brief_style = brief.style if brief is defined and brief.style else "Simple, customer-friendly, structured" %}
+    {% set brief_length = brief.length if brief is defined and brief.length else "700–1200 words" %}
+    {% set brief_primary_goal = brief.primary_goal if brief is defined and brief.primary_goal else "Answer decision-stage questions and drive enquiries" %}
+
+    <section class="brief-hero-card">
+        <div class="brief-hero-main">
+            <div class="brief-badge-row">
+                <span class="brief-badge brief-badge-primary">Content Brief</span>
+                <span class="brief-badge">{{ brief_type }}</span>
+                <span class="brief-badge">{{ brief_priority }} Priority</span>
+                <span class="brief-badge">{{ brief_status }}</span>
+            </div>
+
+            <h1>{{ brief_title }}</h1>
+            <p class="brief-hero-description">{{ brief_description }}</p>
+
+            <div class="brief-hero-actions">
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
+                <a href="{{ url_for('generate_content_draft_page', item_id=brief.id) if brief is defined and brief.id else '#' }}" class="btn btn-primary">Generate Draft</a>
+            </div>
+        </div>
+
+        <div class="brief-hero-side">
+            <div class="brief-score-card">
+                <div class="brief-score-label">Brief For</div>
+                <div class="brief-score-value">{{ brief_client }}</div>
+                <p class="brief-score-note">
+                    Use this brief to create a page that answers real customer questions clearly and supports stronger AI visibility.
+                </p>
+            </div>
+
+            <div class="brief-mini-grid">
+                <div class="brief-mini-card">
+                    <span>Status</span>
+                    <strong>{{ brief_status }}</strong>
+                </div>
+                <div class="brief-mini-card">
+                    <span>Priority</span>
+                    <strong>{{ brief_priority }}</strong>
+                </div>
+                <div class="brief-mini-card">
+                    <span>Type</span>
+                    <strong>{{ brief_type }}</strong>
+                </div>
+                <div class="brief-mini-card">
+                    <span>Main Goal</span>
+                    <strong class="small-copy">{{ brief_primary_goal }}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="brief-grid">
+
+        <div class="brief-card brief-priority-card">
+            <div class="card-topline">
+                <span class="card-tag">Why This Matters</span>
+            </div>
+
+            <h2>{{ brief_why_title }}</h2>
+            <p>{{ brief_why_text }}</p>
+        </div>
+
+        <div class="brief-card">
+            <div class="section-row">
+                <h3 class="section-title">Brief Summary</h3>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Goal</span>
+                    <strong>{{ brief_goal }}</strong>
+                </div>
+
+                <div class="summary-card">
+                    <span>Audience</span>
+                    <strong>{{ brief_audience }}</strong>
+                </div>
+
+                <div class="summary-card">
+                    <span>Main CTA</span>
+                    <strong>{{ brief_cta }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="brief-card workspace-full">
+            <div class="section-row">
+                <h3 class="section-title">Target Questions</h3>
+                <p class="section-copy">These are the questions the content should answer clearly and directly.</p>
+            </div>
+
+            <div class="question-list">
+                {% if brief is defined and brief.target_questions %}
+                    {% for question in brief.target_questions %}
+                    <div class="question-card">
+                        <div class="question-number">{{ loop.index }}</div>
+                        <div class="question-text">
+                            <strong>{{ question }}</strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="question-card">
+                        <div class="question-number">1</div>
+                        <div class="question-text">
+                            <strong>How much does this service cost?</strong>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-number">2</div>
+                        <div class="question-text">
+                            <strong>Who is this service best for?</strong>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-number">3</div>
+                        <div class="question-text">
+                            <strong>What affects the final price?</strong>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-number">4</div>
+                        <div class="question-text">
+                            <strong>What should customers expect before, during, and after the service?</strong>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="brief-card workspace-full">
+            <div class="section-row">
+                <h3 class="section-title">Recommended Outline</h3>
+                <p class="section-copy">A practical page structure your team can follow when drafting.</p>
+            </div>
+
+            <div class="outline-list">
+                {% if brief is defined and brief.outline %}
+                    {% for section in brief.outline %}
+                    <div class="outline-item">
+                        <div class="outline-step">{{ loop.index }}</div>
+                        <div class="outline-copy">
+                            <strong>{{ section }}</strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="outline-item">
+                        <div class="outline-step">1</div>
+                        <div class="outline-copy">
+                            <strong>Introduction: what this page helps the reader understand</strong>
+                        </div>
+                    </div>
+
+                    <div class="outline-item">
+                        <div class="outline-step">2</div>
+                        <div class="outline-copy">
+                            <strong>Pricing overview and what influences cost</strong>
+                        </div>
+                    </div>
+
+                    <div class="outline-item">
+                        <div class="outline-step">3</div>
+                        <div class="outline-copy">
+                            <strong>Who this service is suitable for</strong>
+                        </div>
+                    </div>
+
+                    <div class="outline-item">
+                        <div class="outline-step">4</div>
+                        <div class="outline-copy">
+                            <strong>What to expect during the process</strong>
+                        </div>
+                    </div>
+
+                    <div class="outline-item">
+                        <div class="outline-step">5</div>
+                        <div class="outline-copy">
+                            <strong>FAQ section for common customer concerns</strong>
+                        </div>
+                    </div>
+
+                    <div class="outline-item">
+                        <div class="outline-step">6</div>
+                        <div class="outline-copy">
+                            <strong>Clear next step and contact CTA</strong>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="brief-card">
+            <div class="section-row">
+                <h3 class="section-title">Key Points To Include</h3>
+            </div>
+
+            <div class="keypoint-list">
+                {% if brief is defined and brief.key_points %}
+                    {% for point in brief.key_points %}
+                    <div class="keypoint-item">{{ point }}</div>
+                    {% endfor %}
+                {% else %}
+                    <div class="keypoint-item">Explain pricing ranges honestly where possible</div>
+                    <div class="keypoint-item">Clarify what is included in the service</div>
+                    <div class="keypoint-item">Address common customer objections</div>
+                    <div class="keypoint-item">Use plain language, not technical jargon</div>
+                    <div class="keypoint-item">Add trust signals such as reviews, experience, or credentials</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="brief-card">
+            <div class="section-row">
+                <h3 class="section-title">Writing Guidance</h3>
+            </div>
+
+            <div class="guidance-grid">
+                <div class="guidance-card">
+                    <span>Tone</span>
+                    <strong>{{ brief_tone }}</strong>
+                </div>
+
+                <div class="guidance-card">
+                    <span>Style</span>
+                    <strong>{{ brief_style }}</strong>
+                </div>
+
+                <div class="guidance-card">
+                    <span>Length</span>
+                    <strong>{{ brief_length }}</strong>
+                </div>
+
+                <div class="guidance-card">
+                    <span>Primary Goal</span>
+                    <strong>{{ brief_primary_goal }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="brief-card workspace-full brief-cta-card">
+            <div class="brief-cta-copy">
+                <h3>Ready to turn this brief into a draft?</h3>
+                <p>
+                    Generate a first draft from this structure, then refine it to match the client’s voice, offer, and positioning.
+                </p>
+            </div>
+
+            <div class="brief-cta-actions">
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
+                <a href="{{ url_for('generate_content_draft_page', item_id=brief.id) if brief is defined and brief.id else '#' }}" class="btn btn-primary">Generate Draft</a>
+            </div>
+        </div>
+
+    </section>
+</div>
+
+<style>
+.brief-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.brief-hero-card,
+.brief-card,
+.summary-card,
+.question-card,
+.outline-item,
+.keypoint-item,
+.guidance-card,
+.brief-score-card,
+.brief-mini-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.brief-hero-card {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.brief-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.brief-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.brief-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.brief-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.brief-hero-description {
+    margin: 16px 0 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.brief-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.brief-score-card {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    margin-bottom: 16px;
+}
+
+.brief-score-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.brief-score-value {
+    margin-top: 14px;
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.brief-score-note {
+    margin: 14px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.brief-mini-grid,
+.summary-grid,
+.guidance-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.brief-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.brief-mini-card {
+    padding: 16px;
+    background: #f8fafc;
+}
+
+.brief-mini-card span,
+.summary-card span,
+.guidance-card span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.brief-mini-card strong {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.brief-mini-card strong.small-copy {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.brief-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.workspace-full {
+    grid-column: 1 / -1;
+}
+
+.brief-card {
+    padding: 24px;
+}
+
+.brief-priority-card {
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.card-topline {
+    margin-bottom: 12px;
+}
+
+.card-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.brief-priority-card h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.brief-priority-card p {
+    margin: 14px 0 0;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 15px;
+}
+
+.section-row {
+    margin-bottom: 16px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-copy {
+    margin: 8px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.summary-card,
+.guidance-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.summary-card strong,
+.guidance-card strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 800;
+    color: #16243c;
+    line-height: 1.55;
+}
+
+.question-list,
+.outline-list,
+.keypoint-list {
+    display: grid;
+    gap: 14px;
+}
+
+.question-card,
+.outline-item {
+    padding: 18px;
+    background: #f8fafc;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.question-number,
+.outline-step {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.question-text strong,
+.outline-copy strong {
+    color: #16243c;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.keypoint-item {
+    padding: 16px 18px;
+    background: #f8fafc;
+    color: #16243c;
+    font-size: 15px;
+    line-height: 1.55;
+    font-weight: 700;
+}
+
+.guidance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.brief-cta-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.brief-cta-copy h3 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    color: #16243c;
+}
+
+.brief-cta-copy p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 15px;
+    max-width: 760px;
+}
+
+.brief-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+@media (max-width: 1200px) {
+    .brief-hero-card,
+    .brief-grid,
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .brief-shell {
+        padding: 18px;
+    }
+
+    .brief-hero-card,
+    .brief-card,
+    .summary-card,
+    .question-card,
+    .outline-item,
+    .keypoint-item,
+    .guidance-card,
+    .brief-score-card,
+    .brief-mini-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .brief-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .brief-hero-actions,
+    .brief-cta-actions,
+    .brief-mini-grid,
+    .guidance-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .brief-hero-actions .btn,
+    .brief-cta-actions .btn {
+        width: 100%;
+    }
+
+    .brief-cta-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+{% endblock %}

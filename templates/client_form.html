@@ -10,143 +10,561 @@
 
 {% block page_subtitle %}
     {% if mode == "edit" %}
-        Update client details, positioning context, and website info.
+        Update the business profile, positioning details, and context used across this client workspace.
     {% else %}
-        Create a new client workspace for audits, visibility tracking, action planning, and content production.
+        Create a new client workspace so you can run audits, track visibility, generate action plans, and manage content in one place.
     {% endif %}
 {% endblock %}
 
 {% block topbar_actions %}
 <a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients_page') }}{% endif %}" class="btn btn-secondary">
-    {% if client %}Back to Client{% else %}Back to Clients{% endif %}
+    {% if client %}Back to Workspace{% else %}Back to Clients{% endif %}
 </a>
 {% endblock %}
 
 {% block content %}
-<section class="workspace-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>{% if mode == "edit" %}Client Details{% else %}Client Details{% endif %}</h2>
-                <p class="panel-subtitle">
-                    {% if mode == "edit" %}
-                        Update the main business fields for this client workspace.
-                    {% else %}
-                        Fill in the main business fields so the workspace starts with the right context.
-                    {% endif %}
+<section class="client-form-shell">
+
+    <div class="client-form-hero">
+        <div class="client-form-hero-copy">
+            <div class="client-form-badges">
+                <span class="hero-badge hero-badge-primary">
+                    {% if mode == "edit" %}Edit Workspace{% else %}New Workspace{% endif %}
+                </span>
+                <span class="hero-badge">Client Profile</span>
+                <span class="hero-badge">Audit Ready</span>
+            </div>
+
+            <h1>
+                {% if mode == "edit" %}
+                    Keep this workspace accurate and up to date.
+                {% else %}
+                    Create a client workspace with the right starting context.
+                {% endif %}
+            </h1>
+
+            <p>
+                {% if mode == "edit" %}
+                    These details shape how the client is displayed across reports, workspaces, recommendations, and content planning.
+                {% else %}
+                    Start with the core business details so future audits, recommendations, and action plans are tied to the right brand, website, and market context.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="client-form-hero-card">
+            <span class="hero-card-label">
+                {% if mode == "edit" %}Current Mode{% else %}What happens next{% endif %}
+            </span>
+
+            {% if mode == "edit" %}
+                <strong class="hero-card-value">Editing existing client</strong>
+                <p class="hero-card-text">
+                    Save any updates here to keep the workspace aligned with the latest business details.
                 </p>
-            </div>
-        </div>
-
-        {% if error %}
-        <div class="comparison-banner declined">
-            <strong>Error:</strong> {{ error }}
-        </div>
-        {% endif %}
-
-        <form method="POST" class="form-stack">
-            <div class="form-grid-2">
-                <div class="form-field">
-                    <label for="name">Client Name</label>
-                    <input type="text" id="name" name="name" value="{{ form_data.get('name', '') if form_data else '' }}" required>
-                </div>
-
-                <div class="form-field">
-                    <label for="website">Website</label>
-                    <input type="text" id="website" name="website" value="{{ form_data.get('website', '') if form_data else '' }}" required>
-                </div>
-
-                <div class="form-field">
-                    <label for="industry">Industry</label>
-                    <input type="text" id="industry" name="industry" value="{{ form_data.get('industry', '') if form_data else '' }}">
-                </div>
-
-                <div class="form-field">
-                    <label for="location">Location</label>
-                    <input type="text" id="location" name="location" value="{{ form_data.get('location', '') if form_data else '' }}">
-                </div>
-
-                <div class="form-field">
-                    <label for="owner_type">Owner Type</label>
-                    <select id="owner_type" name="owner_type">
-                        {% set selected_owner_type = form_data.get('owner_type', 'company') if form_data else 'company' %}
-                        <option value="company" {% if selected_owner_type == 'company' %}selected{% endif %}>company</option>
-                        <option value="personal_brand" {% if selected_owner_type == 'personal_brand' %}selected{% endif %}>personal_brand</option>
-                        <option value="agency" {% if selected_owner_type == 'agency' %}selected{% endif %}>agency</option>
-                        <option value="local_business" {% if selected_owner_type == 'local_business' %}selected{% endif %}>local_business</option>
-                    </select>
-                </div>
-
-                <div class="form-field form-field-full">
-                    <label for="notes">Notes</label>
-                    <textarea id="notes" name="notes">{{ form_data.get('notes', '') if form_data else '' }}</textarea>
-                </div>
-            </div>
-
-            <div class="card-actions">
-                <button type="submit" class="btn btn-primary">
-                    {% if mode == "edit" %}Save Changes{% else %}Create Client Workspace{% endif %}
-                </button>
-
-                <a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients_page') }}{% endif %}" class="btn btn-secondary">
-                    Cancel
-                </a>
-            </div>
-        </form>
-    </div>
-
-    {% if mode == "edit" and client %}
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Danger Zone</h2>
-                <p class="panel-subtitle">Deleting a client will also remove related queue items for that client.</p>
-            </div>
-        </div>
-
-        <div class="comparison-banner declined">
-            <strong>Warning:</strong> This action cannot be undone from the UI.
-        </div>
-
-        <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}">
-            <button type="submit" class="btn btn-danger">Delete Client</button>
-        </form>
-    </div>
-    {% else %}
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>What This Creates</h2>
-                <p class="panel-subtitle">The new client will immediately become available across the agency workspace.</p>
-            </div>
-        </div>
-
-        <div class="action-list">
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge low">Workspace</span>
-                    <h3>Client profile</h3>
-                </div>
-                <p>A dedicated workspace for audits, visibility tracking, competitor review, and recommendations.</p>
-            </div>
-
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge medium">Content Flow</span>
-                    <h3>Briefs and drafts</h3>
-                </div>
-                <p>You can generate content briefs and drafts linked directly to this client and save them into the queue.</p>
-            </div>
-
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge high">Execution</span>
-                    <h3>Audit-ready workspace</h3>
-                </div>
-                <p>Once created, you can immediately run the first audit and start building the visibility history.</p>
-            </div>
+            {% else %}
+                <strong class="hero-card-value">Create → Audit → Act</strong>
+                <p class="hero-card-text">
+                    Once created, this client can immediately be used for audits, growth plans, and content workflows.
+                </p>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
+
+    <div class="client-form-grid">
+        <section class="form-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Client Details</h2>
+                    <p class="panel-subtitle">
+                        {% if mode == "edit" %}
+                            Update the main business information used throughout this workspace.
+                        {% else %}
+                            Fill in the key fields so the workspace starts with the right identity and context.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            {% if error %}
+            <div class="form-alert form-alert-danger">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" class="form-stack">
+                <div class="form-grid-2">
+                    <div class="form-field">
+                        <label for="name">Client Name</label>
+                        <p class="field-help">Use the main business or brand name shown in reports and workspaces.</p>
+                        <input type="text" id="name" name="name" value="{{ form_data.get('name', '') if form_data else '' }}" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="website">Website</label>
+                        <p class="field-help">Enter the main website used for visibility analysis and page review.</p>
+                        <input type="text" id="website" name="website" value="{{ form_data.get('website', '') if form_data else '' }}" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="industry">Industry</label>
+                        <p class="field-help">Example: dental clinic, law firm, tuition centre, software company.</p>
+                        <input type="text" id="industry" name="industry" value="{{ form_data.get('industry', '') if form_data else '' }}">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="location">Location</label>
+                        <p class="field-help">Useful for local visibility, regional context, and client filtering.</p>
+                        <input type="text" id="location" name="location" value="{{ form_data.get('location', '') if form_data else '' }}">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="owner_type">Owner Type</label>
+                        <p class="field-help">Choose the profile type that best fits this client workspace.</p>
+                        <select id="owner_type" name="owner_type">
+                            {% set selected_owner_type = form_data.get('owner_type', 'company') if form_data else 'company' %}
+                            <option value="company" {% if selected_owner_type == 'company' %}selected{% endif %}>Company</option>
+                            <option value="personal_brand" {% if selected_owner_type == 'personal_brand' %}selected{% endif %}>Personal Brand</option>
+                            <option value="agency" {% if selected_owner_type == 'agency' %}selected{% endif %}>Agency</option>
+                            <option value="local_business" {% if selected_owner_type == 'local_business' %}selected{% endif %}>Local Business</option>
+                        </select>
+                    </div>
+
+                    <div class="form-field form-field-full">
+                        <label for="notes">Notes</label>
+                        <p class="field-help">
+                            Add positioning context, service focus, important reminders, or anything your team should know before running audits or building content.
+                        </p>
+                        <textarea id="notes" name="notes" rows="6">{{ form_data.get('notes', '') if form_data else '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        {% if mode == "edit" %}Save Changes{% else %}Create Client Workspace{% endif %}
+                    </button>
+
+                    <a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients_page') }}{% endif %}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </section>
+
+        <aside class="side-panel">
+            {% if mode == "edit" and client %}
+            <section class="info-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Workspace Guidance</h2>
+                        <p class="panel-subtitle">Keep the client profile clean so audits and planning stay useful.</p>
+                    </div>
+                </div>
+
+                <div class="info-list">
+                    <div class="info-card">
+                        <h3>Review website accuracy</h3>
+                        <p>Make sure the main domain is correct before running or comparing audits.</p>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Keep positioning consistent</h3>
+                        <p>Industry, location, and owner type help the workspace stay readable and easier to manage.</p>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Use notes for internal context</h3>
+                        <p>Add things like target market, priority services, or campaign direction for your team.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="danger-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Danger Zone</h2>
+                        <p class="panel-subtitle">Deleting this client will also remove related queue items for this workspace.</p>
+                    </div>
+                </div>
+
+                <div class="form-alert form-alert-danger soft">
+                    <strong>Warning:</strong> This action cannot be undone from the UI.
+                </div>
+
+                <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}">
+                    <button type="submit" class="btn btn-danger">Delete Client</button>
+                </form>
+            </section>
+            {% else %}
+            <section class="info-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>What This Creates</h2>
+                        <p class="panel-subtitle">The new client becomes available immediately across your workspace.</p>
+                    </div>
+                </div>
+
+                <div class="info-list">
+                    <div class="info-card">
+                        <div class="info-card-top">
+                            <span class="info-pill low">Workspace</span>
+                            <h3>Client profile</h3>
+                        </div>
+                        <p>A dedicated workspace for audits, recommendations, history, and client-facing presentation views.</p>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-top">
+                            <span class="info-pill medium">Content Flow</span>
+                            <h3>Briefs and drafts</h3>
+                        </div>
+                        <p>You can generate content briefs, ideas, and execution items linked directly to this client.</p>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-top">
+                            <span class="info-pill high">Execution</span>
+                            <h3>Audit-ready setup</h3>
+                        </div>
+                        <p>Once created, you can immediately run the first audit and begin building the visibility history.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tips-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Best Practice</h2>
+                        <p class="panel-subtitle">A few simple choices make later analysis much clearer.</p>
+                    </div>
+                </div>
+
+                <div class="tips-list">
+                    <div class="tip-item">Use the main brand name, not an internal nickname.</div>
+                    <div class="tip-item">Enter the website that should actually be audited.</div>
+                    <div class="tip-item">Add industry and location when they matter for AI discoverability.</div>
+                    <div class="tip-item">Use notes to capture service focus, target audience, or local context.</div>
+                </div>
+            </section>
+            {% endif %}
+        </aside>
+    </div>
 </section>
+
+<style>
+.client-form-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.client-form-hero,
+.form-panel,
+.side-panel section,
+.info-card,
+.client-form-hero-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.client-form-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.7fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.client-form-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.hero-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.client-form-hero-copy h1 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1.08;
+    font-weight: 800;
+    color: #15233b;
+    max-width: 760px;
+}
+
+.client-form-hero-copy p {
+    margin: 16px 0 0;
+    font-size: 17px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.client-form-hero-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.hero-card-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.hero-card-value {
+    display: block;
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.hero-card-text {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.client-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.form-panel,
+.side-panel section {
+    padding: 24px;
+}
+
+.side-panel {
+    display: grid;
+    gap: 24px;
+}
+
+.panel-header {
+    margin-bottom: 18px;
+}
+
+.panel-header h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.form-alert {
+    padding: 14px 16px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.form-alert-danger {
+    background: #fff4f4;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.form-alert-danger.soft {
+    margin-bottom: 16px;
+}
+
+.form-stack {
+    display: grid;
+    gap: 20px;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.form-field {
+    display: grid;
+    gap: 8px;
+}
+
+.form-field-full {
+    grid-column: 1 / -1;
+}
+
+.form-field label {
+    font-size: 14px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.field-help {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6b7280;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    border: 1px solid #d9e2ef;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 14px 16px;
+    font: inherit;
+    color: #16243c;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: #ff6a2b;
+    box-shadow: 0 0 0 4px rgba(255, 106, 43, 0.12);
+}
+
+.form-field textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.info-list,
+.tips-list {
+    display: grid;
+    gap: 14px;
+}
+
+.info-card {
+    padding: 18px;
+}
+
+.info-card-top {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.info-card h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.info-card p,
+.tip-item {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.info-pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.info-pill.low {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.info-pill.medium {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.info-pill.high {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.tips-panel .tip-item {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+@media (max-width: 1200px) {
+    .client-form-hero,
+    .client-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .client-form-shell {
+        padding: 18px;
+    }
+
+    .client-form-hero,
+    .form-panel,
+    .side-panel section,
+    .info-card,
+    .client-form-hero-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .client-form-hero-copy h1 {
+        font-size: 30px;
+    }
+
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+</style>
 {% endblock %}

@@ -6,260 +6,335 @@
     <title>{% block title %}AEO Agents{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
 </head>
-<body class="{% block body_class %}{% endblock %}">
-    {% set is_audit = request.path == '/' %}
-    {% set is_clients = request.path.startswith('/clients') or request.path.startswith('/client/') %}
-    {% set is_content = request.path.startswith('/content-queue') %}
-    {% set is_reports = request.path.startswith('/reports') %}
-    {% set is_help = request.path == '/help' %}
-    {% set is_settings = request.path.startswith('/settings') %}
+<body>
+    {% set current_endpoint = request.endpoint if request and request.endpoint else '' %}
+    {% set is_admin_user = current_user.is_authenticated and (current_user.email == "pypteltd@gmail.com" or current_user.role == "admin") %}
 
-    <div class="dashboard-shell">
-        <header class="app-topbar">
-            <div class="topbar-left">
-                <a href="{{ url_for('index') }}" class="app-logo">
-                    <span class="app-logo-mark">A</span>
-                    <span class="app-logo-text">AEO Agents</span>
-                </a>
+    <div class="app-shell">
 
-                <nav class="primary-nav">
-                    <button type="button" class="primary-nav-item {% if is_audit %}active{% endif %}" data-section="audit">
-                        Audit Library
-                    </button>
-                    <button type="button" class="primary-nav-item {% if is_clients %}active{% endif %}" data-section="clients">
-                        Clients
-                    </button>
-                    <button type="button" class="primary-nav-item {% if is_content %}active{% endif %}" data-section="content">
-                        Content
-                    </button>
-                    <button type="button" class="primary-nav-item {% if is_reports %}active{% endif %}" data-section="reports">
-                        Reports
-                    </button>
-                    <button type="button" class="primary-nav-item {% if is_help %}active{% endif %}" data-section="help">
-                        Help
-                    </button>
-                    <button type="button" class="primary-nav-item {% if is_settings %}active{% endif %}" data-section="settings">
-                        Settings
-                    </button>
+        <!-- Mobile Topbar -->
+        <header class="mobile-topbar">
+            <button
+                class="mobile-menu-btn"
+                id="mobileMenuBtn"
+                aria-label="Open menu"
+                aria-expanded="false"
+                aria-controls="appSidebar"
+                type="button"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <a href="{{ url_for('index') if url_for else '#' }}" class="mobile-brand">
+                <span class="mobile-brand-mark">A</span>
+                <span class="mobile-brand-text">AEO Agents</span>
+            </a>
+        </header>
+
+        <!-- Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-inner">
+
+                <div class="sidebar-brand">
+                    <a href="{{ url_for('index') if url_for else '#' }}" class="brand-link">
+                        <div class="brand-mark">A</div>
+                        <div class="brand-copy">
+                            <strong>AEO Agents</strong>
+                            <span>AI Visibility Workspace</span>
+                        </div>
+                    </a>
+                </div>
+
+                <nav class="sidebar-nav">
+
+                    {% if view_mode == "single" %}
+                    <div class="nav-group">
+                        <div class="nav-label">Workspace</div>
+
+                        <a
+                            href="{{ url_for('index') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⌂</span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('new_audit') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'new_audit' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⌕</span>
+                            <span class="nav-text">Start Audit</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('content_queue_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">✎</span>
+                            <span class="nav-text">Content</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-group">
+                        <div class="nav-label">Resources</div>
+
+                        <a
+                            href="{{ url_for('help_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">?</span>
+                            <span class="nav-text">Glossary & Guides</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('settings_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⚙</span>
+                            <span class="nav-text">Settings</span>
+                        </a>
+                    </div>
+
+                    {% elif view_mode == "multi" %}
+                    <div class="nav-group">
+                        <div class="nav-label">Workspace</div>
+
+                        <a
+                            href="{{ url_for('index') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⌂</span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('clients_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'clients_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">◫</span>
+                            <span class="nav-text">Clients</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('content_queue_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">✎</span>
+                            <span class="nav-text">Content Queue</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-group">
+                        <div class="nav-label">Resources</div>
+
+                        <a
+                            href="{{ url_for('help_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">?</span>
+                            <span class="nav-text">Glossary & Guides</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('settings_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⚙</span>
+                            <span class="nav-text">Settings</span>
+                        </a>
+                    </div>
+
+                    {% elif view_mode == "admin" %}
+                    <div class="nav-group">
+                        <div class="nav-label">Workspace</div>
+
+                        <a
+                            href="{{ url_for('index') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⌂</span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('new_audit') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'new_audit' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⌕</span>
+                            <span class="nav-text">Start Audit</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('clients_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'clients_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">◫</span>
+                            <span class="nav-text">Clients</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('content_queue_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">✎</span>
+                            <span class="nav-text">Content Queue</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-group">
+                        <div class="nav-label">Resources</div>
+
+                        <a
+                            href="{{ url_for('help_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">?</span>
+                            <span class="nav-text">Glossary & Guides</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('settings_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">⚙</span>
+                            <span class="nav-text">Settings</span>
+                        </a>
+
+                        <a
+                            href="{{ url_for('pricing_page') if url_for else '#' }}"
+                            class="nav-item {% if current_endpoint == 'pricing_page' %}active{% endif %}"
+                        >
+                            <span class="nav-icon">💳</span>
+                            <span class="nav-text">Pricing</span>
+                        </a>
+                    </div>
+                    {% endif %}
+
                 </nav>
-            </div>
 
-            <div class="topbar-right">
-                {% if current_user.is_authenticated %}
-                <div class="topbar-user">
-                    <div class="topbar-user-meta">
-                        <span class="topbar-user-name">{{ current_user.name }}</span>
-                        <span class="topbar-user-credits">
-                            Credits:
-                            <strong>
-                                {% if has_unlimited_credits %}
-                                    Unlimited
-                                {% else %}
-                                    {{ wallet_balance }}
-                                {% endif %}
-                            </strong>
-                        </span>
+                {% if is_admin_user %}
+                <div class="nav-group dev-view-switcher">
+                    <div class="nav-label">Dev View Mode</div>
+
+                    <div class="dev-view-buttons">
+                        <a
+                            href="{{ url_for('dev_set_view_mode', mode='single') }}"
+                            class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}"
+                        >
+                            Single
+                        </a>
+
+                        <a
+                            href="{{ url_for('dev_set_view_mode', mode='multi') }}"
+                            class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}"
+                        >
+                            Multi
+                        </a>
+
+                        <a
+                            href="{{ url_for('dev_set_view_mode', mode='admin') }}"
+                            class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}"
+                        >
+                            Admin
+                        </a>
+
+                        <a
+                            href="{{ url_for('dev_set_view_mode', mode='auto') }}"
+                            class="dev-view-btn {% if session.get('dev_view_mode') == 'auto' %}active{% endif %}"
+                        >
+                            Auto
+                        </a>
                     </div>
                 </div>
                 {% endif %}
+
+                <div class="sidebar-footer">
+                    <div class="sidebar-wallet">
+                        <span>Credits</span>
+                        <strong>{{ wallet_balance if wallet_balance is defined else 14 }}</strong>
+                    </div>
+
+                    <a
+                        href="{{ url_for('pricing_page') if url_for else '#' }}"
+                        class="sidebar-buy-btn {% if current_endpoint == 'pricing_page' %}active{% endif %}"
+                    >
+                        Buy Credits
+                    </a>
+                </div>
             </div>
-        </header>
+        </aside>
 
-        <div class="workspace-shell">
-            <aside class="section-sidebar">
-                <div class="section-sidebar-scroll">
-                    <div class="sidebar-section {% if is_audit %}is-active{% endif %}" data-sidebar-section="audit">
-                        <div class="sidebar-heading">Audit Library</div>
-
-                        <div class="sidebar-group-label">Overview</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('index') }}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">All Audits</a>
-                            <a href="{{ url_for('index') }}" class="sidebar-link">New Audit</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Reports</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('index') }}" class="sidebar-link">Saved Reports</a>
-                            <a href="{{ url_for('index') }}" class="sidebar-link">Export PDF</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Analysis</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('index') }}" class="sidebar-link">Visibility Signals</a>
-                            <a href="{{ url_for('index') }}" class="sidebar-link">Score Breakdown</a>
-                        </nav>
-                    </div>
-
-                    <div class="sidebar-section {% if is_clients %}is-active{% endif %}" data-sidebar-section="clients">
-                        <div class="sidebar-heading">Clients</div>
-
-                        <div class="sidebar-group-label">Client Management</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('clients_page') }}" class="sidebar-link {% if request.path.startswith('/clients') %}active{% endif %}">All Clients</a>
-                            <a href="{{ url_for('clients_page') }}" class="sidebar-link">Add Client</a>
-                            <a href="{{ url_for('clients_page') }}" class="sidebar-link {% if request.path.startswith('/client/') %}active{% endif %}">Client Reports</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Presentation</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('clients_page') }}" class="sidebar-link">Presentation View</a>
-                            <a href="{{ url_for('clients_page') }}" class="sidebar-link">Competitor View</a>
-                        </nav>
-                    </div>
-
-                    <div class="sidebar-section {% if is_content %}is-active{% endif %}" data-sidebar-section="content">
-                        <div class="sidebar-heading">Content</div>
-
-                        <div class="sidebar-group-label">Workflow</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('content_queue_page') }}" class="sidebar-link {% if request.path.startswith('/content-queue') %}active{% endif %}">Queue Overview</a>
-                            <a href="{{ url_for('content_queue_page') }}" class="sidebar-link">Briefs</a>
-                            <a href="{{ url_for('content_queue_page') }}" class="sidebar-link">Drafts</a>
-                            <a href="{{ url_for('content_queue_page') }}" class="sidebar-link">Pending Review</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Planning</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('content_queue_page') }}" class="sidebar-link">Ideas</a>
-                            <a href="{{ url_for('content_queue_page') }}" class="sidebar-link">Templates</a>
-                        </nav>
-                    </div>
-
-                    <div class="sidebar-section {% if is_reports %}is-active{% endif %}" data-sidebar-section="reports">
-                        <div class="sidebar-heading">Reports</div>
-
-                        <div class="sidebar-group-label">Exports</div>
-                        <nav class="sidebar-links">
-                            <a href="/reports" class="sidebar-link {% if request.path == '/reports' %}active{% endif %}">PDF Exports</a>
-                            <a href="/reports" class="sidebar-link">Client Decks</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">History</div>
-                        <nav class="sidebar-links">
-                            <a href="/reports" class="sidebar-link">Recent Reports</a>
-                            <a href="/reports" class="sidebar-link">Archived Reports</a>
-                        </nav>
-                    </div>
-
-                    <div class="sidebar-section {% if is_help %}is-active{% endif %}" data-sidebar-section="help">
-                        <div class="sidebar-heading">Help</div>
-
-                        <div class="sidebar-group-label">Support</div>
-                        <nav class="sidebar-links">
-                            <a href="{{ url_for('help_page') }}" class="sidebar-link {% if request.path == '/help' %}active{% endif %}">Help Centre</a>
-                            <a href="{{ url_for('help_page') }}" class="sidebar-link">Glossary</a>
-                            <a href="{{ url_for('help_page') }}" class="sidebar-link">Guides</a>
-                        </nav>
-                    </div>
-
-                    <div class="sidebar-section {% if is_settings %}is-active{% endif %}" data-sidebar-section="settings">
-                        <div class="sidebar-heading">Settings</div>
-
-                        <div class="sidebar-group-label">Account</div>
-                        <nav class="sidebar-links">
-                            <a href="/settings" class="sidebar-link {% if request.path == '/settings' %}active{% endif %}">Profile</a>
-                            <a href="/settings/account" class="sidebar-link {% if request.path == '/settings/account' %}active{% endif %}">Account Details</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Billing & Credits</div>
-                        <nav class="sidebar-links">
-                            <a href="/settings/billing" class="sidebar-link {% if request.path == '/settings/billing' %}active{% endif %}">Billing</a>
-                            <a href="/settings/credits" class="sidebar-link {% if request.path == '/settings/credits' %}active{% endif %}">Credits</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Referrals</div>
-                        <nav class="sidebar-links">
-                            <a href="/settings/referrals" class="sidebar-link {% if request.path == '/settings/referrals' %}active{% endif %}">Referral Code</a>
-                            <a href="/settings/referrals" class="sidebar-link">Referral History</a>
-                        </nav>
-
-                        <div class="sidebar-group-label">Workspace</div>
-                        <nav class="sidebar-links">
-                            <a href="/settings/preferences" class="sidebar-link {% if request.path == '/settings/preferences' %}active{% endif %}">Preferences</a>
-                            <a href="/settings/team" class="sidebar-link {% if request.path == '/settings/team' %}active{% endif %}">Team & Access</a>
-                        </nav>
-                    </div>
-                </div>
-
-                <div class="section-sidebar-footer">
-                    {% if current_user.is_authenticated %}
-                    <div class="sidebar-account-card">
-                        <div class="sidebar-account-name">{{ current_user.name }}</div>
-                        <div class="sidebar-account-email">{{ current_user.email }}</div>
-
-                        <div class="wallet-pill">
-                            Credits:
-                            <strong>
-                                {% if has_unlimited_credits %}
-                                    Unlimited
-                                {% else %}
-                                    {{ wallet_balance }}
-                                {% endif %}
-                            </strong>
-                        </div>
-
-                        <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-full">Log out</a>
-                    </div>
-                    {% endif %}
-                </div>
-            </aside>
-
-            <main class="main-shell">
-                <header class="page-header">
-                    <div>
-                        <h1 class="page-title">{% block page_title %}AEO Workspace{% endblock %}</h1>
-                        <p class="page-subtitle">{% block page_subtitle %}Manage visibility audits, clients, and content actions.{% endblock %}</p>
-                    </div>
-
-                    <div class="topbar-actions">
-                        {% block topbar_actions %}{% endblock %}
-                    </div>
-                </header>
-
-                {% with messages = get_flashed_messages() %}
+        <!-- Main -->
+        <main class="app-main">
+            <div class="app-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         <div class="flash-stack">
-                            {% for message in messages %}
-                                <div class="flash-message">{{ message }}</div>
+                            {% for category, message in messages %}
+                                <div class="flash-message flash-{{ category }}">{{ message }}</div>
                             {% endfor %}
                         </div>
                     {% endif %}
                 {% endwith %}
 
                 {% block content %}{% endblock %}
-            </main>
-        </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const navItems = document.querySelectorAll(".primary-nav-item[data-section]");
-            const sections = document.querySelectorAll(".sidebar-section[data-sidebar-section]");
+        (function () {
+            const body = document.body;
+            const sidebar = document.getElementById("appSidebar");
+            const overlay = document.getElementById("sidebarOverlay");
+            const menuBtn = document.getElementById("mobileMenuBtn");
 
-            function activateSection(name) {
-                navItems.forEach((item) => {
-                    item.classList.toggle("active", item.dataset.section === name);
-                });
+            if (!sidebar || !overlay || !menuBtn) return;
 
-                sections.forEach((section) => {
-                    section.classList.toggle("is-active", section.dataset.sidebarSection === name);
-                });
+            function openSidebar() {
+                sidebar.classList.add("open");
+                overlay.classList.add("show");
+                body.classList.add("sidebar-open");
+                menuBtn.setAttribute("aria-expanded", "true");
             }
 
-            const initialActive =
-                document.querySelector(".primary-nav-item.active[data-section]") ||
-                document.querySelector('.primary-nav-item[data-section="audit"]');
-
-            if (initialActive) {
-                activateSection(initialActive.dataset.section);
+            function closeSidebar() {
+                sidebar.classList.remove("open");
+                overlay.classList.remove("show");
+                body.classList.remove("sidebar-open");
+                menuBtn.setAttribute("aria-expanded", "false");
             }
 
-            navItems.forEach((item) => {
+            menuBtn.addEventListener("click", function () {
+                if (sidebar.classList.contains("open")) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+
+            overlay.addEventListener("click", closeSidebar);
+
+            window.addEventListener("resize", function () {
+                if (window.innerWidth >= 900) {
+                    closeSidebar();
+                }
+            });
+
+            document.querySelectorAll(".app-sidebar a").forEach(function (item) {
                 item.addEventListener("click", function () {
-                    activateSection(item.dataset.section);
+                    if (window.innerWidth < 900) {
+                        closeSidebar();
+                    }
                 });
             });
-        });
+        })();
     </script>
 </body>
 </html>

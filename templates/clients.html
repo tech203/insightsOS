@@ -1,171 +1,760 @@
 {% extends "base.html" %}
 
-{% block title %}Clients | AEO Agents{% endblock %}
+{% block title %}Clients | DarBot InsightOS{% endblock %}
 {% block page_title %}Clients{% endblock %}
-{% block page_subtitle %}Manage all client workspaces, recent audits, visibility movement, and next actions from one view.{% endblock %}
+{% block page_subtitle %}Manage client workspaces, run reports, and move from insight to action clearly.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('create_client') }}" class="btn btn-primary">+ Add Client</a>
+<a href="{{ url_for('create_client') }}" class="btn btn-primary">Add Client</a>
 {% endblock %}
 
 {% block content %}
-<section class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-label">Total Clients</div>
-        <div class="stat-value">{{ clients|length }}</div>
-        <div class="stat-note">Active workspaces</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Clients With Audits</div>
-        <div class="stat-value">{{ clients | selectattr("audit_count") | list | length }}</div>
-        <div class="stat-note">Clients with at least one saved audit</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">High Priority Actions</div>
-        <div class="stat-value">
-            {{
-                clients
-                | map(attribute='recommended_actions')
-                | map('length')
-                | sum
-            }}
+{% set total_clients = clients|length %}
+{% set clients_with_reports = clients | selectattr("audit_count", "gt", 0) | list %}
+{% set latest_scored_clients = clients | selectattr("latest_audit") | list %}
+
+<div class="clients-shell">
+
+    <section class="clients-hero">
+        <div class="clients-hero-copy">
+            <div class="clients-kicker-row">
+                <span class="clients-kicker">Client Workspaces</span>
+                <span class="clients-kicker">Clear Actions</span>
+                <span class="clients-kicker">Mobile Friendly</span>
+            </div>
+
+            <h1>Keep every business in one clear workspace.</h1>
+            <p>
+                Add a client, run a report, review the growth plan, and create content from one place.
+                This page is designed to help you and your team move quickly without confusion.
+            </p>
+
+            <div class="clients-hero-actions">
+                <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add Client</a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Open Dashboard</a>
+            </div>
         </div>
-        <div class="stat-note">Recommended improvements generated</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Agency Workspace</div>
-        <div class="stat-value">Live</div>
-        <div class="stat-note">Multi-client operating view</div>
-    </div>
-</section>
 
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>Client Portfolio</h2>
-            <p class="panel-subtitle">Each client card combines business info, latest audit signals, and next-step actions.</p>
+        <div class="clients-hero-stats">
+            <div class="hero-stat-card hero-stat-main">
+                <span class="hero-stat-label">Total Clients</span>
+                <strong class="hero-stat-value">{{ total_clients }}</strong>
+                <span class="hero-stat-help">Businesses inside your workspace</span>
+            </div>
+
+            <div class="hero-stat-grid">
+                <div class="hero-mini-stat">
+                    <span>With Reports</span>
+                    <strong>{{ clients_with_reports|length }}</strong>
+                </div>
+                <div class="hero-mini-stat">
+                    <span>Ready For Action</span>
+                    <strong>{{ latest_scored_clients|length }}</strong>
+                </div>
+                <div class="hero-mini-stat">
+                    <span>Best Next Step</span>
+                    <strong class="small-copy">Open workspace or run a fresh report</strong>
+                </div>
+                <div class="hero-mini-stat">
+                    <span>Best For</span>
+                    <strong class="small-copy">Agencies, in-house teams, founders</strong>
+                </div>
+            </div>
         </div>
-        <a href="{{ url_for('create_client') }}" class="btn btn-primary">New Client</a>
-    </div>
+    </section>
 
-    {% if clients %}
-    <div class="client-card-grid">
-        {% for client in clients %}
-        <article class="client-card">
-            <div class="client-card-top">
-                <div>
-                    <h3 class="client-name">{{ client.name }}</h3>
-                    <div class="client-meta">
-                        <span class="meta-chip">{{ client.industry or "N/A" }}</span>
-                        <span class="meta-chip">{{ client.location or "N/A" }}</span>
-                        <span class="meta-chip">{{ client.owner_type or "company" }}</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="text-link">Open Workspace</a>
+    <section class="clients-panel">
+        <div class="panel-head">
+            <div>
+                <h2>How this page works</h2>
+                <p>A simple flow for busy teams and business owners.</p>
+            </div>
+        </div>
+
+        <div class="workflow-grid">
+            <article class="workflow-card">
+                <div class="workflow-step">1</div>
+                <h3>Add a client</h3>
+                <p>Create one workspace for each business, brand, or location you want to manage.</p>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-step">2</div>
+                <h3>Run a report</h3>
+                <p>See how visible the business is and where the biggest gaps are.</p>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-step">3</div>
+                <h3>Review the plan</h3>
+                <p>Open the growth plan to see what to fix next in plain English.</p>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-step">4</div>
+                <h3>Create content</h3>
+                <p>Turn recommendations into briefs, actions, and execution faster.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="clients-panel">
+        <div class="panel-head panel-head-inline">
+            <div>
+                <h2>Your Clients</h2>
+                <p>Open a workspace, run a report, or continue with the next best action.</p>
             </div>
 
-            <div class="client-domain">
-                <a href="https://{{ client.website_normalized or client.website }}" target="_blank">
-                    {{ client.website }}
-                </a>
-            </div>
-
-            <div class="metric-strip">
-                <div class="metric-box">
-                    <div class="metric-box-label">Audits</div>
-                    <div class="metric-box-value">{{ client.audit_count }}</div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-box-label">Latest Score</div>
-                    <div class="metric-box-value">
-                        {% if client.latest_audit %}
-                            {{ client.latest_audit.normalized_score }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-box-label">Visibility</div>
-                    <div class="metric-box-value">
-                        {% if client.latest_audit %}
-                            {{ client.latest_audit.visibility_score }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-box-label">Opportunity</div>
-                    <div class="metric-box-value small">
-                        {% if client.latest_audit %}
-                            {{ client.latest_audit.opportunity_level }}
-                        {% else %}
-                            No audit
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            {% if client.comparison %}
-            <div class="comparison-banner {{ client.comparison.overall_change }}">
-                <strong>Status:</strong>
-                {{ client.comparison.overall_change|capitalize }}
-                {% if client.comparison.normalized_delta %}
-                    <span class="delta-pill">
-                        {{ "+" if client.comparison.normalized_delta > 0 else "" }}{{ client.comparison.normalized_delta }}
-                    </span>
-                {% endif %}
-            </div>
-            {% else %}
-            <div class="comparison-banner neutral">
-                <strong>Status:</strong> No comparison available yet
+            {% if clients %}
+            <div class="panel-summary-pill">
+                {{ total_clients }} client{% if total_clients != 1 %}s{% endif %}
             </div>
             {% endif %}
+        </div>
 
-            <div class="section-stack">
-                <div>
-                    <div class="mini-heading">Latest Verdict</div>
-                    <p class="muted-text">
-                        {% if client.latest_audit %}
-                            {{ client.latest_audit.verdict }}
-                        {% else %}
-                            No audit saved yet for this client.
-                        {% endif %}
-                    </p>
+        {% if clients %}
+        <div class="client-list">
+            {% for client in clients %}
+            {% set latest = client.latest_audit %}
+
+            <article class="client-card">
+                <div class="client-card-head">
+                    <div class="client-card-main">
+                        <div class="client-title-row">
+                            <h3>{{ client.name }}</h3>
+                            <span class="client-badge">{{ client.owner_type or "company" }}</span>
+                        </div>
+
+                        <div class="client-link-row">
+                            <a href="https://{{ client.website_normalized or client.website }}" target="_blank" rel="noopener noreferrer">
+                                {{ client.website }}
+                            </a>
+                        </div>
+
+                        <div class="client-chip-row">
+                            <span class="info-chip">{{ client.industry or "Industry N/A" }}</span>
+                            <span class="info-chip">{{ client.location or "Location N/A" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="client-card-side">
+                        <span class="status-pill">
+                            {% if latest %}
+                                Updated {{ latest.saved_at|pretty_datetime }}
+                            {% else %}
+                                No report yet
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
 
-                <div>
-                    <div class="mini-heading">Recommended Actions</div>
-                    {% if client.recommended_actions %}
-                    <ul class="compact-list">
-                        {% for action in client.recommended_actions[:3] %}
-                        <li>
-                            <span class="priority-dot {{ action.priority }}"></span>
-                            {{ action.title }}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="muted-text">Run an audit to generate recommended actions.</p>
+                <div class="client-card-body">
+                    <div class="client-insight-box">
+                        {% if latest %}
+                        <div class="insight-row">
+                            <span>Latest Summary</span>
+                            <strong>{{ latest.verdict }}</strong>
+                        </div>
+                        <div class="insight-row">
+                            <span>Opportunity</span>
+                            <strong>{{ latest.opportunity_level }}</strong>
+                        </div>
+                        {% else %}
+                        <div class="insight-empty">
+                            This client does not have a report yet. Run the first report to unlock the growth plan and recommendations.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <span class="metric-label">Reports</span>
+                            <strong class="metric-number">{{ client.audit_count }}</strong>
+                        </div>
+
+                        <div class="metric-card">
+                            <span class="metric-label">Overall</span>
+                            <strong class="metric-number">{% if latest %}{{ latest.normalized_score }}{% else %}—{% endif %}</strong>
+                        </div>
+
+                        <div class="metric-card">
+                            <span class="metric-label">Visibility</span>
+                            <strong class="metric-number">{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
+                        </div>
+
+                        <div class="metric-card">
+                            <span class="metric-label">Content</span>
+                            <strong class="metric-number">{% if latest %}{{ latest.content_score }}{% else %}—{% endif %}</strong>
+                        </div>
+                    </div>
+
+                    {% if latest %}
+                    <div class="progress-stack">
+                        <div class="progress-card">
+                            <div class="progress-top">
+                                <span>Overall Readiness</span>
+                                <strong>{{ latest.normalized_score }}</strong>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill progress-green" style="width: {{ latest.normalized_score }}%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-card">
+                            <div class="progress-top">
+                                <span>AI Visibility</span>
+                                <strong>{{ latest.visibility_score }}</strong>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill progress-blue" style="width: {{ latest.visibility_score * 5 }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
-            </div>
 
-            <div class="card-actions">
-                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Visibility</a>
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary">Actions</a>
-            </div>
-        </article>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <h3>No clients yet</h3>
-        <p>Create your first client workspace to start running AEO audits and content workflows.</p>
-        <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
-    </div>
-    {% endif %}
-</section>
+                <div class="client-card-actions">
+                    <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Open Workspace</a>
+                    <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run Report</a>
+
+                    {% if latest %}
+                    <a href="{{ url_for('client_growth_plan', client_id=client.id) }}" class="btn btn-primary">Open Growth Plan</a>
+                    <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="btn btn-secondary">Presentation</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-card">
+            <div class="empty-state-icon">◫</div>
+            <h3>No clients yet</h3>
+            <p>Add your first client to create a workspace, run reports, and generate action plans.</p>
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.clients-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.clients-hero,
+.clients-panel,
+.client-card,
+.workflow-card,
+.empty-state-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.clients-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.clients-kicker-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.clients-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.clients-hero-copy h1 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1.08;
+    font-weight: 800;
+    color: #15233b;
+    max-width: 760px;
+}
+
+.clients-hero-copy p {
+    margin: 16px 0 0;
+    font-size: 17px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.clients-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.clients-hero-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.hero-stat-main {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.hero-stat-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.hero-stat-value {
+    display: block;
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.hero-stat-help {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.hero-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.hero-mini-stat {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.hero-mini-stat span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.hero-mini-stat strong {
+    display: block;
+    font-size: 26px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.hero-mini-stat strong.small-copy {
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+.clients-panel {
+    padding: 24px;
+}
+
+.panel-head {
+    margin-bottom: 18px;
+}
+
+.panel-head-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.panel-head h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-head p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.panel-summary-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #455468;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.workflow-card {
+    padding: 20px;
+}
+
+.workflow-step {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.workflow-card h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.workflow-card p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.55;
+}
+
+.client-list {
+    display: grid;
+    gap: 18px;
+}
+
+.client-card {
+    padding: 22px;
+}
+
+.client-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.client-card-main {
+    min-width: 0;
+}
+
+.client-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.client-title-row h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.client-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f6f8fc;
+    border: 1px solid #e6ebf3;
+    color: #3c4a5f;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: capitalize;
+}
+
+.client-link-row {
+    margin-top: 10px;
+}
+
+.client-link-row a {
+    color: #ff6a2b;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.client-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.info-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4b5a6d;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #5f6b7c;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.client-card-body {
+    display: grid;
+    gap: 16px;
+}
+
+.client-insight-box {
+    display: grid;
+    gap: 10px;
+}
+
+.insight-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f9fbff;
+    border: 1px solid #e8edf5;
+    border-radius: 14px;
+}
+
+.insight-row span {
+    font-size: 13px;
+    font-weight: 700;
+    color: #667085;
+}
+
+.insight-row strong {
+    color: #15233b;
+    text-align: right;
+}
+
+.insight-empty {
+    padding: 14px;
+    border-radius: 14px;
+    background: #f9fbff;
+    border: 1px dashed #d6dde8;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metric-card {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.metric-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.metric-number {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.progress-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.progress-card {
+    background: #fbfcfe;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.progress-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #516072;
+    font-weight: 700;
+}
+
+.progress-track {
+    width: 100%;
+    height: 10px;
+    background: #ebeff6;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.progress-green {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.progress-blue {
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+.client-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.empty-state-card {
+    padding: 42px 24px;
+    border: 1px dashed #d6dde8;
+    background: #fafcff;
+    text-align: center;
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.empty-state-card h3 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    color: #16243c;
+}
+
+.empty-state-card p {
+    margin: 0 0 18px;
+    font-size: 15px;
+    color: #6b7280;
+    line-height: 1.55;
+}
+
+@media (max-width: 1200px) {
+    .clients-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .workflow-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .clients-shell {
+        padding: 18px;
+    }
+
+    .clients-hero,
+    .clients-panel,
+    .client-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .clients-hero-copy h1 {
+        font-size: 30px;
+    }
+
+    .hero-stat-grid,
+    .workflow-grid,
+    .metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-head-inline,
+    .client-card-head,
+    .insight-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .status-pill,
+    .panel-summary-pill {
+        white-space: normal;
+    }
+
+    .client-card-actions,
+    .clients-hero-actions {
+        flex-direction: column;
+    }
+
+    .client-card-actions .btn,
+    .clients-hero-actions .btn {
+        width: 100%;
+    }
+}
+</style>
 {% endblock %}

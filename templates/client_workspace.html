@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Workspace{% endblock %}
+{% block page_title %}{{ client.name }}{% endblock %}
+{% block page_subtitle %}AI visibility overview, audit history, and next best actions{% endblock %}
+
+{% block content %}
+
+{% set score = latest_score or 68 %}
+{% set vis = visibility_score or 72 %}
+{% set cont = content_score or 61 %}
+{% set ent = entity_score or 57 %}
+{% set trust = trust_score or 66 %}
+
+<div class="client-workspace-shell">
+
+    <section class="workspace-hero-card">
+        <div class="workspace-hero-main">
+            <div class="workspace-badges">
+                <span class="workspace-badge workspace-badge-primary">Client Workspace</span>
+                <span class="workspace-badge">{{ client.industry or "Industry N/A" }}</span>
+                {% if client.location %}
+                <span class="workspace-badge">{{ client.location }}</span>
+                {% endif %}
+            </div>
+
+            <h1>{{ client.name }}</h1>
+            <p class="workspace-subcopy">
+                {% if client.website %}
+                    {{ client.website }}
+                {% else %}
+                    No website added yet
+                {% endif %}
+            </p>
+
+            <p class="workspace-summary">
+                This workspace brings together the latest audit signals, growth opportunities,
+                and action paths for {{ client.name }} so your team can move from insight to execution clearly.
+            </p>
+
+            <div class="workspace-hero-actions">
+                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run New Audit</a>
+                <a href="{{ url_for('client_growth_plan', client_id=client.id) }}" class="btn btn-secondary">Open Growth Plan</a>
+                <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="btn btn-secondary">Presentation View</a>
+            </div>
+        </div>
+
+        <div class="workspace-score-card">
+            <div class="workspace-score-label">Latest Readiness Score</div>
+            <div class="workspace-score-value">{{ score }}</div>
+            <div class="workspace-score-track">
+                <div class="workspace-score-fill" style="width: {{ score }}%;"></div>
+            </div>
+            <p class="workspace-score-note">
+                {% if score >= 80 %}
+                    Strong visibility foundation with room to scale.
+                {% elif score >= 60 %}
+                    Moderate readiness with clear improvement opportunities.
+                {% else %}
+                    Early-stage readiness with meaningful upside available.
+                {% endif %}
+            </p>
+        </div>
+    </section>
+
+    <section class="workspace-grid">
+
+        <div class="workspace-card workspace-priority-card">
+            <div class="card-topline">
+                <span class="card-tag">Recommended</span>
+            </div>
+
+            <h2>
+                {% if cont < vis %}
+                    Improve content coverage
+                {% elif ent < 60 %}
+                    Strengthen entity clarity
+                {% else %}
+                    Refresh the audit and review missed opportunities
+                {% endif %}
+            </h2>
+
+            <p>
+                {% if cont < vis %}
+                    Your content coverage is lower than your visibility. Publishing targeted content and answering the right questions more directly is likely the fastest way to improve AI discoverability.
+                {% elif ent < 60 %}
+                    Your entity signals may still be too weak or inconsistent. Strengthening brand clarity and supporting signals can help answer engines understand the business better.
+                {% else %}
+                    A fresh audit will help confirm what changed and which opportunities should be prioritised next.
+                {% endif %}
+            </p>
+
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-primary full-width-btn">
+                Generate Content Brief
+            </a>
+        </div>
+
+        <div class="workspace-card">
+            <div class="section-row">
+                <h3 class="section-title">Quick Actions</h3>
+            </div>
+
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="quick-action-item">
+                    <span class="quick-icon">🔎</span>
+                    <div>
+                        <strong>Run New Audit</strong>
+                        <small>Refresh visibility data</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('client_growth_plan', client_id=client.id) }}" class="quick-action-item">
+                    <span class="quick-icon">📈</span>
+                    <div>
+                        <strong>Growth Plan</strong>
+                        <small>Open strategic roadmap</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="quick-action-item">
+                    <span class="quick-icon">🧾</span>
+                    <div>
+                        <strong>Presentation View</strong>
+                        <small>Client-ready summary</small>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="quick-action-item">
+                    <span class="quick-icon">🕘</span>
+                    <div>
+                        <strong>History</strong>
+                        <small>Review past audits</small>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="workspace-card">
+            <div class="section-row">
+                <h3 class="section-title">Score Breakdown</h3>
+            </div>
+
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <span>Visibility</span>
+                    <strong>{{ vis }}</strong>
+                </div>
+
+                <div class="metric-card">
+                    <span>Content</span>
+                    <strong>{{ cont }}</strong>
+                </div>
+
+                <div class="metric-card">
+                    <span>Entity</span>
+                    <strong>{{ ent }}</strong>
+                </div>
+
+                <div class="metric-card">
+                    <span>Trust</span>
+                    <strong>{{ trust }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace-card">
+            <div class="section-row">
+                <h3 class="section-title">What This Means</h3>
+            </div>
+
+            <div class="insight-stack">
+                <div class="insight-box">
+                    <strong>Visibility</strong>
+                    <p>How often the brand is being surfaced in AI answer scenarios.</p>
+                </div>
+
+                <div class="insight-box">
+                    <strong>Content</strong>
+                    <p>How well the website answers the questions people are likely asking.</p>
+                </div>
+
+                <div class="insight-box">
+                    <strong>Entity</strong>
+                    <p>How clearly the business is understood as a distinct brand or provider.</p>
+                </div>
+
+                <div class="insight-box">
+                    <strong>Trust</strong>
+                    <p>How credible and reliable the site appears through supporting signals.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace-card workspace-full">
+            <div class="section-row">
+                <h3 class="section-title">Recent Reports</h3>
+            </div>
+
+            {% if reports %}
+            <div class="report-list">
+                {% for report in reports %}
+                <div class="report-row">
+                    <div class="report-main">
+                        <strong>{{ report.date }}</strong>
+                        <small>{{ report.type }}</small>
+                    </div>
+
+                    <div class="report-side">
+                        <span class="report-score-pill">{{ report.score }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-inline-state">
+                <strong>No reports yet</strong>
+                <p>Run the first audit to start building this client’s history and recommendations.</p>
+                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run First Audit</a>
+            </div>
+            {% endif %}
+        </div>
+
+    </section>
+</div>
+
+<style>
+.client-workspace-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.workspace-hero-card,
+.workspace-card,
+.metric-card,
+.insight-box,
+.report-row,
+.empty-inline-state {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.workspace-hero-card {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.72fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.workspace-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.workspace-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.workspace-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.workspace-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.workspace-subcopy {
+    margin: 10px 0 0;
+    color: #ff6a2b;
+    font-size: 15px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.workspace-summary {
+    margin: 18px 0 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.workspace-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.workspace-score-card {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.workspace-score-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.workspace-score-value {
+    margin-top: 14px;
+    font-size: 60px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.workspace-score-track {
+    width: 100%;
+    height: 12px;
+    background: #f0e2d9;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.workspace-score-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+}
+
+.workspace-score-note {
+    margin: 16px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.workspace-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.workspace-card {
+    padding: 24px;
+}
+
+.workspace-full {
+    grid-column: 1 / -1;
+}
+
+.workspace-priority-card {
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.card-topline {
+    margin-bottom: 12px;
+}
+
+.card-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.workspace-priority-card h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.workspace-priority-card p {
+    margin: 14px 0 18px;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 15px;
+}
+
+.full-width-btn {
+    width: 100%;
+}
+
+.section-row {
+    margin-bottom: 16px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.quick-action-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.quick-action-item strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+}
+
+.quick-action-item small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.metric-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.metric-card span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.metric-card strong {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.insight-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.insight-box {
+    padding: 16px 18px;
+    background: #f9fbff;
+    border-radius: 18px;
+}
+
+.insight-box strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.insight-box p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.report-list {
+    display: grid;
+    gap: 12px;
+}
+
+.report-row {
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    background: #f8fafc;
+    border-radius: 18px;
+}
+
+.report-main strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+}
+
+.report-main small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.report-score-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.empty-inline-state {
+    padding: 20px;
+    border: 1px dashed #d6dde8;
+    background: #fafcff;
+}
+
+.empty-inline-state strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.empty-inline-state p {
+    margin: 0 0 14px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+    .workspace-hero-card,
+    .workspace-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .client-workspace-shell {
+        padding: 18px;
+    }
+
+    .workspace-hero-card,
+    .workspace-card,
+    .metric-card,
+    .insight-box,
+    .report-row,
+    .empty-inline-state,
+    .workspace-score-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .workspace-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .workspace-hero-actions,
+    .quick-actions-grid,
+    .metric-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .workspace-hero-actions .btn,
+    .full-width-btn {
+        width: 100%;
+    }
+
+    .report-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+
+{% endblock %}

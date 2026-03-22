@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+{% block title %}Pricing | AEO Agents{% endblock %}
+
+{% block content %}
+<div class="pricing-shell">
+
+    <section class="pricing-hero-card">
+        <div class="pricing-hero-main">
+            <div class="pricing-badge-row">
+                <span class="pricing-badge pricing-badge-primary">Pricing</span>
+                <span class="pricing-badge">Simple Billing</span>
+                <span class="pricing-badge">Plans + Credits + Add-ons</span>
+            </div>
+
+            <h1>Simple pricing for audits, content, and client delivery</h1>
+            <p class="pricing-hero-copy">
+                Choose the workspace plan that fits your usage, use credits for platform actions,
+                and add agency delivery features only when you need white-label reporting and client-facing output.
+            </p>
+
+            <div class="pricing-hero-actions">
+                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary">Manage Billing</a>
+                <a href="{{ url_for('index') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="pricing-hero-side">
+            <div class="pricing-logic-card">
+                <span class="pricing-logic-label">How billing works</span>
+                <strong class="pricing-logic-value">Plans + Credits + Add-ons</strong>
+                <p class="pricing-logic-text">
+                    Plans unlock your workspace level. Credits power key actions. The Agency add-on unlocks white-label and client-facing delivery.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing-explainer-grid">
+        <div class="pricing-explainer-card">
+            <div class="pricing-explainer-no">1</div>
+            <strong>Choose a Plan</strong>
+            <p>Pick the workspace level that fits your monthly usage and workflow needs.</p>
+        </div>
+
+        <div class="pricing-explainer-card">
+            <div class="pricing-explainer-no">2</div>
+            <strong>Use Credits</strong>
+            <p>Credits are consumed when you run high-value actions like audits or content generation.</p>
+        </div>
+
+        <div class="pricing-explainer-card">
+            <div class="pricing-explainer-no">3</div>
+            <strong>Add Agency Features</strong>
+            <p>Only agencies that need white-label delivery and branded reporting need this extra layer.</p>
+        </div>
+    </section>
+
+    <section class="pricing-section">
+        <div class="pricing-section-head">
+            <h2>Main Plans</h2>
+            <p>For self-serve businesses, solo operators, and growing teams.</p>
+        </div>
+
+        <div class="pricing-plan-grid">
+
+            <article class="pricing-plan-card">
+                <div class="pricing-plan-top">
+                    <span class="pricing-plan-name">Free</span>
+                    <span class="pricing-plan-badge">Starter</span>
+                </div>
+
+                <div class="pricing-price-block">
+                    <strong>US$0</strong>
+                    <small>to start</small>
+                </div>
+
+                <p class="pricing-plan-desc">
+                    Good for testing the platform and experiencing the core workflow before upgrading.
+                </p>
+
+                <div class="pricing-feature-list">
+                    <div class="pricing-feature-item">3 starter credits</div>
+                    <div class="pricing-feature-item">Basic audit reports</div>
+                    <div class="pricing-feature-item">Standard branding</div>
+                    <div class="pricing-feature-item">Limited history</div>
+                </div>
+
+                <a href="{{ url_for('index') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Get Started</a>
+            </article>
+
+            <article class="pricing-plan-card featured">
+                <div class="pricing-plan-top">
+                    <span class="pricing-plan-name">Pro</span>
+                    <span class="pricing-plan-badge featured-badge">Most Popular</span>
+                </div>
+
+                <div class="pricing-price-block">
+                    <strong>US$29</strong>
+                    <small>per month</small>
+                </div>
+
+                <p class="pricing-plan-desc">
+                    Best for active business owners and solo operators who want regular audits and content support.
+                </p>
+
+                <div class="pricing-feature-list">
+                    <div class="pricing-feature-item">20 monthly credits</div>
+                    <div class="pricing-feature-item">Buy extra credits anytime</div>
+                    <div class="pricing-feature-item">Content brief + draft workflow</div>
+                    <div class="pricing-feature-item">Better history and workflow access</div>
+                </div>
+
+                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary full-width-btn">Choose Pro</a>
+            </article>
+
+            <article class="pricing-plan-card">
+                <div class="pricing-plan-top">
+                    <span class="pricing-plan-name">Growth</span>
+                    <span class="pricing-plan-badge">Heavy Use</span>
+                </div>
+
+                <div class="pricing-price-block">
+                    <strong>US$79</strong>
+                    <small>per month</small>
+                </div>
+
+                <p class="pricing-plan-desc">
+                    For heavier users, small teams, and more frequent audit and content workflows.
+                </p>
+
+                <div class="pricing-feature-list">
+                    <div class="pricing-feature-item">75 monthly credits</div>
+                    <div class="pricing-feature-item">Good for small teams</div>
+                    <div class="pricing-feature-item">Faster workflow throughput</div>
+                    <div class="pricing-feature-item">More operating flexibility</div>
+                </div>
+
+                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Choose Growth</a>
+            </article>
+
+        </div>
+    </section>
+
+    <section class="pricing-section">
+        <div class="pricing-section-head">
+            <h2>Agency Add-on</h2>
+            <p>This is an add-on layer, not a replacement for credits or plans.</p>
+        </div>
+
+        <div class="pricing-addon-card">
+            <div class="pricing-addon-copy">
+                <div class="pricing-plan-top">
+                    <span class="pricing-plan-name">Agency Add-on</span>
+                    <span class="pricing-plan-badge">Optional</span>
+                </div>
+
+                <div class="pricing-price-block">
+                    <strong>US$79</strong>
+                    <small>per month add-on</small>
+                </div>
+
+                <p class="pricing-plan-desc">
+                    Unlock agency-friendly delivery features for client work and branded outputs.
+                </p>
+
+                <div class="pricing-feature-list">
+                    <div class="pricing-feature-item">White-label reports</div>
+                    <div class="pricing-feature-item">Agency branding</div>
+                    <div class="pricing-feature-item">Client-ready exports</div>
+                    <div class="pricing-feature-item">Shareable branded reports</div>
+                </div>
+            </div>
+
+            <div class="pricing-addon-note">
+                <strong>Important</strong>
+                <p>
+                    Agency is not a separate usage tier. You still need a main plan and credits.
+                    This add-on only unlocks client-facing and white-label delivery.
+                </p>
+                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary full-width-btn">Add Agency Layer</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing-section">
+        <div class="pricing-section-head">
+            <h2>Credit Top-Ups</h2>
+            <p>Useful when you need more usage without changing your plan.</p>
+        </div>
+
+        <div class="pricing-topup-grid">
+            <article class="pricing-topup-card">
+                <span class="pricing-topup-name">Starter Pack</span>
+                <strong>10 Credits</strong>
+                <p>For occasional extra audits and content generation.</p>
+                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Buy Credits</a>
+            </article>
+
+            <article class="pricing-topup-card featured">
+                <span class="pricing-topup-name">Growth Pack</span>
+                <strong>25 Credits</strong>
+                <p>Good for regular extra usage beyond your monthly included credits.</p>
+                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-primary full-width-btn">Buy Credits</a>
+            </article>
+
+            <article class="pricing-topup-card">
+                <span class="pricing-topup-name">Agency Pack</span>
+                <strong>75 Credits</strong>
+                <p>Best for teams, client work, and higher output volume.</p>
+                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Buy Credits</a>
+            </article>
+        </div>
+    </section>
+
+    <section class="pricing-section">
+        <div class="pricing-section-head">
+            <h2>Common Questions</h2>
+            <p>Clear answers so pricing feels easier to understand.</p>
+        </div>
+
+        <div class="pricing-faq-list">
+            <div class="pricing-faq-item">
+                <strong>Do plans and credits mean the same thing?</strong>
+                <p>No. Plans define your workspace access and included monthly credit bundle. Credits are consumed when you run key actions.</p>
+            </div>
+
+            <div class="pricing-faq-item">
+                <strong>Can I buy extra credits without upgrading?</strong>
+                <p>Yes. Credit packs let you keep your current plan while increasing usage capacity.</p>
+            </div>
+
+            <div class="pricing-faq-item">
+                <strong>Do I need the Agency add-on?</strong>
+                <p>Only if you need white-label, branded, client-facing delivery. Most self-serve users do not need it.</p>
+            </div>
+
+            <div class="pricing-faq-item">
+                <strong>Which plan should a small business choose?</strong>
+                <p>Most small businesses should start with Pro, then move to Growth only if they need more frequent usage.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing-cta-card">
+        <div class="pricing-cta-copy">
+            <h2>Start small, then scale when needed</h2>
+            <p>
+                Begin with a simple plan, add credits when usage grows, and only unlock agency delivery features when your workflow requires them.
+            </p>
+        </div>
+
+        <div class="pricing-cta-actions">
+            <a href="{{ url_for('index') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary">Manage Billing</a>
+        </div>
+    </section>
+
+</div>
+
+<style>
+.pricing-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.pricing-hero-card,
+.pricing-explainer-card,
+.pricing-plan-card,
+.pricing-addon-card,
+.pricing-addon-note,
+.pricing-topup-card,
+.pricing-faq-item,
+.pricing-cta-card,
+.pricing-logic-card,
+.pricing-summary-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.pricing-hero-card {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.pricing-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.pricing-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.pricing-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.pricing-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.pricing-hero-copy {
+    margin: 16px 0 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.pricing-hero-actions,
+.pricing-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.pricing-logic-card {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.pricing-logic-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.pricing-logic-value {
+    display: block;
+    margin-top: 14px;
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.pricing-logic-text {
+    margin: 14px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.pricing-explainer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.pricing-explainer-card {
+    padding: 20px;
+}
+
+.pricing-explainer-no {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.pricing-explainer-card strong,
+.pricing-plan-name,
+.pricing-topup-name {
+    color: #16243c;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.pricing-explainer-card p,
+.pricing-plan-desc,
+.pricing-faq-item p,
+.pricing-addon-note p,
+.pricing-topup-card p {
+    margin: 8px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.pricing-section {
+    display: grid;
+    gap: 18px;
+}
+
+.pricing-section-head h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.pricing-section-head p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.pricing-plan-grid,
+.pricing-topup-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.pricing-plan-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-topup-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-plan-card,
+.pricing-topup-card {
+    padding: 22px;
+    display: grid;
+    gap: 16px;
+}
+
+.pricing-plan-card.featured,
+.pricing-topup-card.featured {
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+}
+
+.pricing-plan-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.pricing-plan-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.featured-badge {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.pricing-price-block strong {
+    display: block;
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.pricing-price-block small {
+    display: block;
+    margin-top: 8px;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.pricing-feature-list {
+    display: grid;
+    gap: 10px;
+}
+
+.pricing-feature-item {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #445366;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.pricing-addon-card {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    gap: 20px;
+}
+
+.pricing-addon-copy {
+    display: grid;
+    gap: 16px;
+}
+
+.pricing-addon-note {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.pricing-addon-note strong,
+.pricing-faq-item strong {
+    color: #16243c;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.pricing-faq-list {
+    display: grid;
+    gap: 14px;
+}
+
+.pricing-faq-item {
+    padding: 20px;
+}
+
+.pricing-cta-card {
+    padding: 26px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.pricing-cta-copy h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    color: #16243c;
+}
+
+.pricing-cta-copy p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 15px;
+    max-width: 760px;
+}
+
+.full-width-btn {
+    width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .pricing-hero-card,
+    .pricing-plan-grid,
+    .pricing-topup-grid,
+    .pricing-addon-card,
+    .pricing-explainer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .pricing-shell {
+        padding: 18px;
+    }
+
+    .pricing-hero-card,
+    .pricing-explainer-card,
+    .pricing-plan-card,
+    .pricing-addon-card,
+    .pricing-addon-note,
+    .pricing-topup-card,
+    .pricing-faq-item,
+    .pricing-cta-card,
+    .pricing-logic-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .pricing-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .pricing-hero-actions,
+    .pricing-cta-actions {
+        flex-direction: column;
+    }
+
+    .pricing-hero-actions .btn,
+    .pricing-cta-actions .btn,
+    .full-width-btn {
+        width: 100%;
+    }
+
+    .pricing-cta-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pricing-plan-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+{% endblock %}

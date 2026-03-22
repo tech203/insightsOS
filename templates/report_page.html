@@ -1,0 +1,747 @@
+{% extends "base.html" %}
+{% block title %}Report | AEO Agents{% endblock %}
+
+{% block page_title %}Audit Report{% endblock %}
+{% block page_subtitle %}Clear summary of current AI visibility, content gaps, and the most practical next actions{% endblock %}
+
+{% block content %}
+<div class="report-v3">
+
+    <section class="report-hero-card">
+        <div class="report-hero-main">
+            <div class="report-badge-row">
+                <span class="report-badge report-badge-primary">Audit Report</span>
+                <span class="report-badge">{{ report_status if report_status is defined else "Ready" }}</span>
+                <span class="report-badge">{{ client.industry if client is defined and client.industry else "Healthcare" }}</span>
+            </div>
+
+            <h1>{{ client.name if client is defined and client.name else "Acme Dental" }}</h1>
+            <p class="report-hero-domain">
+                {{ client.website if client is defined and client.website else "www.acmedental.com" }}
+            </p>
+
+            <p class="report-hero-copy">
+                {{ score_summary if score_summary is defined else "The business is visible in some AI-assisted results, but important customer questions and trust signals still need stronger coverage." }}
+            </p>
+
+            <div class="report-hero-actions">
+                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-secondary">Back to Clients</a>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary">Run Audit Again</a>
+            </div>
+        </div>
+
+        <div class="report-hero-side">
+            <div class="report-score-card">
+                <div class="report-score-top">
+                    <span class="report-score-label">Overall AEO Score</span>
+                    <span class="report-score-status">{{ report_status if report_status is defined else "Ready" }}</span>
+                </div>
+
+                <div class="report-big-score">{{ overall_score if overall_score is defined else 68 }}</div>
+
+                <div class="report-progress">
+                    <div class="report-progress-fill" style="width: {{ overall_score if overall_score is defined else 68 }}%;"></div>
+                </div>
+
+                <p class="report-score-note">
+                    {% if overall_score is defined and overall_score >= 80 %}
+                        Strong visibility foundation with room to scale.
+                    {% elif overall_score is defined and overall_score >= 60 %}
+                        Moderate readiness with clear opportunities to improve consistency.
+                    {% else %}
+                        Early-stage readiness with meaningful upside available.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-meta-grid">
+        <div class="report-meta-card">
+            <span>Industry</span>
+            <strong>{{ client.industry if client is defined and client.industry else "Healthcare" }}</strong>
+        </div>
+
+        <div class="report-meta-card">
+            <span>Last Updated</span>
+            <strong>{{ report_date if report_date is defined else "Today" }}</strong>
+        </div>
+
+        <div class="report-meta-card">
+            <span>Prepared For</span>
+            <strong>{{ prepared_for if prepared_for is defined else "Internal Review" }}</strong>
+        </div>
+
+        <div class="report-meta-card">
+            <span>Status</span>
+            <strong>{{ report_status if report_status is defined else "Ready" }}</strong>
+        </div>
+    </section>
+
+    <section class="report-grid">
+
+        <section class="report-card report-priority-card">
+            <div class="card-topline">
+                <span class="card-tag">Executive Summary</span>
+            </div>
+
+            <h2>{{ executive_title if executive_title is defined else "Strong foundation, but key decision-stage content is missing" }}</h2>
+
+            <p>
+                {{ executive_summary if executive_summary is defined else "The business already has a recognisable web presence and some basic trust elements. However, it is still not answering enough of the questions customers ask when comparing options, pricing, suitability, and next steps. This creates missed opportunities for both AI visibility and customer conversion." }}
+            </p>
+
+            <div class="report-priority-actions">
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-primary">Create Next Content Piece</a>
+                <a href="{{ url_for('help_page') if url_for else '#' }}" class="btn btn-secondary">View Guidance</a>
+            </div>
+        </section>
+
+        <section class="report-card">
+            <div class="section-head">
+                <h3>Score Breakdown</h3>
+                <p>Simple view of performance across the key areas that matter.</p>
+            </div>
+
+            <div class="report-score-stack">
+                <div class="report-score-row">
+                    <div class="report-score-row-top">
+                        <span>AI Visibility</span>
+                        <strong>{{ visibility_score if visibility_score is defined else 72 }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-blue" style="width: {{ visibility_pct if visibility_pct is defined else 72 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-score-row">
+                    <div class="report-score-row-top">
+                        <span>Content Coverage</span>
+                        <strong>{{ content_score if content_score is defined else 61 }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-orange" style="width: {{ content_pct if content_pct is defined else 61 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-score-row">
+                    <div class="report-score-row-top">
+                        <span>Entity Strength</span>
+                        <strong>{{ entity_score if entity_score is defined else 57 }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-green" style="width: {{ entity_pct if entity_pct is defined else 57 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-score-row">
+                    <div class="report-score-row-top">
+                        <span>Trust Signals</span>
+                        <strong>{{ trust_score if trust_score is defined else 66 }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-purple" style="width: {{ trust_pct if trust_pct is defined else 66 }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="report-card report-full">
+            <div class="section-head">
+                <h3>Key Findings</h3>
+                <p>Main takeaways in plain language.</p>
+            </div>
+
+            <div class="finding-list">
+                <div class="finding-item warning">
+                    <div class="finding-icon">!</div>
+                    <div class="finding-copy">
+                        <strong>{{ report_finding_1_title if report_finding_1_title is defined else "Important buying questions are not well covered" }}</strong>
+                        <p>{{ report_finding_1_text if report_finding_1_text is defined else "Potential customers looking for pricing, fit, process, or comparison information may not be getting clear answers from the site." }}</p>
+                    </div>
+                </div>
+
+                <div class="finding-item neutral">
+                    <div class="finding-icon">i</div>
+                    <div class="finding-copy">
+                        <strong>{{ report_finding_2_title if report_finding_2_title is defined else "AI visibility exists, but is not yet consistent" }}</strong>
+                        <p>{{ report_finding_2_text if report_finding_2_text is defined else "The business has some signals that support discoverability, but the current content base is not yet strong enough to support consistent recommendation." }}</p>
+                    </div>
+                </div>
+
+                <div class="finding-item success">
+                    <div class="finding-icon">+</div>
+                    <div class="finding-copy">
+                        <strong>{{ report_finding_3_title if report_finding_3_title is defined else "Core business identity is already present" }}</strong>
+                        <p>{{ report_finding_3_text if report_finding_3_text is defined else "The site already communicates who the business is and what it offers, which gives a solid base to build from." }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="report-card">
+            <div class="section-head">
+                <h3>Opportunity Areas</h3>
+                <p>Content themes and coverage gaps with the highest potential impact.</p>
+            </div>
+
+            <div class="opportunity-list">
+                {% if report_opportunities is defined and report_opportunities %}
+                    {% for item in report_opportunities[:8] %}
+                    <div class="opportunity-chip">{{ item }}</div>
+                    {% endfor %}
+                {% else %}
+                    <div class="opportunity-chip">Pricing and cost</div>
+                    <div class="opportunity-chip">Who the service is for</div>
+                    <div class="opportunity-chip">What to expect</div>
+                    <div class="opportunity-chip">Comparison content</div>
+                    <div class="opportunity-chip">Service-area clarity</div>
+                    <div class="opportunity-chip">FAQ coverage</div>
+                    <div class="opportunity-chip">Trust and proof</div>
+                    <div class="opportunity-chip">Next-step guidance</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="report-card">
+            <div class="section-head">
+                <h3>Report Snapshot</h3>
+                <p>A quick summary that is easy to share internally or with clients.</p>
+            </div>
+
+            <div class="report-snapshot-grid">
+                <div class="report-snapshot-card">
+                    <span>Top Strength</span>
+                    <strong>{{ top_strength if top_strength is defined else "Basic brand and service clarity" }}</strong>
+                </div>
+
+                <div class="report-snapshot-card">
+                    <span>Top Weakness</span>
+                    <strong>{{ top_weakness if top_weakness is defined else "Weak decision-stage content coverage" }}</strong>
+                </div>
+
+                <div class="report-snapshot-card">
+                    <span>Fastest Win</span>
+                    <strong>{{ fastest_win if fastest_win is defined else "Publish FAQ and pricing-focused content" }}</strong>
+                </div>
+
+                <div class="report-snapshot-card">
+                    <span>Priority Level</span>
+                    <strong>{{ priority_level if priority_level is defined else "Medium to High" }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="report-card report-full">
+            <div class="section-head">
+                <h3>Recommended Actions</h3>
+                <p>What to do next, in practical order.</p>
+            </div>
+
+            <div class="action-list-v3">
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="action-step-card">
+                    <div class="action-step-no">1</div>
+                    <div class="action-step-copy">
+                        <strong>Create content for the highest-priority question gaps</strong>
+                        <p>Start with commercial and decision-stage topics such as pricing, fit, timelines, and comparisons.</p>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('help_page') if url_for else '#' }}" class="action-step-card">
+                    <div class="action-step-no">2</div>
+                    <div class="action-step-copy">
+                        <strong>Strengthen trust signals on key pages</strong>
+                        <p>Add clearer proof, experience, reviews, local relevance, and service details where possible.</p>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="action-step-card">
+                    <div class="action-step-no">3</div>
+                    <div class="action-step-copy">
+                        <strong>Re-audit after updates</strong>
+                        <p>Use a fresh audit to see whether visibility, coverage, and trust metrics improve.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+    </section>
+
+    <section class="report-cta-card">
+        <div class="report-cta-copy">
+            <h3>Ready to turn this report into action?</h3>
+            <p>
+                Move directly into content planning and execution so the business can improve visibility, trust, and conversion over time.
+            </p>
+        </div>
+
+        <div class="report-cta-actions">
+            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-primary">Go to Content Queue</a>
+            <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-secondary">Run Another Audit</a>
+        </div>
+    </section>
+
+</div>
+
+<style>
+.report-v3 {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.report-hero-card,
+.report-meta-card,
+.report-card,
+.report-score-card,
+.report-snapshot-card,
+.report-cta-card,
+.action-step-card,
+.opportunity-chip {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.report-hero-card {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.report-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.report-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.report-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.report-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.report-hero-domain {
+    margin: 10px 0 0;
+    color: #ff6a2b;
+    font-size: 15px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.report-hero-copy {
+    margin: 16px 0 0;
+    color: #617084;
+    font-size: 16px;
+    line-height: 1.65;
+    max-width: 760px;
+}
+
+.report-hero-actions,
+.report-priority-actions,
+.report-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.report-score-card {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.report-score-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.report-score-label,
+.report-score-status {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.report-score-label {
+    color: #6b7280;
+}
+
+.report-score-status {
+    color: #ff6a2b;
+}
+
+.report-big-score {
+    margin: 16px 0 0;
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.report-progress {
+    width: 100%;
+    height: 12px;
+    background: #eceff5;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.report-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+}
+
+.report-score-note {
+    margin: 16px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.report-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.report-meta-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.report-meta-card span,
+.report-snapshot-card span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.report-meta-card strong,
+.report-snapshot-card strong {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.report-full {
+    grid-column: 1 / -1;
+}
+
+.report-card {
+    padding: 24px;
+}
+
+.report-priority-card {
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.card-topline {
+    margin-bottom: 12px;
+}
+
+.card-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.report-priority-card h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.report-priority-card p {
+    margin: 14px 0 0;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 15px;
+}
+
+.section-head {
+    margin-bottom: 16px;
+}
+
+.section-head h3 {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-head p {
+    margin: 8px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.report-score-stack,
+.finding-list,
+.action-list-v3 {
+    display: grid;
+    gap: 14px;
+}
+
+.report-score-row {
+    display: grid;
+    gap: 8px;
+}
+
+.report-score-row-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #516072;
+}
+
+.score-row-track {
+    width: 100%;
+    height: 10px;
+    background: #e9eef5;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.score-row-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.fill-blue { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+.fill-orange { background: linear-gradient(90deg, #f97316, #fb923c); }
+.fill-green { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.fill-purple { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+
+.finding-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid #e7ebf3;
+    background: #f9fbff;
+}
+
+.finding-item.warning { background: #fffaf5; }
+.finding-item.neutral { background: #f8fafc; }
+.finding-item.success { background: #f4fbf6; }
+
+.finding-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.finding-copy strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.finding-copy p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.opportunity-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.opportunity-chip {
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #445366;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+.action-step-card {
+    padding: 18px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: #f8fafc;
+    color: inherit;
+    text-decoration: none;
+}
+
+.action-step-no {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: #fff2ea;
+    color: #ff6a2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.action-step-copy strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 6px;
+}
+
+.action-step-copy p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.report-snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.report-snapshot-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.report-cta-card {
+    padding: 26px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.report-cta-copy h3 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    color: #16243c;
+}
+
+.report-cta-copy p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 15px;
+    max-width: 760px;
+}
+
+@media (max-width: 1200px) {
+    .report-hero-card,
+    .report-meta-grid,
+    .report-grid,
+    .report-snapshot-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .report-v3 {
+        padding: 18px;
+    }
+
+    .report-hero-card,
+    .report-meta-card,
+    .report-card,
+    .report-score-card,
+    .report-snapshot-card,
+    .report-cta-card,
+    .action-step-card,
+    .opportunity-chip {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .report-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .report-hero-actions,
+    .report-priority-actions,
+    .report-cta-actions {
+        flex-direction: column;
+    }
+
+    .report-hero-actions .btn,
+    .report-priority-actions .btn,
+    .report-cta-actions .btn {
+        width: 100%;
+    }
+
+    .report-score-top,
+    .report-score-row-top,
+    .report-cta-card,
+    .action-step-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .report-big-score {
+        font-size: 50px;
+    }
+}
+</style>
+{% endblock %}

@@ -2,7 +2,7 @@
 
 {% block title %}{{ client.name }} | Brief Result{% endblock %}
 {% block page_title %}{{ client.name }} · Brief Result{% endblock %}
-{% block page_subtitle %}Review the generated content brief, then save it into the queue or use it to prepare a full draft.{% endblock %}
+{% block page_subtitle %}Review the generated content brief, refine it if needed, then save it into the queue or use it to prepare a full draft.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
@@ -10,93 +10,451 @@
 {% endblock %}
 
 {% block content %}
-<section class="workspace-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Generated Brief</h2>
-                <p class="panel-subtitle">Review and edit before saving to the content queue.</p>
+
+<section class="brief-result-shell">
+
+    <section class="brief-result-hero">
+        <div class="brief-result-hero-copy">
+            <div class="hero-badge-row">
+                <span class="hero-badge hero-badge-primary">Brief Ready</span>
+                <span class="hero-badge">Editable</span>
+                <span class="hero-badge">Queue Compatible</span>
+                <span class="hero-badge">Draft Ready</span>
             </div>
+
+            <h1>Your content brief is ready for review.</h1>
+            <p>
+                Check the target query, confirm the content type, refine the brief if needed,
+                and then either save it to the queue or use it immediately for draft generation.
+            </p>
         </div>
 
-        <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}" class="form-stack">
-            <div class="form-grid-2">
-                <div class="form-field form-field-full">
-                    <label for="target_query">Target Query</label>
-                    <input
-                        type="text"
-                        id="target_query"
-                        name="target_query"
-                        value="{{ result.target_query if result and result.target_query is defined else '' }}"
+        <div class="brief-result-hero-card">
+            <span class="hero-card-label">Recommended Flow</span>
+            <strong class="hero-card-value">Review → Save → Draft</strong>
+            <p class="hero-card-text">
+                Edit the brief first if needed, then save it for the team or move straight into a full draft.
+            </p>
+        </div>
+    </section>
+
+    <section class="brief-result-grid">
+
+        <div class="panel panel-main">
+            <div class="panel-header">
+                <div>
+                    <h2>Generated Brief</h2>
+                    <p class="panel-subtitle">Review and edit before saving to the content queue.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}" class="form-stack">
+                <div class="form-grid-2">
+
+                    <div class="form-field form-field-full">
+                        <label for="target_query">Target Query</label>
+                        <p class="field-help">
+                            This is the main query the brief is built around. Update it if you want the saved brief to reflect a clearer or more targeted phrase.
+                        </p>
+                        <input
+                            type="text"
+                            id="target_query"
+                            name="target_query"
+                            value="{{ result.target_query if result and result.target_query is defined else '' }}"
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="content_type">Content Type</label>
+                        <p class="field-help">
+                            This helps the team understand the recommended format for the final piece.
+                        </p>
+                        <input
+                            type="text"
+                            id="content_type"
+                            name="content_type"
+                            value="{{ result.content_type if result and result.content_type is defined else '' }}"
+                        >
+                    </div>
+
+                    <div class="form-field form-field-full">
+                        <label for="brief_text">Brief Content</label>
+                        <p class="field-help">
+                            You can edit the generated brief directly before saving it into the queue or using it for a draft.
+                        </p>
+                        <textarea id="brief_text" name="brief_text" class="editor-textarea" rows="18">{% if result.brief is defined %}{{ result.brief }}{% else %}{{ result | tojson(indent=2) }}{% endif %}</textarea>
+                    </div>
+                </div>
+
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary">Save to Queue</button>
+                    <a
+                        href="{{ url_for('generate_client_content_draft',
+                            client_id=client.id,
+                            target_query=(result.target_query if result and result.target_query is defined else ''),
+                            brief_context=(result.brief if result and result.brief is defined else ''),
+                            brand_context=client.notes
+                        ) }}"
+                        class="btn btn-secondary"
                     >
+                        Use for Draft
+                    </a>
                 </div>
-
-                <div class="form-field">
-                    <label for="content_type">Content Type</label>
-                    <input
-                        type="text"
-                        id="content_type"
-                        name="content_type"
-                        value="{{ result.content_type if result and result.content_type is defined else '' }}"
-                    >
-                </div>
-
-                <div class="form-field form-field-full">
-                    <label for="brief_text">Brief Content</label>
-                    <textarea id="brief_text" name="brief_text" class="editor-textarea">{% if result.brief is defined %}{{ result.brief }}{% else %}{{ result | tojson(indent=2) }}{% endif %}</textarea>
-                </div>
-            </div>
-
-            <div class="card-actions">
-                <button type="submit" class="btn btn-primary">Save to Queue</button>
-                <a
-                    href="{{ url_for('generate_client_content_draft',
-                        client_id=client.id,
-                        target_query=(result.target_query if result and result.target_query is defined else ''),
-                        brief_context=(result.brief if result and result.brief is defined else ''),
-                        brand_context=client.notes
-                    ) }}"
-                    class="btn btn-secondary"
-                >
-                    Use for Draft
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Next Actions</h2>
-                <p class="panel-subtitle">Choose what to do with this brief.</p>
-            </div>
+            </form>
         </div>
 
-        <div class="action-list">
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge low">Queue</span>
-                    <h3>Save for the team</h3>
+        <aside class="side-stack">
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Next Actions</h2>
+                        <p class="panel-subtitle">Choose the best next move for this brief.</p>
+                    </div>
                 </div>
-                <p>Store the brief in the content queue so writers or strategists can pick it up later.</p>
+
+                <div class="action-list">
+                    <div class="action-card">
+                        <div class="action-card-top">
+                            <span class="priority-badge low">Queue</span>
+                            <h3>Save for the team</h3>
+                        </div>
+                        <p>Store the brief in the content queue so writers or strategists can pick it up later.</p>
+                    </div>
+
+                    <div class="action-card">
+                        <div class="action-card-top">
+                            <span class="priority-badge medium">Draft</span>
+                            <h3>Turn into full draft</h3>
+                        </div>
+                        <p>Use this brief as structured context for the draft generator and move faster into execution.</p>
+                    </div>
+
+                    <div class="action-card">
+                        <div class="action-card-top">
+                            <span class="priority-badge high">Refine</span>
+                            <h3>Edit before saving</h3>
+                        </div>
+                        <p>Refine the wording, angle, or structure so the saved brief is cleaner for the team.</p>
+                    </div>
+                </div>
             </div>
 
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge medium">Draft</span>
-                    <h3>Turn into full draft</h3>
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>What To Check First</h2>
+                        <p class="panel-subtitle">A quick quality check before saving.</p>
+                    </div>
                 </div>
-                <p>Use this brief as structured context for the draft generator.</p>
+
+                <div class="tips-list">
+                    <div class="tip-item">Make sure the target query matches the actual opportunity you want to pursue.</div>
+                    <div class="tip-item">Check whether the content type matches the user intent behind the query.</div>
+                    <div class="tip-item">Refine the brief if the brand positioning needs to sound more specific.</div>
+                    <div class="tip-item">Use the draft generator when the brief is already clear enough for execution.</div>
+                </div>
             </div>
 
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge high">Refine</span>
-                    <h3>Edit before saving</h3>
-                </div>
-                <p>You can edit the brief text directly in the box before saving it into the queue.</p>
-            </div>
-        </div>
-    </div>
+        </aside>
+    </section>
+
 </section>
+
+<style>
+.brief-result-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.brief-result-hero,
+.panel,
+.brief-result-hero-card,
+.action-card,
+.tip-item {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.brief-result-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.72fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.hero-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.hero-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.brief-result-hero-copy h1 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1.08;
+    font-weight: 800;
+    color: #15233b;
+    max-width: 760px;
+}
+
+.brief-result-hero-copy p {
+    margin: 16px 0 0;
+    font-size: 17px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.brief-result-hero-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.hero-card-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.hero-card-value {
+    display: block;
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.hero-card-text {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.brief-result-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.side-stack {
+    display: grid;
+    gap: 24px;
+}
+
+.panel {
+    padding: 24px;
+}
+
+.panel-header {
+    margin-bottom: 18px;
+}
+
+.panel-header h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.form-stack {
+    display: grid;
+    gap: 20px;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.form-field {
+    display: grid;
+    gap: 8px;
+}
+
+.form-field-full {
+    grid-column: 1 / -1;
+}
+
+.form-field label {
+    font-size: 14px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.field-help {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6b7280;
+}
+
+.form-field input,
+.form-field textarea {
+    width: 100%;
+    border: 1px solid #d9e2ef;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 14px 16px;
+    font: inherit;
+    color: #16243c;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: #ff6a2b;
+    box-shadow: 0 0 0 4px rgba(255, 106, 43, 0.12);
+}
+
+.form-field textarea {
+    min-height: 280px;
+    resize: vertical;
+}
+
+.card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.action-list,
+.tips-list {
+    display: grid;
+    gap: 14px;
+}
+
+.action-card {
+    padding: 18px;
+}
+
+.action-card-top {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.action-card h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.action-card p,
+.tip-item {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.priority-badge.low {
+    background: #dff4e6;
+    color: #15803d;
+}
+
+.priority-badge.medium {
+    background: #ffefc7;
+    color: #a16207;
+}
+
+.priority-badge.high {
+    background: #ffe2dd;
+    color: #c2412d;
+}
+
+.tip-item {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+@media (max-width: 1200px) {
+    .brief-result-hero,
+    .brief-result-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .brief-result-shell {
+        padding: 18px;
+    }
+
+    .brief-result-hero,
+    .panel,
+    .brief-result-hero-card,
+    .action-card,
+    .tip-item {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .brief-result-hero-copy h1 {
+        font-size: 30px;
+    }
+
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .card-actions {
+        flex-direction: column;
+    }
+
+    .card-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+
 {% endblock %}

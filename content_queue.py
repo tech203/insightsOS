@@ -5,8 +5,19 @@ from datetime import datetime
 
 QUEUE_FILE = os.path.join("data", "content_queue.json")
 
-VALID_STATUSES = {"new", "in_progress", "done"}
+VALID_STATUSES = {
+    "pending",
+    "brief_generated",
+    "draft_generated",
+    "ready",
+    "published",
+}
+
 VALID_ITEM_TYPES = {"brief", "draft"}
+
+VALID_PRIORITIES = {"low", "medium", "high"}
+
+VALID_SOURCES = {"manual", "audit"}
 
 
 def _ensure_data_dir():
@@ -39,9 +50,13 @@ def _now_iso():
     return datetime.utcnow().replace(microsecond=0).isoformat()
 
 
+def _normalize_text(value, default=""):
+    return (value or default).strip()
+
+
 def _normalize_status(status):
     value = (status or "").strip().lower()
-    return value if value in VALID_STATUSES else "new"
+    return value if value in VALID_STATUSES else "pending"
 
 
 def _normalize_item_type(item_type):
@@ -49,24 +64,34 @@ def _normalize_item_type(item_type):
     return value if value in VALID_ITEM_TYPES else "brief"
 
 
-def _normalize_text(value, default=""):
-    return (value or default).strip()
+def _normalize_priority(priority):
+    value = (priority or "").strip().lower()
+    return value if value in VALID_PRIORITIES else "medium"
+
+
+def _normalize_source(source):
+    value = (source or "").strip().lower()
+    return value if value in VALID_SOURCES else "manual"
 
 
 def _normalize_item(raw):
+    created_at = raw.get("created_at", _now_iso())
+
     return {
         "id": raw.get("id", str(uuid.uuid4())),
         "client_id": raw.get("client_id"),
-        "client_name": raw.get("client_name", ""),
-        "target_query": raw.get("target_query", ""),
-        "content_type": raw.get("content_type", ""),
+        "client_name": _normalize_text(raw.get("client_name")),
+        "target_query": _normalize_text(raw.get("target_query")),
+        "content_type": _normalize_text(raw.get("content_type")),
         "item_type": _normalize_item_type(raw.get("item_type", "brief")),
-        "title": raw.get("title", ""),
-        "content": raw.get("content", ""),
-        "status": _normalize_status(raw.get("status", "new")),
+        "title": _normalize_text(raw.get("title"), "Untitled Item"),
+        "content": _normalize_text(raw.get("content")),
+        "status": _normalize_status(raw.get("status", "pending")),
+        "priority": _normalize_priority(raw.get("priority", "medium")),
+        "source": _normalize_source(raw.get("source", "manual")),
         "user_id": raw.get("user_id"),
-        "created_at": raw.get("created_at", _now_iso()),
-        "updated_at": raw.get("updated_at", raw.get("created_at", _now_iso())),
+        "created_at": created_at,
+        "updated_at": raw.get("updated_at", created_at),
     }
 
 
@@ -75,6 +100,7 @@ def load_queue_items():
     raw_items = _safe_load_json(QUEUE_FILE, [])
     if not isinstance(raw_items, list):
         raw_items = []
+
     items = [_normalize_item(item) for item in raw_items]
     return sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)
 
@@ -91,8 +117,10 @@ def add_queue_item(
     content_type,
     item_type,
     title,
-    content,
-    status="new",
+    content="",
+    status="pending",
+    priority="medium",
+    source="manual",
     user_id=None,
 ):
     items = load_queue_items()
@@ -107,6 +135,8 @@ def add_queue_item(
         "title": _normalize_text(title, "Untitled Item"),
         "content": _normalize_text(content),
         "status": _normalize_status(status),
+        "priority": _normalize_priority(priority),
+        "source": _normalize_source(source),
         "user_id": user_id,
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
@@ -117,7 +147,14 @@ def add_queue_item(
     return new_item
 
 
-def get_queue_items(client_id=None, user_id=None, status=None, item_type=None):
+def get_queue_items(
+    client_id=None,
+    user_id=None,
+    status=None,
+    item_type=None,
+    priority=None,
+    source=None,
+):
     items = load_queue_items()
 
     if user_id is not None:
@@ -133,6 +170,14 @@ def get_queue_items(client_id=None, user_id=None, status=None, item_type=None):
     if item_type:
         normalized_item_type = _normalize_item_type(item_type)
         items = [item for item in items if item.get("item_type") == normalized_item_type]
+
+    if priority:
+        normalized_priority = _normalize_priority(priority)
+        items = [item for item in items if item.get("priority") == normalized_priority]
+
+    if source:
+        normalized_source = _normalize_source(source)
+        items = [item for item in items if item.get("source") == normalized_source]
 
     return sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)
 
@@ -173,7 +218,15 @@ def update_queue_item_status(item_id, new_status, user_id=None):
     return updated_item
 
 
-def update_queue_item_content(item_id, content=None, title=None, status=None, user_id=None):
+def update_queue_item_content(
+    item_id,
+    content=None,
+    title=None,
+    status=None,
+    priority=None,
+    source=None,
+    user_id=None,
+):
     items = load_queue_items()
     updated_item = None
 
@@ -191,6 +244,12 @@ def update_queue_item_content(item_id, content=None, title=None, status=None, us
 
         if status is not None:
             item["status"] = _normalize_status(status)
+
+        if priority is not None:
+            item["priority"] = _normalize_priority(priority)
+
+        if source is not None:
+            item["source"] = _normalize_source(source)
 
         item["updated_at"] = _now_iso()
         updated_item = item
@@ -228,7 +287,7 @@ def delete_items_for_client(client_id, user_id=None):
 
     for item in items:
         same_client = item.get("client_id") == client_id
-        same_user = (user_id is None or item.get("user_id") == user_id)
+        same_user = user_id is None or item.get("user_id") == user_id
 
         if same_client and same_user:
             deleted_count += 1
@@ -238,3 +297,82 @@ def delete_items_for_client(client_id, user_id=None):
 
     save_queue_items(remaining)
     return deleted_count
+
+
+def get_next_action(item):
+    if not item:
+        return None
+
+    status = item.get("status")
+
+    if status == "pending":
+        return {
+            "label": "Generate Brief",
+            "action": "generate_brief",
+            "url": f"/generate-brief/{item['id']}",
+        }
+
+    if status == "brief_generated":
+        return {
+            "label": "Generate Draft",
+            "action": "generate_draft",
+            "url": f"/generate-draft/{item['id']}",
+        }
+
+    if status == "draft_generated":
+        return {
+            "label": "Review / Publish",
+            "action": "review_publish",
+            "url": f"/content-queue",
+        }
+
+    if status == "ready":
+        return {
+            "label": "Publish",
+            "action": "publish",
+            "url": f"/content-queue",
+        }
+
+    return None
+
+
+def get_client_progress(client_id, user_id=None):
+    items = get_queue_items(client_id=client_id, user_id=user_id)
+
+    total = len(items)
+    completed = len([item for item in items if item.get("status") == "published"])
+    progress_pct = int((completed / total) * 100) if total else 0
+
+    return {
+        "client_id": client_id,
+        "total": total,
+        "completed": completed,
+        "remaining": total - completed,
+        "progress_pct": progress_pct,
+    }
+
+
+def create_queue_item_from_audit_opportunity(client_id, client_name, opportunity, user_id=None):
+    """
+    Helper to turn an audit opportunity into a queue item.
+    Expected opportunity example:
+    {
+        "title": "What is AEO for SMEs",
+        "target_query": "what is aeo for small business",
+        "content_type": "article",
+        "priority": "high"
+    }
+    """
+    return add_queue_item(
+        client_id=client_id,
+        client_name=client_name,
+        target_query=opportunity.get("target_query", opportunity.get("title", "")),
+        content_type=opportunity.get("content_type", "article"),
+        item_type="brief",
+        title=opportunity.get("title", "Untitled Opportunity"),
+        content="",
+        status="pending",
+        priority=opportunity.get("priority", "medium"),
+        source="audit",
+        user_id=user_id,
+    )

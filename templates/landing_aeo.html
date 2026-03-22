@@ -9,6 +9,7 @@
 
 <body class="bg-slate-950 text-white antialiased">
   <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.25),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(168,85,247,0.18),_transparent_30%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)]">
+
     <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-950/70 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
         <a href="/" class="block">
@@ -18,8 +19,9 @@
 
         <nav class="hidden gap-8 text-sm text-slate-300 md:flex">
           <a href="#why-aeo" class="hover:text-white">Why AEO</a>
-          <a href="#framework" class="hover:text-white">Framework</a>
+          <a href="#framework" class="hover:text-white">How It Works</a>
           <a href="#platform" class="hover:text-white">Platform</a>
+          <a href="#work-with-us" class="hover:text-white">Ways to Work</a>
           <a href="#pricing" class="hover:text-white">Pricing</a>
           <a href="#faq" class="hover:text-white">FAQ</a>
         </nav>
@@ -33,7 +35,6 @@
             <a href="{{ url_for('signup') }}" class="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
         {% endif %}
         </div>
-
       </div>
     </header>
 
@@ -44,23 +45,21 @@
           For agencies, B2B brands, local businesses, and service companies
         </div>
 
-<h1 class="mt-6 max-w-5xl font-semibold tracking-tight text-white leading-[0.95]">
-  <span class="block text-4xl md:text-6xl">Get found in</span>
+        <h1 class="mt-6 max-w-5xl font-semibold tracking-tight text-white leading-[0.95]">
+          <span class="block text-4xl md:text-6xl">Get found in</span>
 
-  <span class="mt-2 block min-h-[1.15em] text-4xl md:text-6xl">
-    <span class="inline-flex items-baseline">
-      <span
-        id="heroTypedWord"
-        class="inline-block min-w-[11ch] text-indigo-300"
-      >AI Search</span>
-      <span id="heroCursor" class="ml-1 inline-block text-indigo-300">|</span>
-    </span>
-  </span>
+          <span class="mt-2 block min-h-[1.15em] text-4xl md:text-6xl">
+            <span class="inline-flex items-baseline">
+              <span id="heroTypedWord" class="inline-block min-w-[11ch] text-indigo-300">AI Search</span>
+              <span id="heroCursor" class="ml-1 inline-block text-indigo-300">|</span>
+            </span>
+          </span>
 
-  <span class="mt-2 block text-4xl md:text-6xl">
-    and know exactly what to fix next.
-  </span>
-</h1>          
+          <span class="mt-2 block text-4xl md:text-6xl">
+            and know exactly what to fix next.
+          </span>
+        </h1>
+
         <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
           AEO Audit helps you see where your brand is being missed in AI answers, which competitors are being recommended instead, and what pages or content you should build next to improve visibility across ChatGPT, Google AI Overviews, Perplexity, and other answer engines.
         </p>
@@ -147,34 +146,11 @@
       </div>
     </section>
 
-    <section class="border-y border-white/10 bg-slate-950/40">
-      <div class="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <div class="grid gap-4 text-sm text-slate-300 md:grid-cols-4">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="font-semibold text-white">Self-serve platform</div>
-            <div class="mt-1 text-slate-400">For internal teams and agencies running audits themselves</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="font-semibold text-white">Done-for-you service</div>
-            <div class="mt-1 text-slate-400">For teams who want strategy, prioritisation, and execution help</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="font-semibold text-white">Hybrid model</div>
-            <div class="mt-1 text-slate-400">Use the software while getting expert support when needed</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="font-semibold text-white">White-label ready</div>
-            <div class="mt-1 text-slate-400">Agency add-on for branded client-facing delivery</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section id="why-aeo" class="border-y border-white/10 bg-slate-950/40">
       <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div class="max-w-3xl">
           <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Why AEO matters now</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Search behaviour changed. Most agencies still pitch old SEO language.</h2>
+          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Search behaviour changed. Most companies still measure the wrong thing.</h2>
           <p class="mt-5 text-lg leading-8 text-slate-300">
             Users increasingly ask AI tools for direct recommendations. If your brand is not the source AI trusts, your competitors get named first. Traditional rankings still matter, but recommendation visibility is now a separate growth layer.
           </p>
@@ -199,8 +175,8 @@
 
     <section id="framework" class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
       <div class="max-w-3xl">
-        <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Framework</div>
-        <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">A clearer, more credible AEO workflow</h2>
+        <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">How it works</div>
+        <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">A simple workflow from diagnosis to execution</h2>
         <p class="mt-5 text-lg leading-8 text-slate-300">
           Instead of inflated promises, we focus on a measurable system your team can understand and use.
         </p>
@@ -285,7 +261,7 @@
             <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
               <h3 class="text-xl font-semibold">What the platform helps you do</h3>
               <ul class="mt-4 space-y-3 text-slate-300">
-                <li>• run audits for your own brand or for clients</li>
+                <li>• run audits for your own brand or your clients</li>
                 <li>• compare historical score movement over time</li>
                 <li>• identify queries where the brand is missing</li>
                 <li>• see where competitors appear instead</li>
@@ -300,19 +276,12 @@
                 This is not an instant “AI ranking hack.” It is a system for diagnosing visibility gaps, prioritising improvements, and building better AI-readable content over time.
               </p>
             </div>
-
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 class="text-xl font-semibold">Best fit</h3>
-              <p class="mt-3 text-slate-300">
-                Best for agencies, consultants, and in-house teams that want repeatable delivery, not one-off guesswork.
-              </p>
-            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="deliverables" class="border-y border-white/10 bg-white/[0.03]">
+    <section id="work-with-us" class="border-y border-white/10 bg-white/[0.03]">
       <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div class="max-w-3xl">
           <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Ways to work with us</div>
@@ -479,135 +448,6 @@
             <div class="mt-1 text-slate-300">US$129</div>
           </div>
         </div>
-
-        <div class="mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm leading-6 text-slate-300">
-          Start free with 3 credits. Earn more through referrals. Buy bundles anytime. Upgrade to Pro or Growth for recurring workflows.
-        </div>
-      </div>
-    </section>
-
-    <section id="audit" class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-      <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div>
-          <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Start here</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Not sure whether you need the tool or the service?</h2>
-          <p class="mt-5 text-lg leading-8 text-slate-300">
-            Start with the same first step: an AI visibility audit. From there, you can either use the platform to manage the work internally or engage us to help plan and execute the next steps.
-          </p>
-
-          <div class="mt-8 grid gap-4 md:grid-cols-2">
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 class="text-xl font-semibold">Choose the platform if…</h3>
-              <ul class="mt-4 space-y-3 text-slate-300">
-                <li>• you want to run audits yourself</li>
-                <li>• you need a workflow for briefs and drafts</li>
-                <li>• you want internal or client reporting</li>
-                <li>• you want a credit-based self-serve model</li>
-              </ul>
-            </div>
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 class="text-xl font-semibold">Choose the service if…</h3>
-              <ul class="mt-4 space-y-3 text-slate-300">
-                <li>• you want expert guidance and execution help</li>
-                <li>• your team needs content direction fast</li>
-                <li>• you want support beyond the software</li>
-                <li>• you want strategy without building the workflow alone</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="text-lg font-semibold">Suggested next steps</div>
-          <div class="mt-5 grid gap-4">
-            <a href="/signup" class="rounded-2xl bg-white px-5 py-3 text-center font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
-            <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="rounded-2xl bg-indigo-500 px-5 py-3 text-center font-medium text-white hover:bg-indigo-400">Book Strategy Call</a>
-            <a href="#platform" class="rounded-2xl border border-white/15 px-5 py-3 text-center font-medium hover:bg-white/5">See Platform Workflow</a>
-          </div>
-          <div class="mt-6 rounded-2xl bg-slate-900/70 p-4 text-sm text-slate-300">
-            Keep the path simple: first understand visibility gaps, then choose whether you want software, service support, or both.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="proof" class="border-y border-white/10 bg-white/[0.03]">
-      <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div class="max-w-3xl">
-          <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Proof architecture</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Show buyers what the output actually looks like</h2>
-          <p class="mt-5 text-lg leading-8 text-slate-300">
-            Prospective clients do not just need promises. They need to see how the workflow translates into a usable audit, a prioritised action list, and content execution assets their team can actually use.
-          </p>
-        </div>
-
-        <div class="mt-12 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-6 shadow-xl shadow-slate-950/40">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-sm uppercase tracking-[0.2em] text-slate-400">Sample Audit Preview</div>
-                <div class="mt-1 text-xl font-semibold">What a client sees inside the workflow</div>
-              </div>
-              <div class="rounded-full bg-indigo-500/15 px-3 py-1 text-sm text-indigo-200">Preview</div>
-            </div>
-
-            <div class="mt-6 grid gap-4 sm:grid-cols-3">
-              <div class="rounded-2xl bg-white/5 p-4">
-                <div class="text-sm text-slate-400">Weak Queries</div>
-                <div class="mt-2 text-2xl font-semibold">7</div>
-              </div>
-              <div class="rounded-2xl bg-white/5 p-4">
-                <div class="text-sm text-slate-400">Recommended Actions</div>
-                <div class="mt-2 text-2xl font-semibold">5</div>
-              </div>
-              <div class="rounded-2xl bg-white/5 p-4">
-                <div class="text-sm text-slate-400">Content Assets</div>
-                <div class="mt-2 text-2xl font-semibold">Brief + Draft</div>
-              </div>
-            </div>
-
-            <div class="mt-6 space-y-4">
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-sm font-medium text-white">Recommended Action</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">Create or improve a comparison-style page for a high-intent query where the brand is currently not being mentioned.</p>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-sm font-medium text-white">Content Brief Output</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">Defines the intent, page angle, outline, FAQs, trust signals, schema suggestions, and CTA direction before writing starts.</p>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-sm font-medium text-white">Draft Output</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">Creates the first working version of the page so your team can refine and publish faster.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-6">
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 class="text-xl font-semibold">Why this proof helps conversion</h3>
-              <ul class="mt-4 space-y-3 text-slate-300">
-                <li>• It makes the offer more concrete for non-technical buyers</li>
-                <li>• It shows that the workflow does not stop at diagnosis</li>
-                <li>• It gives agencies a clearer reporting and delivery story</li>
-                <li>• It helps clients understand what happens after the audit</li>
-              </ul>
-            </div>
-
-            <div class="rounded-3xl border border-indigo-400/20 bg-indigo-400/10 p-6">
-              <h3 class="text-xl font-semibold text-white">Upgrade this later</h3>
-              <p class="mt-3 leading-7 text-indigo-100">
-                Replace this preview area with real screenshots from your client workspace, visibility page, and content queue as soon as you are ready.
-              </p>
-            </div>
-
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 class="text-xl font-semibold">Simple trust layer</h3>
-              <p class="mt-3 text-slate-300">
-                You can later add client logos, audit counts, or mini case studies here without redesigning the whole page.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -683,10 +523,11 @@
         </div>
       </div>
     </section>
+
   </div>
 
   <script>
-    const typedWords = ["Google AI", "ChatGPT", "Perplexity", "AI Search"];    
+    const typedWords = ["Google AI", "ChatGPT", "Perplexity", "AI Search"];
     const heroTypedWordEl = document.getElementById("heroTypedWord");
     const heroCursorEl = document.getElementById("heroCursor");
 

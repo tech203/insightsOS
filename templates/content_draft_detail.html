@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+{% block title %}Content Draft | AEO Agents{% endblock %}
+
+{% block page_title %}{{ draft.client_name if draft is defined and draft.client_name else "Content Draft" }}{% endblock %}
+{% block page_subtitle %}Review, refine, and prepare this AI-generated draft for publishing{% endblock %}
+
+{% block content %}
+<div class="draft-shell">
+
+    {% set draft_title = draft.title if draft is defined and draft.title else "How Much Does Dental Treatment Cost? What Patients Should Know Before Booking" %}
+    {% set draft_description = draft.description if draft is defined and draft.description else "AI-generated first draft based on the approved content brief. Review, refine, and publish when ready." %}
+    {% set draft_client = draft.client_name if draft is defined and draft.client_name else "Acme Dental" %}
+    {% set draft_status = draft.status if draft is defined and draft.status else "Draft Ready" %}
+    {% set draft_type = draft.type if draft is defined and draft.type else "FAQ / Service Article" %}
+    {% set draft_goal = draft.goal if draft is defined and draft.goal else "Answer decision-stage questions and drive enquiries" %}
+    {% set draft_audience = draft.audience if draft is defined and draft.audience else "People comparing providers and trying to understand price, suitability, and next steps." %}
+    {% set draft_cta = draft.cta if draft is defined and draft.cta else "Encourage readers to book a consultation or contact the business for a quote." %}
+    {% set draft_tone = draft.tone if draft is defined and draft.tone else "Helpful, trustworthy, customer-friendly" %}
+    {% set next_step_title = draft.next_step_title if draft is defined and draft.next_step_title else "Review the draft for accuracy, local details, and brand tone" %}
+    {% set next_step_text = draft.next_step_text if draft is defined and draft.next_step_text else "This draft gives you a strong starting point, but it should still be refined with the client’s specific offer, proof points, service process, and call to action." %}
+
+    <section class="draft-hero-card">
+        <div class="draft-hero-main">
+            <div class="draft-badge-row">
+                <span class="draft-badge draft-badge-primary">Content Draft</span>
+                <span class="draft-badge">{{ draft_type }}</span>
+                <span class="draft-badge">{{ draft_status }}</span>
+                <span class="draft-badge">Editable</span>
+            </div>
+
+            <h1>{{ draft_title }}</h1>
+            <p class="draft-hero-description">{{ draft_description }}</p>
+
+            <div class="draft-hero-actions">
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
+                <a href="{{ url_for('content_brief_detail', item_id=draft.id) if draft is defined and draft.id else '#' }}" class="btn btn-secondary">View Brief</a>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary">Re-Audit Later</a>
+            </div>
+        </div>
+
+        <div class="draft-hero-side">
+            <div class="draft-summary-card">
+                <div class="draft-summary-label">Recommended Next Step</div>
+                <div class="draft-summary-value">{{ next_step_title }}</div>
+                <p class="draft-summary-note">{{ next_step_text }}</p>
+            </div>
+
+            <div class="draft-meta-grid">
+                <div class="draft-meta-card">
+                    <span>Client</span>
+                    <strong>{{ draft_client }}</strong>
+                </div>
+
+                <div class="draft-meta-card">
+                    <span>Status</span>
+                    <strong>{{ draft_status }}</strong>
+                </div>
+
+                <div class="draft-meta-card">
+                    <span>Type</span>
+                    <strong>{{ draft_type }}</strong>
+                </div>
+
+                <div class="draft-meta-card">
+                    <span>Primary Goal</span>
+                    <strong class="small-copy">{{ draft_goal }}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="draft-grid">
+
+        <div class="draft-card draft-editor-card draft-full">
+            <div class="section-head">
+                <div>
+                    <h3>Generated Draft</h3>
+                    <p>Review and refine before publishing.</p>
+                </div>
+            </div>
+
+            <div class="draft-editor-shell">
+                <textarea class="draft-editor" spellcheck="true">{% if draft is defined and draft.body %}{{ draft.body }}{% else %}How Much Does Dental Treatment Cost? What Patients Should Know Before Booking
+
+Many people considering dental treatment want to know one thing early on: how much it costs. This is a reasonable question, but the answer often depends on the type of treatment, the condition of the teeth, the complexity of the case, and the goals of the patient.
+
+In general, pricing can vary depending on the service required, whether preliminary assessment is needed, and how personalised the treatment plan is. That is why a consultation is often the best first step. It helps the clinic understand the patient's needs and recommend the most suitable option.
+
+Patients also want to know whether the treatment is right for them. A good provider should explain who the treatment is suitable for, what results can reasonably be expected, and whether there are alternative options depending on budget or preference.
+
+Another important factor is what the process looks like from start to finish. When businesses explain this clearly, it reduces uncertainty and helps people feel more confident about reaching out. For example, a page can explain the consultation stage, treatment planning, the actual procedure, and aftercare.
+
+It is also helpful to address common concerns directly. These may include pain, downtime, recovery, number of visits, and whether there are hidden costs. When businesses answer these questions openly, they build trust and improve the decision-making experience for potential customers.
+
+If you are thinking about dental treatment, the best next step is usually to contact the clinic for a proper consultation. This allows the provider to give more accurate guidance based on your needs and goals.
+
+For businesses, content like this does more than educate readers. It also improves the chances of being surfaced in AI-assisted research and recommendation journeys, especially when the page answers real customer questions clearly and naturally.{% endif %}</textarea>
+            </div>
+
+            <div class="draft-editor-actions">
+                <button type="button" class="btn btn-primary" id="copyDraftBtn">Copy Full Draft</button>
+                <button type="button" class="btn btn-secondary">Save Changes</button>
+                <button type="button" class="btn btn-secondary">Mark as Ready</button>
+            </div>
+        </div>
+
+        <div class="draft-card">
+            <div class="section-head">
+                <h3>Draft Summary</h3>
+                <p>Quick context before reading the full article.</p>
+            </div>
+
+            <div class="summary-list">
+                <div class="summary-item">
+                    <span>Target Audience</span>
+                    <strong>{{ draft_audience }}</strong>
+                </div>
+
+                <div class="summary-item">
+                    <span>Main CTA</span>
+                    <strong>{{ draft_cta }}</strong>
+                </div>
+
+                <div class="summary-item">
+                    <span>Tone</span>
+                    <strong>{{ draft_tone }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="draft-card">
+            <div class="section-head">
+                <h3>Before Publishing</h3>
+                <p>Simple checks to improve quality and trust.</p>
+            </div>
+
+            <div class="check-list">
+                <div class="check-item">
+                    <div class="check-dot"></div>
+                    <span>Add real pricing or pricing guidance where possible</span>
+                </div>
+                <div class="check-item">
+                    <div class="check-dot"></div>
+                    <span>Insert service-specific details and examples</span>
+                </div>
+                <div class="check-item">
+                    <div class="check-dot"></div>
+                    <span>Include local trust signals, reviews, or credentials</span>
+                </div>
+                <div class="check-item">
+                    <div class="check-dot"></div>
+                    <span>Make sure the CTA matches the page goal</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="draft-card">
+            <div class="section-head">
+                <h3>Ways To Improve This Draft</h3>
+                <p>Fast upgrades that usually make the content stronger.</p>
+            </div>
+
+            <div class="improvement-list">
+                <div class="improvement-item">
+                    <strong>Add specifics</strong>
+                    <p>Replace generic wording with real service details, examples, and business-specific facts.</p>
+                </div>
+
+                <div class="improvement-item">
+                    <strong>Strengthen trust</strong>
+                    <p>Include proof such as reviews, years of experience, location details, or credentials.</p>
+                </div>
+
+                <div class="improvement-item">
+                    <strong>Clarify conversion intent</strong>
+                    <p>Make the next step obvious with a clear, relevant call to action.</p>
+                </div>
+
+                <div class="improvement-item">
+                    <strong>Match brand tone</strong>
+                    <p>Adjust the voice so it sounds like the client, not a generic template.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="draft-card draft-cta-card draft-full">
+            <div class="draft-cta-copy">
+                <h3>Ready for the next step?</h3>
+                <p>
+                    Once this draft is refined and published, run another audit later to see whether the content improves visibility and coverage.
+                </p>
+            </div>
+
+            <div class="draft-cta-actions">
+                <button type="button" class="btn btn-secondary">Mark as Published</button>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary">Run New Audit</a>
+            </div>
+        </div>
+
+    </section>
+</div>
+
+<script>
+(function () {
+    const copyBtn = document.getElementById("copyDraftBtn");
+    const editor = document.querySelector(".draft-editor");
+
+    if (!copyBtn || !editor) return;
+
+    copyBtn.addEventListener("click", async function () {
+        try {
+            await navigator.clipboard.writeText(editor.value);
+            copyBtn.textContent = "Copied";
+            setTimeout(() => {
+                copyBtn.textContent = "Copy Full Draft";
+            }, 1500);
+        } catch (error) {
+            copyBtn.textContent = "Copy failed";
+            setTimeout(() => {
+                copyBtn.textContent = "Copy Full Draft";
+            }, 1500);
+        }
+    });
+})();
+</script>
+
+<style>
+.draft-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.draft-hero-card,
+.draft-card,
+.draft-summary-card,
+.draft-meta-card,
+.summary-item,
+.improvement-item,
+.draft-cta-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.draft-hero-card {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.draft-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.draft-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.draft-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.draft-hero-main h1 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1.08;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.draft-hero-description {
+    margin: 16px 0 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #617084;
+    max-width: 760px;
+}
+
+.draft-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.draft-summary-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    margin-bottom: 16px;
+}
+
+.draft-summary-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.draft-summary-value {
+    margin-top: 12px;
+    font-size: 24px;
+    line-height: 1.25;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.draft-summary-note {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.draft-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.draft-meta-card {
+    padding: 16px;
+    background: #f8fafc;
+}
+
+.draft-meta-card span,
+.summary-item span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.draft-meta-card strong {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.draft-meta-card strong.small-copy {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.draft-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.draft-full {
+    grid-column: 1 / -1;
+}
+
+.draft-card {
+    padding: 24px;
+}
+
+.section-head {
+    margin-bottom: 16px;
+}
+
+.section-head h3 {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-head p {
+    margin: 8px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.draft-editor-shell {
+    border: 1px solid #e7ebf3;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.draft-editor {
+    width: 100%;
+    min-height: 560px;
+    border: 0;
+    padding: 20px;
+    resize: vertical;
+    font: inherit;
+    line-height: 1.75;
+    color: #16243c;
+    background: #ffffff;
+}
+
+.draft-editor:focus {
+    outline: none;
+}
+
+.draft-editor-actions,
+.draft-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.summary-list,
+.check-list,
+.improvement-list {
+    display: grid;
+    gap: 14px;
+}
+
+.summary-item,
+.improvement-item {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.summary-item strong,
+.improvement-item strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.check-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #ff6a2b;
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.improvement-item p,
+.draft-cta-copy p {
+    margin: 8px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.draft-cta-card {
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.draft-cta-copy h3 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    color: #16243c;
+}
+
+@media (max-width: 1200px) {
+    .draft-hero-card,
+    .draft-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .draft-shell {
+        padding: 18px;
+    }
+
+    .draft-hero-card,
+    .draft-card,
+    .draft-summary-card,
+    .draft-meta-card,
+    .summary-item,
+    .improvement-item,
+    .draft-cta-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .draft-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .draft-hero-actions,
+    .draft-editor-actions,
+    .draft-cta-actions,
+    .draft-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .draft-hero-actions .btn,
+    .draft-editor-actions .btn,
+    .draft-cta-actions .btn {
+        width: 100%;
+    }
+
+    .draft-editor {
+        min-height: 420px;
+    }
+
+    .draft-cta-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+{% endblock %}

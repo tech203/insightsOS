@@ -98,7 +98,445 @@
             <div>Query</div>
             <div>Brand Mentioned</div>
             <div>Brand Position</div>
-            <div>Score</div>
+            <d{% extends "base.html" %}
+
+{% block title %}Full Audit | AEO Agents{% endblock %}
+{% block page_title %}Full Audit{% endblock %}
+{% block page_subtitle %}Detailed audit inspection view with the full saved payload for validation, debugging, and deeper analysis.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Back to Summary</a>
+{% if data.client_id %}
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-primary">Open Client</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% set normalized = data.scores.normalized_score if data.scores and data.scores.normalized_score is not none else "—" %}
+{% set visibility = data.scores.visibility_score if data.scores and data.scores.visibility_score is not none else "—" %}
+{% set content = data.scores.content_score if data.scores and data.scores.content_score is not none else "—" %}
+{% set schema = data.scores.schema_score if data.scores and data.scores.schema_score is not none else "—" %}
+
+<div class="audit-full-shell">
+
+    <section class="audit-full-hero">
+        <div class="audit-full-hero-main">
+            <div class="audit-full-badge-row">
+                <span class="audit-full-badge audit-full-badge-primary">Full Audit File</span>
+                <span class="audit-full-badge">{{ data.audit_type or "N/A" }}</span>
+                <span class="audit-full-badge">{{ data.saved_at|pretty_datetime if data.saved_at else "N/A" }}</span>
+                {% if data.client_name %}
+                <span class="audit-full-badge">{{ data.client_name }}</span>
+                {% endif %}
+            </div>
+
+            <h1>{{ data.website or "Unknown Website" }}</h1>
+            <p class="audit-full-subcopy">
+                This view is best for deeper inspection of the saved audit payload, including stored scores,
+                answer results, competitor signals, and raw structured output from the audit runner.
+            </p>
+
+            <div class="audit-full-file-card">
+                <span class="file-label">Full Audit File</span>
+                <strong>{{ full_filename or "N/A" }}</strong>
+            </div>
+        </div>
+
+        <div class="audit-full-hero-side">
+            <div class="quick-access-card">
+                <div class="quick-access-label">View Type</div>
+                <div class="quick-access-value">Deep Inspection</div>
+                <div class="quick-access-meta">Full structured payload</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="audit-full-stats-grid">
+        <div class="stat-card">
+            <span>Normalized</span>
+            <strong>{{ normalized }}</strong>
+        </div>
+        <div class="stat-card">
+            <span>Visibility</span>
+            <strong>{{ visibility }}</strong>
+        </div>
+        <div class="stat-card">
+            <span>Content</span>
+            <strong>{{ content }}</strong>
+        </div>
+        <div class="stat-card">
+            <span>Schema</span>
+            <strong>{{ schema }}</strong>
+        </div>
+    </section>
+
+    <section class="audit-full-grid">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Top-Level Keys</h2>
+                    <p class="panel-subtitle">Useful for understanding what this stored file contains.</p>
+                </div>
+            </div>
+
+            <div class="chip-cluster">
+                {% for key in data.keys() %}
+                <span class="meta-chip">{{ key }}</span>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>How to Use This View</h2>
+                    <p class="panel-subtitle">Helpful when validating outputs from your agents and runners.</p>
+                </div>
+            </div>
+
+            <div class="guide-list">
+                <div class="guide-item">
+                    <strong>Inspect saved payloads</strong>
+                    <p>Use this page to inspect the full stored audit object instead of the client-facing summary.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Validate score logic</strong>
+                    <p>Cross-check normalized, visibility, content, and schema calculations against the saved fields.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Check answer-level output</strong>
+                    <p>Review AI answer results, competitor mentions, and query-level values directly from the payload.</p>
+                </div>
+                <div class="guide-item">
+                    <strong>Debug backend/template mismatches</strong>
+                    <p>Use this page when a template or route is not behaving as expected and you need the raw stored structure.</p>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    {% if data.ai_answer_results %}
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>AI Answer Results Snapshot</h2>
+                <p class="panel-subtitle">Quick preview from the stored audit payload.</p>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <div class="simple-table">
+                <div class="simple-table-row head full-audit-ai-row">
+                    <div>Query</div>
+                    <div>Brand Mentioned</div>
+                    <div>Brand Position</div>
+                    <div>Score</div>
+                </div>
+
+                {% for row in data.ai_answer_results[:12] %}
+                <div class="simple-table-row full-audit-ai-row">
+                    <div>{{ row.query if row.query is defined else "N/A" }}</div>
+                    <div>
+                        {% if row.brand_mentioned is defined %}
+                            {{ "Yes" if row.brand_mentioned else "No" }}
+                        {% elif row.client_mentioned is defined %}
+                            {{ "Yes" if row.client_mentioned else "No" }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div>{{ row.brand_position if row.brand_position is defined and row.brand_position is not none else "—" }}</div>
+                    <div>{{ row.score if row.score is defined else "N/A" }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Full JSON Payload</h2>
+                <p class="panel-subtitle">Complete saved audit content for validation and debugging.</p>
+            </div>
+        </div>
+
+        <div class="json-pretty-block json-large">{{ data | tojson(indent=2) }}</div>
+    </section>
+
+</div>
+
+<style>
+.audit-full-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.audit-full-hero,
+.quick-access-card,
+.stat-card,
+.panel,
+.audit-full-file-card,
+.guide-item,
+.audit-full-badge,
+.meta-chip {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.audit-full-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.audit-full-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.audit-full-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    box-shadow: none;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.audit-full-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.audit-full-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+    word-break: break-word;
+}
+
+.audit-full-subcopy {
+    margin: 16px 0 0;
+    color: #617084;
+    font-size: 16px;
+    line-height: 1.65;
+    max-width: 760px;
+}
+
+.audit-full-file-card {
+    margin-top: 20px;
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.file-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.audit-full-file-card strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.quick-access-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.quick-access-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.quick-access-value {
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #ff6a2b;
+    margin-top: 14px;
+}
+
+.quick-access-meta {
+    margin-top: 10px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.audit-full-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.stat-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.stat-card span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.stat-card strong {
+    display: block;
+    font-size: 30px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.audit-full-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.panel {
+    padding: 24px;
+}
+
+.panel-header {
+    margin-bottom: 18px;
+}
+
+.panel-header h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.chip-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.meta-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    box-shadow: none;
+    color: #445366;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.guide-list {
+    display: grid;
+    gap: 14px;
+}
+
+.guide-item {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.guide-item strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.guide-item p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.json-pretty-block {
+    padding: 18px;
+    border-radius: 18px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.json-large {
+    min-height: 420px;
+}
+
+@media (max-width: 1200px) {
+    .audit-full-hero,
+    .audit-full-stats-grid,
+    .audit-full-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .audit-full-shell {
+        padding: 18px;
+    }
+
+    .audit-full-hero,
+    .quick-access-card,
+    .stat-card,
+    .panel,
+    .audit-full-file-card,
+    .guide-item,
+    .audit-full-badge,
+    .meta-chip {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .audit-full-hero-main h1 {
+        font-size: 30px;
+    }
+}
+</style>
+
+{% endblock %}iv>Score</div>
         </div>
 
         {% for row in data.ai_answer_results[:12] %}

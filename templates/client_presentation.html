@@ -2,7 +2,7 @@
 
 {% block title %}{{ client.name }} | Client Presentation{% endblock %}
 {% block page_title %}{{ client.name }} · Client Presentation{% endblock %}
-{% block page_subtitle %}Client-ready AEO audit view for strategic walkthroughs, stakeholder meetings, and PDF export.{% endblock %}
+{% block page_subtitle %}Client-ready AEO audit view for walkthroughs, stakeholder discussions, and PDF export.{% endblock %}
 {% block body_class %}presentation-layout{% endblock %}
 
 {% block topbar_actions %}
@@ -31,468 +31,1061 @@
 {% set competitor_rows = query_rows | selectattr("latest_competitors") | list %}
 {% set action_rows = client.recommended_actions if client.recommended_actions else [] %}
 
-<section class="presentation-hero presentation-hero-v2">
-    <div class="presentation-hero-main">
-        <div class="presentation-badge-row">
-            <span class="presentation-badge">{{ client.industry or "Industry N/A" }}</span>
-            <span class="presentation-badge">{{ client.location or "Location N/A" }}</span>
-            <span class="presentation-badge">AEO Audit</span>
-            {% if has_audit %}
-            <span class="presentation-badge tone-soft">{{ opportunity_level }}</span>
-            {% endif %}
-        </div>
+<div class="presentation-shell">
 
-        <h2 class="presentation-title">{{ client.name }}</h2>
-        <p class="presentation-domain">{{ client.website }}</p>
-
-        <div class="presentation-meta-strip">
-            <div class="presentation-meta-item">
-                <span class="presentation-meta-label">Prepared For</span>
-                <strong>{{ client.name }}</strong>
-            </div>
-            <div class="presentation-meta-item">
-                <span class="presentation-meta-label">Website</span>
-                <strong>{{ client.website or "Not provided" }}</strong>
-            </div>
-            <div class="presentation-meta-item">
-                <span class="presentation-meta-label">Audit History</span>
-                <strong>{{ client.audit_count }}</strong>
-            </div>
-        </div>
-
-        <div class="presentation-summary-box">
-            <div class="presentation-summary-label">Executive Summary</div>
-            {% if has_audit %}
-            <p class="presentation-summary-text">
-                {% if normalized_score >= 70 %}
-                    {{ client.name }} has a strong AEO foundation. The biggest near-term gains are likely to come from scaling winning content patterns, expanding coverage for more high-intent queries, and improving consistency across pages that are already performing well.
-                {% elif normalized_score >= 50 %}
-                    {{ client.name }} has moderate AEO readiness, but there are still meaningful gaps in AI answer visibility, content depth, and competitor differentiation. The clearest next wins are likely to come from direct-answer content, FAQ expansion, and stronger alignment between the brand and core service topics.
-                {% else %}
-                    {{ client.name }} is still being missed too often in AI answer scenarios. This creates a strong opportunity to improve visibility through better content targeting, clearer brand-to-service association, stronger page structure, and more deliberate coverage of the questions buyers are already asking.
-                {% endif %}
-            </p>
-            {% else %}
-            <p class="presentation-summary-text">
-                No audit has been run yet for this client. Run an audit first to generate presentation-ready findings, benchmark scores, and recommended next actions.
-            </p>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="presentation-score-card presentation-score-card-v2">
-        <div class="presentation-score-label">Overall Readiness</div>
-        <div class="presentation-score-value">
-            {% if has_audit %}{{ normalized_score }}{% else %}—{% endif %}
-        </div>
-        <div class="presentation-score-sub">
-            {% if has_audit %}{{ opportunity_level }}{% else %}No audit yet{% endif %}
-        </div>
-
-        {% if has_audit %}
-        <div class="presentation-score-note">
-            {% if normalized_score >= 70 %}
-                Strong starting position with room to expand visibility further.
-            {% elif normalized_score >= 50 %}
-                Moderate readiness with clear optimization opportunities.
-            {% else %}
-                Low readiness today, with significant upside available.
-            {% endif %}
-        </div>
-        {% endif %}
-    </div>
-</section>
-
-<section class="presentation-panel presentation-takeaways-panel">
-    <div class="presentation-panel-header">
-        <h3>Key Takeaways</h3>
-    </div>
-
-    <div class="presentation-takeaway-grid">
-        <div class="presentation-takeaway-card">
-            <div class="presentation-takeaway-title">Current Position</div>
-            <p>
+    <section class="presentation-hero-card">
+        <div class="presentation-hero-copy">
+            <div class="presentation-badge-row">
+                <span class="presentation-badge">{{ client.industry or "Industry N/A" }}</span>
+                <span class="presentation-badge">{{ client.location or "Location N/A" }}</span>
+                <span class="presentation-badge">AEO Audit</span>
                 {% if has_audit %}
+                <span class="presentation-badge tone-soft">{{ opportunity_level }}</span>
+                {% endif %}
+            </div>
+
+            <h1 class="presentation-hero-title">{{ client.name }}</h1>
+            <p class="presentation-hero-domain">{{ client.website or "Website not provided" }}</p>
+
+            <div class="presentation-meta-grid">
+                <div class="presentation-meta-card">
+                    <span>Prepared For</span>
+                    <strong>{{ client.name }}</strong>
+                </div>
+                <div class="presentation-meta-card">
+                    <span>Website</span>
+                    <strong>{{ client.website or "Not provided" }}</strong>
+                </div>
+                <div class="presentation-meta-card">
+                    <span>Audit History</span>
+                    <strong>{{ client.audit_count }}</strong>
+                </div>
+            </div>
+
+            <div class="presentation-summary-card">
+                <div class="presentation-summary-label">Executive Summary</div>
+
+                {% if has_audit %}
+                <p class="presentation-summary-text">
                     {% if normalized_score >= 70 %}
-                        The brand is in a strong position and should now focus on expanding into broader query coverage and reinforcing what is already working.
+                        {{ client.name }} has a strong AEO foundation. The best next move is to expand into more high-value query coverage, strengthen winning content patterns, and improve consistency across pages already performing well.
                     {% elif normalized_score >= 50 %}
-                        The brand has a workable foundation, but still needs stronger coverage depth, clearer positioning, and better competitive separation.
+                        {{ client.name }} has a workable AEO foundation, but there are still visible gaps in AI answer visibility, content depth, and competitive differentiation. The clearest gains are likely to come from better direct-answer content, stronger FAQ coverage, and clearer brand-to-service alignment.
                     {% else %}
-                        The brand is currently underrepresented in AI answers and needs foundational visibility improvements first.
-                    {% endif %}
-                {% else %}
-                    A current-position summary will appear after the first audit is completed.
-                {% endif %}
-            </p>
-        </div>
-
-        <div class="presentation-takeaway-card">
-            <div class="presentation-takeaway-title">Competitive Pressure</div>
-            <p>
-                {% if missing_rows %}
-                    The latest comparison data shows {{ missing_rows|length }} missed query area{% if missing_rows|length != 1 %}s{% endif %} where competitors are being surfaced while the brand is not.
-                {% else %}
-                    Competitive pressure indicators will become clearer as more query comparison data is collected.
-                {% endif %}
-            </p>
-        </div>
-
-        <div class="presentation-takeaway-card">
-            <div class="presentation-takeaway-title">Best Near-Term Focus</div>
-            <p>
-                The strongest short-term gains usually come from direct-answer content, high-intent FAQs, comparison pages, and stronger brand association with core services.
-            </p>
-        </div>
-    </div>
-</section>
-
-<section class="presentation-kpi-grid">
-    <div class="presentation-kpi-card tone-blue">
-        <div class="presentation-kpi-label">AI Visibility</div>
-        <div class="presentation-kpi-value">{% if has_audit %}{{ visibility_score }}{% else %}—{% endif %}</div>
-        <div class="presentation-kpi-status">
-            {% if has_audit %}
-                {% if visibility_score >= 14 %}Strong{% elif visibility_score >= 8 %}Moderate{% else %}Needs Work{% endif %}
-            {% else %}
-                Awaiting audit
-            {% endif %}
-        </div>
-        <div class="presentation-kpi-note">How often the brand appears in AI answer testing.</div>
-    </div>
-
-    <div class="presentation-kpi-card tone-orange">
-        <div class="presentation-kpi-label">Content Coverage</div>
-        <div class="presentation-kpi-value">{% if has_audit %}{{ content_score }}{% else %}—{% endif %}</div>
-        <div class="presentation-kpi-status">
-            {% if has_audit %}
-                {% if content_score >= 8 %}Strong{% elif content_score >= 5 %}Moderate{% else %}Needs Work{% endif %}
-            {% else %}
-                Awaiting audit
-            {% endif %}
-        </div>
-        <div class="presentation-kpi-note">How well the site appears to cover relevant customer questions.</div>
-    </div>
-
-    <div class="presentation-kpi-card tone-purple">
-        <div class="presentation-kpi-label">Technical Readiness</div>
-        <div class="presentation-kpi-value">{% if has_audit %}{{ schema_score }}{% else %}—{% endif %}</div>
-        <div class="presentation-kpi-status">
-            {% if has_audit %}
-                {% if schema_score >= 8 %}Strong{% elif schema_score >= 5 %}Moderate{% else %}Needs Work{% endif %}
-            {% else %}
-                Awaiting audit
-            {% endif %}
-        </div>
-        <div class="presentation-kpi-note">Structured signals and machine-readable support for answer engines.</div>
-    </div>
-
-    <div class="presentation-kpi-card tone-green">
-        <div class="presentation-kpi-label">Audit History</div>
-        <div class="presentation-kpi-value">{{ client.audit_count }}</div>
-        <div class="presentation-kpi-status">
-            {% if client.audit_count >= 3 %}
-                Trend-ready
-            {% elif client.audit_count >= 1 %}
-                Baseline available
-            {% else %}
-                No history
-            {% endif %}
-        </div>
-        <div class="presentation-kpi-note">Number of saved audits available for comparison over time.</div>
-    </div>
-</section>
-
-<section class="presentation-grid">
-    <div class="presentation-panel">
-        <div class="presentation-panel-header">
-            <h3>Strategic Interpretation</h3>
-        </div>
-
-        <div class="presentation-insight-list">
-            <div class="presentation-insight-card">
-                <div class="presentation-insight-title">Primary Visibility Risk</div>
-                <p>
-                    {% if has_audit and visibility_score <= 5 %}
-                        The brand is not being surfaced often enough in AI answer results, which reduces visibility at the discovery stage.
-                    {% elif has_audit %}
-                        The brand has some AI visibility today, but it is not yet consistent across enough high-value queries to build dependable presence.
-                    {% else %}
-                        No audit has been run yet, so a visibility-risk summary is not available.
+                        {{ client.name }} is still being missed too often in AI answer scenarios. This creates a meaningful opportunity to improve discoverability through stronger content targeting, better brand association, clearer page structure, and more deliberate query coverage.
                     {% endif %}
                 </p>
-            </div>
-
-            <div class="presentation-insight-card">
-                <div class="presentation-insight-title">What May Be Causing This</div>
-                <p>
-                    Missing direct-answer content, weak query-targeted coverage, limited comparison pages, and insufficient AI-readable structure can all reduce the brand’s inclusion in answer results.
+                {% else %}
+                <p class="presentation-summary-text">
+                    No audit has been run yet for this client. Run an audit first to unlock presentation-ready findings, benchmark scores, and prioritized recommendations.
                 </p>
-            </div>
-
-            <div class="presentation-insight-card">
-                <div class="presentation-insight-title">Fastest Growth Opportunity</div>
-                <p>
-                    The quickest gains usually come from creating or improving pages for missed queries where competitors are already being surfaced instead of the brand.
-                </p>
+                {% endif %}
             </div>
         </div>
-    </div>
 
-    <div class="presentation-panel">
-        <div class="presentation-panel-header">
-            <h3>Score Breakdown</h3>
-        </div>
+        <div class="presentation-score-card">
+            <div class="presentation-score-label">Overall Readiness</div>
+            <div class="presentation-score-value">{% if has_audit %}{{ normalized_score }}{% else %}—{% endif %}</div>
+            <div class="presentation-score-status">{% if has_audit %}{{ opportunity_level }}{% else %}No audit yet{% endif %}</div>
 
-        <div class="presentation-bar-group">
-            <div class="presentation-bar-item">
-                <div class="presentation-bar-top">
-                    <span>AI Visibility</span>
-                    <strong>{% if has_audit %}{{ visibility_score }}{% else %}0{% endif %}</strong>
-                </div>
-                <div class="presentation-bar-track">
-                    <div class="presentation-bar-fill fill-blue" style="width: {{ visibility_pct }}%;"></div>
-                </div>
+            {% if has_audit %}
+            <div class="presentation-score-track">
+                <div class="presentation-score-fill" style="width: {{ normalized_pct }}%;"></div>
             </div>
 
-            <div class="presentation-bar-item">
-                <div class="presentation-bar-top">
-                    <span>Content Coverage</span>
-                    <strong>{% if has_audit %}{{ content_score }}{% else %}0{% endif %}</strong>
-                </div>
-                <div class="presentation-bar-track">
-                    <div class="presentation-bar-fill fill-orange" style="width: {{ content_pct }}%;"></div>
-                </div>
-            </div>
-
-            <div class="presentation-bar-item">
-                <div class="presentation-bar-top">
-                    <span>Technical Readiness</span>
-                    <strong>{% if has_audit %}{{ schema_score }}{% else %}0{% endif %}</strong>
-                </div>
-                <div class="presentation-bar-track">
-                    <div class="presentation-bar-fill fill-purple" style="width: {{ schema_pct }}%;"></div>
-                </div>
-            </div>
-
-            <div class="presentation-bar-item">
-                <div class="presentation-bar-top">
-                    <span>Overall Readiness</span>
-                    <strong>{% if has_audit %}{{ normalized_score }}{% else %}0{% endif %}</strong>
-                </div>
-                <div class="presentation-bar-track">
-                    <div class="presentation-bar-fill fill-green" style="width: {{ normalized_pct }}%;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="presentation-panel">
-    <div class="presentation-panel-header">
-        <h3>Top Recommended Actions</h3>
-    </div>
-
-    {% if action_rows %}
-    <div class="presentation-action-grid">
-        {% for action in action_rows[:6] %}
-        <div class="presentation-action-card">
-            <div class="presentation-action-top">
-                <span class="presentation-priority {{ action.priority }}">{{ action.priority|capitalize }}</span>
-                <h4>{{ action.title }}</h4>
-            </div>
-            <p><strong>Issue:</strong> {{ action.issue }}</p>
-            <p><strong>Recommended Action:</strong> {{ action.recommended_action }}</p>
-            {% if action.support_signal %}
-            <p class="muted-text"><strong>Support Signal:</strong> {{ action.support_signal }}</p>
+            <p class="presentation-score-note">
+                {% if normalized_score >= 70 %}
+                    Strong current position with room to scale visibility further.
+                {% elif normalized_score >= 50 %}
+                    Moderate readiness with clear short-term optimization opportunities.
+                {% else %}
+                    Low readiness today, with significant upside available.
+                {% endif %}
+            </p>
             {% endif %}
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state compact">
-        <h3>No action plan yet</h3>
-        <p>Run an audit to generate presentation-ready recommendations and priorities.</p>
-    </div>
-    {% endif %}
-</section>
+    </section>
 
-<section class="presentation-grid">
-    <div class="presentation-panel">
+    <section class="presentation-panel">
         <div class="presentation-panel-header">
-            <h3>Priority Query Opportunities</h3>
+            <h3>Key Takeaways</h3>
         </div>
 
-        {% if query_rows %}
-            {% if missing_rows %}
-            <div class="presentation-query-list">
-                {% for row in missing_rows[:6] %}
-                <div class="presentation-query-card">
-                    <div class="presentation-query-title">{{ row.query }}</div>
-                    <div class="presentation-query-meta">
-                        <span>Brand Mentioned: No</span>
-                        <span>Score: {{ row.latest_score }}</span>
-                    </div>
-                    <div class="presentation-query-competitors">
-                        {% if row.latest_competitors %}
-                            Competitors seen: {{ row.latest_competitors|join(", ") }}
+        <div class="presentation-takeaway-grid">
+            <article class="presentation-takeaway-card">
+                <div class="presentation-takeaway-title">Current Position</div>
+                <p>
+                    {% if has_audit %}
+                        {% if normalized_score >= 70 %}
+                            The brand is already in a strong position and should now focus on scale, consistency, and broader topic coverage.
+                        {% elif normalized_score >= 50 %}
+                            The brand has a solid starting point, but still needs stronger content depth and clearer competitive separation.
                         {% else %}
-                            No competitor list recorded
+                            The brand is currently underrepresented in AI answers and needs foundational visibility improvements first.
                         {% endif %}
+                    {% else %}
+                        A current-position summary will appear after the first audit is completed.
+                    {% endif %}
+                </p>
+            </article>
+
+            <article class="presentation-takeaway-card">
+                <div class="presentation-takeaway-title">Competitive Pressure</div>
+                <p>
+                    {% if missing_rows %}
+                        The latest comparison data shows {{ missing_rows|length }} missed query area{% if missing_rows|length != 1 %}s{% endif %} where competitors are being surfaced while the brand is not.
+                    {% else %}
+                        Competitive pressure insights will become clearer as more comparison data is collected.
+                    {% endif %}
+                </p>
+            </article>
+
+            <article class="presentation-takeaway-card">
+                <div class="presentation-takeaway-title">Best Near-Term Focus</div>
+                <p>
+                    The strongest short-term wins usually come from direct-answer content, comparison pages, high-intent FAQs, and better association between the brand and its core services.
+                </p>
+            </article>
+        </div>
+    </section>
+
+    <section class="presentation-kpi-grid">
+        <div class="presentation-kpi-card tone-blue">
+            <div class="presentation-kpi-label">AI Visibility</div>
+            <div class="presentation-kpi-value">{% if has_audit %}{{ visibility_score }}{% else %}—{% endif %}</div>
+            <div class="presentation-kpi-status">
+                {% if has_audit %}
+                    {% if visibility_score >= 14 %}Strong{% elif visibility_score >= 8 %}Moderate{% else %}Needs Work{% endif %}
+                {% else %}
+                    Awaiting audit
+                {% endif %}
+            </div>
+            <div class="presentation-kpi-note">How often the brand appears in AI answer testing.</div>
+        </div>
+
+        <div class="presentation-kpi-card tone-orange">
+            <div class="presentation-kpi-label">Content Coverage</div>
+            <div class="presentation-kpi-value">{% if has_audit %}{{ content_score }}{% else %}—{% endif %}</div>
+            <div class="presentation-kpi-status">
+                {% if has_audit %}
+                    {% if content_score >= 8 %}Strong{% elif content_score >= 5 %}Moderate{% else %}Needs Work{% endif %}
+                {% else %}
+                    Awaiting audit
+                {% endif %}
+            </div>
+            <div class="presentation-kpi-note">How well the site covers relevant customer questions.</div>
+        </div>
+
+        <div class="presentation-kpi-card tone-purple">
+            <div class="presentation-kpi-label">Technical Readiness</div>
+            <div class="presentation-kpi-value">{% if has_audit %}{{ schema_score }}{% else %}—{% endif %}</div>
+            <div class="presentation-kpi-status">
+                {% if has_audit %}
+                    {% if schema_score >= 8 %}Strong{% elif schema_score >= 5 %}Moderate{% else %}Needs Work{% endif %}
+                {% else %}
+                    Awaiting audit
+                {% endif %}
+            </div>
+            <div class="presentation-kpi-note">Structured signals and machine-readable support for answer engines.</div>
+        </div>
+
+        <div class="presentation-kpi-card tone-green">
+            <div class="presentation-kpi-label">Audit History</div>
+            <div class="presentation-kpi-value">{{ client.audit_count }}</div>
+            <div class="presentation-kpi-status">
+                {% if client.audit_count >= 3 %}
+                    Trend-ready
+                {% elif client.audit_count >= 1 %}
+                    Baseline available
+                {% else %}
+                    No history
+                {% endif %}
+            </div>
+            <div class="presentation-kpi-note">Number of saved audits available for comparison over time.</div>
+        </div>
+    </section>
+
+    <section class="presentation-two-col">
+        <div class="presentation-panel">
+            <div class="presentation-panel-header">
+                <h3>Strategic Interpretation</h3>
+            </div>
+
+            <div class="presentation-insight-stack">
+                <div class="presentation-insight-card">
+                    <div class="presentation-insight-title">Primary Visibility Risk</div>
+                    <p>
+                        {% if has_audit and visibility_score <= 5 %}
+                            The brand is not being surfaced often enough in AI answer results, which reduces discovery at the earliest stage.
+                        {% elif has_audit %}
+                            The brand has some visibility today, but not yet enough consistency across high-value queries to build dependable presence.
+                        {% else %}
+                            No audit has been run yet, so a visibility-risk summary is not available.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="presentation-insight-card">
+                    <div class="presentation-insight-title">Likely Causes</div>
+                    <p>
+                        Missing direct-answer content, limited query-specific coverage, weak comparison pages, and insufficient AI-readable structure can all reduce the brand’s inclusion in answer results.
+                    </p>
+                </div>
+
+                <div class="presentation-insight-card">
+                    <div class="presentation-insight-title">Fastest Growth Opportunity</div>
+                    <p>
+                        The quickest gains usually come from creating or improving pages for missed queries where competitors are already being surfaced instead of the brand.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="presentation-panel">
+            <div class="presentation-panel-header">
+                <h3>Score Breakdown</h3>
+            </div>
+
+            <div class="presentation-bar-group">
+                <div class="presentation-bar-item">
+                    <div class="presentation-bar-top">
+                        <span>AI Visibility</span>
+                        <strong>{% if has_audit %}{{ visibility_score }}{% else %}0{% endif %}</strong>
+                    </div>
+                    <div class="presentation-bar-track">
+                        <div class="presentation-bar-fill fill-blue" style="width: {{ visibility_pct }}%;"></div>
                     </div>
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state compact">
-                <h3>No missed query opportunities shown</h3>
-                <p>The latest comparison data does not currently show missed query rows for this client.</p>
-            </div>
-            {% endif %}
-        {% else %}
-        <div class="empty-state compact">
-            <h3>No query comparison data yet</h3>
-            <p>Additional query comparison insights will appear after more audit data is available.</p>
-        </div>
-        {% endif %}
-    </div>
 
-    <div class="presentation-panel">
+                <div class="presentation-bar-item">
+                    <div class="presentation-bar-top">
+                        <span>Content Coverage</span>
+                        <strong>{% if has_audit %}{{ content_score }}{% else %}0{% endif %}</strong>
+                    </div>
+                    <div class="presentation-bar-track">
+                        <div class="presentation-bar-fill fill-orange" style="width: {{ content_pct }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="presentation-bar-item">
+                    <div class="presentation-bar-top">
+                        <span>Technical Readiness</span>
+                        <strong>{% if has_audit %}{{ schema_score }}{% else %}0{% endif %}</strong>
+                    </div>
+                    <div class="presentation-bar-track">
+                        <div class="presentation-bar-fill fill-purple" style="width: {{ schema_pct }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="presentation-bar-item">
+                    <div class="presentation-bar-top">
+                        <span>Overall Readiness</span>
+                        <strong>{% if has_audit %}{{ normalized_score }}{% else %}0{% endif %}</strong>
+                    </div>
+                    <div class="presentation-bar-track">
+                        <div class="presentation-bar-fill fill-green" style="width: {{ normalized_pct }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="presentation-panel">
         <div class="presentation-panel-header">
-            <h3>Where Competitors Are Winning</h3>
+            <h3>Top Recommended Actions</h3>
         </div>
 
-        {% if query_rows %}
-            {% if competitor_rows %}
-            <div class="presentation-competitor-stack">
-                {% for row in competitor_rows[:6] %}
-                <div class="presentation-competitor-card">
-                    <div class="presentation-competitor-query">{{ row.query }}</div>
-                    <div class="presentation-competitor-tags">
-                        {% for comp in row.latest_competitors[:4] %}
-                        <span class="presentation-tag">{{ comp }}</span>
-                        {% endfor %}
-                    </div>
+        {% if action_rows %}
+        <div class="presentation-action-grid">
+            {% for action in action_rows[:6] %}
+            <article class="presentation-action-card">
+                <div class="presentation-action-top">
+                    <span class="presentation-priority {{ action.priority }}">{{ action.priority|capitalize }}</span>
+                    <h4>{{ action.title }}</h4>
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state compact">
-                <h3>No competitor names captured yet</h3>
-                <p>The current comparison data does not include competitor names for these queries yet.</p>
-            </div>
-            {% endif %}
+                <p><strong>Issue:</strong> {{ action.issue }}</p>
+                <p><strong>Recommended Action:</strong> {{ action.recommended_action }}</p>
+                {% if action.support_signal %}
+                <p class="muted-text"><strong>Support Signal:</strong> {{ action.support_signal }}</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
         {% else %}
         <div class="empty-state compact">
-            <h3>No competitor visibility data yet</h3>
-            <p>Competitor insights will appear after more comparison data is collected.</p>
+            <h3>No action plan yet</h3>
+            <p>Run an audit to generate presentation-ready recommendations and priorities.</p>
         </div>
         {% endif %}
-    </div>
-</section>
+    </section>
 
-<section class="presentation-panel">
-    <div class="presentation-panel-header">
-        <h3>Recommended 30-Day Plan</h3>
-    </div>
+    <section class="presentation-two-col">
+        <div class="presentation-panel">
+            <div class="presentation-panel-header">
+                <h3>Priority Query Opportunities</h3>
+            </div>
 
-    <div class="presentation-roadmap">
-        <div class="presentation-roadmap-step">
-            <div class="presentation-roadmap-number">1</div>
-            <div>
+            {% if query_rows %}
+                {% if missing_rows %}
+                <div class="presentation-query-list">
+                    {% for row in missing_rows[:6] %}
+                    <div class="presentation-query-card">
+                        <div class="presentation-query-title">{{ row.query }}</div>
+                        <div class="presentation-query-meta">
+                            <span>Brand Mentioned: No</span>
+                            <span>Score: {{ row.latest_score }}</span>
+                        </div>
+                        <div class="presentation-query-competitors">
+                            {% if row.latest_competitors %}
+                                Competitors seen: {{ row.latest_competitors|join(", ") }}
+                            {% else %}
+                                No competitor list recorded
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state compact">
+                    <h3>No missed query opportunities shown</h3>
+                    <p>The latest comparison data does not currently show missed query rows for this client.</p>
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="empty-state compact">
+                <h3>No query comparison data yet</h3>
+                <p>Additional query comparison insights will appear after more audit data is available.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="presentation-panel">
+            <div class="presentation-panel-header">
+                <h3>Where Competitors Are Winning</h3>
+            </div>
+
+            {% if query_rows %}
+                {% if competitor_rows %}
+                <div class="presentation-competitor-stack">
+                    {% for row in competitor_rows[:6] %}
+                    <div class="presentation-competitor-card">
+                        <div class="presentation-competitor-query">{{ row.query }}</div>
+                        <div class="presentation-competitor-tags">
+                            {% for comp in row.latest_competitors[:4] %}
+                            <span class="presentation-tag">{{ comp }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state compact">
+                    <h3>No competitor names captured yet</h3>
+                    <p>The current comparison data does not include competitor names for these queries yet.</p>
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="empty-state compact">
+                <h3>No competitor visibility data yet</h3>
+                <p>Competitor insights will appear after more comparison data is collected.</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="presentation-panel">
+        <div class="presentation-panel-header">
+            <h3>Recommended 30-Day Plan</h3>
+        </div>
+
+        <div class="presentation-roadmap-grid">
+            <div class="presentation-roadmap-card">
+                <div class="presentation-roadmap-number">1</div>
                 <h4>Fix visibility gaps</h4>
                 <p>Prioritize missed queries where the brand is not being mentioned at all in answer scenarios.</p>
             </div>
-        </div>
 
-        <div class="presentation-roadmap-step">
-            <div class="presentation-roadmap-number">2</div>
-            <div>
+            <div class="presentation-roadmap-card">
+                <div class="presentation-roadmap-number">2</div>
                 <h4>Create targeted content</h4>
                 <p>Build comparison pages, FAQs, and direct-answer content around high-intent opportunities.</p>
             </div>
-        </div>
 
-        <div class="presentation-roadmap-step">
-            <div class="presentation-roadmap-number">3</div>
-            <div>
+            <div class="presentation-roadmap-card">
+                <div class="presentation-roadmap-number">3</div>
                 <h4>Improve technical clarity</h4>
                 <p>Strengthen entity clarity, schema, and supporting signals that help answer engines trust the brand.</p>
             </div>
-        </div>
 
-        <div class="presentation-roadmap-step">
-            <div class="presentation-roadmap-number">4</div>
-            <div>
+            <div class="presentation-roadmap-card">
+                <div class="presentation-roadmap-number">4</div>
                 <h4>Re-audit and measure progress</h4>
                 <p>Run another audit after publishing updates to measure whether visibility and coverage improve.</p>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="presentation-panel">
-    <div class="presentation-panel-header">
-        <h3>Recommended Deliverables</h3>
-    </div>
-
-    <div class="presentation-deliverable-grid">
-        <div class="presentation-deliverable-card">
-            <h4>Service Page Improvements</h4>
-            <p>Clarify the core offer, strengthen entity signals, and improve answer-focused page structure.</p>
+    <section class="presentation-panel">
+        <div class="presentation-panel-header">
+            <h3>Recommended Deliverables</h3>
         </div>
 
-        <div class="presentation-deliverable-card">
-            <h4>FAQ Expansion</h4>
-            <p>Cover real customer questions more directly with concise, high-intent answers.</p>
+        <div class="presentation-deliverable-grid">
+            <div class="presentation-deliverable-card">
+                <h4>Service Page Improvements</h4>
+                <p>Clarify the core offer, strengthen entity signals, and improve answer-focused page structure.</p>
+            </div>
+
+            <div class="presentation-deliverable-card">
+                <h4>FAQ Expansion</h4>
+                <p>Cover real customer questions more directly with concise, high-intent answers.</p>
+            </div>
+
+            <div class="presentation-deliverable-card">
+                <h4>Comparison Content</h4>
+                <p>Create pages that help the brand compete where alternatives are already being surfaced.</p>
+            </div>
+
+            <div class="presentation-deliverable-card">
+                <h4>Query-Targeted Content Briefs</h4>
+                <p>Translate missed opportunities into content briefs that can be published systematically.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="presentation-panel presentation-closing-panel">
+        <div class="presentation-panel-header">
+            <h3>Recommended Next Step</h3>
         </div>
 
-        <div class="presentation-deliverable-card">
-            <h4>Comparison Content</h4>
-            <p>Create pages that help the brand compete where alternatives are already being surfaced.</p>
-        </div>
-
-        <div class="presentation-deliverable-card">
-            <h4>Query-Targeted Content Briefs</h4>
-            <p>Translate missed opportunities into content briefs that can be published systematically.</p>
-        </div>
-    </div>
-</section>
-
-<section class="presentation-panel presentation-closing-panel">
-    <div class="presentation-panel-header">
-        <h3>Recommended Next Step</h3>
-    </div>
-
-    <div class="presentation-closing-grid">
-        <div>
-            <p class="presentation-closing-lead">
-                {% if has_audit %}
-                    {% if normalized_score >= 70 %}
-                        The best next move is to scale what is already working and expand coverage into more high-value topics.
-                    {% elif normalized_score >= 50 %}
-                        The best next move is to close the biggest content and visibility gaps before competitors strengthen their lead.
+        <div class="presentation-closing-grid">
+            <div>
+                <p class="presentation-closing-lead">
+                    {% if has_audit %}
+                        {% if normalized_score >= 70 %}
+                            The best next move is to scale what is already working and expand coverage into more high-value topics.
+                        {% elif normalized_score >= 50 %}
+                            The best next move is to close the largest content and visibility gaps before competitors strengthen their lead.
+                        {% else %}
+                            The best next move is to establish a stronger answer-engine foundation through content, structure, and clarity improvements.
+                        {% endif %}
                     {% else %}
-                        The best next move is to establish a stronger answer-engine foundation through content, structure, and clarity improvements.
+                        Complete the first audit to establish a benchmark and unlock presentation-ready recommendations.
                     {% endif %}
-                {% else %}
-                    Complete the first audit to establish a benchmark and unlock presentation-ready recommendations.
+                </p>
+            </div>
+
+            <div class="presentation-closing-card">
+                <div class="presentation-closing-label">Prepared For</div>
+                <div class="presentation-closing-value">{{ client.name }}</div>
+
+                <div class="presentation-closing-label">Website</div>
+                <div class="presentation-closing-value">{{ client.website or "Not provided" }}</div>
+
+                {% if has_audit %}
+                <div class="presentation-closing-label">Current Readiness</div>
+                <div class="presentation-closing-value">{{ normalized_score }} / 100</div>
                 {% endif %}
-            </p>
+            </div>
         </div>
+    </section>
 
-        <div class="presentation-closing-card">
-            <div class="presentation-closing-label">Prepared For</div>
-            <div class="presentation-closing-value">{{ client.name }}</div>
+</div>
 
-            <div class="presentation-closing-label">Website</div>
-            <div class="presentation-closing-value">{{ client.website or "Not provided" }}</div>
+<style>
+.presentation-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
 
-            {% if has_audit %}
-            <div class="presentation-closing-label">Current Readiness</div>
-            <div class="presentation-closing-value">{{ normalized_score }} / 100</div>
-            {% endif %}
-        </div>
-    </div>
-</section>
+.presentation-hero-card,
+.presentation-panel,
+.presentation-kpi-card,
+.presentation-takeaway-card,
+.presentation-action-card,
+.presentation-roadmap-card,
+.presentation-deliverable-card,
+.presentation-query-card,
+.presentation-competitor-card,
+.presentation-closing-card,
+.presentation-meta-card,
+.presentation-summary-card,
+.presentation-insight-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.presentation-hero-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.72fr);
+    gap: 24px;
+    padding: 30px;
+    align-items: start;
+}
+
+.presentation-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.presentation-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.presentation-badge.tone-soft {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #ff6a2b;
+}
+
+.presentation-hero-title {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.presentation-hero-domain {
+    margin: 10px 0 0;
+    color: #ff6a2b;
+    font-size: 16px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.presentation-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.presentation-meta-card {
+    padding: 16px;
+}
+
+.presentation-meta-card span {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.presentation-meta-card strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+    word-break: break-word;
+}
+
+.presentation-summary-card {
+    padding: 20px;
+    margin-top: 20px;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.presentation-summary-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ff6a2b;
+    margin-bottom: 10px;
+}
+
+.presentation-summary-text {
+    margin: 0;
+    color: #5f6d80;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.presentation-score-card {
+    padding: 24px;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    border: 1px solid #ffd8c6;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.presentation-score-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.presentation-score-value {
+    margin-top: 14px;
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ff6a2b;
+}
+
+.presentation-score-status {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #15233b;
+}
+
+.presentation-score-track {
+    margin-top: 18px;
+    width: 100%;
+    height: 12px;
+    background: #f0e2d9;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.presentation-score-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+}
+
+.presentation-score-note {
+    margin: 16px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.presentation-panel {
+    padding: 24px;
+}
+
+.presentation-panel-header {
+    margin-bottom: 16px;
+}
+
+.presentation-panel-header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.presentation-takeaway-grid,
+.presentation-kpi-grid,
+.presentation-action-grid,
+.presentation-deliverable-grid,
+.presentation-roadmap-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.presentation-takeaway-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.presentation-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.presentation-action-grid,
+.presentation-deliverable-grid,
+.presentation-roadmap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.presentation-takeaway-card,
+.presentation-kpi-card,
+.presentation-action-card,
+.presentation-roadmap-card,
+.presentation-deliverable-card {
+    padding: 20px;
+}
+
+.presentation-takeaway-title,
+.presentation-insight-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #16243c;
+    margin-bottom: 10px;
+}
+
+.presentation-takeaway-card p,
+.presentation-action-card p,
+.presentation-roadmap-card p,
+.presentation-deliverable-card p,
+.presentation-insight-card p,
+.presentation-query-card,
+.presentation-competitor-card,
+.presentation-closing-lead {
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.presentation-kpi-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.presentation-kpi-value {
+    margin-top: 10px;
+    font-size: 40px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.presentation-kpi-status {
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #15233b;
+}
+
+.presentation-kpi-note {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.tone-blue {
+    border-color: #dbeafe;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.tone-orange {
+    border-color: #ffe4d6;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+}
+
+.tone-purple {
+    border-color: #e9ddff;
+    background: linear-gradient(180deg, #fbf9ff 0%, #ffffff 100%);
+}
+
+.tone-green {
+    border-color: #d9f4df;
+    background: linear-gradient(180deg, #f8fdf9 0%, #ffffff 100%);
+}
+
+.presentation-two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.presentation-insight-stack,
+.presentation-bar-group,
+.presentation-query-list,
+.presentation-competitor-stack {
+    display: grid;
+    gap: 14px;
+}
+
+.presentation-insight-card,
+.presentation-query-card,
+.presentation-competitor-card,
+.presentation-closing-card {
+    padding: 18px;
+}
+
+.presentation-bar-item {
+    display: grid;
+    gap: 8px;
+}
+
+.presentation-bar-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #516072;
+}
+
+.presentation-bar-track {
+    width: 100%;
+    height: 10px;
+    background: #e9eef5;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.presentation-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.fill-blue {
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.fill-orange {
+    background: linear-gradient(90deg, #f97316, #fb923c);
+}
+
+.fill-purple {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+.fill-green {
+    background: linear-gradient(90deg, #16a34a, #4ade80);
+}
+
+.presentation-action-top {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.presentation-action-top h4,
+.presentation-roadmap-card h4,
+.presentation-deliverable-card h4 {
+    margin: 0;
+    font-size: 18px;
+    color: #16243c;
+}
+
+.presentation-priority {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.presentation-priority.high {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.presentation-priority.medium {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.presentation-priority.low {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.presentation-query-title,
+.presentation-competitor-query {
+    font-size: 15px;
+    font-weight: 800;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.presentation-query-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.presentation-query-competitors {
+    font-size: 13px;
+    color: #5f6d80;
+    line-height: 1.55;
+}
+
+.presentation-competitor-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.presentation-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #445366;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.presentation-roadmap-number {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #ff6a2b;
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.presentation-closing-panel {
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe3d6;
+}
+
+.presentation-closing-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.7fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.presentation-closing-lead {
+    margin: 0;
+    font-size: 16px;
+}
+
+.presentation-closing-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-top: 12px;
+}
+
+.presentation-closing-label:first-child {
+    margin-top: 0;
+}
+
+.presentation-closing-value {
+    margin-top: 4px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #16243c;
+    word-break: break-word;
+}
+
+.empty-state.compact {
+    padding: 18px;
+    border-radius: 18px;
+    background: #fafcff;
+    border: 1px dashed #d6dde8;
+}
+
+.empty-state.compact h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: #16243c;
+}
+
+.empty-state.compact p,
+.muted-text {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media print {
+    .no-print,
+    .app-sidebar,
+    .mobile-topbar,
+    .sidebar-overlay {
+        display: none !important;
+    }
+
+    .presentation-shell {
+        padding: 0;
+        gap: 14px;
+    }
+
+    .presentation-hero-card,
+    .presentation-panel,
+    .presentation-kpi-card,
+    .presentation-takeaway-card,
+    .presentation-action-card,
+    .presentation-roadmap-card,
+    .presentation-deliverable-card,
+    .presentation-query-card,
+    .presentation-competitor-card,
+    .presentation-closing-card,
+    .presentation-meta-card,
+    .presentation-summary-card,
+    .presentation-insight-card {
+        box-shadow: none;
+        break-inside: avoid;
+    }
+}
+
+@media (max-width: 1200px) {
+    .presentation-hero-card,
+    .presentation-two-col,
+    .presentation-closing-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .presentation-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .presentation-takeaway-grid,
+    .presentation-action-grid,
+    .presentation-deliverable-grid,
+    .presentation-roadmap-grid,
+    .presentation-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .presentation-shell {
+        padding: 18px;
+    }
+
+    .presentation-hero-card,
+    .presentation-panel,
+    .presentation-takeaway-card,
+    .presentation-kpi-card,
+    .presentation-action-card,
+    .presentation-roadmap-card,
+    .presentation-deliverable-card,
+    .presentation-query-card,
+    .presentation-competitor-card,
+    .presentation-closing-card,
+    .presentation-meta-card,
+    .presentation-summary-card,
+    .presentation-insight-card,
+    .presentation-score-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .presentation-hero-title {
+        font-size: 30px;
+    }
+
+    .presentation-kpi-grid,
+    .presentation-takeaway-grid,
+    .presentation-action-grid,
+    .presentation-deliverable-grid,
+    .presentation-roadmap-grid,
+    .presentation-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .presentation-score-value {
+        font-size: 50px;
+    }
+}
+</style>
 
 {% endblock %}

@@ -1,394 +1,237 @@
 {% extends "base.html" %}
-
-{% block title %}{{ client.name }} | Client Workspace{% endblock %}
-{% block page_title %}{{ client.name }}{% endblock %}
-{% block page_subtitle %}Client workspace for audits, competitor visibility, action planning, and content production.{% endblock %}
-
-{% block topbar_actions %}
-<a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary">Edit Client</a>
-<a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="btn btn-secondary">Presentation Mode</a>
-<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
-<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">Generate Brief</a>
-<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Draft</a>
-{% endblock %}
+{% block title %}Client Overview | AEO Agents{% endblock %}
 
 {% block content %}
+<div class="client-v2">
 
-{% set has_audit = client.latest_audit is not none %}
-{% set latest = client.latest_audit if has_audit else none %}
-{% set comparison = client.comparison if client.comparison else none %}
-{% set query_summary = client.query_comparison.summary if client.query_comparison and client.query_comparison.summary else none %}
+    <!-- Header -->
+    <section class="client-header-card">
+        <div class="client-header-top">
+            <div class="client-identity">
+                <div class="client-logo-mark">
+                    {{ (client.name[0] if client is defined and client.name else 'C')|upper }}
+                </div>
+                <div class="client-identity-copy">
+                    <span class="client-label">Client Overview</span>
+                    <h1>{{ client.name if client is defined and client.name else "Acme Dental" }}</h1>
+                    <p>
+                        {{ client.website if client is defined and client.website else "www.acmedental.com" }}
+                    </p>
+                </div>
+            </div>
 
-<section class="workspace-hero workspace-hero-premium">
-    <div class="workspace-hero-main workspace-hero-main-premium">
-        <div class="hero-label-row">
-            <span class="meta-chip">{{ client.industry or "N/A" }}</span>
-            <span class="meta-chip">{{ client.location or "N/A" }}</span>
-            <span class="meta-chip">{{ client.owner_type or "company" }}</span>
-            {% if has_audit %}
-            <span class="meta-chip">{{ latest.opportunity_level }}</span>
-            {% endif %}
+            <div class="client-header-actions">
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn-secondary">Run Audit Again</a>
+                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn-primary">Generate Content</a>
+            </div>
         </div>
 
-        <h2 class="workspace-client-name">{{ client.name }}</h2>
+        <div class="client-summary-grid">
+            <div class="client-score-card">
+                <span>Overall AEO Score</span>
+                <strong>{{ overall_score if overall_score is defined else 68 }}</strong>
+                <div class="mini-progress">
+                    <div class="mini-progress-fill" style="width: {{ overall_score if overall_score is defined else 68 }}%;"></div>
+                </div>
+            </div>
 
-        <p class="workspace-domain">
-            <a href="https://{{ client.website_normalized or client.website }}" target="_blank">{{ client.website }}</a>
+            <div class="client-stat-card">
+                <span>Industry</span>
+                <strong>{{ client.industry if client is defined and client.industry else "Healthcare" }}</strong>
+            </div>
+
+            <div class="client-stat-card">
+                <span>Last Audit</span>
+                <strong>{{ client.updated_at if client is defined and client.updated_at else "Today" }}</strong>
+            </div>
+
+            <div class="client-stat-card">
+                <span>Status</span>
+                <strong>{{ audit_status if audit_status is defined else "Active" }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <!-- Priority -->
+    <section class="client-priority-card">
+        <div class="priority-top">
+            <span class="priority-pill">Top Priority</span>
+        </div>
+        <h2>{{ top_priority_title if top_priority_title is defined else "Improve content coverage for high-intent questions" }}</h2>
+        <p>
+            {{ top_priority_text if top_priority_text is defined else "Your business is visible in some AI-generated answers, but important commercial questions are still not well covered on your site." }}
         </p>
+        <div class="priority-actions">
+            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn-primary full">Generate Content Brief</a>
+            <a href="{{ url_for('help_page') if url_for else '#' }}" class="btn-secondary full">Understand This Issue</a>
+        </div>
+    </section>
 
-        <div class="workspace-hero-summary">
-            {% if has_audit %}
-                {% if latest.normalized_score >= 70 %}
-                <p>
-                    Strong starting position. The next gains will likely come from expanding winning query patterns, improving coverage depth, and turning current visibility into broader answer-engine presence.
-                </p>
-                {% elif latest.normalized_score >= 50 %}
-                <p>
-                    Moderate position with clear upside. The brand has usable foundations, but there are still visible gaps in AI answer coverage, query targeting, and competitive differentiation.
-                </p>
-                {% else %}
-                <p>
-                    High-opportunity account. The brand is still being missed too often in answer results, which means the biggest gains are likely to come from better structure, better content targeting, and stronger brand-to-service alignment.
-                </p>
-                {% endif %}
+    <!-- Scores -->
+    <section class="client-section-card">
+        <div class="section-head">
+            <h3>Score Breakdown</h3>
+            <p>Simple view of what is strong and what needs work.</p>
+        </div>
+
+        <div class="score-stack">
+            <div class="score-row-card">
+                <div class="score-row-top">
+                    <span>AI Visibility</span>
+                    <strong>{{ visibility_score if visibility_score is defined else 72 }}</strong>
+                </div>
+                <div class="score-row-track">
+                    <div class="score-row-fill fill-blue" style="width: {{ visibility_pct if visibility_pct is defined else 72 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="score-row-card">
+                <div class="score-row-top">
+                    <span>Content Coverage</span>
+                    <strong>{{ content_score if content_score is defined else 61 }}</strong>
+                </div>
+                <div class="score-row-track">
+                    <div class="score-row-fill fill-orange" style="width: {{ content_pct if content_pct is defined else 61 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="score-row-card">
+                <div class="score-row-top">
+                    <span>Entity Strength</span>
+                    <strong>{{ entity_score if entity_score is defined else 57 }}</strong>
+                </div>
+                <div class="score-row-track">
+                    <div class="score-row-fill fill-green" style="width: {{ entity_pct if entity_pct is defined else 57 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="score-row-card">
+                <div class="score-row-top">
+                    <span>Trust Signals</span>
+                    <strong>{{ trust_score if trust_score is defined else 66 }}</strong>
+                </div>
+                <div class="score-row-track">
+                    <div class="score-row-fill fill-purple" style="width: {{ trust_pct if trust_pct is defined else 66 }}%;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Findings -->
+    <section class="client-section-card">
+        <div class="section-head">
+            <h3>What We Found</h3>
+            <p>Plain-language findings for busy business owners.</p>
+        </div>
+
+        <div class="finding-list">
+            <div class="finding-item warning">
+                <div class="finding-icon">!</div>
+                <div class="finding-copy">
+                    <strong>{{ finding_1_title if finding_1_title is defined else "Weak question coverage" }}</strong>
+                    <p>{{ finding_1_text if finding_1_text is defined else "Your site does not answer enough of the common questions customers ask before making a decision." }}</p>
+                </div>
+            </div>
+
+            <div class="finding-item neutral">
+                <div class="finding-icon">i</div>
+                <div class="finding-copy">
+                    <strong>{{ finding_2_title if finding_2_title is defined else "Moderate visibility in AI answers" }}</strong>
+                    <p>{{ finding_2_text if finding_2_text is defined else "Your brand appears occasionally, but stronger structured content could improve consistency." }}</p>
+                </div>
+            </div>
+
+            <div class="finding-item success">
+                <div class="finding-icon">+</div>
+                <div class="finding-copy">
+                    <strong>{{ finding_3_title if finding_3_title is defined else "Brand basics are present" }}</strong>
+                    <p>{{ finding_3_text if finding_3_text is defined else "Your business name, services, and some trust indicators are already visible, which gives you a good starting point." }}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recommended Actions -->
+    <section class="client-section-card">
+        <div class="section-head">
+            <h3>Recommended Actions</h3>
+            <p>What to do next, in order.</p>
+        </div>
+
+        <div class="action-list-v2">
+            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="action-step-card">
+                <div class="action-step-no">1</div>
+                <div class="action-step-copy">
+                    <strong>Create a content brief</strong>
+                    <p>Start with missing high-intent questions and service-related topics.</p>
+                </div>
+            </a>
+
+            <a href="{{ url_for('help_page') if url_for else '#' }}" class="action-step-card">
+                <div class="action-step-no">2</div>
+                <div class="action-step-copy">
+                    <strong>Improve trust signals</strong>
+                    <p>Add clearer service proof, FAQs, reviews, and location/service details.</p>
+                </div>
+            </a>
+
+            <a href="{{ url_for('new_audit') if url_for else '#' }}" class="action-step-card">
+                <div class="action-step-no">3</div>
+                <div class="action-step-copy">
+                    <strong>Re-run the audit</strong>
+                    <p>Measure whether visibility and coverage improve after updates.</p>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- Question Opportunities -->
+    <section class="client-section-card">
+        <div class="section-head">
+            <h3>Question Opportunities</h3>
+            <p>Topics your website should answer more clearly.</p>
+        </div>
+
+        <div class="opportunity-list">
+            {% if question_opportunities is defined and question_opportunities %}
+                {% for question in question_opportunities[:5] %}
+                <div class="opportunity-chip">{{ question }}</div>
+                {% endfor %}
             {% else %}
-                <p>
-                    No audit has been run yet. Start with a first audit to generate a baseline score, visibility findings, and recommended actions.
-                </p>
+                <div class="opportunity-chip">How much does the service cost?</div>
+                <div class="opportunity-chip">What makes this business different?</div>
+                <div class="opportunity-chip">Who is this service best for?</div>
+                <div class="opportunity-chip">How long does it take?</div>
+                <div class="opportunity-chip">Where is the business located?</div>
             {% endif %}
         </div>
+    </section>
 
-        {% if client.notes %}
-        <div class="workspace-notes workspace-notes-premium">
-            <div class="mini-heading">Client Notes</div>
-            <p>{{ client.notes }}</p>
-        </div>
-        {% endif %}
-    </div>
-
-    <div class="workspace-hero-side workspace-hero-side-premium">
-        <div class="summary-score-card summary-score-card-premium">
-            <div class="summary-score-label">Latest Readiness Score</div>
-            <div class="summary-score-value">
-                {% if has_audit %}
-                    {{ latest.normalized_score }}
-                {% else %}
-                    —
-                {% endif %}
-            </div>
-            <div class="summary-score-meta">
-                {% if has_audit %}
-                    {{ latest.opportunity_level }}
-                {% else %}
-                    No audit yet
-                {% endif %}
-            </div>
-
-            {% if has_audit %}
-            <div class="summary-score-helper">
-                Saved {{ latest.saved_at|pretty_datetime }}
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-<section class="stats-grid stats-grid-premium">
-    <div class="stat-card">
-        <div class="stat-label">Audit History</div>
-        <div class="stat-value">{{ client.audit_count }}</div>
-        <div class="stat-note">Saved reports linked to this client</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-label">AI Visibility</div>
-        <div class="stat-value">
-            {% if has_audit %}{{ latest.visibility_score }}{% else %}—{% endif %}
-        </div>
-        <div class="stat-note">Brand presence across tracked AI answers</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-label">Content Coverage</div>
-        <div class="stat-value">
-            {% if has_audit %}{{ latest.content_score }}{% else %}—{% endif %}
-        </div>
-        <div class="stat-note">How well the site covers target intents</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-label">Technical Readiness</div>
-        <div class="stat-value">
-            {% if has_audit %}{{ latest.schema_score }}{% else %}—{% endif %}
-        </div>
-        <div class="stat-note">Machine-readable structure and support</div>
-    </div>
-</section>
-
-<section class="workspace-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Latest Audit Snapshot</h2>
-                <p class="panel-subtitle">Quick executive view of the most recent audit result.</p>
-            </div>
+    <!-- Recent Content / Outputs -->
+    <section class="client-section-card">
+        <div class="section-head">
+            <h3>Recent Outputs</h3>
+            <p>Your latest generated materials for this client.</p>
         </div>
 
-        {% if has_audit %}
-        <div class="info-list">
-            <div class="info-row">
-                <span>Audit Type</span>
-                <strong>{{ latest.audit_type }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Saved At</span>
-                <strong>{{ latest.saved_at|pretty_datetime }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Verdict</span>
-                <strong>{{ latest.verdict }}</strong>
-            </div>
-            <div class="info-row">
-                <span>Opportunity Level</span>
-                <strong>{{ latest.opportunity_level }}</strong>
-            </div>
-        </div>
-
-        <div class="card-actions">
-            <a href="{{ url_for('audit_summary', summary_filename=latest.filename) }}" class="btn btn-secondary">Open Summary</a>
-            <a href="{{ url_for('audit_full', summary_filename=latest.filename) }}" class="btn btn-secondary">Open Full Audit</a>
-        </div>
-        {% else %}
-        <div class="empty-state compact">
-            <h3>No audit yet</h3>
-            <p>Run the first audit to generate visibility analysis and action recommendations.</p>
-            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run First Audit</a>
-        </div>
-        {% endif %}
-    </div>
-
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Performance Change</h2>
-                <p class="panel-subtitle">Compare the latest audit against the previous audit.</p>
-            </div>
-        </div>
-
-        {% if comparison %}
-        <div class="delta-grid">
-            <div class="delta-box">
-                <div class="delta-label">Normalized</div>
-                <div class="delta-value {% if comparison.normalized_delta > 0 %}positive{% elif comparison.normalized_delta < 0 %}negative{% endif %}">
-                    {{ "+" if comparison.normalized_delta > 0 else "" }}{{ comparison.normalized_delta }}
-                </div>
-            </div>
-            <div class="delta-box">
-                <div class="delta-label">Visibility</div>
-                <div class="delta-value {% if comparison.visibility_delta > 0 %}positive{% elif comparison.visibility_delta < 0 %}negative{% endif %}">
-                    {{ "+" if comparison.visibility_delta > 0 else "" }}{{ comparison.visibility_delta }}
-                </div>
-            </div>
-            <div class="delta-box">
-                <div class="delta-label">Content</div>
-                <div class="delta-value {% if comparison.content_delta > 0 %}positive{% elif comparison.content_delta < 0 %}negative{% endif %}">
-                    {{ "+" if comparison.content_delta > 0 else "" }}{{ comparison.content_delta }}
-                </div>
-            </div>
-            <div class="delta-box">
-                <div class="delta-label">Schema</div>
-                <div class="delta-value {% if comparison.schema_delta > 0 %}positive{% elif comparison.schema_delta < 0 %}negative{% endif %}">
-                    {{ "+" if comparison.schema_delta > 0 else "" }}{{ comparison.schema_delta }}
-                </div>
-            </div>
-        </div>
-
-        <div class="comparison-banner {{ comparison.overall_change }}">
-            Overall trend: <strong>{{ comparison.overall_change|capitalize }}</strong>
-        </div>
-        {% else %}
-        <div class="empty-state compact">
-            <h3>No comparison yet</h3>
-            <p>A second audit is needed before trend comparison can be shown.</p>
-        </div>
-        {% endif %}
-    </div>
-</section>
-
-<section class="workspace-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Query-Level Snapshot</h2>
-                <p class="panel-subtitle">How tracked queries are moving over time.</p>
-            </div>
-            <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="text-link">Open Visibility Page</a>
-        </div>
-
-        {% if client.query_comparison and client.query_comparison.rows %}
-        <div class="mini-metrics">
-            <div class="mini-metric">
-                <span>Total Queries</span>
-                <strong>{{ query_summary.total_queries }}</strong>
-            </div>
-            <div class="mini-metric">
-                <span>Improved</span>
-                <strong>{{ query_summary.improved }}</strong>
-            </div>
-            <div class="mini-metric">
-                <span>Declined</span>
-                <strong>{{ query_summary.declined }}</strong>
-            </div>
-            <div class="mini-metric">
-                <span>Missed Brand Mentions</span>
-                <strong>{{ query_summary.missed_brand_mentions }}</strong>
-            </div>
-        </div>
-
-        <div class="simple-table">
-            <div class="simple-table-row head">
-                <div>Query</div>
-                <div>Brand Mentioned</div>
-                <div>Delta</div>
-                <div>Status</div>
-            </div>
-            {% for row in client.query_comparison.rows[:6] %}
-            <div class="simple-table-row">
-                <div>{{ row.query }}</div>
-                <div>{{ "Yes" if row.latest_brand_mentioned else "No" }}</div>
-                <div>{{ "+" if row.score_delta > 0 else "" }}{{ row.score_delta }}</div>
+        <div class="output-list">
+            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="output-item">
                 <div>
-                    <span class="status-pill {{ row.change_type }}">{{ row.change_type|capitalize }}</span>
+                    <strong>Content Brief</strong>
+                    <p>Missing service questions for conversion-focused pages</p>
                 </div>
-            </div>
-            {% endfor %}
+                <span>Open</span>
+            </a>
+
+            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="output-item">
+                <div>
+                    <strong>Draft Article</strong>
+                    <p>FAQ-style content to improve AI answer coverage</p>
+                </div>
+                <span>Open</span>
+            </a>
         </div>
-        {% else %}
-        <div class="empty-state compact">
-            <h3>No query comparison data yet</h3>
-            <p>Query-level movement will appear after more audit data becomes available.</p>
-        </div>
-        {% endif %}
-    </div>
+    </section>
 
-    <div class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Recommended Actions</h2>
-                <p class="panel-subtitle">Priority next steps generated from the latest audit data.</p>
-            </div>
-            <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="text-link">Open Actions</a>
-        </div>
-
-        {% if client.recommended_actions %}
-        <div class="action-list">
-            {% for action in client.recommended_actions[:5] %}
-            <div class="action-card">
-                <div class="action-card-top">
-                    <span class="priority-badge {{ action.priority }}">{{ action.priority|capitalize }}</span>
-                    <h3>{{ action.title }}</h3>
-                </div>
-                <p><strong>Issue:</strong> {{ action.issue }}</p>
-                <p><strong>Recommended:</strong> {{ action.recommended_action }}</p>
-                <p class="muted-text"><strong>Support signal:</strong> {{ action.support_signal }}</p>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state compact">
-            <h3>No recommendations yet</h3>
-            <p>Run an audit to generate a priority action plan.</p>
-        </div>
-        {% endif %}
-    </div>
-</section>
-
-<section class="panel workspace-nav-panel">
-    <div class="panel-header">
-        <div>
-            <h2>Workspace Navigation</h2>
-            <p class="panel-subtitle">Open focused views for analysis, reporting, and content execution.</p>
-        </div>
-    </div>
-
-    <div class="workspace-links-grid-premium">
-        <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="workspace-link-card featured">
-            <div class="workspace-link-icon">✦</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>Presentation Mode</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>Open the client-facing presentation view for meetings, walkthroughs, and PDF export.</p>
-            </div>
-        </a>
-
-        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="workspace-link-card">
-            <div class="workspace-link-icon">◎</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>Visibility</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>See query-level brand mention changes and visibility movement over time.</p>
-            </div>
-        </a>
-
-        <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="workspace-link-card">
-            <div class="workspace-link-icon">◈</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>Competitors</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>Review competitor mentions and compare where rival brands are being surfaced.</p>
-            </div>
-        </a>
-
-        <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="workspace-link-card">
-            <div class="workspace-link-icon">✓</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>Actions</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>Turn audit findings into clear next-step improvements and priorities.</p>
-            </div>
-        </a>
-
-        <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="workspace-link-card">
-            <div class="workspace-link-icon">↺</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>History</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>Track score movement, verdict changes, and audit evolution over time.</p>
-            </div>
-        </a>
-
-        <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="workspace-link-card">
-            <div class="workspace-link-icon">B</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>Content Brief</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>Create a brief from missed or high-value target queries.</p>
-            </div>
-        </a>
-
-        <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="workspace-link-card">
-            <div class="workspace-link-icon">D</div>
-            <div class="workspace-link-body">
-                <div class="workspace-link-top">
-                    <h3>Content Draft</h3>
-                    <span class="workspace-link-arrow">→</span>
-                </div>
-                <p>Generate first-draft content tied to high-opportunity visibility gaps.</p>
-            </div>
-        </a>
-    </div>
-</section>
-
+</div>
 {% endblock %}

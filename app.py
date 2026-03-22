@@ -7,7 +7,9 @@ from flask import (
     redirect,
     url_for,
     flash,
+    session,
 )
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager,
@@ -29,7 +31,12 @@ from help_content import HELP_GLOSSARY
 from content_queue import (
     add_queue_item,
     get_queue_items,
+    get_queue_item_by_id,
     update_queue_item_status,
+    update_queue_item_content,
+    get_client_progress,
+    get_next_action,
+    create_queue_item_from_audit_opportunity,
 )
 
 app = Flask(__name__)
@@ -724,7 +731,56 @@ def refund_credits(user, amount, tx_type="refund", notes=""):
 def user_has_unlimited_credits(user):
     if not user:
         return False
+
+    if user.email == "pypteltd@gmail.com":
+        return True
+
     return user.role == "admin" or user.plan == "dev_unlimited"
+
+def get_view_mode(user):
+    forced_mode = session.get("dev_view_mode")
+    if forced_mode in ["single", "multi", "admin"]:
+        return forced_mode
+
+    if not user:
+        return "single"
+
+    if user.role == "admin" or user.plan == "dev_unlimited":
+        return "admin"
+
+    if user.is_white_label_enabled:
+        return "multi"
+
+    return "single"
+
+@app.route("/dev/view-mode/<mode>")
+@login_required
+def dev_set_view_mode(mode):
+    if current_user.email != "pypteltd@gmail.com" and current_user.role != "admin":
+        abort(403)
+
+    if mode not in ["single", "multi", "admin", "auto"]:
+        abort(404)
+
+    if mode == "auto":
+        session.pop("dev_view_mode", None)
+    else:
+        session["dev_view_mode"] = mode
+
+    return redirect(request.referrer or url_for("index"))
+
+def require_internal_access():
+    if not current_user.is_authenticated:
+        abort(403)
+
+    if current_user.role == "admin" or current_user.plan == "dev_unlimited":
+        return
+
+    # allow your dev email
+    if current_user.email == "pypteltd@gmail.com":
+        return
+
+    abort(403)
 
 def spend_credits(user, amount, tx_type="usage", notes=""):
     wallet = user.wallet
@@ -799,9 +855,19 @@ def award_referral_if_qualified(user):
 # =========================
 
 @app.route("/help")
+@login_required
 def help_page():
     return render_template("help.html", glossary=HELP_GLOSSARY)
 
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return redirect(url_for("index"))
+
+@app.route("/pricing")
+@login_required
+def pricing_page():
+    return render_template("pricing.html")
 
 @app.route("/")
 @login_required
@@ -816,7 +882,7 @@ def index():
     audits = sort_audits(audits, sort_by=sort_by, order=order)
 
     return render_template(
-        "index.html",
+        "dashboard.html",
         audits=audits,
         total_audits=len(all_audits),
         search_term=search_term,
@@ -831,6 +897,13 @@ def index():
 def clients_page():
     return render_template("clients.html", clients=build_client_views())
 
+@app.route("/client/<client_id>/report")
+@login_required
+def report_page(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+    return render_template("report_page.html", client=client)
 
 @app.route("/clients/new", methods=["GET", "POST"])
 @login_required
@@ -865,7 +938,6 @@ def create_client():
         return redirect(url_for("client_detail", client_id=client["id"]))
 
     return render_template("client_form.html", error=None, form_data={}, mode="create", client=None)
-
 
 @app.route("/client/<client_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -1131,6 +1203,43 @@ def generate_client_content_brief(client_id):
     }
     return render_template("content_brief_form.html", client=client, error=None, form_data=form_data)
 
+@app.route("/generate-brief/<item_id>")
+@login_required
+def generate_brief_from_queue(item_id):
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+
+    if not item:
+        flash("Queue item not found.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    try:
+        brief = generate_content_brief(
+            client_name=item.get("client_name", ""),
+            website=item.get("website", ""),
+            industry=item.get("industry", ""),
+            location=item.get("location", ""),
+            target_query=item.get("target_query", ""),
+            content_type=item.get("content_type", "service_page"),
+            brand_context=item.get("brand_context", ""),
+        )
+
+        updated_item = update_queue_item_content(
+            item_id,
+            content=brief,
+            status="brief_generated",
+            user_id=current_user.id,
+        )
+
+        if not updated_item:
+            flash("Brief was generated but could not be saved to the queue item.", "error")
+            return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
+
+        flash("Brief generated successfully.", "success")
+        return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
+
+    except Exception as e:
+        flash(f"Failed to generate brief: {str(e)}", "error")
+        return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
 
 @app.route("/client/<client_id>/content-draft", methods=["GET", "POST"])
 @login_required
@@ -1199,6 +1308,8 @@ def generate_client_content_draft(client_id):
 @app.route("/audit/<summary_filename>")
 @login_required
 def audit_summary(summary_filename):
+    require_internal_access()   # 👈 ADD THIS LINE
+
     summary_path = get_summary_path(summary_filename)
     if not summary_path:
         abort(404)
@@ -1211,6 +1322,8 @@ def audit_summary(summary_filename):
 @app.route("/audit/<summary_filename>/full")
 @login_required
 def audit_full(summary_filename):
+    require_internal_access()   # 👈 ADD THIS LINE
+
     full_path = get_full_path(summary_filename)
     if not full_path:
         abort(404)
@@ -1256,18 +1369,31 @@ def client_history_page(client_id):
     return render_template("client_history.html", client=client)
 
 
+@app.route("/content")
 @app.route("/content-queue")
 @login_required
 def content_queue_page():
     client_id = request.args.get("client_id", "").strip()
-    items = get_queue_items(client_id=client_id if client_id else None, user_id=current_user.id)
-    return render_template("content_queue.html", items=items, selected_client_id=client_id)
+    selected_client_id = client_id if client_id else None
 
+    items = get_queue_items(
+        client_id=selected_client_id,
+        user_id=current_user.id,
+    )
+
+    for item in items:
+        item["next_action"] = get_next_action(item)
+
+    return render_template(
+        "content_queue.html",
+        queue_items=items,
+        selected_client_id=selected_client_id,
+    )
 
 @app.route("/content-queue/<item_id>/status", methods=["POST"])
 @login_required
 def update_content_queue_status(item_id):
-    new_status = request.form.get("status", "new").strip()
+    new_status = request.form.get("status", "pending").strip()
     item = update_queue_item_status(item_id, new_status, user_id=current_user.id)
 
     if not item:
@@ -1300,10 +1426,11 @@ def save_generated_brief(client_id):
         item_type="brief",
         title=title,
         content=brief_text,
-        status="new",
+        status="brief_generated",
+        priority="medium",
+        source="manual",
         user_id=current_user.id,
     )
-
     flash("Brief saved to content queue.")
     return redirect(url_for("content_queue_page", client_id=client.get("id")))
 
@@ -1328,13 +1455,14 @@ def save_generated_draft(client_id):
         item_type="draft",
         title=title,
         content=draft_text,
-        status="new",
+        status="draft_generated",
+        priority="medium",
+        source="manual",
         user_id=current_user.id,
     )
 
     flash("Draft saved to content queue.")
     return redirect(url_for("content_queue_page", client_id=client.get("id")))
-
 
 # =========================
 # API routes
@@ -1361,6 +1489,10 @@ def api_clients():
     clients = build_client_views()
     return jsonify({"count": len(clients), "items": clients})
 
+@app.route("/content/brief/new")
+@login_required
+def generate_content_brief_page():
+    return redirect(url_for("content_queue_page"))
 
 @app.route("/api/client/<client_id>")
 @login_required
@@ -1434,6 +1566,11 @@ def client_growth_plan(client_id):
         audit_count=full_client.get("audit_count", 0),
     )
         
+@app.route("/audit/new")
+@login_required
+def new_audit():
+    return redirect(url_for("clients_page"))
+
 @app.route("/api/audit/<summary_filename>/full")
 @login_required
 def api_audit_full(summary_filename):
@@ -1465,9 +1602,12 @@ def pretty_datetime(value):
 def inject_template_globals():
     wallet_balance = 0
     has_unlimited_credits = False
+    view_mode = "single"
 
     if current_user.is_authenticated:
         has_unlimited_credits = user_has_unlimited_credits(current_user)
+        view_mode = get_view_mode(current_user)
+
         if has_unlimited_credits:
             wallet_balance = "Unlimited"
         elif getattr(current_user, "wallet", None):
@@ -1477,11 +1617,53 @@ def inject_template_globals():
         "HELP_GLOSSARY": HELP_GLOSSARY,
         "wallet_balance": wallet_balance,
         "has_unlimited_credits": has_unlimited_credits,
+        "view_mode": view_mode,
     }
 
 @app.route("/aeo-agency")
 def aeo_agency_page():
     return render_template("landing_aeo.html")
+
+def render_settings_section(section_name: str):
+    return render_template(
+        "settings.html",
+        active_settings_section=section_name
+    )
+
+@app.route("/settings")
+@login_required
+def settings_page():
+    return render_settings_section("profile")
+
+@app.route("/settings/account")
+@login_required
+def settings_account():
+    return render_settings_section("account")
+
+@app.route("/settings/billing")
+@login_required
+def settings_billing():
+    return render_settings_section("billing")
+
+@app.route("/settings/credits")
+@login_required
+def settings_credits():
+    return render_settings_section("credits")
+
+@app.route("/settings/referrals")
+@login_required
+def settings_referrals():
+    return render_settings_section("referrals")
+
+@app.route("/settings/preferences")
+@login_required
+def settings_preferences():
+    return render_settings_section("preferences")
+
+@app.route("/settings/team")
+@login_required
+def settings_team():
+    return render_settings_section("team")
 
 if __name__ == "__main__":
     ensure_data_dirs()
