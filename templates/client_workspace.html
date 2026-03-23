@@ -41,8 +41,15 @@
             <div class="workspace-hero-actions">
                 <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run New Audit</a>
                 <a href="{{ url_for('client_growth_plan', client_id=client.id) }}" class="btn btn-secondary">Open Growth Plan</a>
-                <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="btn btn-secondary">Presentation View</a>
+            {% if can_use_presentation_mode %}
+            <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="btn btn-secondary">
+                Presentation View
+            </a>
+            {% else %}
+            <div class="feature-note">
+                Presentation view is available for agency workspaces.
             </div>
+            {% endif %}            </div>
         </div>
 
         <div class="workspace-score-card">
@@ -272,7 +279,7 @@
 .workspace-badge-primary {
     background: #fff2ea;
     border-color: #ffd8c6;
-    color: #ff6a2b;
+    color: #E83256;
 }
 
 .workspace-hero-main h1 {
@@ -285,7 +292,7 @@
 
 .workspace-subcopy {
     margin: 10px 0 0;
-    color: #ff6a2b;
+    color: #E83256;
     font-size: 15px;
     font-weight: 700;
     word-break: break-word;
@@ -324,7 +331,7 @@
     font-size: 60px;
     line-height: 1;
     font-weight: 800;
-    color: #ff6a2b;
+    color: #E83256;
 }
 
 .workspace-score-track {
@@ -339,7 +346,7 @@
 .workspace-score-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #ff6a2b, #ff8b57);
+    background: linear-gradient(90deg, #E83256, #ff8b57);
 }
 
 .workspace-score-note {
@@ -378,7 +385,7 @@
     padding: 8px 12px;
     border-radius: 999px;
     background: #fff2ea;
-    color: #ff6a2b;
+    color: #E83256;
     font-size: 12px;
     font-weight: 800;
 }
@@ -542,7 +549,7 @@
     padding: 8px 12px;
     border-radius: 999px;
     background: #fff2ea;
-    color: #ff6a2b;
+    color: #E83256;
     font-size: 13px;
     font-weight: 800;
 }

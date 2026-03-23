@@ -2,7 +2,7 @@
 
 {% block title %}{{ client.name }} | Content Draft{% endblock %}
 {% block page_title %}{{ client.name }} · Content Draft{% endblock %}
-{% block page_subtitle %}Generate a first draft for a target query using brand context and optional brief context. This uses 2 credits.{% endblock %}
+{% block page_subtitle %}Generate a first draft from a target query with optional brief and brand context.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
@@ -12,38 +12,12 @@
 
 <section class="draft-generator-shell">
 
-    <section class="draft-generator-hero">
-        <div class="draft-generator-hero-copy">
-            <div class="hero-badge-row">
-                <span class="hero-badge hero-badge-primary">Draft Generator</span>
-                <span class="hero-badge">2 Credits</span>
-                <span class="hero-badge">Client Linked</span>
-                <span class="hero-badge">Execution Ready</span>
-            </div>
-
-            <h1>Turn a visibility opportunity into a usable first draft.</h1>
-            <p>
-                Use this when you are ready to move from strategy into execution.
-                Add the target query, include brief context if available, and provide brand details so the draft reflects the client more accurately.
-            </p>
-        </div>
-
-        <div class="draft-generator-hero-card">
-            <span class="hero-card-label">Best Workflow</span>
-            <strong class="hero-card-value">Brief first, draft second</strong>
-            <p class="hero-card-text">
-                Draft quality is usually stronger when you start with a clear brief, then use that structure as context here.
-            </p>
-        </div>
-    </section>
-
     <section class="draft-generator-grid">
-
         <div class="panel panel-main">
             <div class="panel-header">
                 <div>
                     <h2>Draft Generator</h2>
-                    <p class="panel-subtitle">Use this when you are ready to turn a target query into usable content.</p>
+                    <p class="panel-subtitle">This uses 2 credits and creates a usable first draft tied to a target query.</p>
                 </div>
             </div>
 
@@ -57,11 +31,9 @@
                 <input type="hidden" name="action_mode" value="generate">
 
                 <div class="form-grid-2">
+
                     <div class="form-field form-field-full">
                         <label for="target_query">Target Query</label>
-                        <p class="field-help">
-                            Use a specific query that reflects a real customer question, competitor comparison, service intent, or visibility opportunity.
-                        </p>
                         <input
                             type="text"
                             id="target_query"
@@ -74,9 +46,6 @@
 
                     <div class="form-field">
                         <label for="content_type">Content Type</label>
-                        <p class="field-help">
-                            Choose the page format that best matches the intent behind the query.
-                        </p>
                         <select id="content_type" name="content_type">
                             <option value="service_page" {% if form_data and form_data.get('content_type') == 'service_page' %}selected{% endif %}>Service Page</option>
                             <option value="blog_post" {% if form_data and form_data.get('content_type') == 'blog_post' %}selected{% endif %}>Blog Post</option>
@@ -88,28 +57,22 @@
                     </div>
 
                     <div class="form-field form-field-full">
-                        <label for="brief_context">Brief Context</label>
-                        <p class="field-help">
-                            Paste a generated brief, outline, or content plan here if available. This usually improves the structure and direction of the draft.
-                        </p>
+                        <label for="brief_context">Brief Context <span class="optional-label">Optional</span></label>
                         <textarea
                             id="brief_context"
                             name="brief_context"
-                            rows="7"
-                            placeholder="Paste a generated brief or outline here."
+                            rows="6"
+                            placeholder="Paste a generated brief or outline here if available."
                         >{{ form_data.get('brief_context', '') if form_data else '' }}</textarea>
                     </div>
 
                     <div class="form-field form-field-full">
-                        <label for="brand_context">Brand Context</label>
-                        <p class="field-help">
-                            Add positioning, offer details, audience fit, location angle, proof points, tone, pricing context, or differentiators.
-                        </p>
+                        <label for="brand_context">Brand Context <span class="optional-label">Optional</span></label>
                         <textarea
                             id="brand_context"
                             name="brand_context"
-                            rows="7"
-                            placeholder="Example: premium positioning, serves service businesses in Singapore, faster turnaround than competitors, focuses on AI visibility rather than traditional SEO only."
+                            rows="6"
+                            placeholder="Add positioning, offer details, audience fit, location angle, proof points, tone, pricing context, or differentiators."
                         >{{ form_data.get('brand_context', '') if form_data else '' }}</textarea>
                     </div>
                 </div>
@@ -122,75 +85,46 @@
         </div>
 
         <aside class="side-stack">
-
             <div class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Drafting Tips</h2>
-                        <p class="panel-subtitle">How to get a stronger first draft.</p>
-                    </div>
-                </div>
-
-                <div class="tips-list">
-                    <div class="tip-item">Use a specific target query, not a vague broad topic.</div>
-                    <div class="tip-item">Paste a brief first when possible so the draft has better structure.</div>
-                    <div class="tip-item">Add differentiators, trust proof, tone, pricing angle, and audience context.</div>
-                    <div class="tip-item">Use Comparison Page when trying to counter competitors directly.</div>
-                    <div class="tip-item">Use FAQ Page or Guide when the query is more informational and broad.</div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Best Use Cases</h2>
-                        <p class="panel-subtitle">When this generator is usually the right next move.</p>
-                    </div>
-                </div>
-
-                <div class="info-list">
-                    <div class="info-card">
-                        <h3>Missed brand mention</h3>
-                        <p>You already know the query and want to publish content that helps the brand appear in answer scenarios.</p>
-                    </div>
-
-                    <div class="info-card">
-                        <h3>Brief approved</h3>
-                        <p>The brief is already clear and the team is ready to move into draft creation.</p>
-                    </div>
-
-                    <div class="info-card">
-                        <h3>Comparison opportunity</h3>
-                        <p>You want a first draft for a competitor or alternative-comparison page quickly.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Suggested Inputs</h2>
-                        <p class="panel-subtitle">Tracked queries can be a good starting point.</p>
+                        <h2>Quick Inputs</h2>
+                        <p class="panel-subtitle">Tap a suggested query to use it as a starting point.</p>
                     </div>
                 </div>
 
                 <div class="chip-cluster">
-                    {% if client.query_comparison and client.query_comparison.rows %}
-                        {% for row in client.query_comparison.rows[:6] %}
-                        <span class="meta-chip">{{ row.query }}</span>
+                    {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
+                        {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
+                        <button
+                            type="button"
+                            class="meta-chip chip-button"
+                            data-query="{{ row.get('query', '') }}"
+                            onclick="fillDraftQuery(this.dataset.query)">
+                            {{ row.get('query', '') }}
+                        </button>
                         {% endfor %}
                     {% else %}
-                        <span class="meta-chip">aeo vs seo</span>
-                        <span class="meta-chip">what is answer engine optimization</span>
-                        <span class="meta-chip">best ai visibility tool</span>
+                        <button type="button" class="meta-chip chip-button" onclick="fillDraftQuery('aeo vs seo')">aeo vs seo</button>
+                        <button type="button" class="meta-chip chip-button" onclick="fillDraftQuery('what is answer engine optimization')">what is answer engine optimization</button>
+                        <button type="button" class="meta-chip chip-button" onclick="fillDraftQuery('best ai visibility tool')">best ai visibility tool</button>
                     {% endif %}
                 </div>
             </div>
-
         </aside>
     </section>
 
 </section>
+
+<script>
+function fillDraftQuery(value) {
+    const input = document.getElementById('target_query');
+    if (input) {
+        input.value = value;
+        input.focus();
+    }
+}
+</script>
 
 <style>
 .draft-generator-shell {
@@ -199,99 +133,17 @@
     gap: 24px;
 }
 
-.draft-generator-hero,
 .panel,
-.info-card,
-.draft-generator-hero-card,
-.tip-item {
+.comparison-banner {
     background: #ffffff;
     border: 1px solid #e7ebf3;
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.draft-generator-hero {
-    padding: 30px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.72fr);
-    gap: 24px;
-    align-items: stretch;
-}
-
-.hero-badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.hero-badge-primary {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #ff6a2b;
-}
-
-.draft-generator-hero-copy h1 {
-    margin: 0;
-    font-size: 38px;
-    line-height: 1.08;
-    font-weight: 800;
-    color: #15233b;
-    max-width: 760px;
-}
-
-.draft-generator-hero-copy p {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
-    color: #617084;
-    max-width: 760px;
-}
-
-.draft-generator-hero-card {
-    padding: 22px;
-    border-color: #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-}
-
-.hero-card-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 800;
-    color: #6b7280;
-    margin-bottom: 10px;
-}
-
-.hero-card-value {
-    display: block;
-    font-size: 30px;
-    line-height: 1.15;
-    font-weight: 800;
-    color: #ff6a2b;
-}
-
-.hero-card-text {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
 .draft-generator-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
     gap: 24px;
     align-items: start;
 }
@@ -349,11 +201,11 @@
     color: #16243c;
 }
 
-.field-help {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #6b7280;
+.optional-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-left: 6px;
 }
 
 .form-field input,
@@ -373,7 +225,7 @@
 .form-field select:focus,
 .form-field textarea:focus {
     outline: none;
-    border-color: #ff6a2b;
+    border-color: #E83256;
     box-shadow: 0 0 0 4px rgba(255, 106, 43, 0.12);
 }
 
@@ -386,40 +238,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-}
-
-.tips-list,
-.info-list {
-    display: grid;
-    gap: 14px;
-}
-
-.tip-item {
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.info-card {
-    padding: 18px;
-}
-
-.info-card h3 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.info-card p {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
 }
 
 .chip-cluster {
@@ -440,8 +258,16 @@
     font-weight: 700;
 }
 
+.chip-button {
+    cursor: pointer;
+}
+
+.chip-button:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+}
+
 @media (max-width: 1200px) {
-    .draft-generator-hero,
     .draft-generator-grid {
         grid-template-columns: 1fr;
     }
@@ -452,17 +278,9 @@
         padding: 18px;
     }
 
-    .draft-generator-hero,
-    .panel,
-    .info-card,
-    .draft-generator-hero-card,
-    .tip-item {
+    .panel {
         padding: 18px;
         border-radius: 20px;
-    }
-
-    .draft-generator-hero-copy h1 {
-        font-size: 30px;
     }
 
     .form-grid-2 {

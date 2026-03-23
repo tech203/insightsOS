@@ -2,79 +2,64 @@
 {% block title %}Client Overview | AEO Agents{% endblock %}
 
 {% block content %}
-<div class="client-v2">
+<div class="client-v4">
 
-    <!-- Header -->
-    <section class="client-header-card">
-        <div class="client-header-top">
-            <div class="client-identity">
-                <div class="client-logo-mark">
-                    {{ (client.name[0] if client is defined and client.name else 'C')|upper }}
-                </div>
-                <div class="client-identity-copy">
-                    <span class="client-label">Client Overview</span>
-                    <h1>{{ client.name if client is defined and client.name else "Acme Dental" }}</h1>
-                    <p>
-                        {{ client.website if client is defined and client.website else "www.acmedental.com" }}
-                    </p>
-                </div>
+    {% set has_audit = visibility_score is defined or content_score is defined or entity_score is defined or trust_score is defined %}
+
+    <section class="client-hero-card">
+        <div class="client-identity">
+            <div class="client-logo-mark">
+                {{ (client.name[0] if client is defined and client.name else 'C')|upper }}
             </div>
 
-            <div class="client-header-actions">
-                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn-secondary">Run Audit Again</a>
-                <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn-primary">Generate Content</a>
+            <div class="client-identity-copy">
+                <div class="client-meta-row">
+                    {% if client is defined and client.industry %}
+                    <span class="client-chip">{{ client.industry }}</span>
+                    {% endif %}
+                    {% if client is defined and client.location %}
+                    <span class="client-chip">{{ client.location }}</span>
+                    {% endif %}
+                    <span class="client-chip">AEO Audit</span>
+                </div>
+
+                <h1>{{ client.name if client is defined and client.name else "Client Workspace" }}</h1>
+
+                {% if client is defined and client.website %}
+                <p class="client-website">{{ client.website }}</p>
+                {% endif %}
             </div>
         </div>
 
-        <div class="client-summary-grid">
-            <div class="client-score-card">
-                <span>Overall AEO Score</span>
-                <strong>{{ overall_score if overall_score is defined else 68 }}</strong>
-                <div class="mini-progress">
-                    <div class="mini-progress-fill" style="width: {{ overall_score if overall_score is defined else 68 }}%;"></div>
-                </div>
+        <div class="priority-strip strong">
+            <div class="priority-strip-copy">
+                <span class="priority-label">Top Priority</span>
+                <h2>{{ top_priority_title if top_priority_title is defined else "Improve content coverage for high-intent questions" }}</h2>
+                <p>
+                    {{ top_priority_text if top_priority_text is defined else "Your business is visible in some AI-generated answers, but important commercial questions are still not well covered on your site." }}
+                </p>
             </div>
 
-            <div class="client-stat-card">
-                <span>Industry</span>
-                <strong>{{ client.industry if client is defined and client.industry else "Healthcare" }}</strong>
-            </div>
-
-            <div class="client-stat-card">
-                <span>Last Audit</span>
-                <strong>{{ client.updated_at if client is defined and client.updated_at else "Today" }}</strong>
-            </div>
-
-            <div class="client-stat-card">
-                <span>Status</span>
-                <strong>{{ audit_status if audit_status is defined else "Active" }}</strong>
+            <div class="priority-strip-actions">
+                {% if not has_audit %}
+                    <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary btn-block">Run First Audit</a>
+                {% else %}
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id) if url_for else '#' }}" class="btn btn-primary btn-block">Generate Content Brief</a>
+                    <a href="{{ url_for('client_actions_page', client_id=client.id) if url_for else '#' }}" class="btn btn-secondary btn-block">View Action Plan</a>
+                {% endif %}
             </div>
         </div>
     </section>
 
-    <!-- Priority -->
-    <section class="client-priority-card">
-        <div class="priority-top">
-            <span class="priority-pill">Top Priority</span>
-        </div>
-        <h2>{{ top_priority_title if top_priority_title is defined else "Improve content coverage for high-intent questions" }}</h2>
-        <p>
-            {{ top_priority_text if top_priority_text is defined else "Your business is visible in some AI-generated answers, but important commercial questions are still not well covered on your site." }}
-        </p>
-        <div class="priority-actions">
-            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn-primary full">Generate Content Brief</a>
-            <a href="{{ url_for('help_page') if url_for else '#' }}" class="btn-secondary full">Understand This Issue</a>
-        </div>
-    </section>
-
-    <!-- Scores -->
     <section class="client-section-card">
-        <div class="section-head">
-            <h3>Score Breakdown</h3>
-            <p>Simple view of what is strong and what needs work.</p>
+        <div class="section-head compact">
+            <div>
+                <h3>Score Snapshot</h3>
+                <p>Simple view of what is strong and what needs work.</p>
+            </div>
         </div>
 
-        <div class="score-stack">
+        <div class="score-grid">
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>AI Visibility</span>
@@ -117,16 +102,16 @@
         </div>
     </section>
 
-    <!-- Findings -->
     <section class="client-section-card">
-        <div class="section-head">
-            <h3>What We Found</h3>
-            <p>Plain-language findings for busy business owners.</p>
+        <div class="section-head compact">
+            <div>
+                <h3>What We Found</h3>
+                <p>Plain-language findings for quick review.</p>
+            </div>
         </div>
 
         <div class="finding-list">
             <div class="finding-item warning">
-                <div class="finding-icon">!</div>
                 <div class="finding-copy">
                     <strong>{{ finding_1_title if finding_1_title is defined else "Weak question coverage" }}</strong>
                     <p>{{ finding_1_text if finding_1_text is defined else "Your site does not answer enough of the common questions customers ask before making a decision." }}</p>
@@ -134,7 +119,6 @@
             </div>
 
             <div class="finding-item neutral">
-                <div class="finding-icon">i</div>
                 <div class="finding-copy">
                     <strong>{{ finding_2_title if finding_2_title is defined else "Moderate visibility in AI answers" }}</strong>
                     <p>{{ finding_2_text if finding_2_text is defined else "Your brand appears occasionally, but stronger structured content could improve consistency." }}</p>
@@ -142,7 +126,6 @@
             </div>
 
             <div class="finding-item success">
-                <div class="finding-icon">+</div>
                 <div class="finding-copy">
                     <strong>{{ finding_3_title if finding_3_title is defined else "Brand basics are present" }}</strong>
                     <p>{{ finding_3_text if finding_3_text is defined else "Your business name, services, and some trust indicators are already visible, which gives you a good starting point." }}</p>
@@ -151,15 +134,16 @@
         </div>
     </section>
 
-    <!-- Recommended Actions -->
     <section class="client-section-card">
-        <div class="section-head">
-            <h3>Recommended Actions</h3>
-            <p>What to do next, in order.</p>
+        <div class="section-head compact">
+            <div>
+                <h3>Top Recommended Actions</h3>
+                <p>Start with the clearest next steps first.</p>
+            </div>
         </div>
 
-        <div class="action-list-v2">
-            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="action-step-card">
+        <div class="action-list-v4">
+            <a href="{{ url_for('generate_client_content_brief', client_id=client.id) if url_for else '#' }}" class="action-step-card">
                 <div class="action-step-no">1</div>
                 <div class="action-step-copy">
                     <strong>Create a content brief</strong>
@@ -167,11 +151,11 @@
                 </div>
             </a>
 
-            <a href="{{ url_for('help_page') if url_for else '#' }}" class="action-step-card">
+            <a href="{{ url_for('client_actions_page', client_id=client.id) if url_for else '#' }}" class="action-step-card">
                 <div class="action-step-no">2</div>
                 <div class="action-step-copy">
                     <strong>Improve trust signals</strong>
-                    <p>Add clearer service proof, FAQs, reviews, and location/service details.</p>
+                    <p>Add clearer service proof, FAQs, reviews, and location details.</p>
                 </div>
             </a>
 
@@ -185,16 +169,17 @@
         </div>
     </section>
 
-    <!-- Question Opportunities -->
     <section class="client-section-card">
-        <div class="section-head">
-            <h3>Question Opportunities</h3>
-            <p>Topics your website should answer more clearly.</p>
+        <div class="section-head compact">
+            <div>
+                <h3>Question Opportunities</h3>
+                <p>Topics your website should answer more clearly.</p>
+            </div>
         </div>
 
         <div class="opportunity-list">
             {% if question_opportunities is defined and question_opportunities %}
-                {% for question in question_opportunities[:5] %}
+                {% for question in question_opportunities[:6] %}
                 <div class="opportunity-chip">{{ question }}</div>
                 {% endfor %}
             {% else %}
@@ -203,35 +188,336 @@
                 <div class="opportunity-chip">Who is this service best for?</div>
                 <div class="opportunity-chip">How long does it take?</div>
                 <div class="opportunity-chip">Where is the business located?</div>
+                <div class="opportunity-chip">What should customers expect?</div>
             {% endif %}
         </div>
     </section>
 
-    <!-- Recent Content / Outputs -->
-    <section class="client-section-card">
-        <div class="section-head">
-            <h3>Recent Outputs</h3>
-            <p>Your latest generated materials for this client.</p>
-        </div>
-
-        <div class="output-list">
-            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="output-item">
-                <div>
-                    <strong>Content Brief</strong>
-                    <p>Missing service questions for conversion-focused pages</p>
-                </div>
-                <span>Open</span>
-            </a>
-
-            <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="output-item">
-                <div>
-                    <strong>Draft Article</strong>
-                    <p>FAQ-style content to improve AI answer coverage</p>
-                </div>
-                <span>Open</span>
-            </a>
-        </div>
-    </section>
-
 </div>
+
+<style>
+.client-v4 {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+}
+
+.client-hero-card,
+.client-section-card,
+.score-row-card,
+.finding-item,
+.action-step-card {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.client-hero-card,
+.client-section-card {
+    padding: 16px;
+}
+
+.client-identity {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.client-logo-mark {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.client-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.client-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #445366;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.client-identity-copy h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.08;
+    color: #15233b;
+}
+
+.client-website {
+    margin: 12px 0 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #64748b;
+    word-break: break-word;
+}
+
+.priority-strip {
+    margin-top: 16px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    display: grid;
+    gap: 14px;
+}
+
+.priority-strip.strong {
+    border: 1px solid #ffd9c7;
+    background: linear-gradient(180deg, #fff6f2 0%, #ffffff 100%);
+    box-shadow: 0 10px 30px rgba(255, 106, 43, 0.08);
+}
+
+.priority-label {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #E83256;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.priority-strip-copy h2 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.18;
+    color: #15233b;
+}
+
+.priority-strip-copy p {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #627084;
+}
+
+.priority-strip-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.section-head.compact {
+    margin-bottom: 14px;
+}
+
+.section-head.compact h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.section-head.compact p {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b7280;
+}
+
+.score-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.score-row-card {
+    padding: 16px;
+    background: #fbfcfe;
+}
+
+.score-row-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.score-row-top span {
+    font-size: 15px;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.score-row-top strong {
+    font-size: 18px;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.score-row-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: #ebe7f2;
+    overflow: hidden;
+}
+
+.score-row-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.fill-blue { background: #3b82f6; }
+.fill-orange { background: #f97316; }
+.fill-green { background: #10b981; }
+.fill-purple { background: #8b5cf6; }
+
+.finding-list,
+.action-list-v4 {
+    display: grid;
+    gap: 12px;
+}
+
+.finding-item,
+.action-step-card {
+    padding: 16px;
+    background: #fbfcfe;
+}
+
+.finding-item.warning {
+    background: #fff7ed;
+}
+
+.finding-item.neutral {
+    background: #fff7f2;
+}
+
+.finding-item.success {
+    background: #edf7f1;
+}
+
+.finding-copy strong,
+.action-step-copy strong {
+    display: block;
+    font-size: 18px;
+    color: #15233b;
+}
+
+.finding-copy p,
+.action-step-copy p {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #627084;
+}
+
+.action-step-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px;
+    text-decoration: none;
+}
+
+.action-step-no {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #E83256;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.opportunity-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.opportunity-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #445366;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+@media (min-width: 769px) {
+    .client-v4 {
+        padding: 20px;
+        gap: 16px;
+    }
+
+    .client-hero-card,
+    .client-section-card {
+        padding: 20px;
+    }
+
+    .client-identity-copy h1 {
+        font-size: 40px;
+    }
+
+    .priority-strip {
+        grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.7fr);
+        align-items: center;
+    }
+
+    .score-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .client-v4 {
+        padding: 12px;
+    }
+
+    .client-hero-card,
+    .client-section-card,
+    .score-row-card,
+    .finding-item,
+    .action-step-card {
+        border-radius: 16px;
+    }
+
+    .client-identity {
+        grid-template-columns: 1fr;
+    }
+
+    .client-logo-mark {
+        width: 52px;
+        height: 52px;
+        font-size: 24px;
+    }
+
+    .client-identity-copy h1 {
+        font-size: 24px;
+    }
+}
+</style>
 {% endblock %}

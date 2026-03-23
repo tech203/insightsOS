@@ -177,6 +177,12 @@ def safe_load_json(filepath, default):
     except Exception:
         return default
 
+def safe_str(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    return str(value).strip()
 
 def normalize_website(url):
     if not url:
@@ -870,26 +876,28 @@ def pricing_page():
     return render_template("pricing.html")
 
 @app.route("/")
-@login_required
 def index():
-    all_audits = get_saved_audits(user_id=current_user.id)
-    search_term = request.args.get("q", "").strip()
-    audit_type = request.args.get("type", "all").strip().lower()
-    sort_by = request.args.get("sort", "saved_at").strip()
-    order = request.args.get("order", "desc").strip().lower()
+    if current_user.is_authenticated:
+        all_audits = get_saved_audits(user_id=current_user.id)
+        search_term = request.args.get("q", "").strip()
+        audit_type = request.args.get("type", "all").strip().lower()
+        sort_by = request.args.get("sort", "saved_at").strip()
+        order = request.args.get("order", "desc").strip().lower()
 
-    audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
-    audits = sort_audits(audits, sort_by=sort_by, order=order)
+        audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
+        audits = sort_audits(audits, sort_by=sort_by, order=order)
 
-    return render_template(
-        "dashboard.html",
-        audits=audits,
-        total_audits=len(all_audits),
-        search_term=search_term,
-        selected_type=audit_type,
-        selected_sort=sort_by,
-        selected_order=order,
-    )
+        return render_template(
+            "dashboard.html",
+            audits=audits,
+            total_audits=len(all_audits),
+            search_term=search_term,
+            selected_type=audit_type,
+            selected_sort=sort_by,
+            selected_order=order,
+        )
+
+    return redirect(url_for("login"))
 
 
 @app.route("/clients")
@@ -1167,10 +1175,9 @@ def generate_client_content_brief(client_id):
         default_query = client["query_comparison"]["rows"][0].get("query", "")
 
     if request.method == "POST":
-        target_query = request.form.get("target_query", "").strip()
-        content_type = request.form.get("content_type", "service_page").strip()
-        brand_context = request.form.get("brand_context", "").strip()
-
+        target_query = safe_str(request.form.get("target_query"))
+        content_type = safe_str(request.form.get("content_type", "service_page")) or "service_page"
+        brand_context = safe_str(request.form.get("brand_context"))
         if not target_query:
             return render_template("content_brief_form.html", client=client, error="Target query is required.", form_data=request.form)
 
@@ -1193,8 +1200,8 @@ def generate_client_content_brief(client_id):
             refund_credits(current_user, 1, notes="Refund for failed content brief generation")
             return render_template("content_brief_form.html", client=client, error=f"Brief generation failed: {str(e)}", form_data=request.form)
 
-    prefill_query = request.args.get("target_query", "").strip()
-    prefill_context = request.args.get("brand_context", "").strip()
+    prefill_query = safe_str(request.args.get("target_query"))
+    prefill_context = safe_str(request.args.get("brand_context"))
 
     form_data = {
         "target_query": prefill_query if prefill_query else default_query,
@@ -1253,22 +1260,22 @@ def generate_client_content_draft(client_id):
         default_query = client["query_comparison"]["rows"][0].get("query", "")
 
     if request.method == "POST":
-        action_mode = request.form.get("action_mode", "").strip()
+        action_mode = safe_str(request.form.get("action_mode"))
 
         if action_mode == "prefill":
             form_data = {
-                "target_query": request.form.get("target_query", "").strip() or default_query,
-                "content_type": request.form.get("content_type", "service_page").strip(),
-                "brief_context": request.form.get("brief_context", "").strip(),
-                "brand_context": request.form.get("brand_context", "").strip() or client.get("notes", ""),
+                "target_query": safe_str(request.form.get("target_query")) or default_query,
+                "content_type": safe_str(request.form.get("content_type", "service_page")) or "service_page",
+                "brief_context": safe_str(request.form.get("brief_context")),
+                "brand_context": safe_str(request.form.get("brand_context")) or client.get("notes", ""),
             }
-            return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
+    return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
 
-        target_query = request.form.get("target_query", "").strip()
-        content_type = request.form.get("content_type", "service_page").strip()
-        brief_context = request.form.get("brief_context", "").strip()
-        brand_context = request.form.get("brand_context", "").strip()
-
+        target_query = safe_str(request.form.get("target_query"))
+        content_type = safe_str(request.form.get("content_type", "service_page")) or "service_page"
+        brief_context = safe_str(request.form.get("brief_context"))
+        brand_context = safe_str(request.form.get("brand_context"))
+    
         if not target_query:
             return render_template("content_draft_form.html", client=client, error="Target query is required.", form_data=request.form)
 
@@ -1292,9 +1299,9 @@ def generate_client_content_draft(client_id):
             refund_credits(current_user, 2, notes="Refund for failed content draft generation")
             return render_template("content_draft_form.html", client=client, error=f"Draft generation failed: {str(e)}", form_data=request.form)
 
-    prefill_query = request.args.get("target_query", "").strip()
-    prefill_brief_context = request.args.get("brief_context", "").strip()
-    prefill_brand_context = request.args.get("brand_context", "").strip()
+prefill_query = safe_str(request.args.get("target_query"))
+prefill_brief_context = safe_str(request.args.get("brief_context"))
+prefill_brand_context = safe_str(request.args.get("brand_context"))
 
     form_data = {
         "target_query": prefill_query if prefill_query else default_query,
@@ -1374,6 +1381,12 @@ def client_history_page(client_id):
 @login_required
 def content_queue_page():
     client_id = request.args.get("client_id", "").strip()
+    clients = build_client_views()
+    view_mode = get_view_mode(current_user)
+
+    if not client_id and view_mode == "single" and len(clients) == 1:
+        client_id = clients[0]["id"]
+
     selected_client_id = client_id if client_id else None
 
     items = get_queue_items(
@@ -1384,11 +1397,20 @@ def content_queue_page():
     for item in items:
         item["next_action"] = get_next_action(item)
 
+    stats = {
+        "queued": len([i for i in items if (i.get("status") or "").lower() in ["queued", "pending"]]),
+        "in_progress": len([i for i in items if (i.get("status") or "").lower() in ["in_progress", "in-progress", "draft_generated"]]),
+        "ready": len([i for i in items if (i.get("status") or "").lower() in ["ready", "brief_generated", "brief ready"]]),
+        "published": len([i for i in items if (i.get("status") or "").lower() == "published"]),
+    }
+
     return render_template(
         "content_queue.html",
         queue_items=items,
         selected_client_id=selected_client_id,
+        stats=stats,
     )
+
 
 @app.route("/content-queue/<item_id>/status", methods=["POST"])
 @login_required
@@ -1508,7 +1530,19 @@ def client_presentation_page(client_id):
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
-    return render_template("client_presentation.html", client=client)
+
+    view_mode = get_view_mode(current_user)
+    can_use_presentation_mode = view_mode in ["multi", "admin"]
+
+    if not can_use_presentation_mode:
+        flash("Presentation mode is available for agency workspaces.", "warning")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    return render_template(
+        "client_presentation.html",
+        client=client,
+        can_use_presentation_mode=can_use_presentation_mode,
+    )
 
 @app.route("/api/audit/<summary_filename>/summary")
 @login_required
@@ -1569,6 +1603,15 @@ def client_growth_plan(client_id):
 @app.route("/audit/new")
 @login_required
 def new_audit():
+    clients = build_client_views()
+
+    if not clients:
+        flash("Create a client first.", "warning")
+        return redirect(url_for("create_client"))
+
+    if len(clients) == 1:
+        return redirect(url_for("run_client_audit", client_id=clients[0]["id"]))
+
     return redirect(url_for("clients_page"))
 
 @app.route("/api/audit/<summary_filename>/full")
@@ -1603,10 +1646,12 @@ def inject_template_globals():
     wallet_balance = 0
     has_unlimited_credits = False
     view_mode = "single"
+    can_use_presentation_mode = False
 
     if current_user.is_authenticated:
         has_unlimited_credits = user_has_unlimited_credits(current_user)
         view_mode = get_view_mode(current_user)
+        can_use_presentation_mode = view_mode in ["multi", "admin"]
 
         if has_unlimited_credits:
             wallet_balance = "Unlimited"
@@ -1618,6 +1663,7 @@ def inject_template_globals():
         "wallet_balance": wallet_balance,
         "has_unlimited_credits": has_unlimited_credits,
         "view_mode": view_mode,
+        "can_use_presentation_mode": can_use_presentation_mode,
     }
 
 @app.route("/aeo-agency")

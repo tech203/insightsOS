@@ -266,6 +266,12 @@
                     >
                         Buy Credits
                     </a>
+                    <a
+                        href="{{ url_for('logout') if url_for else '#' }}"
+                        class="sidebar-logout-btn"
+                    >
+                        Logout
+                    </a>
                 </div>
             </div>
         </aside>

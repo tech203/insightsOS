@@ -171,10 +171,10 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 46px;
-    padding: 0 18px;
+    padding:  18px;
     border: 0;
-    border-radius: 14px;
-    background: var(--primary-gradient);
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c5cff, #9b7bff);
     color: #ffffff;
     font-size: 14px;
     font-weight: 700;
@@ -189,15 +189,15 @@ body {
     justify-content: center;
     min-height: 46px;
     padding: 0 18px;
-    border-radius: 14px;
+    border-radius: 12px;
     border-color: var(--line);
-    background: #ffffff;
-    color: var(--text-strong);
+    background: #f3f4f6;
+    color: #111827;
     border: 1px solid var(--line);
     font-size: 14px;
     font-weight: 700;
     line-height: 1;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    transition: backgound 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 /* consistent inner cards */
@@ -2779,6 +2779,23 @@ a {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.sidebar-logout-btn {
+    margin-top: 10px;
+    display: block;
+    text-align: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.sidebar-logout-btn:hover {
+    background: #e5e7eb;
 }
 
 .sidebar-wallet {
@@ -6619,7 +6636,7 @@ body {
     .client-header-card,
     .client-priority-card,
     .client-section-card {
-        padding: 18px;
+        padding: 16px;
     }
 
     .client-identity {
@@ -6630,4 +6647,12 @@ body {
         grid-template-columns: 1fr;
     }
 
+}
+
+.btn-muted {
+    background: #f8fafc;
+    color: #94a3b8;
+    border: 1px dashed #e2e8f0;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
