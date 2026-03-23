@@ -1269,18 +1269,28 @@ def generate_client_content_draft(client_id):
                 "brief_context": safe_str(request.form.get("brief_context")),
                 "brand_context": safe_str(request.form.get("brand_context")) or client.get("notes", ""),
             }
-    return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
+            return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
 
         target_query = safe_str(request.form.get("target_query"))
         content_type = safe_str(request.form.get("content_type", "service_page")) or "service_page"
         brief_context = safe_str(request.form.get("brief_context"))
         brand_context = safe_str(request.form.get("brand_context"))
-    
+
         if not target_query:
-            return render_template("content_draft_form.html", client=client, error="Target query is required.", form_data=request.form)
+            return render_template(
+                "content_draft_form.html",
+                client=client,
+                error="Target query is required.",
+                form_data=request.form,
+            )
 
         if not spend_credits(current_user, 2, notes="Content draft generation"):
-            return render_template("content_draft_form.html", client=client, error="Not enough credits.", form_data=request.form)
+            return render_template(
+                "content_draft_form.html",
+                client=client,
+                error="Not enough credits.",
+                form_data=request.form,
+            )
 
         try:
             result = generate_content_draft(
@@ -1295,13 +1305,19 @@ def generate_client_content_draft(client_id):
             )
             flash("Content draft generated successfully.")
             return render_template("content_draft_result.html", client=client, result=result)
+
         except Exception as e:
             refund_credits(current_user, 2, notes="Refund for failed content draft generation")
-            return render_template("content_draft_form.html", client=client, error=f"Draft generation failed: {str(e)}", form_data=request.form)
+            return render_template(
+                "content_draft_form.html",
+                client=client,
+                error=f"Draft generation failed: {str(e)}",
+                form_data=request.form,
+            )
 
-prefill_query = safe_str(request.args.get("target_query"))
-prefill_brief_context = safe_str(request.args.get("brief_context"))
-prefill_brand_context = safe_str(request.args.get("brand_context"))
+    prefill_query = safe_str(request.args.get("target_query"))
+    prefill_brief_context = safe_str(request.args.get("brief_context"))
+    prefill_brand_context = safe_str(request.args.get("brand_context"))
 
     form_data = {
         "target_query": prefill_query if prefill_query else default_query,
@@ -1310,7 +1326,6 @@ prefill_brand_context = safe_str(request.args.get("brand_context"))
         "brand_context": prefill_brand_context if prefill_brand_context else client.get("notes", ""),
     }
     return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
-
 
 @app.route("/audit/<summary_filename>")
 @login_required
@@ -1464,8 +1479,8 @@ def save_generated_draft(client_id):
     if not client:
         abort(404)
 
-    target_query = request.form.get("target_query", "").strip()
-    content_type = request.form.get("content_type", "").strip()
+    target_query = safe_str(request.form.get("target_query"))
+    content_type = safe_str(request.form.get("content_type"))    
     draft_text = request.form.get("draft_text", "").strip()
     title = f"Draft: {target_query}" if target_query else "Content Draft"
 
