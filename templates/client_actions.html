@@ -22,32 +22,28 @@
     <section class="actions-intro-card">
         <div class="actions-intro-copy">
             <div class="actions-kicker">Action Plan</div>
-            <h1>Focus on what to do next</h1>
-            <p>
-            Start with the top actions below or generate a brief to move into execution.
-            </p>        </div>
+            <h1>Next best actions</h1>
+            <p>Start here.</p>
+        </div>
 
         <div class="actions-intro-cta">
-
             {% if not client.latest_audit %}
                 <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
                     Run Audit
                 </a>
 
                 <a class="btn btn-muted btn-block">
-                    Generate Brief (Run audit first)
+                    View Insights (Run audit first)
                 </a>
-                
             {% else %}
-                <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary btn-block">
-                    Generate Brief
+                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                    View Visibility
                 </a>
 
-                <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    Generate Draft
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                    View Competitors
                 </a>
             {% endif %}
-
         </div>
     </section>
 
@@ -87,91 +83,64 @@
         </div>
 
         {% if client.recommended_actions %}
-            <div class="actions-list">
-                {% for action in top_actions[:3] %}
-                <article class="action-row">
-                    <div class="action-row-top">
-                        <span class="priority-chip {{ action.priority }}">{{ action.priority|capitalize }}</span>
-                        <h3>{{ action.title }}</h3>
-                    </div>
-
-                    {% if action.issue %}
-                    <p class="action-issue">
-                        <strong>Issue:</strong> {{ action.issue }}
-                    </p>
-                    {% endif %}
-
-                    <p class="action-recommendation">
-                        {{ action.recommended_action }}
-                    </p>
-
-                    {% if action.support_signal %}
-                    <p class="action-support">
-                        {{ action.support_signal }}
-                    </p>
-                    {% endif %}
-
-                    {% if "Target missed query:" in action.title %}
-                        {% set query_text = action.title.replace("Target missed query: ", "") %}
-                        <div class="action-buttons">
-                            <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=query_text) }}" class="btn btn-primary">
-                                Generate Brief
-                            </a>
-                            <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=query_text) }}" class="btn btn-secondary">
-                                Generate Draft
-                            </a>
-                        </div>
-                    {% else %}
-                        <div class="action-buttons">
-                            <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">
-                                Generate Brief
-                            </a>
-                            <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">
-                                Generate Draft
-                            </a>
-                        </div>
-                    {% endif %}
-                </article>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state clean">
-                {% if not client.latest_audit %}
-                    <h3>No audit yet</h3>
-                {% else %}
-                    <h3>No actions generated</h3>
-                {% endif %}                <p>Run an audit first to generate a focused action plan for this client.</p>
-                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
-            </div>
-        {% endif %}
-    </section>
-
-    {% if client.recommended_actions and client.recommended_actions|length > 3 %}
-    <section class="actions-secondary-card">
-        <div class="section-head compact">
-            <div>
-                <h2>More Actions</h2>
-                <p>Additional improvements from the current audit.</p>
-            </div>
+        <div class="start-here">
+            <strong>Start here:</strong>
+            {% if high_actions %}
+                Fix the highest-priority visibility gaps first.
+            {% elif medium_actions %}
+                Work through the next best improvements from the latest audit.
+            {% elif low_actions %}
+                Review the supporting improvements in order.
+            {% endif %}
         </div>
 
-        <div class="secondary-action-list">
-            {% for action in client.recommended_actions[3:] %}
-            <div class="secondary-action-item">
-                <div class="secondary-action-left">
+        <div class="actions-list">
+            {% for action in top_actions[:3] %}
+            <article class="action-row">
+                <div class="action-row-top">
                     <span class="priority-chip {{ action.priority }}">{{ action.priority|capitalize }}</span>
-                    <div>
-                        <strong>{{ action.title }}</strong>
-                        {% if action.recommended_action %}
-                        <p>{{ action.recommended_action }}</p>
-                        {% endif %}
-                    </div>
+                    <h3>{{ action.title }}</h3>
                 </div>
-            </div>
+
+                <p class="action-recommendation">
+                    {{ action.recommended_action }}
+                </p>
+
+                {% if "Target missed query:" in action.title %}
+                    {% set query_text = action.title.replace("Target missed query: ", "") %}
+                    <div class="action-buttons">
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=query_text) }}" class="btn btn-primary">
+                            Generate Brief
+                        </a>
+                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=query_text) }}" class="btn btn-secondary">
+                            Generate Draft
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="action-buttons">
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">
+                            Generate Brief
+                        </a>
+                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">
+                            Generate Draft
+                        </a>
+                    </div>
+                {% endif %}
+            </article>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state clean">
+            {% if not client.latest_audit %}
+                <h3>No audit yet</h3>
+            {% else %}
+                <h3>No actions generated</h3>
+            {% endif %}
+            <p>Run an audit first to generate a focused action plan for this client.</p>
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+        </div>
+        {% endif %}
     </section>
-    {% endif %}
 
 </div>
 
@@ -184,11 +153,9 @@
 
 .actions-intro-card,
 .actions-main-card,
-.actions-secondary-card,
 .actions-status-strip,
 .empty-state.clean,
-.action-row,
-.secondary-action-item {
+.action-row {
     background: #ffffff;
     border: 1px solid #e8edf5;
     border-radius: 18px;
@@ -268,8 +235,7 @@
     color: #15233b;
 }
 
-.actions-main-card,
-.actions-secondary-card {
+.actions-main-card {
     padding: 18px;
 }
 
@@ -291,8 +257,18 @@
     color: #6b7280;
 }
 
-.actions-list,
-.secondary-action-list {
+.start-here {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.actions-list {
     display: grid;
     gap: 12px;
 }
@@ -340,53 +316,17 @@
     color: #15803d;
 }
 
-.action-issue,
-.action-recommendation,
-.action-support {
+.action-recommendation {
     margin: 0;
     font-size: 14px;
     line-height: 1.6;
-    color: #627084;
-}
-
-.action-recommendation {
     color: #334155;
-    margin-top: 8px;
-}
-
-.action-support {
-    margin-top: 8px;
-    font-size: 13px;
-    color: #6b7280;
 }
 
 .action-buttons {
     display: grid;
     gap: 10px;
     margin-top: 14px;
-}
-
-.secondary-action-item {
-    padding: 14px 16px;
-    background: #fbfcfe;
-}
-
-.secondary-action-left {
-    display: grid;
-    gap: 10px;
-}
-
-.secondary-action-left strong {
-    display: block;
-    font-size: 15px;
-    color: #15233b;
-}
-
-.secondary-action-left p {
-    margin: 4px 0 0;
-    font-size: 13px;
-    line-height: 1.55;
-    color: #6b7280;
 }
 
 .empty-state.clean {
@@ -423,8 +363,7 @@
     }
 
     .actions-intro-card,
-    .actions-main-card,
-    .actions-secondary-card {
+    .actions-main-card {
         padding: 22px;
     }
 
@@ -461,9 +400,7 @@
     }
 
     .action-row,
-    .secondary-action-item,
     .actions-main-card,
-    .actions-secondary-card,
     .actions-intro-card {
         border-radius: 16px;
     }

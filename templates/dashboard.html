@@ -13,12 +13,6 @@
 
     <section class="dashboard-hero-card">
         <div class="dashboard-hero-copy">
-            <div class="dashboard-badges">
-                <span class="hero-badge hero-badge-primary">AEO Dashboard</span>
-                <span class="hero-badge">Live Workspace</span>
-                <span class="hero-badge">Action Focused</span>
-            </div>
-
             <h1>See what needs attention and take the next best step fast.</h1>
             <p>
                 This dashboard gives you a simple view of your AI visibility, content readiness,
@@ -26,7 +20,7 @@
             </p>
 
             <div class="dashboard-hero-actions">
-                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary">Start Audit</a>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary">Start Audit</a>
                 <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-secondary">Open Clients</a>
             </div>
         </div>
@@ -108,13 +102,13 @@
             </div>
 
             <div class="quick-actions-grid">
-                <a href="{{ url_for('clients_page') if url_for else '#' }}" class="quick-action-card">
-                <span class="quick-action-icon">⌕</span>
-                <div>
-                    <strong>Start Audit</strong>
-                    <small>Select a client first</small>
-                </div>
-            </a>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="quick-action-card">
+                    <span class="quick-action-icon">⌕</span>
+                    <div>
+                        <strong>Start Audit</strong>
+                        <small>Go to the correct audit flow</small>
+                    </div>
+                </a>
 
                 <a href="{{ url_for('clients_page') if url_for else '#' }}" class="quick-action-card">
                     <span class="quick-action-icon">◫</span>
@@ -253,31 +247,6 @@
     grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
     gap: 24px;
     align-items: stretch;
-}
-
-.dashboard-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.hero-badge-primary {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
 }
 
 .dashboard-hero-copy h1 {

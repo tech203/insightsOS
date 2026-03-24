@@ -1,580 +1,499 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AEO Agency Singapore | Audit AI Visibility, Fix Gaps, Grow Brand Mentions</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+{% extends "base.html" %}
 
-<body class="bg-slate-950 text-white antialiased">
-  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.25),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(168,85,247,0.18),_transparent_30%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)]">
+{% block title %}AEO Agents — AI Visibility Platform{% endblock %}
 
-    <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-950/70 backdrop-blur">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-        <a href="/" class="block">
-          <div class="text-lg font-semibold tracking-tight">AEO Audit</div>
-          <div class="text-sm text-slate-400">Visibility Intelligence for AI Search</div>
-        </a>
+{% block content %}
 
-        <nav class="hidden gap-8 text-sm text-slate-300 md:flex">
-          <a href="#why-aeo" class="hover:text-white">Why AEO</a>
-          <a href="#framework" class="hover:text-white">How It Works</a>
-          <a href="#platform" class="hover:text-white">Platform</a>
-          <a href="#work-with-us" class="hover:text-white">Ways to Work</a>
-          <a href="#pricing" class="hover:text-white">Pricing</a>
-          <a href="#faq" class="hover:text-white">FAQ</a>
-        </nav>
+<div class="landing-shell">
 
-        <div class="flex gap-3">
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('index') }}" class="rounded-full border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/5">Dashboard</a>
-            <a href="{{ url_for('logout') }}" class="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 hover:bg-slate-100">Log Out</a>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="rounded-full border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/5">Log In</a>
-            <a href="{{ url_for('signup') }}" class="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
-        {% endif %}
-        </div>
-      </div>
-    </header>
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-left">
+            <h1 class="hero-title">
+                <span class="hero-title-static">Be visible in</span>
+                <span id="headline-dynamic">AI answers</span>
+            </h1>
 
-    <section class="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-24">
-      <div>
-        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-200">
-          <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-          For agencies, B2B brands, local businesses, and service companies
-        </div>
-
-        <h1 class="mt-6 max-w-5xl font-semibold tracking-tight text-white leading-[0.95]">
-          <span class="block text-4xl md:text-6xl">Get found in</span>
-
-          <span class="mt-2 block min-h-[1.15em] text-4xl md:text-6xl">
-            <span class="inline-flex items-baseline">
-              <span id="heroTypedWord" class="inline-block min-w-[11ch] text-indigo-300">AI Search</span>
-              <span id="heroCursor" class="ml-1 inline-block text-indigo-300">|</span>
-            </span>
-          </span>
-
-          <span class="mt-2 block text-4xl md:text-6xl">
-            and know exactly what to fix next.
-          </span>
-        </h1>
-
-        <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-          AEO Audit helps you see where your brand is being missed in AI answers, which competitors are being recommended instead, and what pages or content you should build next to improve visibility across ChatGPT, Google AI Overviews, Perplexity, and other answer engines.
-        </p>
-
-        <div class="mt-5 max-w-2xl rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300">
-          <strong class="text-white">Two ways to work with us:</strong>
-          use the platform self-serve, or engage us as your done-for-you AEO partner. You can also combine both in a hybrid model.
-        </div>
-
-        <div class="mt-8 flex flex-col gap-4 sm:flex-row">
-          <a href="/signup" class="rounded-2xl bg-white px-6 py-3 text-center font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
-          <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="rounded-2xl bg-indigo-500 px-6 py-3 text-center font-medium text-white hover:bg-indigo-400">Book Strategy Call</a>
-          <a href="#platform" class="rounded-2xl border border-white/15 px-6 py-3 text-center font-medium text-white hover:bg-white/5">See the Platform</a>
-        </div>
-
-        <div class="mt-10 grid gap-4 sm:grid-cols-3">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-2xl font-semibold">Built for AI answers</div>
-            <div class="mt-1 text-sm text-slate-400">Structured for recommendation-driven discovery, not just old-school ranking reports</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-2xl font-semibold">Clear diagnosis</div>
-            <div class="mt-1 text-sm text-slate-400">See weak queries, missed brand mentions, competitor presence, and score movement</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div class="text-2xl font-semibold">Execution included</div>
-            <div class="mt-1 text-sm text-slate-400">Turn audit findings into briefs, drafts, and a tracked content queue your team can use</div>
-          </div>
-        </div>
-
-        <div class="mt-8 flex flex-wrap gap-3 text-sm text-slate-300">
-          <span class="rounded-full border border-white/10 bg-white/5 px-4 py-2">3 starter credits</span>
-          <span class="rounded-full border border-white/10 bg-white/5 px-4 py-2">Multi-client workspace</span>
-          <span class="rounded-full border border-white/10 bg-white/5 px-4 py-2">Agency white-label add-on</span>
-        </div>
-      </div>
-
-      <div class="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-indigo-950/40">
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="text-sm uppercase tracking-[0.2em] text-slate-400">Live Snapshot</div>
-            <div class="mt-1 text-xl font-semibold">AI Visibility Scorecard</div>
-          </div>
-          <div class="rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300">Sample</div>
-        </div>
-
-        <div class="mt-6 grid gap-4 sm:grid-cols-2">
-          <div class="rounded-2xl bg-slate-900/70 p-4">
-            <div class="text-sm text-slate-400">Normalized Score</div>
-            <div class="mt-2 text-3xl font-semibold">58 / 100</div>
-          </div>
-          <div class="rounded-2xl bg-slate-900/70 p-4">
-            <div class="text-sm text-slate-400">Visibility Score</div>
-            <div class="mt-2 text-3xl font-semibold">9.4 / 20</div>
-          </div>
-          <div class="rounded-2xl bg-slate-900/70 p-4">
-            <div class="text-sm text-slate-400">Opportunity Level</div>
-            <div class="mt-2 text-xl font-semibold">Moderate Opportunity</div>
-          </div>
-          <div class="rounded-2xl bg-slate-900/70 p-4">
-            <div class="text-sm text-slate-400">Missed Brand Mentions</div>
-            <div class="mt-2 text-3xl font-semibold">7</div>
-          </div>
-        </div>
-
-        <div class="mt-6 rounded-2xl border border-indigo-400/20 bg-indigo-400/10 p-4 text-sm leading-6 text-indigo-100">
-          Clear takeaway: the brand has room to grow through stronger service-page coverage, FAQ structure, comparison content, and better AI-readable authority signals.
-        </div>
-
-        <div class="mt-6 space-y-3">
-          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-            <div class="text-sm font-medium text-white">Missed query detected</div>
-            <div class="mt-1 text-sm text-slate-300">Brand not mentioned for “best live chat software for small business”</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-            <div class="text-sm font-medium text-white">Recommended next action</div>
-            <div class="mt-1 text-sm text-slate-300">Create a comparison page + FAQ cluster + supporting trust content</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-            <div class="text-sm font-medium text-white">Workflow output</div>
-            <div class="mt-1 text-sm text-slate-300">Generate brief → generate draft → save to content queue</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="why-aeo" class="border-y border-white/10 bg-slate-950/40">
-      <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div class="max-w-3xl">
-          <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Why AEO matters now</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Search behaviour changed. Most companies still measure the wrong thing.</h2>
-          <p class="mt-5 text-lg leading-8 text-slate-300">
-            Users increasingly ask AI tools for direct recommendations. If your brand is not the source AI trusts, your competitors get named first. Traditional rankings still matter, but recommendation visibility is now a separate growth layer.
-          </p>
-        </div>
-
-        <div class="mt-12 grid gap-6 md:grid-cols-3">
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <div class="text-lg font-semibold">SEO gets clicks</div>
-            <p class="mt-3 text-slate-300">AEO helps your brand appear inside the answer itself, especially for research, comparison, and recommendation queries.</p>
-          </div>
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <div class="text-lg font-semibold">AI picks trusted structure</div>
-            <p class="mt-3 text-slate-300">Clear entity signals, FAQ patterns, service explainers, and proof-rich content make your pages easier for answer engines to use.</p>
-          </div>
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <div class="text-lg font-semibold">Visibility must be measured</div>
-            <p class="mt-3 text-slate-300">We track query-level brand mentions, missed answers, competitor presence, and next actions—not rankings alone.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="framework" class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-      <div class="max-w-3xl">
-        <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">How it works</div>
-        <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">A simple workflow from diagnosis to execution</h2>
-        <p class="mt-5 text-lg leading-8 text-slate-300">
-          Instead of inflated promises, we focus on a measurable system your team can understand and use.
-        </p>
-      </div>
-
-      <div class="mt-12 grid gap-6 lg:grid-cols-4">
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 font-semibold text-indigo-200">1</div>
-          <h3 class="mt-5 text-xl font-semibold">Audit</h3>
-          <p class="mt-3 text-slate-300">Check structure, schema, query visibility, brand mentions, and competitor patterns.</p>
-        </div>
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 font-semibold text-indigo-200">2</div>
-          <h3 class="mt-5 text-xl font-semibold">Prioritise</h3>
-          <p class="mt-3 text-slate-300">Translate weak queries into recommended actions with clear priority and page recommendations.</p>
-        </div>
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 font-semibold text-indigo-200">3</div>
-          <h3 class="mt-5 text-xl font-semibold">Generate</h3>
-          <p class="mt-3 text-slate-300">Create content briefs and first drafts for service pages, FAQs, comparisons, and authority content.</p>
-        </div>
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 font-semibold text-indigo-200">4</div>
-          <h3 class="mt-5 text-xl font-semibold">Track</h3>
-          <p class="mt-3 text-slate-300">Monitor changes over time with comparison views, content queue management, and query-level progress.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="platform" class="border-y border-white/10 bg-white/[0.03]">
-      <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div class="max-w-3xl">
-          <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Platform</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">A workspace built for audit → action → content delivery</h2>
-          <p class="mt-5 text-lg leading-8 text-slate-300">
-            The platform is designed for agencies and operators who need more than a one-time report. It brings audits, comparison, action planning, and content production into one workflow.
-          </p>
-        </div>
-
-        <div class="mt-12 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-6 shadow-xl shadow-slate-950/40">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-sm uppercase tracking-[0.2em] text-slate-400">Client Workspace Preview</div>
-                <div class="mt-1 text-xl font-semibold">What users manage inside the product</div>
-              </div>
-              <div class="rounded-full bg-indigo-500/15 px-3 py-1 text-sm text-indigo-200">Preview</div>
-            </div>
-
-            <div class="mt-6 grid gap-4 sm:grid-cols-3">
-              <div class="rounded-2xl bg-white/5 p-4">
-                <div class="text-sm text-slate-400">Weak Queries</div>
-                <div class="mt-2 text-2xl font-semibold">7</div>
-              </div>
-              <div class="rounded-2xl bg-white/5 p-4">
-                <div class="text-sm text-slate-400">Recommended Actions</div>
-                <div class="mt-2 text-2xl font-semibold">5</div>
-              </div>
-              <div class="rounded-2xl bg-white/5 p-4">
-                <div class="text-sm text-slate-400">Content Assets</div>
-                <div class="mt-2 text-2xl font-semibold">Brief + Draft</div>
-              </div>
-            </div>
-
-            <div class="mt-6 space-y-4">
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-sm font-medium text-white">Client portfolio</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">Manage multiple clients, each with saved audits, visibility views, competitor comparison, and action pages.</p>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-sm font-medium text-white">Visibility analysis</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">Review query-level brand mention changes, missed queries, and score movement between audits.</p>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-sm font-medium text-white">Content workflow</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">Generate briefs and drafts, then save them into a content queue for production tracking.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-6">
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 class="text-xl font-semibold">What the platform helps you do</h3>
-              <ul class="mt-4 space-y-3 text-slate-300">
-                <li>• run audits for your own brand or your clients</li>
-                <li>• compare historical score movement over time</li>
-                <li>• identify queries where the brand is missing</li>
-                <li>• see where competitors appear instead</li>
-                <li>• generate briefs and first drafts from missed opportunities</li>
-                <li>• organise content production in a queue your team can actually use</li>
-              </ul>
-            </div>
-
-            <div class="rounded-3xl border border-indigo-400/20 bg-indigo-400/10 p-6">
-              <h3 class="text-xl font-semibold text-white">Important expectation</h3>
-              <p class="mt-3 leading-7 text-indigo-100">
-                This is not an instant “AI ranking hack.” It is a system for diagnosing visibility gaps, prioritising improvements, and building better AI-readable content over time.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="work-with-us" class="border-y border-white/10 bg-white/[0.03]">
-      <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div class="max-w-3xl">
-          <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Ways to work with us</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Choose the model that fits your team</h2>
-        </div>
-
-        <div class="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6">
-            <h3 class="text-xl font-semibold">Audit Platform</h3>
-            <ul class="mt-4 space-y-3 text-slate-300">
-              <li>• Run AI visibility audits for your own brand or your clients</li>
-              <li>• See query-level brand mention testing and missed opportunities</li>
-              <li>• Generate briefs, drafts, and content workflow items</li>
-              <li>• Use comparison views and history for reporting</li>
-            </ul>
-            <a href="/signup" class="mt-8 inline-flex rounded-2xl bg-white px-5 py-3 font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6">
-            <h3 class="text-xl font-semibold">Done-for-You AEO Service</h3>
-            <ul class="mt-4 space-y-3 text-slate-300">
-              <li>• We audit your current AI visibility and competitor landscape</li>
-              <li>• We prioritise the highest-value pages and query gaps</li>
-              <li>• We create content briefs and draft assets for execution</li>
-              <li>• We help your team publish and improve over time</li>
-            </ul>
-            <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="mt-8 inline-flex rounded-2xl border border-white/15 px-5 py-3 font-medium text-white hover:bg-white/5">Book Strategy Call</a>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-slate-900/50 p-6">
-            <h3 class="text-xl font-semibold">Hybrid Model</h3>
-            <ul class="mt-4 space-y-3 text-slate-300">
-              <li>• Use the platform internally while getting expert strategy support</li>
-              <li>• Let your team manage briefs, drafts, and reporting in one place</li>
-              <li>• Bring us in when you need prioritisation, content direction, or execution help</li>
-              <li>• Best for agencies and lean teams that want software plus human support</li>
-            </ul>
-            <a href="/signup" class="mt-8 inline-flex rounded-2xl border border-white/15 px-5 py-3 font-medium text-white hover:bg-white/5">Start with Platform</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="pricing" class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-      <div class="max-w-4xl">
-        <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Pricing</div>
-        <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Start free. Scale with credits. Deliver with white-label.</h2>
-        <p class="mt-5 text-lg leading-8 text-slate-300">
-          Get started with free credits, top up anytime with bundles, or upgrade to a monthly plan for recurring usage and stronger workflow tools.
-        </p>
-      </div>
-
-      <div class="mt-8 rounded-3xl border border-indigo-400/20 bg-indigo-400/10 p-6">
-        <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <h3 class="text-xl font-semibold">How pricing works</h3>
-            <p class="mt-3 text-slate-200">
-              Usage is credit-based. Plans unlock recurring credits and workflow value. The agency add-on unlocks white-label delivery for client-facing use.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm leading-6 text-slate-200">
-            <div class="font-semibold text-white">Credits pay for usage. Plans unlock workflow.</div>
-            <ul class="mt-3 space-y-2 text-slate-300">
-              <li>• 1 credit = standard audit</li>
-              <li>• 1 credit = content brief</li>
-              <li>• 2 credits = content draft</li>
-              <li>• 2 credits = competitor comparison audit</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">Free</div>
-          <div class="mt-4 text-4xl font-semibold">US$0</div>
-          <div class="mt-2 text-slate-300">Start learning the workflow without commitment.</div>
-          <ul class="mt-6 space-y-3 text-slate-300">
-            <li>• 3 starter credits</li>
-            <li>• Basic audit reports</li>
-            <li>• Standard branding</li>
-            <li>• Limited history</li>
-          </ul>
-          <a href="/signup" class="mt-8 inline-flex rounded-2xl bg-white px-5 py-3 font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
-        </div>
-
-        <div class="relative rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="absolute right-5 top-5 rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-200">Most Popular</div>
-          <div class="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">Pro</div>
-          <div class="mt-4 flex items-end gap-2">
-            <div class="text-4xl font-semibold">US$29</div>
-            <div class="pb-1 text-slate-400">/month</div>
-          </div>
-          <div class="mt-2 text-slate-300">Best for regular self-serve usage and recurring content workflow.</div>
-          <ul class="mt-6 space-y-3 text-slate-300">
-            <li>• Includes 20 monthly credits</li>
-            <li>• Buy extra credits anytime</li>
-            <li>• Content brief + draft workflow</li>
-            <li>• Better history and workflow access</li>
-          </ul>
-          <a href="/signup" class="mt-8 inline-flex rounded-2xl bg-white px-5 py-3 font-medium text-slate-950 hover:bg-slate-100">Choose Pro</a>
-        </div>
-
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">Growth</div>
-          <div class="mt-4 flex items-end gap-2">
-            <div class="text-4xl font-semibold">US$79</div>
-            <div class="pb-1 text-slate-400">/month</div>
-          </div>
-          <div class="mt-2 text-slate-300">For heavier users, higher audit volume, or small teams.</div>
-          <ul class="mt-6 space-y-3 text-slate-300">
-            <li>• Includes 75 monthly credits</li>
-            <li>• Stronger recurring usage value</li>
-            <li>• Better fit for ongoing audit and content cycles</li>
-            <li>• Can still buy extra credits anytime</li>
-          </ul>
-          <a href="/signup" class="mt-8 inline-flex rounded-2xl border border-white/15 px-5 py-3 font-medium text-white hover:bg-white/5">Choose Growth</a>
-        </div>
-
-        <div class="rounded-3xl border border-indigo-400/30 bg-gradient-to-b from-indigo-500/15 to-fuchsia-500/10 p-6">
-          <div class="text-sm font-medium uppercase tracking-[0.18em] text-indigo-200">Agency Add-on</div>
-          <div class="mt-4 flex items-end gap-2">
-            <div class="text-4xl font-semibold">US$79</div>
-            <div class="pb-1 text-slate-300">/month add-on</div>
-          </div>
-          <div class="mt-2 text-slate-200">A premium delivery layer for client-facing presentation and white-label reporting.</div>
-          <ul class="mt-6 space-y-3 text-slate-200">
-            <li>• White-label reports</li>
-            <li>• Agency branding</li>
-            <li>• Client-ready exports</li>
-            <li>• Shareable branded reports</li>
-          </ul>
-          <div class="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-3 text-sm text-slate-300">
-            Agency is not a replacement for usage credits. It is an add-on layer for white-label delivery and presentation.
-          </div>
-          <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="mt-8 inline-flex rounded-2xl bg-indigo-500 px-5 py-3 font-medium text-white hover:bg-indigo-400">Get Agency Setup</a>
-        </div>
-      </div>
-
-      <div class="mt-10 rounded-3xl border border-white/10 bg-white/5 p-6">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div class="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">Credit Bundles</div>
-            <h3 class="mt-2 text-2xl font-semibold">Top up usage anytime</h3>
-            <p class="mt-2 text-slate-300">Bundles are separate from plans. Use them when you need more audits, briefs, drafts, or comparison work.</p>
-          </div>
-          <a href="/signup" class="inline-flex rounded-2xl border border-white/15 px-5 py-3 font-medium text-white hover:bg-white/5">Buy Credits</a>
-        </div>
-
-        <div class="mt-6 grid gap-4 md:grid-cols-3">
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-            <div class="text-sm uppercase tracking-[0.16em] text-slate-400">Starter Bundle</div>
-            <div class="mt-2 text-2xl font-semibold">10 credits</div>
-            <div class="mt-1 text-slate-300">US$19</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-            <div class="text-sm uppercase tracking-[0.16em] text-slate-400">Team Bundle</div>
-            <div class="mt-2 text-2xl font-semibold">30 credits</div>
-            <div class="mt-1 text-slate-300">US$49</div>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-            <div class="text-sm uppercase tracking-[0.16em] text-slate-400">Scale Bundle</div>
-            <div class="mt-2 text-2xl font-semibold">100 credits</div>
-            <div class="mt-1 text-slate-300">US$129</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="faq" class="border-y border-white/10 bg-slate-950/40">
-      <div class="mx-auto max-w-5xl px-6 py-20 lg:px-8">
-        <div class="text-center">
-          <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">FAQ</div>
-          <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Questions buyers will ask</h2>
-        </div>
-
-        <div class="mt-12 space-y-4">
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h3 class="text-lg font-semibold">What is the difference between SEO and AEO?</h3>
-            <p class="mt-3 text-slate-300">SEO focuses on ranking pages in search results. AEO focuses on improving the chances that your brand appears inside AI-generated answers and recommendations.</p>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h3 class="text-lg font-semibold">How do you measure AEO progress?</h3>
-            <p class="mt-3 text-slate-300">We use query-level tests, brand mention tracking, comparison snapshots, content coverage reviews, and implementation progress—not rankings alone.</p>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h3 class="text-lg font-semibold">What is the difference between the audit, the brief, and the draft?</h3>
-            <p class="mt-3 text-slate-300">The audit shows where you are visible and where you are being missed. The brief plans what content should be created. The draft is the first written version of that content.</p>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h3 class="text-lg font-semibold">Do I need new content?</h3>
-            <p class="mt-3 text-slate-300">In many cases, yes. Common gaps include service explainers, FAQs, comparison pages, and proof-rich content that is easier for answer engines to understand and reuse.</p>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h3 class="text-lg font-semibold">Is this for self-serve users or for agencies?</h3>
-            <p class="mt-3 text-slate-300">Both. Self-serve users can run the workflow themselves, while agencies can manage multiple clients and optionally use the white-label add-on for delivery.</p>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h3 class="text-lg font-semibold">Is this a guarantee that AI tools will recommend my brand?</h3>
-            <p class="mt-3 text-slate-300">No. It is a structured system for identifying gaps, improving content and brand clarity, and increasing your readiness for answer engines over time.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="contact" class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-      <div class="rounded-[2rem] border border-white/10 bg-gradient-to-r from-indigo-500/15 to-fuchsia-500/15 p-8 md:p-12">
-        <div class="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-start">
-          <div class="max-w-3xl">
-            <div class="text-sm font-medium uppercase tracking-[0.22em] text-indigo-300">Call to action</div>
-            <h2 class="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Want to improve your visibility in AI answers without guessing what to do next?</h2>
-            <p class="mt-5 text-lg leading-8 text-slate-200">
-              Start free if you want to explore the platform yourself. Book a strategy call if you want help deciding between software, service, or a hybrid setup.
+            <p>
+                See where your brand appears, where it is missing,
+                and what to fix next.
             </p>
 
-            <div class="mt-8 flex flex-col gap-4 sm:flex-row">
-              <a href="/signup" class="rounded-2xl bg-white px-6 py-3 text-center font-medium text-slate-950 hover:bg-slate-100">Start Free</a>
-              <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="rounded-2xl border border-white/20 px-6 py-3 text-center font-medium text-white hover:bg-white/5">Book Strategy Call</a>
-            </div>
-          </div>
+            <div class="hero-cta">
+                <a href="{{ url_for('signup') }}" class="btn btn-primary">
+                    Start Free
+                </a>
 
-          <div id="contact-form" class="rounded-3xl border border-white/10 bg-slate-950/50 p-6">
-            <div class="text-xl font-semibold">Book a 30-minute strategy call</div>
-            <p class="mt-2 text-sm leading-6 text-slate-300">Use the booking link below to discuss the platform, the service, or an agency setup.</p>
-
-            <div class="mt-6 grid gap-4">
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">30-minute consultation</div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">Discuss platform, service, or hybrid setup</div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">Review your use case and next best step</div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">Instant access to the Cal.com booking page</div>
-              <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="rounded-2xl bg-indigo-500 px-5 py-3 text-center font-medium text-white hover:bg-indigo-400">Open Cal.com Booking</a>
+                <a href="#book-call" class="btn btn-secondary">
+                    Book Strategy Call
+                </a>
             </div>
-          </div>
+
+            <div class="hero-trust">
+                <span>AI visibility tracking</span>
+                <span>Content gaps</span>
+                <span>Competitor insights</span>
+            </div>
         </div>
-      </div>
+
+        <div class="hero-right">
+            <div class="hero-card">
+                <div class="hero-card-title">Sample Insight</div>
+                <p>Your brand is missing for:</p>
+                <strong>“best bakery near CBD Singapore”</strong>
+
+                <div class="hero-tags">
+                    <span>Competitor A</span>
+                    <span>Competitor B</span>
+                </div>
+
+                <a href="{{ url_for('signup') }}" class="btn btn-primary btn-block">
+                    Start Free
+                </a>
+            </div>
+        </div>
     </section>
 
-  </div>
+    <!-- PROBLEM -->
+    <section class="section">
+        <h2>Search has changed</h2>
+        <p>
+            Customers are no longer only clicking links.
+            They are asking AI tools for answers.
+        </p>
 
-  <script>
-    const typedWords = ["Google AI", "ChatGPT", "Perplexity", "AI Search"];
-    const heroTypedWordEl = document.getElementById("heroTypedWord");
-    const heroCursorEl = document.getElementById("heroCursor");
+        <div class="grid-3">
+            <div class="card">
+                <strong>No visibility</strong>
+                <p>Your brand is not mentioned.</p>
+            </div>
 
-    let wordIndex = 0;
-    let charIndex = 0;
-    let isDeleting = false;
+            <div class="card">
+                <strong>Competitors dominate</strong>
+                <p>Other businesses are recommended instead.</p>
+            </div>
 
-    function typeHeroWord() {
-      const currentWord = typedWords[wordIndex];
+            <div class="card">
+                <strong>No clear plan</strong>
+                <p>You do not know what to fix next.</p>
+            </div>
+        </div>
+    </section>
 
-      if (!isDeleting) {
-        charIndex += 1;
-        heroTypedWordEl.textContent = currentWord.slice(0, charIndex);
+    <!-- SOLUTION -->
+    <section class="section alt">
+        <h2>How it works</h2>
 
-        if (charIndex === currentWord.length) {
-          isDeleting = true;
-          setTimeout(typeHeroWord, 1800);
-          return;
-        }
+        <div class="steps">
+            <div class="step">
+                <span>1</span>
+                <strong>Audit</strong>
+                <p>Scan your AI visibility.</p>
+            </div>
 
-        setTimeout(typeHeroWord, 95);
-      } else {
-        charIndex -= 1;
-        heroTypedWordEl.textContent = currentWord.slice(0, charIndex);
+            <div class="step">
+                <span>2</span>
+                <strong>Prioritise</strong>
+                <p>See what matters most.</p>
+            </div>
 
-        if (charIndex === 0) {
-          isDeleting = false;
-          wordIndex = (wordIndex + 1) % typedWords.length;
-          setTimeout(typeHeroWord, 260);
-          return;
-        }
+            <div class="step">
+                <span>3</span>
+                <strong>Generate</strong>
+                <p>Create targeted content.</p>
+            </div>
 
-        setTimeout(typeHeroWord, 55);
-      }
+            <div class="step">
+                <span>4</span>
+                <strong>Track</strong>
+                <p>Measure improvements.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PLATFORM -->
+    <section class="section">
+        <h2>Your AEO workspace</h2>
+        <p>Everything in one place.</p>
+
+        <div class="grid-3">
+            <div class="card">
+                <strong>Visibility</strong>
+                <p>Track where your brand appears.</p>
+            </div>
+
+            <div class="card">
+                <strong>Competitors</strong>
+                <p>See who is replacing you.</p>
+            </div>
+
+            <div class="card">
+                <strong>Actions</strong>
+                <p>Know exactly what to do next.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- WAYS TO USE -->
+    <section class="section alt">
+        <h2>Ways to use AEO Agents</h2>
+
+        <div class="grid-3">
+            <div class="card">
+                <strong>Self-serve</strong>
+                <p>Run audits and generate content yourself.</p>
+            </div>
+
+            <div class="card">
+                <strong>Done-for-you</strong>
+                <p>We manage everything for you.</p>
+            </div>
+
+            <div class="card">
+                <strong>Hybrid</strong>
+                <p>Use the platform with our support.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="section">
+        <h2>Simple pricing</h2>
+
+        <div class="pricing">
+            <div class="pricing-card">
+                <strong>Starter</strong>
+                <h3>$0</h3>
+                <p>Try the platform.</p>
+                <a href="{{ url_for('signup') }}" class="btn btn-primary">Start Free</a>
+            </div>
+
+            <div class="pricing-card featured">
+                <strong>Growth</strong>
+                <h3>$99</h3>
+                <p>For businesses scaling AI visibility.</p>
+                <a href="{{ url_for('signup') }}" class="btn btn-primary">Get Started</a>
+            </div>
+
+            <div class="pricing-card">
+                <strong>Managed</strong>
+                <h3>Custom</h3>
+                <p>Done-for-you AEO service.</p>
+                <a href="#book-call" class="btn btn-secondary">Book Call</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="section cta">
+        <h2>Start improving your AI visibility today</h2>
+
+        <div class="cta-actions">
+            <a href="{{ url_for('signup') }}" class="btn btn-primary">
+                Start Free
+            </a>
+
+            <a href="#book-call" class="btn btn-secondary">
+                Book Strategy Call
+            </a>
+        </div>
+    </section>
+
+    <!-- BOOK CALL -->
+    <section id="book-call" class="section alt">
+        <h2>Book a strategy call</h2>
+        <p>We’ll walk through your visibility gaps and next steps.</p>
+
+        <div class="calendar-placeholder">
+            <p>📅 Calendar embed goes here</p>
+        </div>
+    </section>
+
+</div>
+
+<style>
+.landing-shell {
+    display: grid;
+    gap: 56px;
+    padding: 20px;
+}
+
+.hero {
+    display: grid;
+    gap: 28px;
+    align-items: center;
+}
+
+.hero-title {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.12;
+    color: #15233b;
+    letter-spacing: -0.03em;
+}
+
+.hero-title-static {
+    display: inline;
+}
+
+#headline-dynamic {
+    display: inline-block;
+    min-width: 9ch;
+    transition: opacity 0.2s ease;
+}
+
+.hero-left p {
+    margin: 14px 0 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #627084;
+    max-width: 34rem;
+}
+
+.hero-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.hero-trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.hero-trust span {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+.hero-card,
+.card,
+.pricing-card,
+.calendar-placeholder,
+.step {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.hero-card {
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+    background: #fbfcfe;
+}
+
+.hero-card-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.hero-card p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+}
+
+.hero-card strong {
+    color: #15233b;
+    font-size: 18px;
+    line-height: 1.4;
+}
+
+.hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.hero-tags span {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #445366;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.section {
+    display: grid;
+    gap: 16px;
+}
+
+.section h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #15233b;
+    letter-spacing: -0.02em;
+}
+
+.section > p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #627084;
+    max-width: 42rem;
+}
+
+.section.alt {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 20px;
+}
+
+.grid-3,
+.steps,
+.pricing {
+    display: grid;
+    gap: 12px;
+}
+
+.card,
+.step,
+.pricing-card {
+    padding: 16px;
+}
+
+.card strong,
+.step strong,
+.pricing-card strong {
+    display: block;
+    color: #15233b;
+    font-size: 17px;
+}
+
+.card p,
+.step p,
+.pricing-card p {
+    margin: 8px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.step span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #E83256;
+    font-weight: 800;
+}
+
+.pricing-card h3 {
+    margin: 10px 0 0;
+    font-size: 32px;
+    line-height: 1;
+    color: #15233b;
+}
+
+.pricing-card.featured {
+    border: 2px solid #15233b;
+}
+
+.cta {
+    text-align: center;
+}
+
+.cta-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+}
+
+.calendar-placeholder {
+    padding: 24px;
+    text-align: center;
+    color: #627084;
+    background: #fbfcfe;
+}
+
+@media (min-width: 768px) {
+    .hero {
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
     }
 
-    heroTypedWordEl.textContent = typedWords[0];
-    charIndex = typedWords[0].length;
+    .hero-title {
+        font-size: 52px;
+    }
 
-    setTimeout(() => {
-      isDeleting = true;
-      typeHeroWord();
-    }, 2200);
+    .hero-cta {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
 
-    setInterval(() => {
-      heroCursorEl.style.opacity = heroCursorEl.style.opacity === "0" ? "1" : "0";
-    }, 530);
-  </script>
-</body>
-</html>
+    .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .steps {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .pricing {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .cta-actions {
+        flex-direction: row;
+    }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const headlines = [
+        "AI answers",
+        "ChatGPT",
+        "AI search",
+        "customer prompts"
+    ];
+
+    const el = document.getElementById("headline-dynamic");
+    if (!el) return;
+
+    let index = 0;
+
+    function rotateHeadline() {
+        el.style.opacity = 0;
+
+        setTimeout(() => {
+            el.textContent = headlines[index];
+            el.style.opacity = 1;
+            index = (index + 1) % headlines.length;
+        }, 180);
+    }
+
+    el.textContent = headlines[0];
+    el.style.opacity = 1;
+    index = 1;
+
+    setInterval(rotateHeadline, 2600);
+});
+</script>
+
+{% endblock %}

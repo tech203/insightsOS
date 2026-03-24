@@ -1,55 +1,130 @@
 {% extends "base.html" %}
-{% block title %}Client Overview | AEO Agents{% endblock %}
+{% block title %}{{ client.name }} | Workspace{% endblock %}
+{% block page_title %}{{ client.name }} · Workspace{% endblock %}
+{% block page_subtitle %}Your client overview and next best actions.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
+<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+{% endblock %}
 
 {% block content %}
-<div class="client-v4">
+{% set has_audit = client.latest_audit is defined and client.latest_audit %}
+{% set latest = client.latest_audit if client.latest_audit is defined else none %}
+{% set comparison = client.comparison if client.comparison is defined else none %}
+{% set recommended_actions = client.recommended_actions if client.recommended_actions is defined else [] %}
+{% set top_action = recommended_actions[0] if recommended_actions else none %}
+{% set question_rows = client.query_comparison.rows if client.query_comparison is defined and client.query_comparison and client.query_comparison.rows else [] %}
+{% set missing_rows = question_rows | selectattr("latest_brand_mentioned", "equalto", false) | list if question_rows else [] %}
 
-    {% set has_audit = visibility_score is defined or content_score is defined or entity_score is defined or trust_score is defined %}
+<div class="client-overview-shell">
 
-    <section class="client-hero-card">
-        <div class="client-identity">
-            <div class="client-logo-mark">
-                {{ (client.name[0] if client is defined and client.name else 'C')|upper }}
-            </div>
-
-            <div class="client-identity-copy">
-                <div class="client-meta-row">
-                    {% if client is defined and client.industry %}
-                    <span class="client-chip">{{ client.industry }}</span>
-                    {% endif %}
-                    {% if client is defined and client.location %}
-                    <span class="client-chip">{{ client.location }}</span>
-                    {% endif %}
-                    <span class="client-chip">AEO Audit</span>
+    <section class="client-overview-hero">
+        <div class="client-overview-main">
+            <div class="client-overview-identity">
+                <div class="client-logo-mark">
+                    {{ (client.name[0] if client and client.name else "C")|upper }}
                 </div>
 
-                <h1>{{ client.name if client is defined and client.name else "Client Workspace" }}</h1>
+                <div class="client-overview-copy">
+                    <div class="client-meta-row">
+                        {% if client.industry %}
+                        <span class="client-chip">{{ client.industry }}</span>
+                        {% endif %}
+                        {% if client.location %}
+                        <span class="client-chip">{{ client.location }}</span>
+                        {% endif %}
+                    </div>
 
-                {% if client is defined and client.website %}
-                <p class="client-website">{{ client.website }}</p>
-                {% endif %}
+                    <h1>{{ client.name if client and client.name else "Client Workspace" }}</h1>
+
+                    {% if client.website %}
+                    <p class="client-website">{{ client.website }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="priority-strip strong">
+                <div class="priority-strip-copy">
+                    <span class="priority-label">Top Priority</span>
+                    {% if has_audit and top_action %}
+                        <h2>{{ top_action.title }}</h2>
+                        <p>Start here.</p>
+                    {% elif has_audit %}
+                        <h2>Fix visibility gaps</h2>
+                        <p>Start here.</p>
+                    {% else %}
+                        <h2>Run your first audit</h2>
+                        <p>Start here.</p>
+                    {% endif %}
+                </div>
+
+                <div class="priority-strip-actions">
+                    {% if not has_audit %}
+                        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">Run First Audit</a>
+                        <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-block">Edit Client</a>
+                    {% else %}
+                        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">View Visibility</a>
+                        <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary btn-block">Open Actions</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
-        <div class="priority-strip strong">
-            <div class="priority-strip-copy">
-                <span class="priority-label">Top Priority</span>
-                <h2>{{ top_priority_title if top_priority_title is defined else "Improve content coverage for high-intent questions" }}</h2>
-                <p>
-                    {{ top_priority_text if top_priority_text is defined else "Your business is visible in some AI-generated answers, but important commercial questions are still not well covered on your site." }}
-                </p>
+        <div class="client-overview-side">
+            <div class="overview-score-card">
+                <div class="overview-score-label">Latest Score</div>
+                <div class="overview-score-value">
+                    {% if latest %}
+                        {{ latest.normalized_score }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+                <div class="overview-score-sub">
+                    {% if comparison and comparison.overall_change %}
+                        Trend: {{ comparison.overall_change|capitalize }}
+                    {% elif latest %}
+                        Baseline available
+                    {% else %}
+                        Awaiting first audit
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="priority-strip-actions">
-                {% if not has_audit %}
-                    <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary btn-block">Run First Audit</a>
-                {% else %}
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id) if url_for else '#' }}" class="btn btn-primary btn-block">Generate Content Brief</a>
-                    <a href="{{ url_for('client_actions_page', client_id=client.id) if url_for else '#' }}" class="btn btn-secondary btn-block">View Action Plan</a>
-                {% endif %}
+            <div class="overview-mini-grid">
+                <div class="overview-mini-card">
+                    <span>Visibility</span>
+                    <strong>{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
+                </div>
+                <div class="overview-mini-card">
+                    <span>Audits</span>
+                    <strong>{{ client.audit_count if client.audit_count is defined else 0 }}</strong>
+                </div>
+                <div class="overview-mini-card">
+                    <span>Actions</span>
+                    <strong>{{ recommended_actions|length }}</strong>
+                </div>
+                <div class="overview-mini-card">
+                    <span>Opportunity</span>
+                    <strong class="small-copy">{% if latest %}{{ latest.opportunity_level }}{% else %}—{% endif %}</strong>
+                </div>
             </div>
         </div>
     </section>
+
+    {% if has_audit %}
+    <div class="start-here">
+        <strong>Start here:</strong>
+        {% if missing_rows %}
+            Create content for missing questions first.
+        {% elif top_action %}
+            Follow the top recommended action first.
+        {% else %}
+            Review visibility first, then move into actions.
+        {% endif %}
+    </div>
+    {% endif %}
 
     <section class="client-section-card">
         <div class="section-head compact">
@@ -63,40 +138,40 @@
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>AI Visibility</span>
-                    <strong>{{ visibility_score if visibility_score is defined else 72 }}</strong>
+                    <strong>{% if latest %}{{ latest.visibility_score }}{% else %}0{% endif %}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-blue" style="width: {{ visibility_pct if visibility_pct is defined else 72 }}%;"></div>
+                    <div class="score-row-fill fill-blue" style="width: {% if latest %}{{ latest.visibility_score }}{% else %}0{% endif %}%;"></div>
                 </div>
             </div>
 
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>Content Coverage</span>
-                    <strong>{{ content_score if content_score is defined else 61 }}</strong>
+                    <strong>{% if latest %}{{ latest.content_score }}{% else %}0{% endif %}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-orange" style="width: {{ content_pct if content_pct is defined else 61 }}%;"></div>
+                    <div class="score-row-fill fill-orange" style="width: {% if latest %}{{ latest.content_score }}{% else %}0{% endif %}%;"></div>
                 </div>
             </div>
 
             <div class="score-row-card">
                 <div class="score-row-top">
-                    <span>Entity Strength</span>
-                    <strong>{{ entity_score if entity_score is defined else 57 }}</strong>
+                    <span>Schema Strength</span>
+                    <strong>{% if latest %}{{ latest.schema_score }}{% else %}0{% endif %}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-green" style="width: {{ entity_pct if entity_pct is defined else 57 }}%;"></div>
+                    <div class="score-row-fill fill-green" style="width: {% if latest %}{{ latest.schema_score }}{% else %}0{% endif %}%;"></div>
                 </div>
             </div>
 
             <div class="score-row-card">
                 <div class="score-row-top">
-                    <span>Trust Signals</span>
-                    <strong>{{ trust_score if trust_score is defined else 66 }}</strong>
+                    <span>Overall Score</span>
+                    <strong>{% if latest %}{{ latest.normalized_score }}{% else %}0{% endif %}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-purple" style="width: {{ trust_pct if trust_pct is defined else 66 }}%;"></div>
+                    <div class="score-row-fill fill-purple" style="width: {% if latest %}{{ latest.normalized_score }}{% else %}0{% endif %}%;"></div>
                 </div>
             </div>
         </div>
@@ -113,22 +188,22 @@
         <div class="finding-list">
             <div class="finding-item warning">
                 <div class="finding-copy">
-                    <strong>{{ finding_1_title if finding_1_title is defined else "Weak question coverage" }}</strong>
-                    <p>{{ finding_1_text if finding_1_text is defined else "Your site does not answer enough of the common questions customers ask before making a decision." }}</p>
+                    <strong>Weak coverage</strong>
+                    <p>Important questions are not answered clearly enough yet.</p>
                 </div>
             </div>
 
             <div class="finding-item neutral">
                 <div class="finding-copy">
-                    <strong>{{ finding_2_title if finding_2_title is defined else "Moderate visibility in AI answers" }}</strong>
-                    <p>{{ finding_2_text if finding_2_text is defined else "Your brand appears occasionally, but stronger structured content could improve consistency." }}</p>
+                    <strong>Visibility gaps</strong>
+                    <p>Your brand appears inconsistently across tracked answer scenarios.</p>
                 </div>
             </div>
 
             <div class="finding-item success">
                 <div class="finding-copy">
-                    <strong>{{ finding_3_title if finding_3_title is defined else "Brand basics are present" }}</strong>
-                    <p>{{ finding_3_text if finding_3_text is defined else "Your business name, services, and some trust indicators are already visible, which gives you a good starting point." }}</p>
+                    <strong>Good starting point</strong>
+                    <p>You already have a base to improve from, which makes the next actions more targeted.</p>
                 </div>
             </div>
         </div>
@@ -138,31 +213,31 @@
         <div class="section-head compact">
             <div>
                 <h3>Top Recommended Actions</h3>
-                <p>Start with the clearest next steps first.</p>
+                <p>Start here.</p>
             </div>
         </div>
 
         <div class="action-list-v4">
-            <a href="{{ url_for('generate_client_content_brief', client_id=client.id) if url_for else '#' }}" class="action-step-card">
+            <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="action-step-card">
                 <div class="action-step-no">1</div>
                 <div class="action-step-copy">
-                    <strong>Create a content brief</strong>
-                    <p>Start with missing high-intent questions and service-related topics.</p>
+                    <strong>Review visibility gaps</strong>
+                    <p>See where your brand is missing and where competitors are appearing instead.</p>
                 </div>
             </a>
 
-            <a href="{{ url_for('client_actions_page', client_id=client.id) if url_for else '#' }}" class="action-step-card">
+            <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="action-step-card">
                 <div class="action-step-no">2</div>
                 <div class="action-step-copy">
-                    <strong>Improve trust signals</strong>
-                    <p>Add clearer service proof, FAQs, reviews, and location details.</p>
+                    <strong>Open action plan</strong>
+                    <p>Follow the clearest next steps from the latest audit.</p>
                 </div>
             </a>
 
-            <a href="{{ url_for('new_audit') if url_for else '#' }}" class="action-step-card">
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="action-step-card">
                 <div class="action-step-no">3</div>
                 <div class="action-step-copy">
-                    <strong>Re-run the audit</strong>
+                    <strong>Run the next audit</strong>
                     <p>Measure whether visibility and coverage improve after updates.</p>
                 </div>
             </a>
@@ -178,9 +253,13 @@
         </div>
 
         <div class="opportunity-list">
-            {% if question_opportunities is defined and question_opportunities %}
-                {% for question in question_opportunities[:6] %}
-                <div class="opportunity-chip">{{ question }}</div>
+            {% if missing_rows %}
+                {% for row in missing_rows[:6] %}
+                <div class="opportunity-chip">{{ row.query }}</div>
+                {% endfor %}
+            {% elif question_rows %}
+                {% for row in question_rows[:6] %}
+                <div class="opportunity-chip">{{ row.query }}</div>
                 {% endfor %}
             {% else %}
                 <div class="opportunity-chip">How much does the service cost?</div>
@@ -191,36 +270,48 @@
                 <div class="opportunity-chip">What should customers expect?</div>
             {% endif %}
         </div>
+
+        <div class="card-actions top-space">
+            <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">Generate Brief</a>
+            <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Draft</a>
+        </div>
     </section>
 
 </div>
 
 <style>
-.client-v4 {
+.client-overview-shell {
     max-width: 980px;
     margin: 0 auto;
     padding: 16px;
     display: grid;
-    gap: 12px;
+    gap: 14px;
 }
 
-.client-hero-card,
+.client-overview-hero,
 .client-section-card,
 .score-row-card,
 .finding-item,
-.action-step-card {
+.action-step-card,
+.overview-score-card,
+.overview-mini-card {
     background: #ffffff;
     border: 1px solid #e8edf5;
     border-radius: 18px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-.client-hero-card,
+.client-overview-hero,
 .client-section-card {
     padding: 16px;
 }
 
-.client-identity {
+.client-overview-hero {
+    display: grid;
+    gap: 16px;
+}
+
+.client-overview-identity {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 16px;
@@ -260,9 +351,9 @@
     font-weight: 700;
 }
 
-.client-identity-copy h1 {
+.client-overview-copy h1 {
     margin: 0;
-    font-size: 30px;
+    font-size: 28px;
     line-height: 1.08;
     color: #15233b;
 }
@@ -323,6 +414,75 @@
 
 .btn-block {
     width: 100%;
+}
+
+.overview-score-card {
+    padding: 18px;
+    border: 1px solid #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    margin-bottom: 14px;
+}
+
+.overview-score-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.overview-score-value {
+    margin-top: 12px;
+    font-size: 48px;
+    line-height: 1;
+    font-weight: 800;
+    color: #E83256;
+}
+
+.overview-score-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #15233b;
+}
+
+.overview-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.overview-mini-card {
+    padding: 14px;
+    background: #f8fafc;
+}
+
+.overview-mini-card span {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.overview-mini-card strong {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.overview-mini-card strong.small-copy {
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+.start-here {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .section-head.compact {
@@ -467,19 +627,34 @@
     font-weight: 700;
 }
 
+.card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.card-actions.top-space {
+    margin-top: 14px;
+}
+
 @media (min-width: 769px) {
-    .client-v4 {
+    .client-overview-shell {
         padding: 20px;
         gap: 16px;
     }
 
-    .client-hero-card,
+    .client-overview-hero,
     .client-section-card {
         padding: 20px;
     }
 
-    .client-identity-copy h1 {
-        font-size: 40px;
+    .client-overview-hero {
+        grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr);
+        align-items: start;
+    }
+
+    .client-overview-copy h1 {
+        font-size: 38px;
     }
 
     .priority-strip {
@@ -490,22 +665,29 @@
     .score-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .card-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
 }
 
 @media (max-width: 640px) {
-    .client-v4 {
+    .client-overview-shell {
         padding: 12px;
     }
 
-    .client-hero-card,
+    .client-overview-hero,
     .client-section-card,
     .score-row-card,
     .finding-item,
-    .action-step-card {
+    .action-step-card,
+    .overview-score-card,
+    .overview-mini-card {
         border-radius: 16px;
     }
 
-    .client-identity {
+    .client-overview-identity {
         grid-template-columns: 1fr;
     }
 
@@ -515,7 +697,7 @@
         font-size: 24px;
     }
 
-    .client-identity-copy h1 {
+    .client-overview-copy h1 {
         font-size: 24px;
     }
 }

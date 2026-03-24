@@ -2,7 +2,7 @@
 
 {% block title %}{{ client.name }} | History{% endblock %}
 {% block page_title %}{{ client.name }} · History{% endblock %}
-{% block page_subtitle %}Track audit progress over time, compare score movement, and review past reports in one cleaner timeline.{% endblock %}
+{% block page_subtitle %}Track progress over time.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
@@ -19,40 +19,18 @@
 
     <section class="history-hero-card">
         <div class="history-hero-copy">
-            <div class="history-badge-row">
-                <span class="history-badge">Audit History</span>
-                <span class="history-badge">Progress Tracking</span>
-                <span class="history-badge">Client Reporting</span>
-                {% if comparison and comparison.overall_change %}
-                <span class="history-badge history-badge-soft">{{ comparison.overall_change|capitalize }}</span>
-                {% endif %}
-            </div>
-
-            <h1 class="history-hero-title">
-                {% if total_audits >= 2 %}
-                    Review how this client’s visibility is changing over time.
-                {% elif total_audits == 1 %}
-                    The baseline is ready. One more audit will unlock trend tracking.
-                {% else %}
-                    No audit history yet for this client.
-                {% endif %}
-            </h1>
-
+            <h1 class="history-hero-title">Audit history</h1>
             <p class="history-hero-summary">
-                {% if total_audits >= 2 %}
-                    Use this page to explain progress clearly, validate whether updates are working, and compare the latest saved audit against previous runs.
-                {% elif total_audits == 1 %}
-                    You already have a starting benchmark. After the next audit, this page will show score movement, trend direction, and a clearer before-versus-after story.
+                {% if total_audits >= 1 %}
+                    Track progress over time.
                 {% else %}
-                    Run the first audit to create a benchmark and start building a measurable visibility history for this client.
+                    Run your first audit to start building history.
                 {% endif %}
             </p>
 
-            <div class="history-hero-tags">
-                <span class="hero-tag">Reverse timeline</span>
-                <span class="hero-tag">Delta tracking</span>
-                <span class="hero-tag">Audit validation</span>
-                <span class="hero-tag">Client-ready review</span>
+            <div class="history-hero-actions">
+                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">View Visibility</a>
+                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Open Actions</a>
             </div>
         </div>
 
@@ -91,47 +69,54 @@
                     <strong>{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
                 </div>
                 <div class="history-mini-card">
-                    <span>Latest Opportunity</span>
+                    <span>Opportunity</span>
                     <strong class="small-copy">{% if latest %}{{ latest.opportunity_level }}{% else %}—{% endif %}</strong>
                 </div>
             </div>
         </div>
     </section>
 
+    {% if total_audits >= 2 %}
+    <div class="start-here">
+        <strong>Start here:</strong> Review what changed between the latest audits.
+    </div>
+    {% endif %}
+
     <section class="history-grid">
-        <div class="history-panel panel-span-8">
+
+        <div class="history-panel panel-span-12">
             <div class="panel-head">
                 <div>
-                    <h3>Latest vs Previous</h3>
-                    <p>Side-by-side movement across the two most recent saved audits.</p>
+                    <h3>What changed</h3>
+                    <p>Movement across the two most recent saved audits.</p>
                 </div>
             </div>
 
             {% if comparison %}
             <div class="delta-grid">
                 <div class="delta-card">
-                    <span class="delta-label">Normalized Delta</span>
+                    <span class="delta-label">Normalized</span>
                     <strong class="delta-value {% if comparison.normalized_delta > 0 %}positive{% elif comparison.normalized_delta < 0 %}negative{% endif %}">
                         {{ "+" if comparison.normalized_delta > 0 else "" }}{{ comparison.normalized_delta }}
                     </strong>
                 </div>
 
                 <div class="delta-card">
-                    <span class="delta-label">Visibility Delta</span>
+                    <span class="delta-label">Visibility</span>
                     <strong class="delta-value {% if comparison.visibility_delta > 0 %}positive{% elif comparison.visibility_delta < 0 %}negative{% endif %}">
                         {{ "+" if comparison.visibility_delta > 0 else "" }}{{ comparison.visibility_delta }}
                     </strong>
                 </div>
 
                 <div class="delta-card">
-                    <span class="delta-label">Content Delta</span>
+                    <span class="delta-label">Content</span>
                     <strong class="delta-value {% if comparison.content_delta > 0 %}positive{% elif comparison.content_delta < 0 %}negative{% endif %}">
                         {{ "+" if comparison.content_delta > 0 else "" }}{{ comparison.content_delta }}
                     </strong>
                 </div>
 
                 <div class="delta-card">
-                    <span class="delta-label">Schema Delta</span>
+                    <span class="delta-label">Schema</span>
                     <strong class="delta-value {% if comparison.schema_delta > 0 %}positive{% elif comparison.schema_delta < 0 %}negative{% endif %}">
                         {{ "+" if comparison.schema_delta > 0 else "" }}{{ comparison.schema_delta }}
                     </strong>
@@ -145,7 +130,7 @@
                     {% if comparison.overall_change == "improved" %}
                         — the latest audit shows positive movement overall.
                     {% elif comparison.overall_change == "declined" %}
-                        — the latest audit has slipped and should be reviewed before the next client update.
+                        — the latest audit has slipped and should be reviewed.
                     {% else %}
                         — movement is limited, so the next gains may need stronger action changes.
                     {% endif %}
@@ -159,93 +144,11 @@
             {% endif %}
         </div>
 
-        <div class="history-panel panel-span-4">
-            <div class="panel-head">
-                <div>
-                    <h3>How To Use This Page</h3>
-                    <p>A simple framework for internal review and client reporting.</p>
-                </div>
-            </div>
-
-            <div class="guidance-list">
-                <div class="guidance-card">
-                    <h4>Explain the overall score first</h4>
-                    <p>Use normalized score as the simplest headline view of AEO progress.</p>
-                </div>
-
-                <div class="guidance-card">
-                    <h4>Use visibility to tell the market story</h4>
-                    <p>Visibility score helps show whether the brand is appearing more often in answer scenarios.</p>
-                </div>
-
-                <div class="guidance-card">
-                    <h4>Use content and schema to explain why</h4>
-                    <p>If progress is slow, these supporting scores help explain what is holding performance back.</p>
-                </div>
-
-                <div class="guidance-card">
-                    <h4>Open past audits for validation</h4>
-                    <p>Review older reports to confirm what changed and whether the recommendations were acted on.</p>
-                </div>
-            </div>
-        </div>
-
         <div class="history-panel panel-span-12">
             <div class="panel-head">
                 <div>
-                    <h3>Audit Timeline</h3>
-                    <p>Saved reports in reverse chronological order for review, validation, and comparison.</p>
-                </div>
-            </div>
-
-            {% if client.audits %}
-            <div class="timeline-table-wrap">
-                <div class="timeline-table">
-                    <div class="timeline-row timeline-head">
-                        <div>Saved At</div>
-                        <div>Type</div>
-                        <div>Website</div>
-                        <div>Normalized</div>
-                        <div>Visibility</div>
-                        <div>Content</div>
-                        <div>Schema</div>
-                        <div>Opportunity</div>
-                        <div>Open</div>
-                    </div>
-
-                    {% for audit in client.audits %}
-                    <div class="timeline-row">
-                        <div>{{ audit.saved_at|pretty_datetime }}</div>
-                        <div>{{ audit.audit_type }}</div>
-                        <div class="cell-break">{{ audit.website }}</div>
-                        <div>{{ audit.normalized_score }}</div>
-                        <div>{{ audit.visibility_score }}</div>
-                        <div>{{ audit.content_score }}</div>
-                        <div>{{ audit.schema_score }}</div>
-                        <div>{{ audit.opportunity_level }}</div>
-                        <div>
-                            <div class="history-links">
-                                <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="text-link">Summary</a>
-                                <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="text-link">Full</a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% else %}
-            <div class="empty-state-card compact">
-                <h3>No audit history yet</h3>
-                <p>This client does not have any saved audit reports yet.</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="history-panel panel-span-12">
-            <div class="panel-head">
-                <div>
-                    <h3>Recent Audit Cards</h3>
-                    <p>A more visual view of the latest saved audit runs.</p>
+                    <h3>Recent Audits</h3>
+                    <p>Your latest saved audit runs.</p>
                 </div>
             </div>
 
@@ -285,121 +188,138 @@
             </div>
             {% else %}
             <div class="empty-state-card compact">
-                <h3>No recent audit cards yet</h3>
-                <p>Run and save audits to build a visual audit history for this client.</p>
+                <h3>No audits yet</h3>
+                <p>Run and save an audit to start building history for this client.</p>
             </div>
             {% endif %}
         </div>
+
+        <div class="history-panel panel-span-12">
+            <div class="panel-head">
+                <div>
+                    <h3>Audit Timeline</h3>
+                    <p>A simple reverse timeline of saved audits.</p>
+                </div>
+            </div>
+
+            {% if client.audits %}
+            <div class="timeline-list">
+                {% for audit in client.audits %}
+                <div class="timeline-item">
+                    <div class="timeline-item-main">
+                        <strong>{{ audit.saved_at|pretty_datetime }}</strong>
+                        <p>
+                            {{ audit.audit_type|capitalize }} ·
+                            N {{ audit.normalized_score }} ·
+                            V {{ audit.visibility_score }}
+                        </p>
+                    </div>
+
+                    <div class="timeline-actions">
+                        <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-secondary">Summary</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-card compact">
+                <h3>No audit timeline yet</h3>
+                <p>This client does not have any saved audit reports yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="history-panel panel-span-12">
+            <div class="next-step">
+                <strong>Next step:</strong>
+                {% if comparison and comparison.overall_change == "declined" %}
+                    Investigate the drop and run another audit after fixes.
+                {% elif comparison and comparison.overall_change == "improved" %}
+                    Continue building on what is working.
+                {% elif latest %}
+                    Run another audit later to measure progress.
+                {% else %}
+                    Run the first audit to establish a baseline.
+                {% endif %}
+            </div>
+        </div>
+
     </section>
 </div>
 
 <style>
 .history-shell {
-    padding: 28px;
+    padding: 18px;
     display: grid;
-    gap: 24px;
+    gap: 18px;
 }
 
 .history-hero-card,
 .history-panel,
 .delta-card,
-.guidance-card,
 .audit-card,
 .history-score-card,
 .history-mini-card,
-.empty-state-card {
+.empty-state-card,
+.timeline-item {
     background: #ffffff;
     border: 1px solid #e7ebf3;
-    border-radius: 24px;
+    border-radius: 20px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .history-hero-card {
-    padding: 30px;
+    padding: 18px;
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
-    gap: 24px;
-    align-items: start;
-}
-
-.history-badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.history-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.history-badge-soft {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
+    gap: 16px;
 }
 
 .history-hero-title {
     margin: 0;
-    font-size: 38px;
+    font-size: 30px;
     line-height: 1.08;
     font-weight: 800;
     color: #15233b;
-    max-width: 760px;
 }
 
 .history-hero-summary {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
     color: #617084;
-    max-width: 760px;
 }
 
-.history-hero-tags {
+.history-hero-actions,
+.card-actions,
+.timeline-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 22px;
+    margin-top: 16px;
 }
 
-.hero-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 9px 14px;
-    border-radius: 999px;
-    background: #f6f8fc;
-    border: 1px solid #e6ebf3;
-    color: #3c4a5f;
-    font-size: 13px;
-    font-weight: 700;
+.history-hero-actions .btn,
+.card-actions .btn,
+.timeline-actions .btn {
+    width: 100%;
 }
 
 .history-score-card {
-    padding: 22px;
-    border-radius: 22px;
+    padding: 18px;
     border: 1px solid #ffd8c6;
     background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .history-score-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: #6b7280;
 }
 
 .history-score-value {
-    margin-top: 14px;
-    font-size: 58px;
+    margin-top: 12px;
+    font-size: 48px;
     line-height: 1;
     font-weight: 800;
     color: #E83256;
@@ -419,7 +339,7 @@
 }
 
 .history-mini-card {
-    padding: 16px;
+    padding: 14px;
     background: #f8fafc;
 }
 
@@ -433,7 +353,7 @@
 
 .history-mini-card strong {
     display: block;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
     color: #16243c;
 }
@@ -443,55 +363,63 @@
     line-height: 1.45;
 }
 
+.start-here {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 .history-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 24px;
+    gap: 18px;
 }
 
 .history-panel {
-    padding: 24px;
+    padding: 18px;
 }
 
 .panel-span-12 { grid-column: span 12; }
-.panel-span-8 { grid-column: span 8; }
-.panel-span-4 { grid-column: span 4; }
 
 .panel-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 18px;
+    gap: 14px;
+    margin-bottom: 14px;
 }
 
 .panel-head h3 {
     margin: 0;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     color: #16243c;
 }
 
 .panel-head p {
-    margin: 8px 0 0;
-    font-size: 15px;
+    margin: 6px 0 0;
+    font-size: 14px;
     color: #6b7280;
     line-height: 1.55;
 }
 
 .delta-grid,
-.guidance-list,
-.audit-card-grid {
+.audit-card-grid,
+.timeline-list {
     display: grid;
-    gap: 16px;
+    gap: 14px;
 }
 
 .delta-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr;
 }
 
 .delta-card {
-    padding: 18px;
+    padding: 16px;
     background: #f8fafc;
 }
 
@@ -505,7 +433,7 @@
 
 .delta-value {
     display: block;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 800;
     color: #16243c;
 }
@@ -519,9 +447,9 @@
 }
 
 .comparison-banner {
-    margin-top: 18px;
-    padding: 18px 20px;
-    border-radius: 18px;
+    margin-top: 16px;
+    padding: 16px 18px;
+    border-radius: 16px;
     border: 1px solid #e7ebf3;
     background: #f8fafc;
 }
@@ -542,7 +470,7 @@
 }
 
 .comparison-banner-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: #6b7280;
     margin-bottom: 8px;
@@ -550,83 +478,16 @@
 
 .comparison-banner-copy {
     color: #16243c;
-    font-size: 15px;
-    line-height: 1.6;
-}
-
-.guidance-card {
-    padding: 18px;
-    background: #f9fbff;
-}
-
-.guidance-card h4,
-.audit-card-top h4 {
-    margin: 0 0 8px;
-    color: #16243c;
-    font-weight: 800;
-}
-
-.guidance-card p,
-.audit-score-line {
-    margin: 0;
     font-size: 14px;
     line-height: 1.6;
-    color: #627084;
-}
-
-.timeline-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.timeline-table {
-    min-width: 1120px;
-    display: grid;
-    gap: 10px;
-}
-
-.timeline-row {
-    display: grid;
-    grid-template-columns: 180px 110px 220px 90px 90px 90px 90px 130px 120px;
-    gap: 12px;
-    align-items: center;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    font-size: 14px;
-    color: #334155;
-}
-
-.timeline-head {
-    background: #f1f5f9;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.cell-break {
-    word-break: break-word;
-}
-
-.history-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.text-link {
-    color: #E83256;
-    font-size: 13px;
-    font-weight: 800;
-    text-decoration: none;
 }
 
 .audit-card-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
 }
 
 .audit-card {
-    padding: 20px;
+    padding: 18px;
 }
 
 .audit-card-top {
@@ -644,6 +505,12 @@
     background: #fff2ea;
     color: #E83256;
     font-size: 12px;
+    font-weight: 800;
+}
+
+.audit-card-top h4 {
+    margin: 0;
+    color: #16243c;
     font-weight: 800;
 }
 
@@ -672,71 +539,108 @@
     color: #16243c;
 }
 
-.card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 14px;
+.audit-score-line {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #627084;
+}
+
+.timeline-item {
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+    background: #f8fafc;
+}
+
+.timeline-item-main strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+    margin-bottom: 6px;
+}
+
+.timeline-item-main p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.next-step {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #334155;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .empty-state-card.compact {
-    padding: 24px;
+    padding: 20px;
     border: 1px dashed #d6dde8;
     background: #fafcff;
 }
 
 .empty-state-card.compact h3 {
     margin: 0 0 8px;
-    font-size: 20px;
+    font-size: 18px;
     color: #16243c;
 }
 
 .empty-state-card.compact p {
-    margin: 0;
-    font-size: 15px;
+    margin: 0 0 14px;
+    font-size: 14px;
     line-height: 1.6;
     color: #6b7280;
 }
 
-@media (max-width: 1200px) {
-    .history-hero-card,
-    .delta-grid,
-    .audit-card-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .panel-span-8,
-    .panel-span-4 {
-        grid-column: span 12;
-    }
-}
-
-@media (max-width: 768px) {
+@media (min-width: 769px) {
     .history-shell {
-        padding: 18px;
+        padding: 24px;
+        gap: 20px;
     }
 
-    .history-hero-card,
+    .history-hero-card {
+        grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.78fr);
+        align-items: start;
+        padding: 24px;
+    }
+
     .history-panel,
-    .delta-card,
-    .guidance-card,
-    .audit-card,
-    .history-score-card,
-    .history-mini-card,
-    .empty-state-card {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .history-hero-card,
-    .delta-grid,
-    .audit-card-grid,
-    .history-mini-grid {
-        grid-template-columns: 1fr;
+    .history-score-card {
+        padding: 22px;
     }
 
     .history-hero-title {
-        font-size: 30px;
+        font-size: 38px;
+    }
+
+    .history-hero-actions,
+    .card-actions,
+    .timeline-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .history-hero-actions .btn,
+    .card-actions .btn,
+    .timeline-actions .btn {
+        width: auto;
+    }
+
+    .delta-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .audit-card-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .timeline-item {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
     }
 }
 </style>

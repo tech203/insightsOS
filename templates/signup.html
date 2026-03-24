@@ -3,366 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up | AEO Agents</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Login | AEO Agents</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='stylesv2.1.css') }}">
 </head>
 <body class="auth-body">
-    <div class="auth-shell auth-shell-v2">
 
-        <section class="auth-brand-panel">
-            <div class="auth-brand-inner">
-                <div class="auth-brand-top">
-                    <div class="brand-mark large">A</div>
-                    <div class="auth-brand-copy">
-                        <h1>AEO Agents</h1>
-                        <p>
-                            Build a repeatable workflow for AI visibility audits,
-                            client reporting, and content execution from one workspace.
-                        </p>
-                    </div>
-                </div>
+<div class="auth-shell-clean">
 
-                <div class="auth-badge-row">
-                    <span class="auth-badge auth-badge-primary">3 Starter Credits</span>
-                    <span class="auth-badge">Client Workspaces</span>
-                    <span class="auth-badge">Content Workflow</span>
-                </div>
+    <section class="auth-left">
+        <div class="auth-left-inner">
+            <div class="brand-mark large">A</div>
 
-                <div class="auth-feature-stack">
-                    <div class="auth-feature-card">
-                        <div class="auth-feature-icon">⚡</div>
-                        <div>
-                            <h3>Start with 3 starter credits</h3>
-                            <p>New accounts begin with starter credits so you can test audits, reports, and content workflows immediately.</p>
-                        </div>
-                    </div>
+            <h1>AEO Agents</h1>
 
-                    <div class="auth-feature-card">
-                        <div class="auth-feature-icon">◫</div>
-                        <div>
-                            <h3>Agency-ready workspace</h3>
-                            <p>Organize multiple clients, audit history, action plans, and content queue items in one system.</p>
-                        </div>
-                    </div>
+            <p>
+                Track AI visibility. Fix what matters. Grow your presence in AI answers.
+            </p>
 
-                    <div class="auth-feature-card">
-                        <div class="auth-feature-icon">↗</div>
-                        <div>
-                            <h3>Referral support</h3>
-                            <p>Use a referral code during signup to unlock referral rewards later when qualification rules are met.</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="auth-trust">
+                <span>Secure login</span>
+                <span>No spam</span>
+                <span>Your data stays private</span>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section class="auth-form-panel">
-            <div class="auth-form-card">
-                <div class="auth-form-header">
-                    <span class="auth-form-kicker">Create account</span>
-                    <h2>Start your workspace</h2>
-                    <p>Get access to credits, audits, growth planning, and content tools.</p>
+    <section class="auth-right">
+        <div class="auth-card">
+
+            <div class="auth-header">
+                <h2>Welcome back</h2>
+                <p>Log in to continue</p>
+            </div>
+
+            {% if error %}
+            <div class="auth-alert">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" class="form-stack" onsubmit="handleLoginSubmit()">
+
+                <div class="form-field">
+                    <label for="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        required
+                        autocomplete="email"
+                        autofocus
+                    >
                 </div>
 
-                {% if error %}
-                <div class="auth-alert auth-alert-danger">
-                    <strong>Error:</strong> {{ error }}
-                </div>
-                {% endif %}
+                <div class="form-field">
+                    <label for="password">Password</label>
 
-                <form method="POST" class="form-stack">
-                    <div class="form-field">
-                        <label for="name">Name</label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            placeholder="Your name"
-                            required
-                            autocomplete="name"
-                        >
-                    </div>
-
-                    <div class="form-field">
-                        <label for="email">Email</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            placeholder="you@example.com"
-                            required
-                            autocomplete="email"
-                        >
-                    </div>
-
-                    <div class="form-field">
-                        <label for="password">Password</label>
+                    <div class="password-field">
                         <input
                             type="password"
                             id="password"
                             name="password"
-                            placeholder="Create a password"
+                            placeholder="Enter your password"
                             required
-                            autocomplete="new-password"
+                            autocomplete="current-password"
                         >
-                    </div>
-
-                    <div class="form-field">
-                        <label for="referral_code">Referral Code</label>
-                        <input
-                            type="text"
-                            id="referral_code"
-                            name="referral_code"
-                            placeholder="Optional"
-                            autocomplete="off"
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            aria-label="Show password"
+                            onclick="togglePasswordVisibility('password', this)"
                         >
+                            Show
+                        </button>
                     </div>
-
-                    <button type="submit" class="btn btn-primary btn-full">Create Account</button>
-                </form>
-
-                <div class="auth-divider"></div>
-
-                <div class="auth-footer-links">
-                    <span>Already have an account?</span>
-                    <a href="{{ url_for('login') }}" class="text-link">Log in</a>
                 </div>
 
-                <div class="auth-footer-links auth-footer-links-secondary">
-                    <a href="{{ url_for('aeo_agency_page') }}" class="text-link">Back to landing page</a>
+                <div class="form-extra">
+                    <a href="#" class="forgot-link">Forgot password?</a>
                 </div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+                    Log In
+                </button>
+            </form>
+
+            <div class="auth-divider"></div>
+
+            <div class="auth-links">
+                <span>New here?</span>
+                <a href="{{ url_for('signup') }}">Create account</a>
             </div>
-        </section>
 
-    </div>
+            <div class="auth-links small">
+                <a href="{{ url_for('aeo_agency_page') }}">Back to landing</a>
+            </div>
 
-    <style>
-        .auth-shell-v2 {
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
-            background:
-                radial-gradient(circle at top left, rgba(255, 106, 43, 0.10), transparent 24%),
-                linear-gradient(180deg, #f6f8fc 0%, #eef3f9 100%);
-        }
+        </div>
+    </section>
 
-        .auth-brand-panel,
-        .auth-form-panel {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-        }
+</div>
 
-        .auth-brand-inner {
-            width: 100%;
-            max-width: 640px;
-            display: grid;
-            gap: 22px;
-        }
+<style>
+.auth-shell-clean {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    background:
+        radial-gradient(circle at top left, rgba(255, 106, 43, 0.10), transparent 24%),
+        linear-gradient(180deg, #f6f8fc 0%, #eef3f9 100%);
+}
 
-        .auth-brand-top {
-            display: flex;
-            align-items: flex-start;
-            gap: 18px;
-        }
+.auth-left,
+.auth-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
 
-        .auth-brand-copy h1 {
-            margin: 0;
-            font-size: 42px;
-            line-height: 1.05;
-            font-weight: 800;
-            color: #15233b;
-        }
+.auth-left-inner {
+    max-width: 420px;
+    display: grid;
+    gap: 16px;
+    text-align: center;
+}
 
-        .auth-brand-copy p {
-            margin: 14px 0 0;
-            font-size: 17px;
-            line-height: 1.65;
-            color: #617084;
-            max-width: 560px;
-        }
+.auth-left h1 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.08;
+    color: #15233b;
+}
 
-        .auth-badge-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+.auth-left p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.6;
+    font-size: 15px;
+}
 
-        .auth-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: #f8fafc;
-            border: 1px solid #e7ebf3;
-            color: #4a586c;
-            font-size: 13px;
-            font-weight: 800;
-        }
+.auth-trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
 
-        .auth-badge-primary {
-            background: #fff2ea;
-            border-color: #ffd8c6;
-            color: #E83256;
-        }
+.auth-trust span {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
 
-        .auth-feature-stack {
-            display: grid;
-            gap: 16px;
-        }
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 18px;
+    border: 1px solid #e7ebf3;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
 
-        .auth-feature-card {
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.88);
-            border: 1px solid #e7ebf3;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-        }
+.auth-header h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #15233b;
+}
 
-        .auth-feature-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff2ea;
-            color: #E83256;
-            font-size: 18px;
-            font-weight: 800;
-            flex-shrink: 0;
-        }
+.auth-header p {
+    margin: 6px 0 16px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+}
 
-        .auth-feature-card h3 {
-            margin: 0 0 8px;
-            font-size: 18px;
-            font-weight: 800;
-            color: #16243c;
-        }
+.auth-alert {
+    background: #fff4f4;
+    border: 1px solid #fecaca;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    color: #b91c1c;
+    font-size: 14px;
+    line-height: 1.5;
+}
 
-        .auth-feature-card p {
-            margin: 0;
-            color: #627084;
-            font-size: 14px;
-            line-height: 1.6;
-        }
+.password-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
 
-        .auth-form-card {
-            width: 100%;
-            max-width: 460px;
-            padding: 32px;
-            background: rgba(255, 255, 255, 0.96);
-            border: 1px solid #e7ebf3;
-            border-radius: 28px;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-        }
+.password-field input {
+    width: 100%;
+    padding-right: 72px;
+}
 
-        .auth-form-header {
-            margin-bottom: 22px;
-        }
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+}
 
-        .auth-form-kicker {
-            display: inline-flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: #fff2ea;
-            color: #E83256;
-            font-size: 12px;
-            font-weight: 800;
-            margin-bottom: 14px;
-        }
+.password-toggle:hover {
+    color: #15233b;
+}
 
-        .auth-form-header h2 {
-            margin: 0;
-            font-size: 30px;
-            line-height: 1.1;
-            font-weight: 800;
-            color: #15233b;
-        }
+.form-extra {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
 
-        .auth-form-header p {
-            margin: 12px 0 0;
-            color: #617084;
-            font-size: 15px;
-            line-height: 1.6;
-        }
+.forgot-link {
+    font-size: 12px;
+    color: #6b7280;
+    text-decoration: none;
+}
 
-        .auth-alert {
-            padding: 14px 16px;
-            border-radius: 16px;
-            margin-bottom: 18px;
-            font-size: 14px;
-            line-height: 1.55;
-        }
+.forgot-link:hover {
+    color: #15233b;
+}
 
-        .auth-alert-danger {
-            background: #fff4f4;
-            border: 1px solid #fecaca;
-            color: #b91c1c;
-        }
+.auth-divider {
+    height: 1px;
+    background: #e7ebf3;
+    margin: 16px 0;
+}
 
-        .auth-divider {
-            height: 1px;
-            background: #e7ebf3;
-            margin: 20px 0 16px;
-        }
+.auth-links {
+    text-align: center;
+    font-size: 14px;
+    color: #6b7280;
+}
 
-        .auth-footer-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            color: #6b7280;
-            font-size: 14px;
-            margin-top: 10px;
-        }
+.auth-links a {
+    font-weight: 700;
+}
 
-        .auth-footer-links-secondary {
-            margin-top: 12px;
-        }
+.auth-links.small {
+    margin-top: 8px;
+    font-size: 12px;
+}
 
-        @media (max-width: 1100px) {
-            .auth-shell-v2 {
-                grid-template-columns: 1fr;
-            }
+@media (min-width: 768px) {
+    .auth-shell-clean {
+        grid-template-columns: 1fr 1fr;
+    }
 
-            .auth-brand-panel {
-                padding-bottom: 0;
-            }
+    .auth-left-inner {
+        text-align: left;
+    }
 
-            .auth-form-panel {
-                padding-top: 0;
-            }
-        }
+    .auth-left {
+        align-items: center;
+    }
+}
 
-        @media (max-width: 768px) {
-            .auth-brand-panel,
-            .auth-form-panel {
-                padding: 20px 18px;
-            }
+@media (max-width: 767px) {
+    .auth-left {
+        padding-bottom: 8px;
+    }
 
-            .auth-form-card {
-                padding: 22px;
-                border-radius: 22px;
-            }
+    .auth-right {
+        padding-top: 8px;
+    }
 
-            .auth-brand-copy h1 {
-                font-size: 32px;
-            }
+    .auth-left-inner {
+        gap: 12px;
+    }
 
-            .auth-form-header h2 {
-                font-size: 26px;
-            }
+    .auth-card {
+        padding: 22px;
+    }
 
-            .auth-brand-top {
-                flex-direction: column;
-            }
-        }
-    </style>
+    .auth-left h1 {
+        font-size: 26px;
+    }
+
+    .auth-header h2 {
+        font-size: 24px;
+    }
+}
+</style>
+
+<script>
+function handleLoginSubmit() {
+    const btn = document.getElementById('loginBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Logging in...';
+    }
+}
+
+function togglePasswordVisibility(inputId, buttonEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        buttonEl.textContent = 'Hide';
+        buttonEl.setAttribute('aria-label', 'Hide password');
+    } else {
+        input.type = 'password';
+        buttonEl.textContent = 'Show';
+        buttonEl.setAttribute('aria-label', 'Show password');
+    }
+}
+</script>
+
 </body>
 </html>

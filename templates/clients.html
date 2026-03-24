@@ -13,6 +13,169 @@
 {% set clients_with_reports = clients | selectattr("audit_count", "gt", 0) | list %}
 {% set latest_scored_clients = clients | selectattr("latest_audit") | list %}
 
+{% if total_clients == 0 %}
+
+<div class="clients-shell">
+    <section class="empty-dashboard-state">
+        <div class="empty-dashboard-icon">◫</div>
+        <h1>Create your first client</h1>
+        <p>
+            Add a client to create a workspace, run the first audit,
+            and unlock visibility, actions, and content tools.
+        </p>
+
+        <div class="empty-dashboard-actions">
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
+            <a href="{{ url_for('help_page') }}" class="btn btn-secondary">How it works</a>
+        </div>
+
+        <div class="empty-dashboard-steps">
+            <div class="empty-step-card">
+                <div class="empty-step-no">1</div>
+                <strong>Add client</strong>
+                <p>Create a workspace for the business you want to manage.</p>
+            </div>
+
+            <div class="empty-step-card">
+                <div class="empty-step-no">2</div>
+                <strong>Run first audit</strong>
+                <p>Get a baseline view of AI visibility and content gaps.</p>
+            </div>
+
+            <div class="empty-step-card">
+                <div class="empty-step-no">3</div>
+                <strong>Open actions</strong>
+                <p>See what to fix first and generate content faster.</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+.clients-shell {
+    padding: 28px;
+}
+
+.empty-dashboard-state {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+    padding: 40px 24px;
+    text-align: center;
+    display: grid;
+    gap: 18px;
+}
+
+.empty-dashboard-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #E83256;
+    font-size: 32px;
+    font-weight: 800;
+}
+
+.empty-dashboard-state h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.1;
+    color: #15233b;
+}
+
+.empty-dashboard-state p {
+    margin: 0 auto;
+    max-width: 640px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #617084;
+}
+
+.empty-dashboard-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.empty-dashboard-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.empty-step-card {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 18px;
+    text-align: left;
+}
+
+.empty-step-no {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff2ea;
+    color: #E83256;
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.empty-step-card strong {
+    display: block;
+    color: #16243c;
+    font-size: 17px;
+    margin-bottom: 8px;
+}
+
+.empty-step-card p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #627084;
+}
+
+@media (max-width: 768px) {
+    .clients-shell {
+        padding: 18px;
+    }
+
+    .empty-dashboard-state {
+        padding: 28px 18px;
+        border-radius: 20px;
+    }
+
+    .empty-dashboard-state h1 {
+        font-size: 26px;
+    }
+
+    .empty-dashboard-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .empty-dashboard-actions {
+        flex-direction: column;
+    }
+
+    .empty-dashboard-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+
+{% else %}
+
 <div class="clients-shell">
 
     <section class="clients-hero">
@@ -63,698 +226,9 @@
         </div>
     </section>
 
-    <section class="clients-panel">
-        <div class="panel-head">
-            <div>
-                <h2>How this page works</h2>
-                <p>A simple flow for busy teams and business owners.</p>
-            </div>
-        </div>
+    <!-- keep the rest of your existing clients page here exactly as it is -->
 
-        <div class="workflow-grid">
-            <article class="workflow-card">
-                <div class="workflow-step">1</div>
-                <h3>Add a client</h3>
-                <p>Create one workspace for each business, brand, or location you want to manage.</p>
-            </article>
-
-            <article class="workflow-card">
-                <div class="workflow-step">2</div>
-                <h3>Run a report</h3>
-                <p>See how visible the business is and where the biggest gaps are.</p>
-            </article>
-
-            <article class="workflow-card">
-                <div class="workflow-step">3</div>
-                <h3>Review the plan</h3>
-                <p>Open the growth plan to see what to fix next in plain English.</p>
-            </article>
-
-            <article class="workflow-card">
-                <div class="workflow-step">4</div>
-                <h3>Create content</h3>
-                <p>Turn recommendations into briefs, actions, and execution faster.</p>
-            </article>
-        </div>
-    </section>
-
-    <section class="clients-panel">
-        <div class="panel-head panel-head-inline">
-            <div>
-                <h2>Your Clients</h2>
-                <p>Open a workspace, run a report, or continue with the next best action.</p>
-            </div>
-
-            {% if clients %}
-            <div class="panel-summary-pill">
-                {{ total_clients }} client{% if total_clients != 1 %}s{% endif %}
-            </div>
-            {% endif %}
-        </div>
-
-        {% if clients %}
-        <div class="client-list">
-            {% for client in clients %}
-            {% set latest = client.latest_audit %}
-
-            <article class="client-card">
-                <div class="client-card-head">
-                    <div class="client-card-main">
-                        <div class="client-title-row">
-                            <h3>{{ client.name }}</h3>
-                            <span class="client-badge">{{ client.owner_type or "company" }}</span>
-                        </div>
-
-                        <div class="client-link-row">
-                            <a href="https://{{ client.website_normalized or client.website }}" target="_blank" rel="noopener noreferrer">
-                                {{ client.website }}
-                            </a>
-                        </div>
-
-                        <div class="client-chip-row">
-                            <span class="info-chip">{{ client.industry or "Industry N/A" }}</span>
-                            <span class="info-chip">{{ client.location or "Location N/A" }}</span>
-                        </div>
-                    </div>
-
-                    <div class="client-card-side">
-                        <span class="status-pill">
-                            {% if latest %}
-                                Updated {{ latest.saved_at|pretty_datetime }}
-                            {% else %}
-                                No report yet
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="client-card-body">
-                    <div class="client-insight-box">
-                        {% if latest %}
-                        <div class="insight-row">
-                            <span>Latest Summary</span>
-                            <strong>{{ latest.verdict }}</strong>
-                        </div>
-                        <div class="insight-row">
-                            <span>Opportunity</span>
-                            <strong>{{ latest.opportunity_level }}</strong>
-                        </div>
-                        {% else %}
-                        <div class="insight-empty">
-                            This client does not have a report yet. Run the first report to unlock the growth plan and recommendations.
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="metric-grid">
-                        <div class="metric-card">
-                            <span class="metric-label">Reports</span>
-                            <strong class="metric-number">{{ client.audit_count }}</strong>
-                        </div>
-
-                        <div class="metric-card">
-                            <span class="metric-label">Overall</span>
-                            <strong class="metric-number">{% if latest %}{{ latest.normalized_score }}{% else %}—{% endif %}</strong>
-                        </div>
-
-                        <div class="metric-card">
-                            <span class="metric-label">Visibility</span>
-                            <strong class="metric-number">{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
-                        </div>
-
-                        <div class="metric-card">
-                            <span class="metric-label">Content</span>
-                            <strong class="metric-number">{% if latest %}{{ latest.content_score }}{% else %}—{% endif %}</strong>
-                        </div>
-                    </div>
-
-                    {% if latest %}
-                    <div class="progress-stack">
-                        <div class="progress-card">
-                            <div class="progress-top">
-                                <span>Overall Readiness</span>
-                                <strong>{{ latest.normalized_score }}</strong>
-                            </div>
-                            <div class="progress-track">
-                                <div class="progress-fill progress-green" style="width: {{ latest.normalized_score }}%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="progress-card">
-                            <div class="progress-top">
-                                <span>AI Visibility</span>
-                                <strong>{{ latest.visibility_score }}</strong>
-                            </div>
-                            <div class="progress-track">
-                                <div class="progress-fill progress-blue" style="width: {{ latest.visibility_score * 5 }}%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="client-card-actions">
-                    <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Open Workspace</a>
-                    <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run Report</a>
-
-                    {% if latest %}
-                    <a href="{{ url_for('client_growth_plan', client_id=client.id) }}" class="btn btn-primary">Open Growth Plan</a>
-                    <a href="{{ url_for('client_presentation_page', client_id=client.id) }}" class="btn btn-secondary">Presentation</a>
-                    {% endif %}
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state-card">
-            <div class="empty-state-icon">◫</div>
-            <h3>No clients yet</h3>
-            <p>Add your first client to create a workspace, run reports, and generate action plans.</p>
-            <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
-        </div>
-        {% endif %}
-    </section>
 </div>
 
-<style>
-.clients-shell {
-    padding: 28px;
-    display: grid;
-    gap: 24px;
-}
-
-.clients-hero,
-.clients-panel,
-.client-card,
-.workflow-card,
-.empty-state-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.clients-hero {
-    padding: 30px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
-    gap: 24px;
-    align-items: stretch;
-}
-
-.clients-kicker-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.clients-kicker {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #E83256;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.clients-hero-copy h1 {
-    margin: 0;
-    font-size: 38px;
-    line-height: 1.08;
-    font-weight: 800;
-    color: #15233b;
-    max-width: 760px;
-}
-
-.clients-hero-copy p {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
-    color: #617084;
-    max-width: 760px;
-}
-
-.clients-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 24px;
-}
-
-.clients-hero-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.hero-stat-main {
-    padding: 22px;
-    border-radius: 22px;
-    border: 1px solid #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-}
-
-.hero-stat-label {
-    display: block;
-    font-size: 14px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 10px;
-}
-
-.hero-stat-value {
-    display: block;
-    font-size: 56px;
-    line-height: 1;
-    font-weight: 800;
-    color: #E83256;
-}
-
-.hero-stat-help {
-    display: block;
-    margin-top: 10px;
-    font-size: 14px;
-    color: #6b7280;
-    font-weight: 700;
-}
-
-.hero-stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.hero-mini-stat {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    border-radius: 18px;
-    padding: 16px;
-}
-
-.hero-mini-stat span {
-    display: block;
-    font-size: 13px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 8px;
-}
-
-.hero-mini-stat strong {
-    display: block;
-    font-size: 26px;
-    line-height: 1.2;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.hero-mini-stat strong.small-copy {
-    font-size: 15px;
-    line-height: 1.45;
-}
-
-.clients-panel {
-    padding: 24px;
-}
-
-.panel-head {
-    margin-bottom: 18px;
-}
-
-.panel-head-inline {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-}
-
-.panel-head h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.panel-head p {
-    margin: 0;
-    color: #6b7280;
-    font-size: 15px;
-    line-height: 1.55;
-}
-
-.panel-summary-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 14px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #455468;
-    font-size: 13px;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.workflow-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.workflow-card {
-    padding: 20px;
-}
-
-.workflow-step {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff2ea;
-    color: #E83256;
-    font-size: 16px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
-
-.workflow-card h3 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.workflow-card p {
-    margin: 0;
-    color: #627084;
-    line-height: 1.55;
-}
-
-.client-list {
-    display: grid;
-    gap: 18px;
-}
-
-.client-card {
-    padding: 22px;
-}
-
-.client-card-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 18px;
-}
-
-.client-card-main {
-    min-width: 0;
-}
-
-.client-title-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-}
-
-.client-title-row h3 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.client-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 12px;
-    border-radius: 999px;
-    background: #f6f8fc;
-    border: 1px solid #e6ebf3;
-    color: #3c4a5f;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: capitalize;
-}
-
-.client-link-row {
-    margin-top: 10px;
-}
-
-.client-link-row a {
-    color: #E83256;
-    font-weight: 700;
-    word-break: break-word;
-}
-
-.client-chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 14px;
-}
-
-.info-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4b5a6d;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #5f6b7c;
-    font-size: 12px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.client-card-body {
-    display: grid;
-    gap: 16px;
-}
-
-.client-insight-box {
-    display: grid;
-    gap: 10px;
-}
-
-.insight-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: center;
-    padding: 12px 14px;
-    background: #f9fbff;
-    border: 1px solid #e8edf5;
-    border-radius: 14px;
-}
-
-.insight-row span {
-    font-size: 13px;
-    font-weight: 700;
-    color: #667085;
-}
-
-.insight-row strong {
-    color: #15233b;
-    text-align: right;
-}
-
-.insight-empty {
-    padding: 14px;
-    border-radius: 14px;
-    background: #f9fbff;
-    border: 1px dashed #d6dde8;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.metric-card {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    border-radius: 16px;
-    padding: 14px;
-}
-
-.metric-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 8px;
-}
-
-.metric-number {
-    display: block;
-    font-size: 24px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.progress-stack {
-    display: grid;
-    gap: 12px;
-}
-
-.progress-card {
-    background: #fbfcfe;
-    border: 1px solid #e8edf5;
-    border-radius: 16px;
-    padding: 14px;
-}
-
-.progress-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: #516072;
-    font-weight: 700;
-}
-
-.progress-track {
-    width: 100%;
-    height: 10px;
-    background: #ebeff6;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 999px;
-}
-
-.progress-green {
-    background: linear-gradient(90deg, #16a34a, #22c55e);
-}
-
-.progress-blue {
-    background: linear-gradient(90deg, #2563eb, #3b82f6);
-}
-
-.client-card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 18px;
-}
-
-.empty-state-card {
-    padding: 42px 24px;
-    border: 1px dashed #d6dde8;
-    background: #fafcff;
-    text-align: center;
-}
-
-.empty-state-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 16px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff2ea;
-    color: #E83256;
-    font-size: 28px;
-    font-weight: 800;
-}
-
-.empty-state-card h3 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    color: #16243c;
-}
-
-.empty-state-card p {
-    margin: 0 0 18px;
-    font-size: 15px;
-    color: #6b7280;
-    line-height: 1.55;
-}
-
-@media (max-width: 1200px) {
-    .clients-hero {
-        grid-template-columns: 1fr;
-    }
-
-    .workflow-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .metric-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    .clients-shell {
-        padding: 18px;
-    }
-
-    .clients-hero,
-    .clients-panel,
-    .client-card {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .clients-hero-copy h1 {
-        font-size: 30px;
-    }
-
-    .hero-stat-grid,
-    .workflow-grid,
-    .metric-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .panel-head-inline,
-    .client-card-head,
-    .insight-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .status-pill,
-    .panel-summary-pill {
-        white-space: normal;
-    }
-
-    .client-card-actions,
-    .clients-hero-actions {
-        flex-direction: column;
-    }
-
-    .client-card-actions .btn,
-    .clients-hero-actions .btn {
-        width: 100%;
-    }
-}
-</style>
+{% endif %}
 {% endblock %}

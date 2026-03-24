@@ -2,7 +2,7 @@
 
 {% block title %}{{ client.name }} | Competitors{% endblock %}
 {% block page_title %}{{ client.name }} · Competitors{% endblock %}
-{% block page_subtitle %}See where competing brands appear in AI answers, which queries they win on, and where to counter with better content.{% endblock %}
+{% block page_subtitle %}See where competitors appear instead of your brand.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
@@ -19,472 +19,250 @@
 
     <section class="competitors-hero-card">
         <div class="competitors-hero-main">
-            <div class="competitors-badge-row">
-                <span class="competitors-badge competitors-badge-primary">Competitor Intelligence</span>
-                <span class="competitors-badge">Query Comparison</span>
-                <span class="competitors-badge">Answer Visibility</span>
-                <span class="competitors-badge">Content Opportunities</span>
-            </div>
-
-            <h1>See who is being surfaced when your brand is not.</h1>
-            <p class="competitors-hero-copy">
-                Use this page to understand which competitors are appearing across tracked queries,
-                where your brand is absent, and which content opportunities should be prioritised first.
-            </p>
+            <h1>Competitor gaps</h1>
+            <p class="competitors-hero-copy">See where competitors appear instead of your brand.</p>
 
             <div class="competitors-hero-actions">
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Open Visibility</a>
+                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">View Visibility</a>
                 <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Open Actions</a>
             </div>
         </div>
 
+        {% if has_comparison %}
         <div class="competitors-hero-side">
             <div class="competitors-focus-card">
                 <span class="competitors-focus-label">Best next move</span>
                 <strong class="competitors-focus-value">
                     {% if missing_rows|length > 0 %}
-                        Counter missed-query gaps
+                        Target missing-query gaps
                     {% else %}
                         Review competitor patterns
                     {% endif %}
                 </strong>
                 <p class="competitors-focus-text">
                     {% if missing_rows|length > 0 %}
-                        Start with queries where your brand is not mentioned at all, especially when competitors are already being surfaced.
+                        Start with queries where your brand is missing and competitors are already being surfaced.
                     {% else %}
-                        Look for repeated competitor appearances and turn those patterns into briefs, comparison pages, or stronger FAQs.
+                        Look for repeated competitor appearances and turn those into briefs or stronger comparison content.
                     {% endif %}
                 </p>
             </div>
         </div>
+        {% endif %}
     </section>
 
-    <section class="competitors-summary-grid">
-        <div class="competitors-summary-card">
-            <span>Queries With Competitors</span>
-            <strong>{{ competitor_rows|length }}</strong>
-            <small>Tracked queries with named competing brands</small>
+    {% if missing_rows %}
+    <div class="start-here">
+        <strong>Start here:</strong> Target queries where your brand is missing.
+    </div>
+    {% endif %}
+
+    <section class="competitors-card competitors-full">
+        <div class="section-head">
+            <h3>Competitor Mentions by Query</h3>
+            <p>Review the queries where competitors appear and decide what to respond to first.</p>
         </div>
 
-        <div class="competitors-summary-card">
-            <span>Missed Brand Mentions</span>
-            <strong>{{ missing_rows|length }}</strong>
-            <small>Queries where your brand is absent</small>
-        </div>
+        {% if has_comparison and competitor_rows %}
+        <div class="competitor-query-grid">
+            {% for row in competitor_rows %}
+            <article class="competitor-query-card">
+                <h4>{{ row.query }}</h4>
 
-        <div class="competitors-summary-card">
-            <span>Best Use</span>
-            <strong class="summary-copy">Find counter-content opportunities</strong>
-            <small>Turn gaps into briefs and drafts faster</small>
-        </div>
+                <p class="competitor-status-copy">
+                    {% if row.latest_brand_mentioned %}
+                        Your brand appears here.
+                    {% else %}
+                        Your brand is missing here.
+                    {% endif %}
+                </p>
 
-        <div class="competitors-summary-card">
-            <span>Recommended Priority</span>
-            <strong class="summary-copy">
-                {% if missing_rows|length > 0 %}High{% else %}Moderate{% endif %}
-            </strong>
-            <small>Based on current comparison data</small>
+                <div class="competitor-tag-wrap">
+                    {% for comp in row.latest_competitors %}
+                    <span class="competitor-tag">{{ comp }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="card-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Brief</a>
+                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Draft</a>
+                </div>
+            </article>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state-card compact">
+            <h3>No named competitors yet</h3>
+            <p>The current comparison data does not show competitor names for tracked queries yet.</p>
+        </div>
+        {% endif %}
     </section>
 
-    <section class="competitors-grid">
+    <section class="competitors-card competitors-full">
+        <div class="section-head">
+            <h3>Highest-Priority Counter Opportunities</h3>
+            <p>These are the most useful missed-query opportunities to respond to first.</p>
+        </div>
 
-        <section class="competitors-card competitors-priority-card">
-            <div class="card-topline">
-                <span class="card-tag">What This Means</span>
-            </div>
-
-            <h2>
-                {% if missing_rows|length > 0 %}
-                    Competitors are winning some answer spaces where your brand is not being surfaced.
-                {% else %}
-                    Competitor names are appearing in tracked answer spaces and should be reviewed closely.
-                {% endif %}
-            </h2>
-
-            <p>
-                {% if missing_rows|length > 0 %}
-                    This usually means your current content is not directly answering enough of the relevant questions, or your brand signals are not strong enough for those query clusters.
-                {% else %}
-                    Even when your brand is present, repeated competitor visibility can reveal which comparisons, angles, or trust signals the market is rewarding.
-                {% endif %}
-            </p>
-        </section>
-
-        <section class="competitors-card">
-            <div class="section-head">
-                <h3>How To Use This Page</h3>
-                <p>A simple framework for finding the right response.</p>
-            </div>
-
-            <div class="guide-list">
-                <div class="guide-item">
-                    <strong>1. Look for repeated competitor names</strong>
-                    <p>Repeated appearances often signal a topic cluster worth targeting directly.</p>
+        {% if has_comparison and missing_rows %}
+        <div class="opportunity-grid">
+            {% for row in missing_rows[:6] %}
+            <article class="opportunity-card">
+                <div class="opportunity-top">
+                    <span class="priority-badge high">High Priority</span>
+                    <h4>{{ row.query }}</h4>
                 </div>
 
-                <div class="guide-item">
-                    <strong>2. Prioritise missed brand mentions</strong>
-                    <p>These are usually the highest-value gaps to close first.</p>
-                </div>
+                <p class="opportunity-copy">Your brand is missing for this query.</p>
 
-                <div class="guide-item">
-                    <strong>3. Create counter-content</strong>
-                    <p>Use briefs, comparison pages, FAQs, and service pages to respond to those gaps.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="competitors-card competitors-full">
-            <div class="section-head">
-                <h3>Competitor Mentions by Query</h3>
-                <p>See which brands appear across tracked queries and where your business may need stronger coverage.</p>
-            </div>
-
-            {% if has_comparison and competitor_rows %}
-            <div class="competitor-query-grid">
-                {% for row in competitor_rows %}
-                <article class="competitor-query-card">
-                    <div class="competitor-query-top">
-                        <div>
-                            <span class="query-type-pill">
-                                {% if row.latest_brand_mentioned %}
-                                    Brand Mentioned
-                                {% else %}
-                                    Brand Missing
-                                {% endif %}
-                            </span>
-                            <h4>{{ row.query }}</h4>
-                        </div>
-
-                        <span class="query-score-pill">
-                            {{ row.latest_score }}
-                        </span>
-                    </div>
-
-                    <div class="competitor-tag-wrap">
-                        {% for comp in row.latest_competitors %}
-                        <span class="competitor-tag">{{ comp }}</span>
-                        {% endfor %}
-                    </div>
-
-                    <div class="competitor-query-meta">
-                        <span>Brand mentioned: {{ "Yes" if row.latest_brand_mentioned else "No" }}</span>
-                        <span>
-                            Position:
-                            {% if row.latest_brand_position is not none %}
-                                {{ row.latest_brand_position }}
+                <div class="opportunity-meta">
+                    <div class="opportunity-meta-row">
+                        <span>Competitors seen</span>
+                        <strong>
+                            {% if row.latest_competitors %}
+                                {{ row.latest_competitors|join(", ") }}
                             {% else %}
-                                —
+                                None recorded
                             {% endif %}
-                        </span>
+                        </strong>
                     </div>
+                </div>
 
-                    <div class="card-actions">
-                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Create Brief</a>
-                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Create Draft</a>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state-card compact">
-                <h3>No named competitors yet</h3>
-                <p>The current comparison data does not show competitor names for tracked queries yet.</p>
-            </div>
-            {% endif %}
-        </section>
-
-        <section class="competitors-card competitors-full">
-            <div class="section-head">
-                <h3>Highest-Priority Counter Opportunities</h3>
-                <p>These are the most useful queries to respond to first.</p>
-            </div>
-
-            {% if has_comparison and missing_rows %}
-            <div class="opportunity-grid">
-                {% for row in missing_rows[:6] %}
-                <article class="opportunity-card">
-                    <div class="opportunity-top">
-                        <span class="priority-badge high">High Priority</span>
-                        <h4>{{ row.query }}</h4>
-                    </div>
-
-                    <p class="opportunity-copy">
-                        Your brand is not currently mentioned for this query, while competitors are being surfaced.
-                    </p>
-
-                    <div class="opportunity-meta">
-                        <div class="opportunity-meta-row">
-                            <span>Competitors seen</span>
-                            <strong>
-                                {% if row.latest_competitors %}
-                                    {{ row.latest_competitors|join(", ") }}
-                                {% else %}
-                                    None recorded
-                                {% endif %}
-                            </strong>
-                        </div>
-                        <div class="opportunity-meta-row">
-                            <span>Latest score</span>
-                            <strong>{{ row.latest_score }}</strong>
-                        </div>
-                    </div>
-
-                    <div class="card-actions">
-                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Generate Brief</a>
-                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Generate Draft</a>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-            {% elif has_comparison %}
-            <div class="empty-state-card compact">
-                <h3>No missed-query competitor gaps</h3>
-                <p>The current comparison data does not show any queries where competitors appear while your brand is missing.</p>
-            </div>
-            {% else %}
-            <div class="empty-state-card compact">
-                <h3>No comparison data yet</h3>
-                <p>Run and save more audits to unlock stronger competitor comparison insights.</p>
-            </div>
-            {% endif %}
-        </section>
-
+                <div class="card-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Generate Brief</a>
+                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Generate Draft</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% elif has_comparison %}
+        <div class="empty-state-card compact">
+            <h3>No missed-query competitor gaps</h3>
+            <p>The current comparison data does not show any queries where competitors appear while your brand is missing.</p>
+        </div>
+        {% else %}
+        <div class="empty-state-card compact">
+            <h3>No comparison data yet</h3>
+            <p>Run and save more audits to unlock stronger competitor comparison insights.</p>
+        </div>
+        {% endif %}
     </section>
+
 </div>
 
 <style>
 .competitors-shell {
-    padding: 28px;
+    padding: 18px;
     display: grid;
-    gap: 24px;
+    gap: 18px;
 }
 
 .competitors-hero-card,
-.competitors-summary-card,
 .competitors-card,
 .competitors-focus-card,
 .competitor-query-card,
 .opportunity-card,
-.empty-state-card,
-.guide-item {
+.empty-state-card {
     background: #ffffff;
     border: 1px solid #e7ebf3;
-    border-radius: 24px;
+    border-radius: 20px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .competitors-hero-card {
-    padding: 30px;
+    padding: 18px;
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
-    gap: 24px;
-    align-items: start;
-}
-
-.competitors-badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.competitors-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.competitors-badge-primary {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
+    gap: 16px;
 }
 
 .competitors-hero-main h1 {
     margin: 0;
-    font-size: 40px;
-    line-height: 1.05;
+    font-size: 30px;
+    line-height: 1.08;
     font-weight: 800;
     color: #15233b;
 }
 
 .competitors-hero-copy {
-    margin: 16px 0 0;
-    font-size: 16px;
-    line-height: 1.65;
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
     color: #617084;
-    max-width: 760px;
 }
 
 .competitors-hero-actions,
 .card-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 24px;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.competitors-hero-actions .btn,
+.card-actions .btn {
+    width: 100%;
 }
 
 .competitors-focus-card {
-    padding: 22px;
-    border-radius: 22px;
+    padding: 18px;
     border: 1px solid #ffd8c6;
     background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
 }
 
 .competitors-focus-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: #6b7280;
 }
 
 .competitors-focus-value {
     display: block;
-    margin-top: 14px;
-    font-size: 30px;
+    margin-top: 10px;
+    font-size: 24px;
     line-height: 1.2;
     font-weight: 800;
     color: #E83256;
 }
 
 .competitors-focus-text {
-    margin: 14px 0 0;
+    margin: 10px 0 0;
     color: #627084;
     font-size: 14px;
     line-height: 1.6;
 }
 
-.competitors-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.competitors-summary-card {
-    padding: 18px;
-    background: #f8fafc;
-}
-
-.competitors-summary-card span {
-    display: block;
-    font-size: 13px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 8px;
-}
-
-.competitors-summary-card strong {
-    display: block;
-    font-size: 30px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.competitors-summary-card strong.summary-copy {
-    font-size: 16px;
-    line-height: 1.45;
-}
-
-.competitors-summary-card small {
-    display: block;
-    margin-top: 8px;
-    color: #6b7280;
-    font-size: 13px;
+.start-here {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
     line-height: 1.5;
 }
 
-.competitors-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
-}
-
 .competitors-card {
-    padding: 24px;
+    padding: 18px;
 }
 
 .competitors-full {
-    grid-column: 1 / -1;
-}
-
-.competitors-priority-card {
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border-color: #ffe3d6;
-}
-
-.card-topline {
-    margin-bottom: 12px;
-}
-
-.card-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #E83256;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.competitors-priority-card h2 {
-    margin: 0;
-    font-size: 28px;
-    line-height: 1.15;
-    color: #16243c;
-}
-
-.competitors-priority-card p {
-    margin: 14px 0 0;
-    color: #627084;
-    line-height: 1.65;
-    font-size: 15px;
+    width: 100%;
 }
 
 .section-head {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .section-head h3 {
     margin: 0;
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 800;
     color: #16243c;
 }
 
 .section-head p {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: #6b7280;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.guide-list {
-    display: grid;
-    gap: 14px;
-}
-
-.guide-item {
-    padding: 18px;
-    background: #f8fafc;
-}
-
-.guide-item strong {
-    display: block;
-    color: #16243c;
-    margin-bottom: 8px;
-}
-
-.guide-item p {
-    margin: 0;
-    color: #627084;
     font-size: 14px;
     line-height: 1.6;
 }
@@ -492,36 +270,40 @@
 .competitor-query-grid,
 .opportunity-grid {
     display: grid;
-    gap: 16px;
-}
-
-.competitor-query-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.opportunity-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
 }
 
 .competitor-query-card,
 .opportunity-card {
-    padding: 20px;
+    padding: 18px;
     background: #fbfcfe;
 }
 
-.competitor-query-top,
-.opportunity-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 12px;
+.competitor-query-card h4,
+.opportunity-card h4 {
+    margin: 0;
+    font-size: 18px;
+    color: #16243c;
+    line-height: 1.35;
 }
 
-.query-type-pill,
-.priority-badge,
-.query-score-pill,
-.competitor-tag {
+.competitor-status-copy,
+.opportunity-copy {
+    margin: 10px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.competitor-tag-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.competitor-tag,
+.priority-badge.high {
     display: inline-flex;
     align-items: center;
     padding: 7px 12px;
@@ -530,14 +312,10 @@
     font-weight: 800;
 }
 
-.query-type-pill {
-    background: #eef2ff;
-    color: #3730a3;
-}
-
-.query-score-pill {
-    background: #fff2ea;
-    color: #E83256;
+.competitor-tag {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #445366;
 }
 
 .priority-badge.high {
@@ -545,40 +323,22 @@
     color: #c2412d;
 }
 
-.competitor-query-card h4,
-.opportunity-card h4 {
-    margin: 10px 0 0;
-    font-size: 20px;
-    color: #16243c;
-    line-height: 1.3;
-}
-
-.competitor-tag-wrap {
-    display: flex;
-    flex-wrap: wrap;
+.opportunity-top {
+    display: grid;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
-.competitor-tag {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #445366;
-}
-
-.competitor-query-meta,
 .opportunity-meta {
     display: grid;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
-.competitor-query-meta span,
-.opportunity-copy,
 .opportunity-meta-row span {
     color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .opportunity-meta-row strong {
@@ -586,72 +346,72 @@
     color: #16243c;
     margin-top: 4px;
     line-height: 1.5;
+    font-size: 14px;
 }
 
 .empty-state-card.compact {
-    padding: 24px;
+    padding: 20px;
     border: 1px dashed #d6dde8;
     background: #fafcff;
 }
 
 .empty-state-card.compact h3 {
     margin: 0 0 8px;
-    font-size: 20px;
+    font-size: 18px;
     color: #16243c;
 }
 
 .empty-state-card.compact p {
     margin: 0;
     color: #6b7280;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
 }
 
-@media (max-width: 1200px) {
-    .competitors-hero-card,
-    .competitors-summary-grid,
-    .competitors-grid,
-    .competitor-query-grid,
-    .opportunity-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
+@media (min-width: 769px) {
     .competitors-shell {
-        padding: 18px;
+        padding: 24px;
+        gap: 20px;
     }
 
-    .competitors-hero-card,
-    .competitors-summary-card,
+    .competitors-hero-card {
+        grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.78fr);
+        align-items: start;
+        padding: 24px;
+    }
+
     .competitors-card,
-    .competitors-focus-card,
-    .competitor-query-card,
-    .opportunity-card,
-    .empty-state-card,
-    .guide-item {
-        padding: 18px;
-        border-radius: 20px;
+    .competitors-focus-card {
+        padding: 22px;
     }
 
     .competitors-hero-main h1 {
-        font-size: 30px;
+        font-size: 38px;
+    }
+
+    .competitor-query-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .opportunity-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .competitors-hero-actions,
     .card-actions {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 
     .competitors-hero-actions .btn,
     .card-actions .btn {
-        width: 100%;
+        width: auto;
     }
+}
 
-    .competitor-query-top,
-    .opportunity-top {
-        flex-direction: column;
-        align-items: flex-start;
+@media (min-width: 1100px) {
+    .opportunity-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 </style>

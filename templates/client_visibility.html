@@ -2,7 +2,7 @@
 
 {% block title %}{{ client.name }} | Visibility{% endblock %}
 {% block page_title %}{{ client.name }} · Visibility{% endblock %}
-{% block page_subtitle %}Track brand mention movement across saved audits and see which queries are improving, slipping, or still missing your brand.{% endblock %}
+{% block page_subtitle %}Track where your brand appears and where it is missing.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
@@ -21,40 +21,18 @@
 
     <section class="visibility-hero-card">
         <div class="visibility-hero-copy">
-            <div class="visibility-badge-row">
-                <span class="visibility-badge">Visibility Intelligence</span>
-                <span class="visibility-badge">Query Comparison</span>
-                <span class="visibility-badge">Brand Mentions</span>
-                {% if client.comparison and client.comparison.overall_change %}
-                <span class="visibility-badge visibility-badge-soft">{{ client.comparison.overall_change|capitalize }}</span>
-                {% endif %}
-            </div>
-
-            <h1 class="visibility-hero-title">
-                {% if has_comparison %}
-                    See where the brand is gaining traction, where it is slipping, and where it is still missing entirely.
-                {% elif has_latest %}
-                    You have a baseline visibility snapshot. One more audit will unlock trend comparison.
-                {% else %}
-                    No visibility data is available yet.
-                {% endif %}
-            </h1>
-
+            <h1 class="visibility-hero-title">Visibility score</h1>
             <p class="visibility-hero-summary">
-                {% if has_comparison %}
-                    This page helps you identify which queries are improving, which need intervention, and which missed brand mentions should be turned into content or landing-page opportunities first.
-                {% elif has_latest %}
-                    The latest saved audit gives you a current visibility benchmark. Run another audit after updates to see whether brand mentions, positions, and scores improve.
+                {% if has_latest %}
+                    Track where your brand appears and where it is missing.
                 {% else %}
-                    Run the first audit to begin tracking brand mention movement across important queries and answer scenarios.
+                    Run your first audit to start tracking brand visibility.
                 {% endif %}
             </p>
 
-            <div class="visibility-hero-tags">
-                <span class="hero-tag">Missed-query tracking</span>
-                <span class="hero-tag">Brand mention monitoring</span>
-                <span class="hero-tag">Action-ready insights</span>
-                <span class="hero-tag">Client-friendly review</span>
+            <div class="visibility-hero-actions">
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary">View Competitors</a>
+                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Open Actions</a>
             </div>
         </div>
 
@@ -85,6 +63,10 @@
                     <strong>{% if summary %}{{ summary.total_queries }}{% else %}0{% endif %}</strong>
                 </div>
                 <div class="visibility-mini-card">
+                    <span>Missing</span>
+                    <strong>{% if summary %}{{ summary.missed_brand_mentions }}{% else %}0{% endif %}</strong>
+                </div>
+                <div class="visibility-mini-card">
                     <span>Improved</span>
                     <strong>{% if summary %}{{ summary.improved }}{% else %}0{% endif %}</strong>
                 </div>
@@ -92,20 +74,22 @@
                     <span>Declined</span>
                     <strong>{% if summary %}{{ summary.declined }}{% else %}0{% endif %}</strong>
                 </div>
-                <div class="visibility-mini-card">
-                    <span>Missed Mentions</span>
-                    <strong>{% if summary %}{{ summary.missed_brand_mentions }}{% else %}0{% endif %}</strong>
-                </div>
             </div>
         </div>
     </section>
 
+    {% if has_latest and missing_rows %}
+    <div class="start-here">
+        <strong>Start here:</strong> Focus on queries where your brand is missing.
+    </div>
+    {% endif %}
+
     <section class="visibility-grid">
-        <div class="visibility-panel panel-span-8">
+        <div class="visibility-panel panel-span-12">
             <div class="panel-head">
                 <div>
-                    <h3>Latest Visibility Snapshot</h3>
-                    <p>Quick view of the most recent audit and whether visibility is trending up, down, or staying flat.</p>
+                    <h3>Latest Snapshot</h3>
+                    <p>Quick view of your current visibility state.</p>
                 </div>
             </div>
 
@@ -137,9 +121,9 @@
                     {% if client.comparison.visibility_delta > 0 %}
                         — the latest audit shows stronger visibility than the previous run.
                     {% elif client.comparison.visibility_delta < 0 %}
-                        — visibility has slipped and should be reviewed before the next update cycle.
+                        — visibility has slipped and should be reviewed.
                     {% else %}
-                        — visibility is flat, which suggests the next improvements may need stronger action changes.
+                        — visibility is flat and may need stronger content changes.
                     {% endif %}
                 </div>
                 <div class="trend-delta-pill">
@@ -150,153 +134,28 @@
             <div class="trend-banner neutral">
                 <div class="trend-banner-title">Comparison Locked</div>
                 <div class="trend-banner-copy">
-                    Only one saved audit is available. Run another audit to unlock comparison insights.
+                    Only one saved audit is available. Run another audit to unlock trend comparison.
                 </div>
             </div>
             {% endif %}
             {% else %}
             <div class="empty-state-card compact">
                 <h3>No visibility data yet</h3>
-                <p>Run an audit first to start tracking brand mentions, positions, and query-level progress.</p>
+                <p>Run an audit first to start tracking brand mentions and query-level progress.</p>
                 <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run First Audit</a>
             </div>
             {% endif %}
         </div>
 
-        <div class="visibility-panel panel-span-4">
-            <div class="panel-head">
-                <div>
-                    <h3>How To Read This Page</h3>
-                    <p>Use these signals to decide what to fix first.</p>
-                </div>
-            </div>
-
-            <div class="guidance-list">
-                <div class="guidance-card">
-                    <div class="guidance-top">
-                        <span class="priority-badge high">High</span>
-                        <h4>Missed brand mentions</h4>
-                    </div>
-                    <p>These queries usually offer the clearest opportunities for FAQs, landing pages, and comparison content.</p>
-                </div>
-
-                <div class="guidance-card">
-                    <div class="guidance-top">
-                        <span class="priority-badge medium">Medium</span>
-                        <h4>Declining queries</h4>
-                    </div>
-                    <p>These may need refreshed content, better formatting, stronger trust signals, or clearer commercial relevance.</p>
-                </div>
-
-                <div class="guidance-card">
-                    <div class="guidance-top">
-                        <span class="priority-badge low">Low</span>
-                        <h4>Improving queries</h4>
-                    </div>
-                    <p>These show which content patterns are working and can be repeated across related topic clusters.</p>
-                </div>
-            </div>
-        </div>
-
         <div class="visibility-panel panel-span-12">
             <div class="panel-head">
                 <div>
-                    <h3>Comparison Summary</h3>
-                    <p>A quick summary of movement between the latest audit and the previous one.</p>
+                    <h3>Missing Visibility</h3>
+                    <p>Queries where your brand is not appearing.</p>
                 </div>
-            </div>
-
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <span>Improved Queries</span>
-                    <strong>{{ improved_rows|length if has_comparison else 0 }}</strong>
-                    <p>Queries with stronger latest performance.</p>
-                </div>
-
-                <div class="summary-card">
-                    <span>Declined Queries</span>
-                    <strong>{{ declined_rows|length if has_comparison else 0 }}</strong>
-                    <p>Queries that need review or reinforcement.</p>
-                </div>
-
-                <div class="summary-card">
-                    <span>Missed Brand Mentions</span>
-                    <strong>{{ missing_rows|length if has_comparison else 0 }}</strong>
-                    <p>Queries where the brand is still absent.</p>
-                </div>
-
-                <div class="summary-card">
-                    <span>Best Next Move</span>
-                    <strong class="summary-copy">
-                        {% if missing_rows|length > 0 %}
-                            Build content for missed queries
-                        {% elif declined_rows|length > 0 %}
-                            Refresh slipping queries
-                        {% else %}
-                            Scale winning patterns
-                        {% endif %}
-                    </strong>
-                </div>
-            </div>
-        </div>
-
-        <div class="visibility-panel panel-span-12">
-            <div class="panel-head">
-                <div>
-                    <h3>Query-Level Visibility Comparison</h3>
-                    <p>Compare brand mention outcomes between the latest audit and the previous one.</p>
-                </div>
-            </div>
-
-            {% if has_comparison %}
-            <div class="table-wrap">
-                <div class="comparison-table">
-                    <div class="comparison-row comparison-head">
-                        <div>Query</div>
-                        <div>Latest Mention</div>
-                        <div>Previous Mention</div>
-                        <div>Latest Position</div>
-                        <div>Previous Position</div>
-                        <div>Latest Score</div>
-                        <div>Delta</div>
-                        <div>Status</div>
-                    </div>
-
-                    {% for row in client.query_comparison.rows %}
-                    <div class="comparison-row">
-                        <div class="cell-query">
-                            <div class="table-primary">{{ row.query }}</div>
-                        </div>
-                        <div>{{ "Yes" if row.latest_brand_mentioned else "No" }}</div>
-                        <div>{{ "Yes" if row.previous_brand_mentioned else "No" }}</div>
-                        <div>{{ row.latest_brand_position if row.latest_brand_position is not none else "—" }}</div>
-                        <div>{{ row.previous_brand_position if row.previous_brand_position is not none else "—" }}</div>
-                        <div>{{ row.latest_score }}</div>
-                        <div class="{% if row.score_delta > 0 %}positive-text{% elif row.score_delta < 0 %}negative-text{% endif %}">
-                            {{ "+" if row.score_delta > 0 else "" }}{{ row.score_delta }}
-                        </div>
-                        <div>
-                            <span class="status-pill {{ row.change_type }}">{{ row.change_type|capitalize }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% else %}
-            <div class="empty-state-card compact">
-                <h3>No comparison data yet</h3>
-                <p>This section will populate after at least two audits are saved for the client.</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="visibility-panel panel-span-12">
-            <div class="panel-head">
-                <div>
-                    <h3>Fastest Opportunities</h3>
-                    <p>Queries where the brand is missing should usually be prioritised first.</p>
-                </div>
+                {% if has_latest %}
                 <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">Generate Brief</a>
+                {% endif %}
             </div>
 
             {% if has_comparison %}
@@ -305,9 +164,11 @@
                     {% for row in missing_rows[:6] %}
                     <article class="opportunity-card">
                         <div class="opportunity-top">
-                            <span class="priority-badge high">Missed</span>
+                            <span class="priority-badge high">Missing</span>
                             <h4>{{ row.query }}</h4>
                         </div>
+
+                        <p class="opportunity-copy">Your brand is missing for this query.</p>
 
                         <div class="opportunity-meta">
                             <div class="opportunity-meta-row">
@@ -327,35 +188,82 @@
                         </div>
 
                         <div class="card-actions">
-                            <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Create Brief</a>
-                            <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Create Draft</a>
+                            <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Brief</a>
+                            <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Draft</a>
                         </div>
                     </article>
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="trend-banner improved">
-                    <div class="trend-banner-title">Positive Signal</div>
-                    <div class="trend-banner-copy">
-                        The latest comparison does not show any missed brand mentions.
-                    </div>
+                <div class="empty-state-card compact">
+                    <h3>No missing queries</h3>
+                    <p>Your brand is appearing across the tracked comparison queries.</p>
                 </div>
                 {% endif %}
+            {% elif has_latest %}
+            <div class="empty-state-card compact">
+                <h3>Need one more audit for comparison</h3>
+                <p>You already have a baseline. Run another audit later to reveal missing-query opportunities here.</p>
+            </div>
             {% else %}
             <div class="empty-state-card compact">
-                <h3>No opportunity comparison yet</h3>
-                <p>Save at least two audits to start surfacing missed-query opportunities here.</p>
+                <h3>No opportunity data yet</h3>
+                <p>Run an audit first to start surfacing visibility gaps.</p>
             </div>
             {% endif %}
+        </div>
+
+        <div class="visibility-panel panel-span-12">
+            <div class="panel-head">
+                <div>
+                    <h3>Trend Signals</h3>
+                    <p>Simple summary of movement from the latest comparison.</p>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Improved</span>
+                    <strong>{{ improved_rows|length if has_comparison else 0 }}</strong>
+                    <p>Queries with stronger latest performance.</p>
+                </div>
+
+                <div class="summary-card">
+                    <span>Declined</span>
+                    <strong>{{ declined_rows|length if has_comparison else 0 }}</strong>
+                    <p>Queries that may need review or reinforcement.</p>
+                </div>
+
+                <div class="summary-card">
+                    <span>Missing</span>
+                    <strong>{{ missing_rows|length if has_comparison else 0 }}</strong>
+                    <p>Queries where the brand is still absent.</p>
+                </div>
+
+                <div class="summary-card">
+                    <span>Best Next Move</span>
+                    <strong class="summary-copy">
+                        {% if missing_rows|length > 0 %}
+                            Build content for missed queries
+                        {% elif declined_rows|length > 0 %}
+                            Refresh slipping queries
+                        {% elif has_comparison %}
+                            Scale winning patterns
+                        {% else %}
+                            Run one more audit later
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
         </div>
     </section>
 </div>
 
 <style>
 .visibility-shell {
-    padding: 28px;
+    padding: 18px;
     display: grid;
-    gap: 24px;
+    gap: 18px;
 }
 
 .visibility-hero-card,
@@ -363,102 +271,65 @@
 .visibility-score-card,
 .visibility-mini-card,
 .snapshot-card,
-.guidance-card,
 .summary-card,
 .opportunity-card,
 .empty-state-card {
     background: #ffffff;
     border: 1px solid #e7ebf3;
-    border-radius: 24px;
+    border-radius: 20px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .visibility-hero-card {
-    padding: 30px;
+    padding: 18px;
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
-    gap: 24px;
-    align-items: start;
-}
-
-.visibility-badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.visibility-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.visibility-badge-soft {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
+    gap: 16px;
 }
 
 .visibility-hero-title {
     margin: 0;
-    font-size: 38px;
+    font-size: 30px;
     line-height: 1.08;
     font-weight: 800;
     color: #15233b;
-    max-width: 760px;
 }
 
 .visibility-hero-summary {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
     color: #617084;
-    max-width: 760px;
 }
 
-.visibility-hero-tags {
+.visibility-hero-actions,
+.card-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 22px;
+    margin-top: 16px;
 }
 
-.hero-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 9px 14px;
-    border-radius: 999px;
-    background: #f6f8fc;
-    border: 1px solid #e6ebf3;
-    color: #3c4a5f;
-    font-size: 13px;
-    font-weight: 700;
+.visibility-hero-actions .btn,
+.card-actions .btn {
+    width: 100%;
 }
 
 .visibility-score-card {
-    padding: 22px;
-    border-radius: 22px;
+    padding: 18px;
     border: 1px solid #ffd8c6;
     background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .visibility-score-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: #6b7280;
 }
 
 .visibility-score-value {
-    margin-top: 14px;
-    font-size: 58px;
+    margin-top: 12px;
+    font-size: 48px;
     line-height: 1;
     font-weight: 800;
     color: #E83256;
@@ -476,7 +347,7 @@
 .summary-grid,
 .opportunity-grid {
     display: grid;
-    gap: 16px;
+    gap: 14px;
 }
 
 .visibility-mini-grid {
@@ -484,7 +355,7 @@
 }
 
 .visibility-mini-card {
-    padding: 16px;
+    padding: 14px;
     background: #f8fafc;
 }
 
@@ -501,64 +372,71 @@
 
 .visibility-mini-card strong {
     display: block;
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 800;
     color: #16243c;
+}
+
+.start-here {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .visibility-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 24px;
+    gap: 18px;
 }
 
 .visibility-panel {
-    padding: 24px;
+    padding: 18px;
 }
 
 .panel-span-12 { grid-column: span 12; }
-.panel-span-8 { grid-column: span 8; }
-.panel-span-4 { grid-column: span 4; }
 
 .panel-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 18px;
+    gap: 14px;
+    margin-bottom: 14px;
 }
 
 .panel-head h3 {
     margin: 0;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     color: #16243c;
 }
 
 .panel-head p {
-    margin: 8px 0 0;
-    font-size: 15px;
+    margin: 6px 0 0;
+    font-size: 14px;
     color: #6b7280;
     line-height: 1.55;
 }
 
 .snapshot-grid,
 .summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr;
 }
 
 .snapshot-card,
 .summary-card,
-.guidance-card,
 .opportunity-card {
-    padding: 18px;
+    padding: 16px;
     background: #f8fafc;
 }
 
 .snapshot-card strong,
 .summary-card strong {
     display: block;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     color: #16243c;
 }
@@ -569,7 +447,6 @@
 }
 
 .summary-card p,
-.guidance-card p,
 .opportunity-card p {
     margin: 8px 0 0;
     font-size: 14px;
@@ -578,9 +455,9 @@
 }
 
 .trend-banner {
-    margin-top: 18px;
-    padding: 18px 20px;
-    border-radius: 18px;
+    margin-top: 16px;
+    padding: 16px 18px;
+    border-radius: 16px;
     border: 1px solid #e7ebf3;
     background: #f8fafc;
     display: grid;
@@ -604,14 +481,14 @@
 }
 
 .trend-banner-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: #6b7280;
 }
 
 .trend-banner-copy {
     color: #16243c;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
 }
 
@@ -622,30 +499,10 @@
     padding: 8px 12px;
     border-radius: 999px;
     background: #ffffff;
-    border: 1px solid rgba(0,0,0,0.06);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     color: #16243c;
     font-size: 12px;
     font-weight: 800;
-}
-
-.guidance-list {
-    display: grid;
-    gap: 14px;
-}
-
-.guidance-top,
-.opportunity-top {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.guidance-card h4,
-.opportunity-card h4 {
-    margin: 0;
-    color: #16243c;
-    font-weight: 800;
-    font-size: 18px;
 }
 
 .priority-badge {
@@ -663,97 +520,21 @@
     color: #c2412d;
 }
 
-.priority-badge.medium {
-    background: #ffefc7;
-    color: #a16207;
+.opportunity-grid {
+    grid-template-columns: 1fr;
 }
 
-.priority-badge.low {
-    background: #dff4e6;
-    color: #15803d;
-}
-
-.table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.comparison-table {
-    min-width: 1120px;
+.opportunity-top {
     display: grid;
     gap: 10px;
+    margin-bottom: 10px;
 }
 
-.comparison-row {
-    display: grid;
-    grid-template-columns: 2.2fr 1fr 1fr 1fr 1fr 1fr 0.8fr 1fr;
-    gap: 12px;
-    align-items: center;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    font-size: 14px;
-    color: #334155;
-}
-
-.comparison-head {
-    background: #f1f5f9;
-    font-weight: 800;
+.opportunity-card h4 {
+    margin: 0;
     color: #16243c;
-}
-
-.cell-query {
-    min-width: 0;
-}
-
-.table-primary {
-    font-weight: 700;
-    color: #16243c;
-    word-break: break-word;
-}
-
-.positive-text {
-    color: #15803d;
     font-weight: 800;
-}
-
-.negative-text {
-    color: #b91c1c;
-    font-weight: 800;
-}
-
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.status-pill.improved {
-    background: #dff4e6;
-    color: #15803d;
-}
-
-.status-pill.declined {
-    background: #ffe2dd;
-    color: #c2412d;
-}
-
-.status-pill.stable {
-    background: #eef2f7;
-    color: #475569;
-}
-
-.status-pill.new {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.opportunity-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    font-size: 18px;
 }
 
 .opportunity-meta {
@@ -768,87 +549,70 @@
     line-height: 1.5;
 }
 
-.card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 14px;
-}
-
 .empty-state-card.compact {
-    padding: 24px;
+    padding: 20px;
     border: 1px dashed #d6dde8;
     background: #fafcff;
 }
 
 .empty-state-card.compact h3 {
     margin: 0 0 8px;
-    font-size: 20px;
+    font-size: 18px;
     color: #16243c;
 }
 
 .empty-state-card.compact p {
     margin: 0 0 14px;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
     color: #6b7280;
 }
 
-@media (max-width: 1200px) {
-    .visibility-hero-card,
-    .snapshot-grid,
-    .summary-grid,
-    .opportunity-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .panel-span-8,
-    .panel-span-4 {
-        grid-column: span 12;
-    }
-}
-
-@media (max-width: 768px) {
+@media (min-width: 769px) {
     .visibility-shell {
-        padding: 18px;
+        padding: 24px;
+        gap: 20px;
     }
 
-    .visibility-hero-card,
+    .visibility-hero-card {
+        grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.78fr);
+        align-items: start;
+        padding: 24px;
+    }
+
     .visibility-panel,
-    .visibility-score-card,
-    .visibility-mini-card,
-    .snapshot-card,
-    .guidance-card,
-    .summary-card,
-    .opportunity-card,
-    .empty-state-card {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .visibility-hero-card,
-    .visibility-mini-grid,
-    .snapshot-grid,
-    .summary-grid,
-    .opportunity-grid {
-        grid-template-columns: 1fr;
+    .visibility-score-card {
+        padding: 22px;
     }
 
     .visibility-hero-title {
-        font-size: 30px;
+        font-size: 38px;
     }
 
-    .panel-head {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
+    .visibility-hero-actions,
     .card-actions {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 
+    .visibility-hero-actions .btn,
     .card-actions .btn {
-        width: 100%;
+        width: auto;
+    }
+
+    .snapshot-grid,
+    .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .opportunity-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .opportunity-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 </style>
