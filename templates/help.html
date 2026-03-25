@@ -1,374 +1,289 @@
 {% extends "base.html" %}
 
-{% block title %}Help Center | DarBot InsightOS{% endblock %}
+{% block title %}Help Center | AEO Agents{% endblock %}
 {% block page_title %}Help Center{% endblock %}
-{% block page_subtitle %}Simple explanations for busy business owners, plus a clear glossary and practical guides when you need more detail.{% endblock %}
+{% block page_subtitle %}Simple guidance for busy business owners and teams who want clarity fast.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('dashboard') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
+<a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary">Open Clients</a>
+{% endblock %}
 
 {% block content %}
+
 <div class="help-shell">
 
-    <aside class="help-sidebar-panel">
-        <h2 class="help-sidebar-title">Help Center</h2>
-        <p class="help-sidebar-copy">Use this page when you need a quick explanation, a glossary term, or a step-by-step guide.</p>
-
-        <div class="help-sidebar-label">Sections</div>
-        <nav class="help-sidebar-nav">
-            <a href="#start-here" class="help-sidebar-link active">Start Here</a>
-            <a href="#platform-pages" class="help-sidebar-link">Platform Pages</a>
-            <a href="#glossary" class="help-sidebar-link">Glossary</a>
-            <a href="#guides" class="help-sidebar-link">Guides</a>
-        </nav>
-    </aside>
-
-    <div class="help-main">
-
-        <section id="start-here" class="help-hero-card">
-            <div class="help-hero-copy">
-                <div class="help-badge-row">
-                    <span class="help-badge help-badge-primary">Start Here</span>
-                    <span class="help-badge">Non-Technical</span>
-                    <span class="help-badge">Business Friendly</span>
-                    <span class="help-badge">Step by Step</span>
-                </div>
-
-                <h1>You do not need to understand SEO or AEO to use this platform.</h1>
-                <p>
-                    Think of this platform as a tool that shows whether your business is easy to find in AI answers and modern search,
-                    then tells you what to improve next. Most users only need to follow the workflow below.
-                </p>
+    <section class="help-hero">
+        <div class="help-hero-main">
+            <div class="help-badge-row">
+                <span class="help-badge help-badge-primary">Start Here</span>
+                <span class="help-badge">Plain English</span>
+                <span class="help-badge">Business Friendly</span>
             </div>
 
-            <div class="help-hero-card-side">
-                <div class="hero-side-label">Best first move</div>
-                <div class="hero-side-value">Add your business, then run a report</div>
-                <p class="hero-side-text">
-                    After the report is ready, open the Growth Plan. That page gives the clearest explanation of what to do next.
-                </p>
+            <h1>You do not need technical knowledge to use this platform well.</h1>
+            <p class="help-hero-copy">
+                This platform helps you understand whether your business is easy to find in AI answers and modern search,
+                then shows what to improve next. Most users only need to follow the workflow below.
+            </p>
+        </div>
+
+        <div class="help-hero-side">
+            <span class="hero-side-label">Best first move</span>
+            <strong class="hero-side-value">Add a client, then run an audit</strong>
+            <p class="hero-side-text">
+                After that, open the Growth Plan. That is the page most users should spend the most time on.
+            </p>
+        </div>
+    </section>
+
+    <section class="quick-start-card">
+        <div class="section-head">
+            <div>
+                <h2>Quick start</h2>
+                <p>The shortest path from setup to useful action.</p>
             </div>
-        </section>
+        </div>
 
-        <section class="help-section-card">
-            <div class="help-section-head">
-                <h2>How to use this platform</h2>
-                <p>A simple workflow for first-time users.</p>
-            </div>
+        <div class="quick-start-grid">
+            <article class="step-card">
+                <span class="step-number">1</span>
+                <h3>Add your business</h3>
+                <p>Create a client with the business name, website, industry, and location.</p>
+            </article>
 
-            <div class="help-steps-grid">
-                <div class="help-step-card">
-                    <div class="help-step-number">1</div>
-                    <h3>Add your business</h3>
-                    <p>Create a client workspace with your business name, website, industry, and location.</p>
-                </div>
+            <article class="step-card">
+                <span class="step-number">2</span>
+                <h3>Run an audit</h3>
+                <p>The platform checks visibility, missing coverage, and competitor patterns.</p>
+            </article>
 
-                <div class="help-step-card">
-                    <div class="help-step-number">2</div>
-                    <h3>Run a report</h3>
-                    <p>The system checks how visible your business is, where competitors appear, and which gaps matter most.</p>
-                </div>
+            <article class="step-card">
+                <span class="step-number">3</span>
+                <h3>Open the Growth Plan</h3>
+                <p>This is the clearest page for understanding what matters and what to do next.</p>
+            </article>
 
-                <div class="help-step-card">
-                    <div class="help-step-number">3</div>
-                    <h3>Open the Growth Plan</h3>
-                    <p>You get a plain-English summary of what is happening and what should be improved first.</p>
-                </div>
+            <article class="step-card">
+                <span class="step-number">4</span>
+                <h3>Create content</h3>
+                <p>Turn the findings into briefs and drafts your team can actually publish.</p>
+            </article>
+        </div>
+    </section>
 
-                <div class="help-step-card">
-                    <div class="help-step-number">4</div>
-                    <h3>Create content</h3>
-                    <p>Generate briefs and drafts so your team can act on the recommendations quickly.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="platform-pages" class="help-section-card">
-            <div class="help-section-head">
-                <h2>What each page means</h2>
-                <p>A simple explanation of the main areas in the platform.</p>
-            </div>
-
-            <div class="help-card-grid">
-                <div class="help-info-card">
-                    <h3>Dashboard</h3>
-                    <p>Your overview page. It helps you see the current situation, score trends, and where to focus next.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>Clients</h3>
-                    <p>Each business you manage lives here. Most users should start here before running reports or creating content.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>Growth Plan</h3>
-                    <p>The most important page. It explains what is wrong, what matters most, and what should happen next.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>Visibility</h3>
-                    <p>Shows where your business appears, where it is missing, and where competitors are being seen instead.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>History</h3>
-                    <p>Lets you compare past reports so you can see whether your visibility is improving over time.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>Presentation</h3>
-                    <p>A client-friendly summary page for walkthroughs, internal updates, and PDF export.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>Content Queue</h3>
-                    <p>Where your ideas turn into briefs, drafts, and content tasks that can move through production.</p>
-                </div>
-
-                <div class="help-info-card">
-                    <h3>Settings</h3>
-                    <p>Where you manage account details, workspace preferences, and platform controls.</p>
+    <section class="help-grid">
+        <article class="help-card">
+            <div class="section-head">
+                <div>
+                    <h2>Main pages explained</h2>
+                    <p>The platform becomes easier once each page has a clear purpose.</p>
                 </div>
             </div>
-        </section>
 
-        <section id="glossary" class="help-section-card">
-            <div class="help-section-head">
-                <h2>Glossary</h2>
-                <p>Simple meanings without technical jargon.</p>
+            <div class="meaning-list">
+                <div class="meaning-item">
+                    <strong>Dashboard</strong>
+                    <p>Your overview page for progress, recent activity, and what needs attention.</p>
+                </div>
+
+                <div class="meaning-item">
+                    <strong>Clients</strong>
+                    <p>Where each business workspace lives. This is usually the starting point.</p>
+                </div>
+
+                <div class="meaning-item">
+                    <strong>Growth Plan</strong>
+                    <p>The most important page. It turns audit findings into practical next steps.</p>
+                </div>
+
+                <div class="meaning-item">
+                    <strong>Visibility</strong>
+                    <p>Shows where the brand appears, where it is missing, and where to improve presence.</p>
+                </div>
+
+                <div class="meaning-item">
+                    <strong>Competitors</strong>
+                    <p>Shows where competitors are appearing instead of your brand.</p>
+                </div>
+
+                <div class="meaning-item">
+                    <strong>Content Queue</strong>
+                    <p>Where briefs and drafts move toward review, editing, and publishing.</p>
+                </div>
+            </div>
+        </article>
+
+        <article class="help-card">
+            <div class="section-head">
+                <div>
+                    <h2>When people get stuck</h2>
+                    <p>The most common confusion points, explained simply.</p>
+                </div>
             </div>
 
-            <div class="glossary-list">
+            <div class="faq-list">
+                <div class="faq-item">
+                    <strong>Do I need to understand the score deeply?</strong>
+                    <p>No. The score is mainly a shortcut that tells you whether the overall position is strong, moderate, or still early-stage.</p>
+                </div>
+
+                <div class="faq-item">
+                    <strong>What should I open after an audit?</strong>
+                    <p>Open the Growth Plan first. That is where the findings become useful action.</p>
+                </div>
+
+                <div class="faq-item">
+                    <strong>Should I create a brief or a draft first?</strong>
+                    <p>Use a brief when you want structure and approval first. Use a draft when the topic is already clear and you want speed.</p>
+                </div>
+
+                <div class="faq-item">
+                    <strong>When should I re-run an audit?</strong>
+                    <p>After important new pages are published, after major revisions, or when you want to check whether visibility is improving.</p>
+                </div>
+            </div>
+        </article>
+
+        <article class="help-card help-card-large">
+            <div class="section-head">
+                <div>
+                    <h2>Glossary</h2>
+                    <p>Simple meanings without technical jargon.</p>
+                </div>
+            </div>
+
+            <div class="glossary-grid">
                 <div class="glossary-item">
                     <h3>AEO</h3>
-                    <p>Answer Engine Optimization. This means helping your business show up better in AI answers and modern search experiences.</p>
+                    <p>Helping your business show up better in AI answers and modern search journeys.</p>
                 </div>
 
                 <div class="glossary-item">
                     <h3>Visibility</h3>
-                    <p>Whether your business is being found when customers search or ask AI tools questions.</p>
+                    <p>Whether your business is appearing when people search or ask AI tools questions.</p>
                 </div>
 
                 <div class="glossary-item">
-                    <h3>Report</h3>
-                    <p>A scan of your website that checks how visible and competitive your business is.</p>
+                    <h3>Audit</h3>
+                    <p>A report that checks your current visibility, gaps, and improvement opportunities.</p>
                 </div>
 
                 <div class="glossary-item">
                     <h3>Growth Plan</h3>
-                    <p>A simplified action plan based on your latest report. This is usually the best page to open after a report is ready.</p>
+                    <p>The practical action page based on the latest audit.</p>
                 </div>
 
                 <div class="glossary-item">
                     <h3>Content Brief</h3>
-                    <p>A structured outline for a page or article your team should create.</p>
+                    <p>A structured outline for the page or article your team should create.</p>
                 </div>
 
                 <div class="glossary-item">
                     <h3>Content Draft</h3>
-                    <p>A first draft generated from your brief and business context.</p>
+                    <p>A first working version of content generated from your brief and context.</p>
                 </div>
 
                 <div class="glossary-item">
                     <h3>Competitor Gap</h3>
-                    <p>A situation where competitors are being shown, but your business is missing.</p>
+                    <p>A case where competitors are being shown but your business is missing.</p>
                 </div>
 
                 <div class="glossary-item">
                     <h3>Schema</h3>
-                    <p>Technical website labels that help search engines and AI systems understand your business more clearly.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Opportunity Level</h3>
-                    <p>A simple signal showing how much upside there is if you improve your website and content.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Content Queue</h3>
-                    <p>The workflow area where briefs and drafts are stored so they can move toward production and publishing.</p>
+                    <p>Machine-readable labels that help search systems understand your business more clearly.</p>
                 </div>
             </div>
-        </section>
+        </article>
 
-        <section id="guides" class="help-section-card">
-            <div class="help-section-head">
-                <h2>Guides</h2>
-                <p>Practical walkthroughs for common tasks.</p>
+        <article class="help-card help-card-large">
+            <div class="section-head">
+                <div>
+                    <h2>3 practical guides</h2>
+                    <p>Keep it simple and repeatable.</p>
+                </div>
             </div>
 
-            <div class="guide-stack">
+            <div class="guide-grid">
                 <div class="guide-card">
-                    <h3>Guide 1: I am new. Where do I start?</h3>
+                    <h3>I am new. Where do I start?</h3>
                     <ol>
-                        <li>Go to <strong>Clients</strong>.</li>
-                        <li>Add your business name and website.</li>
+                        <li>Go to Clients.</li>
+                        <li>Add the business.</li>
                         <li>Open the client workspace.</li>
-                        <li>Click <strong>Run New Audit</strong>.</li>
-                        <li>Open <strong>Growth Plan</strong> after the report is ready.</li>
+                        <li>Run an audit.</li>
+                        <li>Open the Growth Plan.</li>
                     </ol>
                 </div>
 
                 <div class="guide-card">
-                    <h3>Guide 2: I already have a report. What do I do next?</h3>
+                    <h3>I have a report. What next?</h3>
                     <ol>
-                        <li>Open the client’s <strong>Growth Plan</strong>.</li>
-                        <li>Read the <strong>Priority Actions</strong>.</li>
-                        <li>Choose the most urgent issue first.</li>
-                        <li>Generate a <strong>Content Brief</strong> or <strong>Content Draft</strong>.</li>
-                        <li>Save work into the <strong>Content Queue</strong>.</li>
+                        <li>Read the top priority actions.</li>
+                        <li>Choose the first 1–3 actions only.</li>
+                        <li>Create a brief or draft.</li>
+                        <li>Publish improvements.</li>
+                        <li>Re-run the audit later.</li>
                     </ol>
                 </div>
 
                 <div class="guide-card">
-                    <h3>Guide 3: How do I explain this to a client or boss?</h3>
+                    <h3>How do I explain this to a client?</h3>
                     <ol>
-                        <li>Open the <strong>Presentation</strong> page.</li>
-                        <li>Show the overall score and opportunity level first.</li>
-                        <li>Explain the top 2–3 priority actions only.</li>
-                        <li>Use the Growth Plan to show what should happen next.</li>
-                        <li>Export or print to PDF if needed.</li>
+                        <li>Start with the overall score.</li>
+                        <li>Explain what it means in plain English.</li>
+                        <li>Show the top 2–3 actions.</li>
+                        <li>Do not overwhelm them with every detail.</li>
+                        <li>End with the next 30-day plan.</li>
                     </ol>
-                </div>
-
-                <div class="guide-card">
-                    <h3>Guide 4: What if I do not understand the scores?</h3>
-                    <p>Do not worry too much about the numbers themselves. Focus on what they are trying to tell you:</p>
-                    <ul>
-                        <li><strong>Low visibility</strong> means your business is not appearing often enough.</li>
-                        <li><strong>Low content score</strong> means your website may not answer enough customer questions.</li>
-                        <li><strong>Low schema score</strong> means your site may not be clear enough for machines to interpret.</li>
-                        <li><strong>Opportunity level</strong> means how much upside there may be if you improve what is missing.</li>
-                    </ul>
-                </div>
-
-                <div class="guide-card">
-                    <h3>Guide 5: When should I create a brief instead of a full draft?</h3>
-                    <ul>
-                        <li>Create a <strong>brief</strong> when you want the structure and plan first.</li>
-                        <li>Create a <strong>draft</strong> when the topic is already clear and you want content faster.</li>
-                        <li>Use briefs first when the client needs approval before writing starts.</li>
-                    </ul>
-                </div>
-
-                <div class="guide-card">
-                    <h3>Guide 6: When should I re-run an audit?</h3>
-                    <ul>
-                        <li>After important new pages are published.</li>
-                        <li>After major edits to key service pages or FAQs.</li>
-                        <li>When you want to check whether visibility is improving over time.</li>
-                    </ul>
                 </div>
             </div>
-        </section>
+        </article>
+    </section>
 
-    </div>
 </div>
 
 <style>
-html {
-    scroll-behavior: smooth;
-}
-
 .help-shell {
+    padding: 16px;
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: 24px;
-    padding: 28px;
+    gap: 16px;
 }
 
-.help-sidebar-panel,
-.help-hero-card,
-.help-section-card,
-.help-info-card,
-.help-step-card,
-.glossary-item,
+.help-hero,
+.quick-start-card,
+.help-card,
+.step-card,
 .guide-card,
-.help-hero-card-side {
+.help-hero-side {
     background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.help-sidebar-panel {
-    padding: 20px;
-    position: sticky;
-    top: 24px;
-    height: fit-content;
-}
-
-.help-sidebar-title {
-    margin: 0 0 10px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.help-sidebar-copy {
-    margin: 0 0 18px;
-    color: #6b7280;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.help-sidebar-label {
-    font-size: 12px;
-    font-weight: 800;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 14px;
-}
-
-.help-sidebar-nav {
-    display: grid;
-    gap: 10px;
-}
-
-.help-sidebar-link {
-    display: block;
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #f8fafc;
     border: 1px solid #e8edf5;
-    font-weight: 700;
-    color: #16243c;
-    transition: 0.15s ease;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-.help-sidebar-link.active,
-.help-sidebar-link:hover {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-}
-
-.help-main {
+.help-hero {
+    padding: 18px;
     display: grid;
-    gap: 24px;
-}
-
-.help-hero-card {
-    padding: 30px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.72fr);
-    gap: 24px;
-    align-items: stretch;
+    gap: 16px;
 }
 
 .help-badge-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
 .help-badge {
     display: inline-flex;
     align-items: center;
-    padding: 8px 12px;
+    padding: 7px 10px;
     border-radius: 999px;
     background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
+    border: 1px solid #e8edf5;
+    color: #56657a;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -378,219 +293,158 @@ html {
     color: #E83256;
 }
 
-.help-hero-copy h1 {
+.help-hero-main h1 {
     margin: 0;
-    font-size: 38px;
-    line-height: 1.08;
-    font-weight: 800;
-    color: #15233b;
-    max-width: 760px;
-}
-
-.help-hero-copy p {
-    margin: 16px 0 0;
-    font-size: 17px;
-    color: #617084;
-    line-height: 1.65;
-    max-width: 760px;
-}
-
-.help-hero-card-side {
-    padding: 22px;
-    border-color: #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-}
-
-.hero-side-label {
-    font-size: 13px;
-    font-weight: 800;
-    color: #6b7280;
-    margin-bottom: 10px;
-}
-
-.hero-side-value {
     font-size: 28px;
-    line-height: 1.2;
-    font-weight: 800;
-    color: #E83256;
+    line-height: 1.08;
+    color: #15233b;
 }
 
+.help-hero-copy,
 .hero-side-text {
     margin: 12px 0 0;
-    color: #627084;
+    color: #617084;
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.7;
 }
 
-.help-section-card {
-    padding: 26px;
-    scroll-margin-top: 24px;
+.help-hero-side {
+    padding: 16px;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    border-color: #ffd8c6;
 }
 
-.help-section-head h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.help-section-head p {
-    margin: 0;
-    font-size: 15px;
-    color: #6b7280;
-    line-height: 1.55;
-}
-
-.help-steps-grid,
-.help-card-grid {
-    display: grid;
-    gap: 16px;
-    margin-top: 20px;
-}
-
-.help-steps-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.help-card-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.help-step-card,
-.help-info-card {
-    padding: 20px;
-}
-
-.help-step-number {
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    background: #E83256;
-    color: #fff;
+.hero-side-label,
+.step-number {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: fit-content;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #fff2ea;
+    border: 1px solid #ffd8c6;
+    color: #E83256;
+    font-size: 12px;
     font-weight: 800;
-    margin-bottom: 12px;
 }
 
-.help-step-card h3,
-.help-info-card h3,
-.glossary-item h3,
-.guide-card h3 {
-    margin: 0 0 8px;
+.hero-side-value {
+    display: block;
+    margin-top: 12px;
+    color: #15233b;
     font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
+    line-height: 1.35;
 }
 
-.help-step-card p,
-.help-info-card p,
-.glossary-item p,
-.guide-card p,
-.guide-card li {
+.quick-start-card,
+.help-card {
+    padding: 16px;
+}
+
+.section-head h2 {
     margin: 0;
+    font-size: 18px;
+    color: #15233b;
+}
+
+.section-head p {
+    margin: 6px 0 0;
     color: #627084;
+    font-size: 13px;
     line-height: 1.6;
-    font-size: 15px;
 }
 
-.glossary-list,
-.guide-stack {
+.quick-start-grid,
+.help-grid,
+.glossary-grid,
+.guide-grid {
     display: grid;
-    gap: 16px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 16px;
 }
 
-.glossary-item,
+.step-card,
 .guide-card {
-    padding: 20px;
+    padding: 16px;
+    box-shadow: none;
 }
 
-.guide-card ol,
-.guide-card ul {
-    margin: 12px 0 0 20px;
-    padding: 0;
+.step-card h3,
+.guide-card h3,
+.glossary-item h3 {
+    margin: 12px 0 8px;
+    color: #15233b;
 }
 
-.guide-card li + li {
-    margin-top: 8px;
+.step-card p,
+.guide-card li,
+.glossary-item p,
+.meaning-item p,
+.faq-item p {
+    color: #617084;
+    font-size: 14px;
+    line-height: 1.65;
 }
 
-@media (max-width: 1200px) {
-    .help-shell,
-    .help-hero-card {
-        grid-template-columns: 1fr;
+.meaning-list,
+.faq-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.meaning-item,
+.faq-item,
+.glossary-item {
+    padding: 14px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+}
+
+.meaning-item strong,
+.faq-item strong {
+    color: #15233b;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.help-card-large {
+    grid-column: span 1;
+}
+
+.guide-card ol {
+    margin: 10px 0 0;
+    padding-left: 18px;
+}
+
+@media (min-width: 900px) {
+    .help-hero {
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+        align-items: start;
     }
 
-    .help-sidebar-panel {
-        position: relative;
-        top: 0;
+    .quick-start-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .help-steps-grid,
-    .help-card-grid {
+    .help-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-}
 
-@media (max-width: 768px) {
-    .help-shell {
-        padding: 18px;
+    .help-card-large {
+        grid-column: span 2;
     }
 
-    .help-hero-card,
-    .help-section-card,
-    .help-step-card,
-    .help-info-card,
-    .glossary-item,
-    .guide-card,
-    .help-sidebar-panel,
-    .help-hero-card-side {
-        padding: 18px;
-        border-radius: 20px;
+    .glossary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .help-hero-copy h1 {
-        font-size: 30px;
-    }
-
-    .help-steps-grid,
-    .help-card-grid {
-        grid-template-columns: 1fr;
+    .guide-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 </style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const links = document.querySelectorAll(".help-sidebar-link");
-    const sections = document.querySelectorAll("#start-here, #platform-pages, #glossary, #guides");
-
-    function setActiveLink() {
-        let currentId = "start-here";
-
-        sections.forEach(section => {
-            const rect = section.getBoundingClientRect();
-            if (rect.top <= 140) {
-                currentId = section.id;
-            }
-        });
-
-        links.forEach(link => {
-            link.classList.toggle("active", link.getAttribute("href") === "#" + currentId);
-        });
-    }
-
-    links.forEach(link => {
-        link.addEventListener("click", function () {
-            links.forEach(item => item.classList.remove("active"));
-            this.classList.add("active");
-        });
-    });
-
-    window.addEventListener("scroll", setActiveLink);
-    setActiveLink();
-});
-</script>
 {% endblock %}
