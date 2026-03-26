@@ -588,6 +588,7 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
     }
 
 
+
 def build_recommended_actions(client, latest_audit, query_comparison):
     actions = []
     if not latest_audit:
@@ -913,9 +914,64 @@ def report_page(client_id):
         abort(404)
     return render_template("report_page.html", client=client)
 
+def get_workspace_limit(user):
+    if not user:
+        return 0
+
+    if user.role == "admin" or user.plan == "dev_unlimited":
+        return None
+
+    if user.is_white_label_enabled:
+        return 50
+
+    limits = {
+        "free": 1,
+        "starter": 3,
+        "growth": 10,
+        "agency": 25,
+    }
+
+    return limits.get(user.plan, 1)
+
+
+def get_workspace_count(user_id):
+    return Client.query.filter_by(user_id=user_id).count()
+
+
+def can_create_workspace(user):
+    limit = get_workspace_limit(user)
+    count = get_workspace_count(user.id)
+
+    if limit is None:
+        return True, None, count
+
+    return count < limit, limit, count
+
+def get_workspace_count(user_id):
+    return Client.query.filter_by(user_id=user_id).count()
+
+
+def can_create_workspace(user):
+    limit = get_workspace_limit(user)
+    count = get_workspace_count(user.id)
+
+    if limit is None:
+        return True, None, count
+
+    return count < limit, limit, count
+
 @app.route("/clients/new", methods=["GET", "POST"])
 @login_required
 def create_client():
+    allowed, limit, count = can_create_workspace(current_user)
+
+    if not allowed:
+        flash(
+            f"You’ve reached your workspace limit ({count}/{limit}) for your current plan. Upgrade to add more workspaces.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         website = request.form.get("website", "").strip()
@@ -945,7 +1001,13 @@ def create_client():
         flash("Client workspace created successfully.")
         return redirect(url_for("client_detail", client_id=client["id"]))
 
-    return render_template("client_form.html", error=None, form_data={}, mode="create", client=None)
+    return render_template(
+        "client_form.html",
+        error=None,
+        form_data={},
+        mode="create",
+        client=None,
+    )
 
 @app.route("/client/<client_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -1615,19 +1677,80 @@ def client_growth_plan(client_id):
         audit_count=full_client.get("audit_count", 0),
     )
         
-@app.route("/audit/new")
+@app.route("/audit/new", methods=["GET", "POST"])
 @login_required
 def new_audit():
     clients = build_client_views()
+    view_mode = get_view_mode(current_user)
 
     if not clients:
         flash("Create a client first.", "warning")
         return redirect(url_for("create_client"))
 
-    if len(clients) == 1:
-        return redirect(url_for("run_client_audit", client_id=clients[0]["id"]))
+    if request.method == "POST":
+        client_id = request.form.get("client_id", "").strip()
+        website = request.form.get("website", "").strip()
+        industry = request.form.get("industry", "").strip()
+        location = request.form.get("location", "").strip()
+        topic = request.form.get("topic", "").strip()
+        audit_type = request.form.get("audit_type", "free").strip()
+        notes = request.form.get("notes", "").strip()
 
-    return redirect(url_for("clients_page"))
+        if not client_id and len(clients) == 1:
+            client_id = str(clients[0]["id"])
+
+        if not client_id:
+            return render_template(
+                "new_audit.html",
+                clients=clients,
+                preselected_client_id=clients[0]["id"] if len(clients) == 1 else None,
+                form_data=request.form,
+                error="Please choose a workspace.",
+                view_mode=view_mode,
+            )
+
+        if not website or not industry or not location:
+            return render_template(
+                "new_audit.html",
+                clients=clients,
+                preselected_client_id=clients[0]["id"] if len(clients) == 1 else None,
+                form_data=request.form,
+                error="Website, industry, and location are required.",
+                view_mode=view_mode,
+            )
+
+        return redirect(url_for(
+            "run_client_audit",
+            client_id=client_id,
+            website=website,
+            industry=industry,
+            location=location,
+            topic=topic,
+            audit_type=audit_type,
+            notes=notes,
+        ))
+
+    preselected_client_id = clients[0]["id"] if len(clients) == 1 else None
+    prefilled_client = clients[0] if len(clients) == 1 else None
+
+    form_data = {
+        "client_id": preselected_client_id or "",
+        "website": prefilled_client.get("website", "") if prefilled_client else "",
+        "industry": prefilled_client.get("industry", "") if prefilled_client else "",
+        "location": prefilled_client.get("location", "") if prefilled_client else "",
+        "topic": prefilled_client.get("industry", "") if prefilled_client else "",
+        "audit_type": "free",
+        "notes": "",
+    }
+
+    return render_template(
+        "new_audit.html",
+        clients=clients,
+        preselected_client_id=preselected_client_id,
+        form_data=form_data,
+        error=None,
+        view_mode=view_mode,
+    )
 
 @app.route("/api/audit/<summary_filename>/full")
 @login_required
@@ -1662,11 +1785,18 @@ def inject_template_globals():
     has_unlimited_credits = False
     view_mode = "single"
     can_use_presentation_mode = False
+    workspace_count = 0
+    workspace_limit = 0
+    can_add_workspace = False
 
     if current_user.is_authenticated:
         has_unlimited_credits = user_has_unlimited_credits(current_user)
         view_mode = get_view_mode(current_user)
         can_use_presentation_mode = view_mode in ["multi", "admin"]
+
+        workspace_count = get_workspace_count(current_user.id)
+        workspace_limit = get_workspace_limit(current_user)
+        can_add_workspace = workspace_limit is None or workspace_count < workspace_limit
 
         if has_unlimited_credits:
             wallet_balance = "Unlimited"
@@ -1679,6 +1809,9 @@ def inject_template_globals():
         "has_unlimited_credits": has_unlimited_credits,
         "view_mode": view_mode,
         "can_use_presentation_mode": can_use_presentation_mode,
+        "workspace_count": workspace_count,
+        "workspace_limit": workspace_limit,
+        "can_add_workspace": can_add_workspace,
     }
 
 @app.route("/aeo-agency")

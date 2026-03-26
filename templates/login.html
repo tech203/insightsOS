@@ -5,35 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | AEO Agents</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='stylesv2.1.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 </head>
 <body class="auth-body">
 
-<div class="auth-shell-clean">
-
-    <section class="auth-left">
-        <div class="auth-left-inner">
-            <div class="brand-mark large">A</div>
-
-            <h1>AEO Agents</h1>
-
-            <p>
-                Track AI visibility. Fix what matters. Grow your presence in AI answers.
-            </p>
-
-            <div class="auth-trust">
-                <span>Secure login</span>
-                <span>No spam</span>
-                <span>Your data stays private</span>
+<div class="auth-wrapper">
+    <section class="auth-side-brand">
+        <div class="brand-overlay"></div>
+        <div class="brand-content">
+            <div class="brand-logo">A</div>
+            <div class="brand-text">
+                <h1>AEO Agents</h1>
+                <p>Track AI visibility. Fix what matters. <br>Grow your presence in AI answers.</p>
+            </div>
+            
+            <div class="auth-trust-pills">
+                <span>✓ Secure login</span>
+                <span>✓ No spam</span>
+                <span>✓ Data stays private</span>
             </div>
         </div>
     </section>
 
-    <section class="auth-right">
+    <section class="auth-side-form">
         <div class="auth-card">
-
             <div class="auth-header">
                 <h2>Welcome back</h2>
-                <p>Log in to continue</p>
+                <p>Enter your credentials to access your dashboard</p>
             </div>
 
             {% if error %}
@@ -43,206 +41,271 @@
             {% endif %}
 
             <form method="POST" class="form-stack" onsubmit="handleLoginSubmit(this)">
-
                 <div class="form-field">
-                    <label for="email">Email</label>
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        required
-                        autocomplete="email"
-                        autofocus
-                    >
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required autofocus>
                 </div>
 
                 <div class="form-field">
-                    <label for="password">Password</label>
-
-                    <div class="password-field">
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            placeholder="Enter your password"
-                            required
-                            autocomplete="current-password"
-                        >
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">
-                            Show
-                        </button>
+                    <div class="label-row">
+                        <label for="password">Password</label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" placeholder="••••••••" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">Show</button>
                     </div>
                 </div>
 
-                <div class="form-extra">
-                    <a href="#" class="forgot-link">Forgot password?</a>
-                </div>
-
                 <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
-                    Log In
+                    Log In to Dashboard
                 </button>
             </form>
 
-            <div class="auth-divider"></div>
-
-            <div class="auth-links">
-                <span>New here?</span>
-                <a href="{{ url_for('signup') }}">Create account</a>
+            <div class="auth-footer">
+                <p>New here? <a href="{{ url_for('signup') }}">Create an account</a></p>
+                <a href="{{ url_for('aeo_agency_page') }}" class="back-link">← Back to landing page</a>
             </div>
-
-            <div class="auth-links small">
-                <a href="{{ url_for('aeo_agency_page') }}">Back to landing</a>
-            </div>
-
         </div>
     </section>
-
 </div>
 
 <style>
-.auth-shell-clean {
-    min-height: 100vh;
-    display: grid;
-    grid-template-columns: 1fr;
-    background:
-        radial-gradient(circle at top left, rgba(255, 106, 43, 0.10), transparent 24%),
-        linear-gradient(180deg, #f6f8fc 0%, #eef3f9 100%);
+/* CSS Reset and Variables for this page */
+:root {
+    --brand-grad: linear-gradient(135deg, #2b1f45 0%, #6d28d9 58%, #ff7a59 100%);
+    --primary: #8b5cf6;
+    --text-main: #1b1630;
+    --text-muted: #6b7280;
 }
 
-.auth-left,
-.auth-right {
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+}
+
+.auth-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* LEFT SIDE: BRANDING */
+.auth-side-brand {
+    position: relative;
+    flex: 1;
+    display: none; /* Hidden on mobile */
+    background: var(--brand-grad);
+    color: white;
+    padding: 60px;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (min-width: 1024px) {
+    .auth-side-brand { display: flex; }
+}
+
+.brand-content {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
+}
+
+.brand-logo {
+    width: 60px;
+    height: 60px;
+    background: white;
+    color: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
-}
-
-.auth-left-inner {
-    max-width: 420px;
-    display: grid;
-    gap: 16px;
-    text-align: center;
-}
-
-.auth-left h1 {
-    margin: 0;
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 800;
-    color: #15233b;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
-.auth-left p {
-    margin: 0;
-    color: #6b7280;
-    font-size: 15px;
+.brand-text h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    margin: 0 0 20px 0;
+    letter-spacing: -0.04em;
 }
 
-.auth-trust {
+.brand-text p {
+    font-size: 18px;
+    line-height: 1.6;
+    opacity: 0.9;
+    margin-bottom: 40px;
+}
+
+.auth-trust-pills {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.auth-trust span {
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    font-size: 12px;
-    font-weight: 700;
+.auth-trust-pills span {
+    font-size: 14px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 99px;
+    width: fit-content;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* RIGHT SIDE: FORM */
+.auth-side-form {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: #ffffff;
 }
 
 .auth-card {
     width: 100%;
-    max-width: 420px;
-    padding: 24px;
-    background: rgba(255, 255, 255, 0.96);
-    border-radius: 18px;
-    border: 1px solid #e7ebf3;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    max-width: 400px;
 }
 
 .auth-header h2 {
-    margin: 0;
-    font-size: 28px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0 0 8px 0;
 }
 
 .auth-header p {
-    margin: 6px 0 16px;
-    color: #6b7280;
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: 15px;
+    margin-bottom: 32px;
 }
 
-.auth-alert {
-    background: #fff4f4;
-    border: 1px solid #fecaca;
-    padding: 12px;
-    margin-bottom: 14px;
-    border-radius: 12px;
-    color: #b91c1c;
+.form-stack {
+    display: grid;
+    gap: 20px;
 }
 
-.form-extra {
+.form-field {
     display: flex;
-    justify-content: flex-end;
-    margin-bottom: 10px;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.forgot-link {
-    font-size: 12px;
-    color: #6b7280;
-    text-decoration: none;
-}
-
-.password-field {
-    position: relative;
+.label-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
-.password-field input {
+.form-field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.form-field input {
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: all 0.2s;
+}
+
+.form-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+}
+
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper input {
     width: 100%;
-    padding-right: 72px;
 }
 
 .password-toggle {
     position: absolute;
-    right: 10px;
-    background: transparent;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
     border: none;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
-    padding: 4px 6px;
 }
 
-.auth-divider {
-    height: 1px;
-    background: #e7ebf3;
-    margin: 16px 0;
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.1s, opacity 0.2s;
 }
 
-.auth-links {
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.auth-footer {
     text-align: center;
+    margin-top: 32px;
+}
+
+.auth-footer p {
     font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
 }
 
-.auth-links.small {
-    margin-top: 8px;
-    font-size: 12px;
+.auth-footer a {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
 }
 
-@media (min-width: 768px) {
-    .auth-shell-clean {
-        grid-template-columns: 1fr 1fr;
-    }
+.back-link {
+    display: block;
+    font-size: 13px !important;
+    opacity: 0.7;
+}
 
-    .auth-left-inner {
-        text-align: left;
-    }
+.forgot-link {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.auth-alert {
+    background: #fef2f2;
+    color: #b91c1c;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid #fee2e2;
 }
 </style>
 
@@ -251,14 +314,12 @@ function handleLoginSubmit(form) {
     const btn = document.getElementById('loginBtn');
     if (btn) {
         btn.disabled = true;
-        btn.innerText = 'Logging in...';
+        btn.innerText = 'Verifying...';
     }
 }
 
 function togglePasswordVisibility(inputId, buttonEl) {
     const input = document.getElementById(inputId);
-    if (!input) return;
-
     if (input.type === 'password') {
         input.type = 'text';
         buttonEl.textContent = 'Hide';

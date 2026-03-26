@@ -51,171 +51,15 @@
                 </div>
 
                 <nav class="sidebar-nav">
-
                     {% if view_mode == "single" %}
-                    <div class="nav-group">
-                        <div class="nav-label">Workspace</div>
-
-                        <a
-                            href="{{ url_for('index') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⌂</span>
-                            <span class="nav-text">Dashboard</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('new_audit') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'new_audit' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⌕</span>
-                            <span class="nav-text">Start Audit</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('content_queue_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">✎</span>
-                            <span class="nav-text">Content</span>
-                        </a>
-                    </div>
-
-                    <div class="nav-group">
-                        <div class="nav-label">Resources</div>
-
-                        <a
-                            href="{{ url_for('help_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">?</span>
-                            <span class="nav-text">Glossary & Guides</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('settings_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⚙</span>
-                            <span class="nav-text">Settings</span>
-                        </a>
-                    </div>
-
+                        {% include "sidebar_single.html" %}
                     {% elif view_mode == "multi" %}
-                    <div class="nav-group">
-                        <div class="nav-label">Workspace</div>
-
-                        <a
-                            href="{{ url_for('index') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⌂</span>
-                            <span class="nav-text">Dashboard</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('clients_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'clients_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">◫</span>
-                            <span class="nav-text">Clients</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('content_queue_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">✎</span>
-                            <span class="nav-text">Content Queue</span>
-                        </a>
-                    </div>
-
-                    <div class="nav-group">
-                        <div class="nav-label">Resources</div>
-
-                        <a
-                            href="{{ url_for('help_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">?</span>
-                            <span class="nav-text">Glossary & Guides</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('settings_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⚙</span>
-                            <span class="nav-text">Settings</span>
-                        </a>
-                    </div>
-
+                        {% include "sidebar_multi.html" %}
                     {% elif view_mode == "admin" %}
-                    <div class="nav-group">
-                        <div class="nav-label">Workspace</div>
-
-                        <a
-                            href="{{ url_for('index') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⌂</span>
-                            <span class="nav-text">Dashboard</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('new_audit') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'new_audit' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⌕</span>
-                            <span class="nav-text">Start Audit</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('clients_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'clients_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">◫</span>
-                            <span class="nav-text">Clients</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('content_queue_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">✎</span>
-                            <span class="nav-text">Content Queue</span>
-                        </a>
-                    </div>
-
-                    <div class="nav-group">
-                        <div class="nav-label">Resources</div>
-
-                        <a
-                            href="{{ url_for('help_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">?</span>
-                            <span class="nav-text">Glossary & Guides</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('settings_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">⚙</span>
-                            <span class="nav-text">Settings</span>
-                        </a>
-
-                        <a
-                            href="{{ url_for('pricing_page') if url_for else '#' }}"
-                            class="nav-item {% if current_endpoint == 'pricing_page' %}active{% endif %}"
-                        >
-                            <span class="nav-icon">💳</span>
-                            <span class="nav-text">Pricing</span>
-                        </a>
-                    </div>
+                        {% include "sidebar_admin.html" %}
+                    {% else %}
+                        {% include "sidebar_single.html" %}
                     {% endif %}
-
                 </nav>
 
                 {% if is_admin_user %}
@@ -246,7 +90,7 @@
 
                         <a
                             href="{{ url_for('dev_set_view_mode', mode='auto') }}"
-                            class="dev-view-btn {% if session.get('dev_view_mode') == 'auto' %}active{% endif %}"
+                            class="dev-view-btn {% if not session.get('dev_view_mode') %}active{% endif %}"
                         >
                             Auto
                         </a>
@@ -266,6 +110,7 @@
                     >
                         Buy Credits
                     </a>
+
                     <a
                         href="{{ url_for('logout') if url_for else '#' }}"
                         class="sidebar-logout-btn"
