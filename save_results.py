@@ -167,7 +167,7 @@ def save_audit_results(
 if __name__ == "__main__":
     saved_files = save_audit_results(
         website="https://example.com",
-        audit_type="free",
+        audit_type="quick",
         business_profile={"title": "Example Co", "description": "Example description"},
         visibility_data={
             "queries_tested": 3,

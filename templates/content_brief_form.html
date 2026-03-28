@@ -1,109 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}{{ client.name }} | Content Brief{% endblock %}
-{% block page_title %}{{ client.name }} · Content Brief{% endblock %}
-{% block page_subtitle %}Create a structured content brief from a target query so the team can build pages that improve answer visibility and brand presence.{% endblock %}
+{% block title %}{{ client.name }} | Brief Result{% endblock %}
+{% block page_title %}{{ client.name }} · Brief Result{% endblock %}
+{% block page_subtitle %}Review the generated content brief, refine it if needed, then save it into the queue or use it to prepare a full draft.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
+<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">Open Draft Generator</a>
 {% endblock %}
 
 {% block content %}
 
-<section class="brief-generator-shell">
+<section class="brief-result-shell">
 
-    <section class="brief-generator-hero">
-        <div class="brief-generator-hero-copy">
+    <section class="brief-result-hero">
+        <div class="brief-result-hero-copy">
             <div class="hero-badge-row">
-                <span class="hero-badge hero-badge-primary">Brief Generator</span>
-                <span class="hero-badge">1 Credit</span>
-                <span class="hero-badge">Client Linked</span>
-                <span class="hero-badge">Action Ready</span>
+                <span class="hero-badge hero-badge-primary">Brief Ready</span>
+                <span class="hero-badge">Editable</span>
+                <span class="hero-badge">Queue Compatible</span>
+                <span class="hero-badge">Draft Ready</span>
             </div>
 
-            <h1>Create a content brief from a real visibility opportunity.</h1>
+            <h1>Your content brief is ready for review.</h1>
             <p>
-                Use this page when you already know the target query and want a structured brief before drafting.
-                This is especially useful for missed brand mentions, FAQ opportunities, comparison pages, and service-led content.
+                Check the target query, confirm the content type, refine the brief if needed,
+                and then either save it to the queue or use it immediately for draft generation.
             </p>
         </div>
 
-        <div class="brief-generator-hero-card">
-            <span class="hero-card-label">Recommended Outcome</span>
-            <strong class="hero-card-value">Brief first, then draft</strong>
+        <div class="brief-result-hero-card">
+            <span class="hero-card-label">Recommended Flow</span>
+            <strong class="hero-card-value">Review → Save → Draft</strong>
             <p class="hero-card-text">
-                Generate a clear content plan so the team can align on angle, structure, and intent before creating the full page.
+                Edit the brief first if needed, then save it for the team or move straight into a full draft.
             </p>
         </div>
     </section>
 
-    <section class="brief-generator-grid">
+    <section class="brief-result-grid">
+
         <div class="panel panel-main">
             <div class="panel-header">
                 <div>
-                    <h2>Brief Generator</h2>
-                    <p class="panel-subtitle">This uses 1 credit and creates a structured brief tied to a target query.</p>
+                    <h2>Generated Brief</h2>
+                    <p class="panel-subtitle">Review and edit before saving to the content queue.</p>
                 </div>
             </div>
 
-            {% if error %}
-            <div class="comparison-banner declined">
-                <strong>Error:</strong> {{ error }}
-            </div>
-            {% endif %}
-
-            <form method="POST" class="form-stack">
+            <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}" class="form-stack">
                 <div class="form-grid-2">
 
                     <div class="form-field form-field-full">
                         <label for="target_query">Target Query</label>
                         <p class="field-help">
-                            Enter the exact query you want the brief to target. This should reflect a real customer question,
-                            comparison phrase, service query, or answer-engine opportunity.
+                            This is the main query the brief is built around. Update it if you want the saved brief to reflect a clearer or more targeted phrase.
                         </p>
                         <input
                             type="text"
                             id="target_query"
                             name="target_query"
-                            value="{{ form_data.get('target_query', '') if form_data else '' }}"
-                            placeholder="e.g. what is answer engine optimization"
-                            required
+                            value="{{ result.target_query if result and result.target_query is defined else '' }}"
                         >
                     </div>
 
                     <div class="form-field">
                         <label for="content_type">Content Type</label>
                         <p class="field-help">
-                            Choose the page format that best matches the intent behind the query.
+                            This helps the team understand the recommended format for the final piece.
                         </p>
-                        <select id="content_type" name="content_type">
-                            <option value="service_page" {% if form_data and form_data.get('content_type') == 'service_page' %}selected{% endif %}>Service Page</option>
-                            <option value="blog_post" {% if form_data and form_data.get('content_type') == 'blog_post' %}selected{% endif %}>Blog Post</option>
-                            <option value="comparison_page" {% if form_data and form_data.get('content_type') == 'comparison_page' %}selected{% endif %}>Comparison Page</option>
-                            <option value="faq_page" {% if form_data and form_data.get('content_type') == 'faq_page' %}selected{% endif %}>FAQ Page</option>
-                            <option value="location_page" {% if form_data and form_data.get('content_type') == 'location_page' %}selected{% endif %}>Location Page</option>
-                            <option value="guide" {% if form_data and form_data.get('content_type') == 'guide' %}selected{% endif %}>Guide</option>
-                        </select>
+                        <input
+                            type="text"
+                            id="content_type"
+                            name="content_type"
+                            value="{{ result.content_type if result and result.content_type is defined else '' }}"
+                        >
                     </div>
 
                     <div class="form-field form-field-full">
-                        <label for="brand_context">Brand Context</label>
+                        <label for="brief_text">Brief Content</label>
                         <p class="field-help">
-                            Add brand positioning, differentiators, offer details, pricing context, audience fit,
-                            location relevance, or anything the brief should reflect.
+                            You can edit the generated brief directly before saving it into the queue or using it for a draft.
                         </p>
-                        <textarea
-                            id="brand_context"
-                            name="brand_context"
-                            rows="7"
-                            placeholder="Example: premium positioning, serves SMEs in Singapore, faster turnaround than competitors, focuses on AI visibility for service businesses."
-                        >{{ form_data.get('brand_context', '') if form_data else '' }}</textarea>
+                        <textarea id="brief_text" name="brief_text" class="editor-textarea" rows="18">{% if result.brief is defined %}{{ result.brief }}{% else %}{{ result | tojson(indent=2) }}{% endif %}</textarea>
                     </div>
                 </div>
 
                 <div class="card-actions">
-                    <button type="submit" class="btn btn-primary">Generate Brief</button>
-                    <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save to Queue</button>
+                    <a
+                        href="{{ url_for('generate_client_content_draft',
+                            client_id=client.id,
+                            target_query=(result.target_query if result and result.target_query is defined else ''),
+                            brief_context=(result.brief if result and result.brief is defined else ''),
+                            brand_context=client.notes
+                        ) }}"
+                        class="btn btn-secondary"
+                    >
+                        Use for Draft
+                    </a>
                 </div>
             </form>
         </div>
@@ -113,68 +108,51 @@
             <div class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Best Use Cases</h2>
-                        <p class="panel-subtitle">When generating a brief is usually the smartest next step.</p>
+                        <h2>Next Actions</h2>
+                        <p class="panel-subtitle">Choose the best next move for this brief.</p>
                     </div>
                 </div>
 
-                <div class="info-list">
-                    <div class="info-card">
-                        <h3>Missed brand mention</h3>
-                        <p>The brand is not being mentioned for an important tracked query.</p>
+                <div class="action-list">
+                    <div class="action-card">
+                        <div class="action-card-top">
+                            <span class="priority-badge low">Queue</span>
+                            <h3>Save for the team</h3>
+                        </div>
+                        <p>Store the brief in the content queue so writers or strategists can pick it up later.</p>
                     </div>
 
-                    <div class="info-card">
-                        <h3>Competitor advantage</h3>
-                        <p>A competitor keeps appearing for the same question cluster or topic.</p>
+                    <div class="action-card">
+                        <div class="action-card-top">
+                            <span class="priority-badge medium">Draft</span>
+                            <h3>Turn into full draft</h3>
+                        </div>
+                        <p>Use this brief as structured context for the draft generator and move faster into execution.</p>
                     </div>
 
-                    <div class="info-card">
-                        <h3>Approval before drafting</h3>
-                        <p>The client or internal team wants a content plan before a full draft is created.</p>
+                    <div class="action-card">
+                        <div class="action-card-top">
+                            <span class="priority-badge high">Refine</span>
+                            <h3>Edit before saving</h3>
+                        </div>
+                        <p>Refine the wording, angle, or structure so the saved brief is cleaner for the team.</p>
                     </div>
-
-                    <div class="info-card">
-                        <h3>Systematic content build</h3>
-                        <p>You want to produce FAQ pages, comparison pages, or service pages in a more repeatable workflow.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Suggested Inputs</h2>
-                        <p class="panel-subtitle">You can start from tracked query opportunities below.</p>
-                    </div>
-                </div>
-
-                <div class="chip-cluster">
-                    {% if client.query_comparison and client.query_comparison.rows %}
-                        {% for row in client.query_comparison.rows[:6] %}
-                        <span class="meta-chip">{{ row.query }}</span>
-                        {% endfor %}
-                    {% else %}
-                        <span class="meta-chip">service comparison query</span>
-                        <span class="meta-chip">faq query</span>
-                        <span class="meta-chip">definition query</span>
-                    {% endif %}
                 </div>
             </div>
 
             <div class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Good Prompting Tips</h2>
-                        <p class="panel-subtitle">Simple inputs usually create better briefs.</p>
+                        <h2>What To Check First</h2>
+                        <p class="panel-subtitle">A quick quality check before saving.</p>
                     </div>
                 </div>
 
                 <div class="tips-list">
-                    <div class="tip-item">Use one clear target query, not multiple combined queries.</div>
-                    <div class="tip-item">Choose the content type based on intent, not just preference.</div>
-                    <div class="tip-item">Add only the most important brand context so the brief stays focused.</div>
-                    <div class="tip-item">Use this first when you need alignment before drafting.</div>
+                    <div class="tip-item">Make sure the target query matches the actual opportunity you want to pursue.</div>
+                    <div class="tip-item">Check whether the content type matches the user intent behind the query.</div>
+                    <div class="tip-item">Refine the brief if the brand positioning needs to sound more specific.</div>
+                    <div class="tip-item">Use the draft generator when the brief is already clear enough for execution.</div>
                 </div>
             </div>
 
@@ -184,16 +162,16 @@
 </section>
 
 <style>
-.brief-generator-shell {
+.brief-result-shell {
     padding: 28px;
     display: grid;
     gap: 24px;
 }
 
-.brief-generator-hero,
+.brief-result-hero,
 .panel,
-.info-card,
-.brief-generator-hero-card,
+.brief-result-hero-card,
+.action-card,
 .tip-item {
     background: #ffffff;
     border: 1px solid #e7ebf3;
@@ -201,7 +179,7 @@
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.brief-generator-hero {
+.brief-result-hero {
     padding: 30px;
     display: grid;
     grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.72fr);
@@ -234,7 +212,7 @@
     color: #E83256;
 }
 
-.brief-generator-hero-copy h1 {
+.brief-result-hero-copy h1 {
     margin: 0;
     font-size: 38px;
     line-height: 1.08;
@@ -243,7 +221,7 @@
     max-width: 760px;
 }
 
-.brief-generator-hero-copy p {
+.brief-result-hero-copy p {
     margin: 16px 0 0;
     font-size: 17px;
     line-height: 1.65;
@@ -251,7 +229,7 @@
     max-width: 760px;
 }
 
-.brief-generator-hero-card {
+.brief-result-hero-card {
     padding: 22px;
     border-color: #ffd8c6;
     background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
@@ -280,7 +258,7 @@
     line-height: 1.6;
 }
 
-.brief-generator-grid {
+.brief-result-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
     gap: 24px;
@@ -348,7 +326,6 @@
 }
 
 .form-field input,
-.form-field select,
 .form-field textarea {
     width: 100%;
     border: 1px solid #d9e2ef;
@@ -361,7 +338,6 @@
 }
 
 .form-field input:focus,
-.form-field select:focus,
 .form-field textarea:focus {
     outline: none;
     border-color: #E83256;
@@ -369,7 +345,7 @@
 }
 
 .form-field textarea {
-    min-height: 140px;
+    min-height: 280px;
     resize: vertical;
 }
 
@@ -379,29 +355,60 @@
     gap: 12px;
 }
 
-.info-list,
+.action-list,
 .tips-list {
     display: grid;
     gap: 14px;
 }
 
-.info-card {
+.action-card {
     padding: 18px;
 }
 
-.info-card h3 {
-    margin: 0 0 8px;
+.action-card-top {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.action-card h3 {
+    margin: 0;
     font-size: 18px;
     font-weight: 800;
     color: #16243c;
 }
 
-.info-card p,
+.action-card p,
 .tip-item {
     margin: 0;
     color: #627084;
     font-size: 14px;
     line-height: 1.6;
+}
+
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.priority-badge.low {
+    background: #dff4e6;
+    color: #15803d;
+}
+
+.priority-badge.medium {
+    background: #ffefc7;
+    color: #a16207;
+}
+
+.priority-badge.high {
+    background: #ffe2dd;
+    color: #c2412d;
 }
 
 .tip-item {
@@ -411,46 +418,28 @@
     border: 1px solid #e7ebf3;
 }
 
-.chip-cluster {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.meta-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #445366;
-    font-size: 13px;
-    font-weight: 700;
-}
-
 @media (max-width: 1200px) {
-    .brief-generator-hero,
-    .brief-generator-grid {
+    .brief-result-hero,
+    .brief-result-grid {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 768px) {
-    .brief-generator-shell {
+    .brief-result-shell {
         padding: 18px;
     }
 
-    .brief-generator-hero,
+    .brief-result-hero,
     .panel,
-    .info-card,
-    .brief-generator-hero-card,
+    .brief-result-hero-card,
+    .action-card,
     .tip-item {
         padding: 18px;
         border-radius: 20px;
     }
 
-    .brief-generator-hero-copy h1 {
+    .brief-result-hero-copy h1 {
         font-size: 30px;
     }
 

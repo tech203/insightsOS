@@ -1,6 +1,6 @@
 {
   "website": "...",
-  "audit_type": "free",
+  "audit_type": "quick",
   "saved_at": "...",
   "scores": {
     "raw_score": 32,

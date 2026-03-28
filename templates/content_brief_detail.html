@@ -1,8 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Content Brief | AEO Agents{% endblock %}
 
-{% block page_title %}Content Brief{% endblock %}
-{% block page_subtitle %}Turn visibility gaps into clear, structured content your team can draft and publish faster{% endblock %}
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Content Brief</h1>
+        <p>Turn visibility gaps into clear, structured content your team can draft and publish faster.</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
+        <a href="{{ url_for('generate_content_draft_page', item_id=brief.id) if brief is defined and brief.id else '#' }}" class="btn btn-primary">Generate Draft</a>
+    </div>
+</div>
+{% endblock %}
 
 {% block content %}
 <div class="brief-shell">

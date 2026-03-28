@@ -12,7 +12,6 @@
 
     <div class="app-shell">
 
-        <!-- Mobile Topbar -->
         <header class="mobile-topbar">
             <button
                 class="mobile-menu-btn"
@@ -27,21 +26,19 @@
                 <span></span>
             </button>
 
-            <a href="{{ url_for('index') if url_for else '#' }}" class="mobile-brand">
+            <a href="{{ url_for('index') }}" class="mobile-brand" aria-label="Go to dashboard">
                 <span class="mobile-brand-mark">A</span>
                 <span class="mobile-brand-text">AEO Agents</span>
             </a>
         </header>
 
-        <!-- Overlay -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <!-- Sidebar -->
-        <aside class="app-sidebar" id="appSidebar">
+        <aside class="app-sidebar" id="appSidebar" aria-label="Sidebar navigation">
             <div class="sidebar-inner">
 
                 <div class="sidebar-brand">
-                    <a href="{{ url_for('index') if url_for else '#' }}" class="brand-link">
+                    <a href="{{ url_for('index') }}" class="brand-link">
                         <div class="brand-mark">A</div>
                         <div class="brand-copy">
                             <strong>AEO Agents</strong>
@@ -105,14 +102,14 @@
                     </div>
 
                     <a
-                        href="{{ url_for('pricing_page') if url_for else '#' }}"
+                        href="{{ url_for('pricing_page') }}"
                         class="sidebar-buy-btn {% if current_endpoint == 'pricing_page' %}active{% endif %}"
                     >
                         Buy Credits
                     </a>
 
                     <a
-                        href="{{ url_for('logout') if url_for else '#' }}"
+                        href="{{ url_for('logout') }}"
                         class="sidebar-logout-btn"
                     >
                         Logout
@@ -121,9 +118,19 @@
             </div>
         </aside>
 
-        <!-- Main -->
         <main class="app-main">
             <div class="app-content">
+
+            {% set page_header_content %}
+                {% block page_header %}{% endblock %}
+            {% endset %}
+
+            {% if page_header_content|trim %}
+                <section class="page-header">
+                    {{ page_header_content }}
+                </section>
+            {% endif %}
+
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         <div class="flash-stack">
@@ -134,7 +141,9 @@
                     {% endif %}
                 {% endwith %}
 
-                {% block content %}{% endblock %}
+                <section class="page-body-shell">
+                    {% block content %}{% endblock %}
+                </section>
             </div>
         </main>
     </div>
@@ -184,6 +193,12 @@
                         closeSidebar();
                     }
                 });
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape" && sidebar.classList.contains("open")) {
+                    closeSidebar();
+                }
             });
         })();
     </script>

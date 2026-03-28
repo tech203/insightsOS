@@ -1,10 +1,10 @@
 {
-  "website": "darbotai.com",
-  "client_id": "darbot-ai",
-  "client_name": "DarBot AI",
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "tech-astra-collective",
+  "client_name": null,
   "user_id": 1,
-  "audit_type": "quick",
-  "saved_at": "2026-03-18T02:39:40",
+  "audit_type": "full",
+  "saved_at": "2026-03-28T17:30:22",
   "scores": {
     "normalized_score": 29.2,
     "visibility_score": 0.0,
@@ -20,7 +20,7 @@
   "summary": {
     "verdict": "Weak AEO visibility with substantial improvement potential.",
     "opportunity_level": "High",
-    "biggest_problem": "DarBot AI is still missing from too many tracked answer queries.",
+    "biggest_problem": "https://www.astracollectiveasia.com is still missing from too many tracked answer queries.",
     "biggest_opportunity": "Build content for missed query 'Chatbot alternatives'.",
     "top_3_actions": [
       "Improve brand visibility in AI answers",
@@ -133,16 +133,16 @@
     }
   ],
   "meta": {
-    "website": "darbotai.com",
-    "website_normalized": "darbotai.com",
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
     "industry": "Chatbot",
     "location": "Singapore",
-    "audit_type": "quick",
-    "topic": "Chatbot",
-    "client_id": "darbot-ai",
-    "client_name": "DarBot AI",
+    "audit_type": "full",
+    "topic": null,
+    "client_id": "tech-astra-collective",
+    "client_name": null,
     "user_id": 1,
-    "saved_at": "2026-03-18T02:39:40",
+    "saved_at": "2026-03-28T17:30:22",
     "schema_version": "2.0"
   },
   "schema_version": "2.0"

@@ -6,7 +6,7 @@
         <span class="nav-text">Dashboard</span>
     </a>
 
-    <a href="{{ url_for('new_audit') }}" class="nav-item {% if current_endpoint == 'new_audit' %}active{% endif %}">
+    <a href="{{ url_for('new_audit') }}" class="nav-item {% if current_endpoint in ['new_audit', 'start_audit'] %}active{% endif %}">
         <span class="nav-icon">⌕</span>
         <span class="nav-text">Create Audit</span>
     </a>
@@ -33,5 +33,10 @@
     <a href="{{ url_for('settings_page') }}" class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}">
         <span class="nav-icon">⚙</span>
         <span class="nav-text">Settings</span>
+    </a>
+
+    <a href="{{ url_for('pricing_page') }}" class="nav-item {% if current_endpoint == 'pricing_page' %}active{% endif %}">
+        <span class="nav-icon">💳</span>
+        <span class="nav-text">Pricing</span>
     </a>
 </div>

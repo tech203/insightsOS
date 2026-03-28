@@ -2,409 +2,127 @@
 
 {% block title %}{{ client.name }} | Actions{% endblock %}
 {% block page_title %}{{ client.name }} · Actions{% endblock %}
-{% block page_subtitle %}Prioritized next steps based on the latest audit.{% endblock %}
+{% block page_subtitle %}Focus on what will improve your visibility fastest.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back</a>
 <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
 {% endblock %}
 
 {% block content %}
+<div class="page-container">
 
-{% set high_actions = client.recommended_actions | selectattr("priority", "equalto", "high") | list %}
-{% set medium_actions = client.recommended_actions | selectattr("priority", "equalto", "medium") | list %}
-{% set low_actions = client.recommended_actions | selectattr("priority", "equalto", "low") | list %}
-{% set top_actions = high_actions if high_actions else (medium_actions if medium_actions else low_actions) %}
-{% set total_count = client.recommended_actions|length if client.recommended_actions else 0 %}
+    <div class="page-header">
+        <h1 class="page-title">Actions</h1>
+        <p class="page-subtitle">Clear next steps from your latest audit.</p>
+    </div>
 
-<div class="actions-page">
-
-    <section class="actions-intro-card">
-        <div class="actions-intro-copy">
-            <div class="actions-kicker">Action Plan</div>
-            <h1>Next best actions</h1>
-            <p>Start here.</p>
-        </div>
-
-        <div class="actions-intro-cta">
-            {% if not client.latest_audit %}
-                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
-                    Run Audit
-                </a>
-
-                <a class="btn btn-muted btn-block">
-                    View Insights (Run audit first)
-                </a>
-            {% else %}
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    View Visibility
-                </a>
-
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    View Competitors
-                </a>
-            {% endif %}
-        </div>
-    </section>
-
-    {% if client.latest_audit %}
-    <section class="actions-status-strip">
-        <div class="status-item">
-            <span class="status-label">Latest Score</span>
-            <strong>{{ client.latest_audit.normalized_score }}</strong>
-        </div>
-        <div class="status-item">
-            <span class="status-label">Visibility</span>
-            <strong>{{ client.latest_audit.visibility_score }}</strong>
-        </div>
-        <div class="status-item">
-            <span class="status-label">Actions</span>
-            <strong>{{ total_count }}</strong>
-        </div>
-    </section>
-    {% endif %}
-
-    <section class="actions-main-card">
-        <div class="section-head compact">
-            <div>
-                <h2>Top Priority Actions</h2>
-                <p>
-                    {% if high_actions %}
-                        Start here first. These are the most urgent opportunities from the latest audit.
-                    {% elif medium_actions %}
-                        No high-priority issues found. These are the next best improvements.
-                    {% elif low_actions %}
-                        These are supporting improvements you can work on next.
-                    {% else %}
-                        Run an audit to generate recommended actions for this client.
-                    {% endif %}
-                </p>
-            </div>
-        </div>
-
-        {% if client.recommended_actions %}
-        <div class="start-here">
-            <strong>Start here:</strong>
-            {% if high_actions %}
-                Fix the highest-priority visibility gaps first.
-            {% elif medium_actions %}
-                Work through the next best improvements from the latest audit.
-            {% elif low_actions %}
-                Review the supporting improvements in order.
-            {% endif %}
-        </div>
-
+    {% if client.recommended_actions and client.recommended_actions|length > 0 %}
         <div class="actions-list">
-            {% for action in top_actions[:3] %}
-            <article class="action-row">
-                <div class="action-row-top">
-                    <span class="priority-chip {{ action.priority }}">{{ action.priority|capitalize }}</span>
-                    <h3>{{ action.title }}</h3>
+
+            {% for action in client.recommended_actions %}
+            <div class="action-item">
+
+                <div class="action-main">
+                    <strong class="action-title">
+                        {{ action.title or "Action item" }}
+                    </strong>
+
+                    <p class="action-desc">
+                        {{ action.recommended_action or action.description or "" }}
+                    </p>
                 </div>
 
-                <p class="action-recommendation">
-                    {{ action.recommended_action }}
-                </p>
+                <div class="action-cta">
+                    {% if action.title and "Target missed query:" in action.title %}
+                        {% set query_text = action.title.replace("Target missed query: ", "") %}
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=query_text) }}"
+                           class="btn btn-primary">
+                            Generate Brief
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}"
+                           class="btn btn-primary">
+                            Generate Brief
+                        </a>
+                    {% endif %}
+                </div>
 
-                {% if "Target missed query:" in action.title %}
-                    {% set query_text = action.title.replace("Target missed query: ", "") %}
-                    <div class="action-buttons">
-                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=query_text) }}" class="btn btn-primary">
-                            Generate Brief
-                        </a>
-                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=query_text) }}" class="btn btn-secondary">
-                            Generate Draft
-                        </a>
-                    </div>
-                {% else %}
-                    <div class="action-buttons">
-                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">
-                            Generate Brief
-                        </a>
-                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">
-                            Generate Draft
-                        </a>
-                    </div>
-                {% endif %}
-            </article>
+            </div>
             {% endfor %}
+
         </div>
-        {% else %}
-        <div class="empty-state clean">
-            {% if not client.latest_audit %}
-                <h3>No audit yet</h3>
-            {% else %}
-                <h3>No actions generated</h3>
-            {% endif %}
-            <p>Run an audit first to generate a focused action plan for this client.</p>
+    {% else %}
+        <div class="empty-state">
+            <h3>No actions yet</h3>
+            <p>Run an audit to generate recommended actions.</p>
             <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
         </div>
-        {% endif %}
-    </section>
+    {% endif %}
 
 </div>
 
 <style>
-.actions-page {
-    padding: 16px;
-    display: grid;
-    gap: 16px;
-}
-
-.actions-intro-card,
-.actions-main-card,
-.actions-status-strip,
-.empty-state.clean,
-.action-row {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    border-radius: 18px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-}
-
-.actions-intro-card {
-    padding: 14px;
-    display: grid;
-    gap: 16px;
-}
-
-.actions-kicker {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #fff2ea;
-    border: 1px solid #ffd8c6;
-    color: #E83256;
-    font-size: 12px;
-    font-weight: 800;
-    margin-bottom: 10px;
-}
-
-.actions-intro-copy h1 {
-    margin: 0;
-    font-size: 26px;
-    line-height: 1.12;
-    color: #15233b;
-}
-
-.actions-intro-copy p {
-    margin: 12px 0 0;
-    font-size: 14px;
-    line-height: 1.65;
-    color: #627084;
-}
-
-.actions-intro-cta {
-    display: grid;
-    gap: 10px;
-}
-
-.btn-block {
-    width: 100%;
-}
-
-.actions-status-strip {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0;
-    overflow: hidden;
-}
-
-.status-item {
-    padding: 14px 12px;
-    border-right: 1px solid #e8edf5;
-}
-
-.status-item:last-child {
-    border-right: none;
-}
-
-.status-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 6px;
-}
-
-.status-item strong {
-    font-size: 20px;
-    font-weight: 800;
-    color: #15233b;
-}
-
-.actions-main-card {
-    padding: 18px;
-}
-
-.section-head.compact {
-    margin-bottom: 14px;
-}
-
-.section-head.compact h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 800;
-    color: #15233b;
-}
-
-.section-head.compact p {
-    margin: 6px 0 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #6b7280;
-}
-
-.start-here {
-    margin-bottom: 14px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    color: #9a3412;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
 .actions-list {
     display: grid;
+    gap: 14px;
+}
+
+.action-item {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #e7ebf3;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
 }
 
-.action-row {
-    padding: 16px;
-    background: #fbfcfe;
+.action-title {
+    font-size: 16px;
+    color: #16243c;
 }
 
-.action-row-top {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.action-row-top h3 {
-    margin: 0;
-    font-size: 17px;
-    line-height: 1.35;
-    color: #15233b;
-}
-
-.priority-chip {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.priority-chip.high {
-    background: #ffe2dd;
-    color: #c2412d;
-}
-
-.priority-chip.medium {
-    background: #ffefc7;
-    color: #a16207;
-}
-
-.priority-chip.low {
-    background: #dff4e6;
-    color: #15803d;
-}
-
-.action-recommendation {
-    margin: 0;
+.action-desc {
+    margin-top: 6px;
     font-size: 14px;
-    line-height: 1.6;
-    color: #334155;
-}
-
-.action-buttons {
-    display: grid;
-    gap: 10px;
-    margin-top: 14px;
-}
-
-.empty-state.clean {
-    padding: 22px 18px;
-    text-align: center;
-}
-
-.empty-state.clean h3 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    color: #15233b;
-}
-
-.empty-state.clean p {
-    margin: 0 0 14px;
-    font-size: 14px;
-    line-height: 1.6;
     color: #6b7280;
+    line-height: 1.6;
 }
 
-@media (min-width: 769px) {
-    .actions-page {
-        padding: 20px;
-        gap: 20px;
-    }
-
-    .actions-intro-card {
-        grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
-        align-items: start;
-    }
-
-    .actions-intro-copy h1 {
-        font-size: 32px;
-    }
-
-    .actions-intro-card,
-    .actions-main-card {
-        padding: 22px;
-    }
-
-    .action-buttons {
-        grid-template-columns: repeat(2, minmax(0, auto));
-        justify-content: start;
-    }
-
-    .actions-list {
-        gap: 14px;
-    }
+.action-cta {
+    display: flex;
+    gap: 10px;
 }
 
-@media (max-width: 640px) {
-    .actions-page {
-        padding: 12px;
+.empty-state {
+    text-align: center;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #e7ebf3;
+    background: #fff;
+}
+
+.empty-state h3 {
+    margin-top: 0;
+    color: #16243c;
+}
+
+.empty-state p {
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+
+@media (min-width: 768px) {
+    .action-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .actions-intro-copy h1 {
-        font-size: 24px;
-    }
-
-    .actions-status-strip {
-        grid-template-columns: 1fr;
-    }
-
-    .status-item {
-        border-right: none;
-        border-bottom: 1px solid #e8edf5;
-    }
-
-    .status-item:last-child {
-        border-bottom: none;
-    }
-
-    .action-row,
-    .actions-main-card,
-    .actions-intro-card {
-        border-radius: 16px;
+    .action-main {
+        max-width: 72%;
     }
 }
 </style>
-
 {% endblock %}

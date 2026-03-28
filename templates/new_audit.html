@@ -1,333 +1,319 @@
 {% extends "base.html" %}
 
 {% block title %}Create Audit | AEO Agents{% endblock %}
-{% block page_title %}Create Audit{% endblock %}
-{% block page_subtitle %}
-Start a new audit from one simple form. Choose a workspace, review the details, and run the audit.
-{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspace</a>
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Create Audit</h1>
+        <p>Set up a new audit for this client workspace and generate the next best actions.</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
-<section class="workspace-grid audit-create-shell">
-    <div class="panel audit-form-panel">
-        <div class="panel-header">
-            <div>
-                <h2>Audit Details</h2>
-                <p class="panel-subtitle">
-                    Keep this page focused on one job only: set the business details and run the audit.
-                </p>
-            </div>
-        </div>
+{% set fd = form_data if form_data is defined and form_data else {} %}
 
-        {% if error %}
-        <div class="comparison-banner declined">
-            <strong>Error:</strong> {{ error }}
-        </div>
-        {% endif %}
+<div class="audit-page-clean">
 
-        <form method="POST" class="form-stack">
-            <div class="form-grid-2">
-                <div class="form-field">
-                    <label for="client_id">Workspace</label>
-                    <select id="client_id" name="client_id" {% if clients|length == 1 %}readonly disabled{% endif %}>
-                        <option value="">Select a workspace</option>
-                        {% for client in clients %}
-                        <option
-                            value="{{ client.id }}"
-                            {% if form_data and form_data.get('client_id') == client.id %}
-                                selected
-                            {% elif preselected_client_id and preselected_client_id == client.id %}
-                                selected
-                            {% endif %}
-                            data-website="{{ client.website or '' }}"
-                            data-industry="{{ client.industry or '' }}"
-                            data-location="{{ client.location or '' }}"
-                            data-topic="{{ client.industry or '' }}"
-                        >
-                            {{ client.name }}{% if client.website %} — {{ client.website }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
+    {% if error %}
+    <div class="comparison-banner declined">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
 
-                    {% if clients|length == 1 %}
+    <section class="audit-layout-clean">
+
+        <div class="audit-main-column">
+            <section class="audit-form-card-clean">
+                <div class="audit-form-header-clean">
+                    <div>
+                        <span class="audit-section-kicker">Audit Setup</span>
+                        <h2>Launch a new audit</h2>
+                        <p>Complete the details below to scan the website, evaluate visibility readiness, and generate prioritised actions.</p>
+                    </div>
+                </div>
+
+                <form method="POST" class="audit-form-clean">
+
+                    {% if not (view_mode == "single" and preselected_client_id) %}
+                    <div class="form-field form-field-full">
+                        <label for="client_id">Workspace</label>
+                        <select id="client_id" name="client_id">
+                            <option value="">Select workspace</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}"
+                                {% if fd.get('client_id') == client.id %}selected{% endif %}>
+                                {{ client.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% else %}
                     <input type="hidden" name="client_id" value="{{ preselected_client_id }}">
                     {% endif %}
-                </div>
 
-                <div class="form-field">
-                    <label for="audit_type">Audit Type</label>
-                    {% set selected_audit_type = form_data.get('audit_type', 'free') if form_data else 'free' %}
-                    <select id="audit_type" name="audit_type">
-                        <option value="free" {% if selected_audit_type == 'free' %}selected{% endif %}>Free Audit</option>
-                        <option value="detailed" {% if selected_audit_type == 'detailed' %}selected{% endif %}>Detailed Audit</option>
-                    </select>
-                </div>
+                    <div class="form-grid-2">
+                        <div class="form-field">
+                            <label for="website">Website</label>
+                            <input id="website" type="text" name="website" value="{{ fd.get('website', '') }}" required>
+                        </div>
 
-                <div class="form-field">
-                    <label for="website">Website</label>
-                    <input
-                        type="text"
-                        id="website"
-                        name="website"
-                        value="{{ form_data.get('website', '') if form_data else '' }}"
-                        placeholder="https://example.com"
-                        required
-                    >
-                </div>
+                        <div class="form-field">
+                            <label for="industry">Industry</label>
+                            <input id="industry" type="text" name="industry" value="{{ fd.get('industry', '') }}" required>
+                        </div>
 
-                <div class="form-field">
-                    <label for="industry">Industry</label>
-                    <input
-                        type="text"
-                        id="industry"
-                        name="industry"
-                        value="{{ form_data.get('industry', '') if form_data else '' }}"
-                        placeholder="Bakery, clinic, tuition centre, law firm"
-                        required
-                    >
-                </div>
+                        <div class="form-field">
+                            <label for="location">Location</label>
+                            <input id="location" type="text" name="location" value="{{ fd.get('location', '') }}" required>
+                        </div>
 
-                <div class="form-field">
-                    <label for="location">Location</label>
-                    <input
-                        type="text"
-                        id="location"
-                        name="location"
-                        value="{{ form_data.get('location', '') if form_data else '' }}"
-                        placeholder="Singapore"
-                        required
-                    >
-                </div>
+                        <div class="form-field">
+                            <label for="audit_type">Audit Depth</label>
+                            <select id="audit_type" name="audit_type">
+                                <option value="quick" {% if fd.get('audit_type', 'quick') == "quick" %}selected{% endif %}>Quick Scan</option>
+                                <option value="full" {% if fd.get('audit_type') == "full" %}selected{% endif %}>Full Audit</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="form-field">
-                    <label for="topic">Main Topic or Service Focus</label>
-                    <input
-                        type="text"
-                        id="topic"
-                        name="topic"
-                        value="{{ form_data.get('topic', '') if form_data else '' }}"
-                        placeholder="Custom cakes, family law, math tuition"
-                    >
-                </div>
-            </div>
-
-            <div class="form-field">
-                <label for="notes">Optional Audit Notes</label>
-                <textarea
-                    id="notes"
-                    name="notes"
-                    rows="4"
-                    placeholder="Add any extra context, priorities, target services, or competitor notes."
-                >{{ form_data.get('notes', '') if form_data else '' }}</textarea>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Run Audit</button>
-                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Workspace</a>
-            </div>
-        </form>
-    </div>
-
-    <aside class="panel audit-side-panel">
-        <div class="panel-header">
-            <div>
-                <h2>Before You Run</h2>
-                <p class="panel-subtitle">A quick guide for a cleaner and more reliable audit result.</p>
-            </div>
+                    <div class="audit-form-actions-clean">
+                        <button type="submit" class="btn btn-primary">Run Audit</button>
+                        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </section>
         </div>
 
-        <div class="audit-tips-stack">
-            <article class="audit-tip-card">
-                <span class="audit-tip-step">1</span>
-                <div>
-                    <h3>Choose the right workspace</h3>
-                    <p>Use one workspace per business, brand, or location so reports stay organised.</p>
-                </div>
-            </article>
+        <aside class="audit-side-column">
+            <section class="audit-side-card audit-visual-card">
+                <div class="audit-visual-badge">AI Audit</div>
+                <h3>What this audit checks</h3>
+                <p>The scan reviews your website structure, answer readiness, content coverage, and visibility signals to identify the clearest next actions.</p>
 
-            <article class="audit-tip-card">
-                <span class="audit-tip-step">2</span>
-                <div>
-                    <h3>Use the real website</h3>
-                    <p>Enter the main live domain you want checked, not a draft page or temporary link.</p>
-                </div>
-            </article>
+                <div class="audit-check-list">
+                    <div class="audit-check-item">
+                        <span class="audit-check-dot"></span>
+                        <div>
+                            <strong>Visibility signals</strong>
+                            <p>Checks whether your brand appears clearly across the web and key answer surfaces.</p>
+                        </div>
+                    </div>
 
-            <article class="audit-tip-card">
-                <span class="audit-tip-step">3</span>
-                <div>
-                    <h3>Be specific with industry and location</h3>
-                    <p>This helps the audit better assess local relevance, visibility, and entity clarity.</p>
-                </div>
-            </article>
+                    <div class="audit-check-item">
+                        <span class="audit-check-dot"></span>
+                        <div>
+                            <strong>Content readiness</strong>
+                            <p>Looks at whether your pages are structured to answer real user questions well.</p>
+                        </div>
+                    </div>
 
-            <article class="audit-tip-card">
-                <span class="audit-tip-step">4</span>
-                <div>
-                    <h3>Use topic only if helpful</h3>
-                    <p>Add the main service, offer, or category if you want the audit to be more focused.</p>
+                    <div class="audit-check-item">
+                        <span class="audit-check-dot"></span>
+                        <div>
+                            <strong>Site structure</strong>
+                            <p>Reviews important technical and on-page signals that affect AI visibility.</p>
+                        </div>
+                    </div>
                 </div>
-            </article>
-        </div>
+            </section>
 
-        <div class="audit-credit-card">
-            <span class="audit-credit-label">Credits</span>
-            <strong class="audit-credit-value">
-                {{ wallet_balance if wallet_balance is defined else 0 }}
-            </strong>
-            <p class="audit-credit-help">
-                Running an audit will use credits unless your account has unlimited access.
-            </p>
-            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary audit-credit-btn">Buy Credits</a>
-        </div>
-    </aside>
-</section>
+            <section class="audit-side-card audit-helper-card">
+                <h3>What happens next</h3>
+                <p>After you launch the audit, the platform analyses the site and returns a summary with scores, findings, and prioritised recommendations.</p>
+            </section>
+        </aside>
+
+    </section>
+</div>
 
 <style>
-.audit-create-shell {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
-    gap: 24px;
+.audit-page-clean {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 16px;
 }
 
-.audit-form-panel,
-.audit-side-panel {
+.audit-layout-clean {
+    display: grid;
+    gap: 20px;
+}
+
+.audit-main-column,
+.audit-side-column {
+    min-width: 0;
+}
+
+.audit-form-card-clean,
+.audit-side-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.audit-form-card-clean {
     padding: 24px;
 }
 
-.audit-tips-stack {
-    display: grid;
-    gap: 14px;
+.audit-form-header-clean {
+    margin-bottom: 20px;
 }
 
-.audit-tip-card {
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-    padding: 16px;
-    border: 1px solid #e7ebf3;
-    border-radius: 18px;
-    background: #f8fafc;
-}
-
-.audit-tip-step {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
+.audit-section-kicker,
+.audit-visual-badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    background: #fff2ea;
-    color: #E83256;
-    font-weight: 800;
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
-.audit-tip-card h3 {
-    margin: 0 0 6px;
-    font-size: 15px;
-    color: #16243c;
-}
-
-.audit-tip-card p {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #627084;
-}
-
-.audit-credit-card {
-    margin-top: 18px;
-    padding: 18px;
-    border-radius: 20px;
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border: 1px solid #ffe3d6;
-}
-
-.audit-credit-label {
-    display: block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    color: #6d4aff;
     font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #E83256;
-    margin-bottom: 8px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
-.audit-credit-value {
-    display: block;
-    font-size: 28px;
-    font-weight: 800;
+.audit-form-header-clean h2 {
+    margin: 12px 0 8px;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    line-height: 1.08;
     color: #16243c;
-    margin-bottom: 10px;
 }
 
-.audit-credit-help {
-    margin: 0 0 16px;
+.audit-form-header-clean p {
+    margin: 0;
     color: #627084;
-    line-height: 1.6;
+    line-height: 1.7;
+    font-size: 15px;
+    max-width: 760px;
+}
+
+.audit-form-clean {
+    display: grid;
+    gap: 18px;
+}
+
+.audit-form-actions-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.audit-side-column {
+    display: grid;
+    gap: 20px;
+}
+
+.audit-visual-card {
+    padding: 24px;
+    background:
+        radial-gradient(circle at top right, rgba(126, 87, 255, 0.18), transparent 32%),
+        linear-gradient(180deg, #ffffff 0%, #fbf9ff 100%);
+}
+
+.audit-visual-card h3,
+.audit-helper-card h3 {
+    margin: 14px 0 10px;
+    font-size: 24px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.audit-visual-card > p,
+.audit-helper-card p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.7;
     font-size: 14px;
 }
 
-.audit-credit-btn {
-    width: 100%;
-    justify-content: center;
+.audit-check-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 20px;
 }
 
-@media (max-width: 960px) {
-    .audit-create-shell {
-        grid-template-columns: 1fr;
+.audit-check-item {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.audit-check-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #7b61ff 0%, #5d43f2 100%);
+    margin-top: 6px;
+}
+
+.audit-check-item strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #16243c;
+    font-size: 14px;
+}
+
+.audit-check-item p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 13px;
+}
+
+.audit-helper-card {
+    padding: 20px 24px;
+}
+
+@media (min-width: 960px) {
+    .audit-page-clean {
+        padding: 20px;
+    }
+
+    .audit-layout-clean {
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        align-items: start;
+    }
+
+    .audit-form-actions-clean {
+        flex-direction: row;
+        align-items: center;
     }
 }
 
 @media (max-width: 768px) {
-    .audit-form-panel,
-    .audit-side-panel {
-        padding: 18px;
+    .audit-page-clean {
+        padding: 12px;
+    }
+
+    .audit-form-card-clean,
+    .audit-side-card {
+        padding-left: 18px;
+        padding-right: 18px;
         border-radius: 20px;
     }
 
-    .audit-tip-card {
-        padding: 14px;
-        border-radius: 16px;
+    .audit-form-card-clean {
+        padding-top: 18px;
+        padding-bottom: 18px;
+    }
+
+    .audit-visual-card,
+    .audit-helper-card {
+        padding-top: 18px;
+        padding-bottom: 18px;
+    }
+
+    .audit-form-actions-clean .btn,
+    .audit-form-actions-clean button {
+        width: 100%;
     }
 }
 </style>
-
-<script>
-    (function () {
-        const clientSelect = document.getElementById("client_id");
-        const websiteInput = document.getElementById("website");
-        const industryInput = document.getElementById("industry");
-        const locationInput = document.getElementById("location");
-        const topicInput = document.getElementById("topic");
-
-        if (!clientSelect) return;
-
-        function applyClientData() {
-            const selected = clientSelect.options[clientSelect.selectedIndex];
-            if (!selected) return;
-
-            const website = selected.getAttribute("data-website") || "";
-            const industry = selected.getAttribute("data-industry") || "";
-            const location = selected.getAttribute("data-location") || "";
-            const topic = selected.getAttribute("data-topic") || "";
-
-            if (website && !websiteInput.value.trim()) websiteInput.value = website;
-            if (industry && !industryInput.value.trim()) industryInput.value = industry;
-            if (location && !locationInput.value.trim()) locationInput.value = location;
-            if (topic && !topicInput.value.trim()) topicInput.value = topic;
-        }
-
-        clientSelect.addEventListener("change", applyClientData);
-
-        if (clientSelect.value) {
-            applyClientData();
-        }
-    })();
-</script>
 {% endblock %}

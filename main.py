@@ -26,7 +26,7 @@ def run_full_audit():
     # Generate queries
     queries = generate_queries(topic, location)
 
-    if config.AUDIT_TYPE == "free":
+    if config.AUDIT_TYPE == "quick":
         query_count = config.FREE_QUERY_COUNT
     else:
         query_count = config.DETAILED_QUERY_COUNT
@@ -97,7 +97,7 @@ def run_full_audit():
     question_coverage = run_question_coverage_audit(
         website,
         topic,
-        max_questions=10 if config.AUDIT_TYPE == "free" else 25
+        max_questions=10 if config.AUDIT_TYPE == "quick" else 25
     )
 
     print("\nQUESTION COVERAGE AUDIT:")

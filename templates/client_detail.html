@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ client.name }} | Workspace{% endblock %}
-{% block page_title %}{{ client.name }} · Workspace{% endblock %}
-{% block page_subtitle %}Your client overview and next best actions.{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
-<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ client.name if client and client.name else "Client Workspace" }}</h1>
+        <p>Your client overview and next best actions.</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
+        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -44,18 +50,28 @@
                 </div>
             </div>
 
+            <div class="visual-placeholder visual-placeholder--soft client-workspace-visual">
+                <div class="visual-placeholder-content">
+                    <span class="visual-placeholder-kicker">Image Placeholder</span>
+                    <h2 class="visual-placeholder-title">Client workspace visual goes here</h2>
+                    <p class="visual-placeholder-text">
+                        Replace this later with a branded workspace illustration, growth scene, or client insight visual.
+                    </p>
+                </div>
+            </div>
+
             <div class="priority-strip strong">
                 <div class="priority-strip-copy">
                     <span class="priority-label">Top Priority</span>
                     {% if has_audit and top_action %}
                         <h2>{{ top_action.title }}</h2>
-                        <p>Start here.</p>
+                        <p>Start here first to unlock the clearest improvement path.</p>
                     {% elif has_audit %}
                         <h2>Fix visibility gaps</h2>
-                        <p>Start here.</p>
+                        <p>Start here first to improve discoverability and answer coverage.</p>
                     {% else %}
                         <h2>Run your first audit</h2>
-                        <p>Start here.</p>
+                        <p>Start here to generate scores, findings, and next-step actions.</p>
                     {% endif %}
                 </div>
 
@@ -187,6 +203,7 @@
 
         <div class="finding-list">
             <div class="finding-item warning">
+                <div class="finding-icon">!</div>
                 <div class="finding-copy">
                     <strong>Weak coverage</strong>
                     <p>Important questions are not answered clearly enough yet.</p>
@@ -194,6 +211,7 @@
             </div>
 
             <div class="finding-item neutral">
+                <div class="finding-icon">i</div>
                 <div class="finding-copy">
                     <strong>Visibility gaps</strong>
                     <p>Your brand appears inconsistently across tracked answer scenarios.</p>
@@ -201,6 +219,7 @@
             </div>
 
             <div class="finding-item success">
+                <div class="finding-icon">✓</div>
                 <div class="finding-copy">
                     <strong>Good starting point</strong>
                     <p>You already have a base to improve from, which makes the next actions more targeted.</p>
@@ -281,11 +300,11 @@
 
 <style>
 .client-overview-shell {
-    max-width: 980px;
+    max-width: 1080px;
     margin: 0 auto;
     padding: 16px;
     display: grid;
-    gap: 14px;
+    gap: 16px;
 }
 
 .client-overview-hero,
@@ -304,6 +323,10 @@
 .client-overview-hero,
 .client-section-card {
     padding: 16px;
+}
+
+.client-workspace-visual {
+    margin-top: 16px;
 }
 
 .client-overview-hero {
@@ -353,7 +376,7 @@
 
 .client-overview-copy h1 {
     margin: 0;
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1.08;
     color: #15233b;
 }
@@ -562,6 +585,13 @@
     background: #fbfcfe;
 }
 
+.finding-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
 .finding-item.warning {
     background: #fff7ed;
 }
@@ -572,6 +602,20 @@
 
 .finding-item.success {
     background: #edf7f1;
+}
+
+.finding-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    color: #15233b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    flex-shrink: 0;
 }
 
 .finding-copy strong,
@@ -637,10 +681,10 @@
     margin-top: 14px;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 900px) {
     .client-overview-shell {
         padding: 20px;
-        gap: 16px;
+        gap: 18px;
     }
 
     .client-overview-hero,
@@ -649,7 +693,7 @@
     }
 
     .client-overview-hero {
-        grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr);
+        grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
         align-items: start;
     }
 
@@ -698,6 +742,16 @@
     }
 
     .client-overview-copy h1 {
+        font-size: 24px;
+    }
+
+    .visual-placeholder {
+        min-height: 190px;
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    .visual-placeholder-title {
         font-size: 24px;
     }
 }

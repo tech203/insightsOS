@@ -1,15 +1,15 @@
 {
   "meta": {
-    "website": "darbotai.com",
-    "website_normalized": "darbotai.com",
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
     "industry": "Chatbot",
     "location": "Singapore",
     "audit_type": "quick",
-    "topic": "Chatbot",
-    "client_id": "darbot-ai",
-    "client_name": "DarBot AI",
+    "topic": null,
+    "client_id": "tech-astra-collective",
+    "client_name": null,
     "user_id": 1,
-    "saved_at": "2026-03-18T02:39:40",
+    "saved_at": "2026-03-28T01:40:47",
     "schema_version": "2.0"
   },
   "scores": {
@@ -27,7 +27,7 @@
   "summary": {
     "verdict": "Weak AEO visibility with substantial improvement potential.",
     "opportunity_level": "High",
-    "biggest_problem": "DarBot AI is still missing from too many tracked answer queries.",
+    "biggest_problem": "https://www.astracollectiveasia.com is still missing from too many tracked answer queries.",
     "biggest_opportunity": "Build content for missed query 'Chatbot alternatives'.",
     "top_3_actions": [
       "Improve brand visibility in AI answers",
@@ -49,7 +49,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "Chatbot pricing",
@@ -64,7 +64,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "best Chatbot",
@@ -79,7 +79,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "Chatbot for small business",
@@ -94,7 +94,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "what is Chatbot",
@@ -109,7 +109,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "how to choose Chatbot",
@@ -124,7 +124,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     }
   ],
   "competitor_analysis": {
@@ -313,7 +313,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "Chatbot pricing",
@@ -328,7 +328,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "best Chatbot",
@@ -343,7 +343,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "Chatbot for small business",
@@ -358,7 +358,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "what is Chatbot",
@@ -373,7 +373,7 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     },
     {
       "query": "how to choose Chatbot",
@@ -388,13 +388,13 @@
       "priority": "high",
       "competitors_mentioned": [],
       "previous_competitors_mentioned": [],
-      "answer_excerpt": "The answer surface is dominated by alternative providers instead of DarBot AI."
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of https://www.astracollectiveasia.com."
     }
   ],
-  "website": "darbotai.com",
-  "client_id": "darbot-ai",
-  "client_name": "DarBot AI",
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "tech-astra-collective",
+  "client_name": null,
   "user_id": 1,
   "audit_type": "quick",
-  "saved_at": "2026-03-18T02:39:40"
+  "saved_at": "2026-03-28T01:40:47"
 }

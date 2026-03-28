@@ -57,13 +57,13 @@
         <div class="stat-value">
             {% if selected_type == "all" %}
                 All
-            {% elif selected_type == "free" %}
-                Starter
+            {% elif selected_type == "quick" %}
+                Quick Scan
             {% elif selected_type == "full" %}
-                Full
+                Full Audit
             {% else %}
                 {{ selected_type|capitalize }}
-            {% endif %}
+            {% endif %}        
         </div>
         <div class="stat-note">Current filter selection</div>
     </div>
@@ -94,7 +94,7 @@
                 <label for="type">Report Type</label>
                 <select id="type" name="type">
                     <option value="all" {% if selected_type == "all" %}selected{% endif %}>All</option>
-                    <option value="free" {% if selected_type == "free" %}selected{% endif %}>Starter</option>
+                    <option value="quick" {% if selected_type == "quick" %}selected{% endif %}>Starter</option>
                     <option value="full" {% if selected_type == "full" %}selected{% endif %}>Full</option>
                 </select>
             </div>
@@ -140,7 +140,7 @@
         <article class="action-card audit-library-card">
             <div class="action-card-top">
                 <span class="priority-badge low">
-                    {% if audit.audit_type == "free" %}Starter{% else %}{{ audit.audit_type|capitalize }}{% endif %}
+                    {% if audit.audit_type == "quick" %}Starter{% else %}{{ audit.audit_type|capitalize }}{% endif %}
                 </span>
                 <h3>{{ audit.website }}</h3>
             </div>

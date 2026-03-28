@@ -1,6 +1,6 @@
 {
   "website": "https://example.com",
-  "audit_type": "free",
+  "audit_type": "quick",
   "saved_at": "2026-03-16T19:21:01.447531",
   "scores": {
     "content_score": 0,

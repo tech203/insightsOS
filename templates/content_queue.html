@@ -1,567 +1,395 @@
 {% extends "base.html" %}
+
 {% block title %}Content Queue | AEO Agents{% endblock %}
 
-{% block page_title %}Content Queue{% endblock %}
-{% block page_subtitle %}Manage briefs, drafts, and publish-ready content in one cleaner workflow.{% endblock %}
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Content Queue</h1>
+        <p>Work through the highest-impact content opportunities first and move quickly into briefs or drafts.</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
+        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
+    </div>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="queue-shell">
+<div class="content-queue-shell">
 
-    <section class="queue-top-card">
-        <div class="queue-top-copy">
-            <div class="queue-kicker">Content Queue</div>
-            <h1>Move the most useful content forward first.</h1>
-            <p>
-                Focus on active briefs and drafts, then move them through production clearly.
-            </p>
-        </div>
+    {% if queue_items %}
+        <section class="content-queue-hero">
+            <div class="content-queue-hero-copy">
+                <span class="content-queue-kicker">Execution Queue</span>
+                <h1>Turn audit findings into content actions</h1>
+                <p>
+                    Review the most important opportunities, track pipeline status, and move directly into brief or draft generation.
+                </p>
 
-        <div class="queue-top-actions">
-            <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-secondary">Run Audit</a>
-            <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary">Select Client</a>
-        </div>
-    </section>
-
-    <section class="queue-summary-strip">
-        <div class="queue-summary-item">
-            <span>Queued</span>
-            <strong>{{ queued_count if queued_count is defined else 8 }}</strong>
-        </div>
-        <div class="queue-summary-item">
-            <span>In Progress</span>
-            <strong>{{ in_progress_count if in_progress_count is defined else 3 }}</strong>
-        </div>
-        <div class="queue-summary-item">
-            <span>Ready</span>
-            <strong>{{ ready_count if ready_count is defined else 5 }}</strong>
-        </div>
-        <div class="queue-summary-item">
-            <span>Published</span>
-            <strong>{{ published_count if published_count is defined else 2 }}</strong>
-        </div>
-    </section>
-
-    <section class="queue-card queue-main-card">
-        <div class="section-head compact">
-            <div>
-                <h2>Queue Items</h2>
-                <p>Work through the items that matter most right now.</p>
+                <div class="content-queue-hero-actions">
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
+                    <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
+                </div>
             </div>
-        </div>
 
-        <div class="queue-list">
-            {% if queue_items is defined and queue_items %}
+            <div class="visual-placeholder visual-placeholder--soft content-queue-hero-visual">
+                <div class="visual-placeholder-content">
+                    <span class="visual-placeholder-kicker">Image Placeholder</span>
+                    <h2 class="visual-placeholder-title">Content workflow visual goes here</h2>
+                    <p class="visual-placeholder-text">
+                        Replace this later with a workflow illustration, editorial dashboard scene, or queue visual.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-queue-stats-card">
+            <div class="section-head compact">
+                <div>
+                    <h3>Pipeline Overview</h3>
+                    <p>See how many items are waiting, active, ready, or complete.</p>
+                </div>
+            </div>
+
+            <div class="pipeline-row">
+                <div class="pipeline-item">
+                    <strong>{{ stats.queued or 0 }}</strong>
+                    <span>Queued</span>
+                </div>
+
+                <div class="pipeline-item">
+                    <strong>{{ stats.in_progress or 0 }}</strong>
+                    <span>In Progress</span>
+                </div>
+
+                <div class="pipeline-item">
+                    <strong>{{ stats.ready or 0 }}</strong>
+                    <span>Ready</span>
+                </div>
+
+                <div class="pipeline-item">
+                    <strong>{{ stats.published or 0 }}</strong>
+                    <span>Published</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-queue-list-card">
+            <div class="section-head compact">
+                <div>
+                    <h3>Queue Items</h3>
+                    <p>Start with the most important item and move directly into execution.</p>
+                </div>
+            </div>
+
+            <div class="queue-list-upgraded">
                 {% for item in queue_items %}
-                <article class="queue-item-card">
-                    <div class="queue-item-top">
-                        <div class="queue-item-main">
-                            <span class="queue-item-type">{{ item.type or "Content Brief" }}</span>
-                            <h3>{{ item.title or "Untitled item" }}</h3>
-                            <p>{{ item.description or "No description available." }}</p>
+                <article class="queue-item-upgraded">
+                    <div class="queue-item-main">
+                        <div class="queue-item-top">
+                            <strong class="queue-title">
+                                {{ item.title or item.query or "Untitled item" }}
+                            </strong>
+
+                            <div class="queue-type-badge">
+                                {{ item.type|title if item.type else "Item" }}
+                            </div>
                         </div>
 
-                        <span class="queue-status {{ (item.status or 'queued')|lower|replace(' ', '-') }}">
-                            {{ item.status or "Queued" }}
-                        </span>
-                    </div>
+                        <div class="queue-meta">
+                            <span class="queue-status-pill">{{ item.status or "Queued" }}</span>
 
-                    <div class="queue-item-meta">
-                        <span>{{ item.client_name or "Client" }}</span>
-                        <span>{{ item.priority or "Medium Priority" }}</span>
+                            {% if item.client_name %}
+                                <span class="queue-meta-sep">•</span>
+                                <span>{{ item.client_name }}</span>
+                            {% endif %}
+
+                            {% if item.priority %}
+                                <span class="queue-meta-sep">•</span>
+                                <span>{{ item.priority|title }}</span>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="queue-item-actions">
-                        {% if item['status'] in ['brief_generated', 'Brief Ready'] %}
-                            <a href="{{ url_for('generate_client_content_draft', client_id=item['client_id']) if url_for else '#' }}" class="btn btn-primary">
-                                Generate Draft
-                            </a>
-                        {% else %}
-                            <a href="{{ url_for('generate_brief_from_queue', item_id=item['id']) if url_for else '#' }}" class="btn btn-primary">
+                        {% if item.type == "brief" %}
+                            <a href="{{ url_for('generate_client_content_brief', client_id=item.client_id, target_query=item.query) }}"
+                               class="btn btn-primary">
                                 Generate Brief
                             </a>
+                        {% else %}
+                            <a href="{{ url_for('generate_client_content_draft', client_id=item.client_id, target_query=item.query) }}"
+                               class="btn btn-primary">
+                                Generate Draft
+                            </a>
                         {% endif %}
-
-                        <a href="{{ url_for('client_detail', client_id=item['client_id']) if url_for else '#' }}" class="btn btn-secondary">
-                            Open Client
-                        </a>
                     </div>
                 </article>
                 {% endfor %}
-            {% else %}
-                <div class="empty-state clean">
-                    <h3>No queue items yet</h3>
-                    <p>Run an audit and generate a brief to start filling your content queue.</p>
-                    <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary">Select Client</a>
-                </div>
-            {% endif %}
-        </div>
-    </section>
-
-    <section class="queue-grid">
-
-        <div class="queue-card queue-focus-card">
-            <div class="card-topline">
-                <span class="card-tag">Recommended Next Step</span>
             </div>
+        </section>
 
-            <h2>{{ queue_priority_title if queue_priority_title is defined else "Create a brief for your weakest question cluster" }}</h2>
-            <p>
-                {{ queue_priority_text if queue_priority_text is defined else "Your audit shows missing answers around pricing, service fit, and decision-stage questions. Start there first." }}
-            </p>
-
-            <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary full-width-btn">Select Client</a>
-        </div>
-
-        <div class="queue-card">
-            <div class="section-head compact">
-                <div>
-                    <h2>Pipeline Stages</h2>
-                    <p>Quick view of where work stands right now.</p>
+    {% else %}
+        <div class="empty-state upgraded-empty-state">
+            <div class="visual-placeholder visual-placeholder--soft visual-placeholder--compact empty-state-illustration">
+                <div class="visual-placeholder-content">
+                    <span class="visual-placeholder-kicker">Empty State Placeholder</span>
+                    <h2 class="visual-placeholder-title">Content queue visual goes here</h2>
+                    <p class="visual-placeholder-text">
+                        Replace this later with a workflow or editorial planning illustration.
+                    </p>
                 </div>
             </div>
 
-            <div class="stage-grid">
-                <div class="stage-card">
-                    <span class="stage-dot queued"></span>
-                    <strong>Queued</strong>
-                    <p>Ideas identified from audit findings.</p>
-                </div>
-                <div class="stage-card">
-                    <span class="stage-dot progress"></span>
-                    <strong>In Progress</strong>
-                    <p>Briefs or drafts being worked on.</p>
-                </div>
-                <div class="stage-card">
-                    <span class="stage-dot ready"></span>
-                    <strong>Ready</strong>
-                    <p>Prepared and ready for review or publishing.</p>
-                </div>
-                <div class="stage-card">
-                    <span class="stage-dot published"></span>
-                    <strong>Published</strong>
-                    <p>Live content ready for re-audit later.</p>
-                </div>
+            <h3>No items yet</h3>
+            <p>Run an audit to generate your first content opportunities.</p>
+
+            <div class="empty-state-actions">
+                <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
+                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
             </div>
         </div>
-
-        <div class="queue-card">
-            <div class="section-head compact">
-                <div>
-                    <h2>Opportunity Themes</h2>
-                    <p>Common topics worth building content around.</p>
-                </div>
-            </div>
-
-            <div class="opportunity-list">
-                {% if content_themes is defined and content_themes %}
-                    {% for theme in content_themes[:8] %}
-                    <div class="opportunity-chip">{{ theme }}</div>
-                    {% endfor %}
-                {% else %}
-                    <div class="opportunity-chip">Pricing and cost</div>
-                    <div class="opportunity-chip">Who this service is for</div>
-                    <div class="opportunity-chip">Comparison pages</div>
-                    <div class="opportunity-chip">FAQs</div>
-                    <div class="opportunity-chip">Location-specific pages</div>
-                    <div class="opportunity-chip">Service timelines</div>
-                    <div class="opportunity-chip">What to expect</div>
-                    <div class="opportunity-chip">Trust and proof</div>
-                {% endif %}
-            </div>
-        </div>
-
-    </section>
+    {% endif %}
 
 </div>
 
 <style>
-.queue-shell {
+.content-queue-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    gap: 20px;
     padding: 16px;
+}
+
+.content-queue-hero {
     display: grid;
-    gap: 16px;
+    gap: 18px;
 }
 
-.queue-top-card,
-.queue-card,
-.queue-item-card,
-.queue-summary-strip,
-.stage-card,
-.opportunity-chip,
-.empty-state.clean {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    border-radius: 18px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+.content-queue-hero-copy,
+.content-queue-stats-card,
+.content-queue-list-card {
+    background: #fff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.queue-top-card {
-    padding: 18px;
-    display: grid;
-    gap: 16px;
-}
-
-.queue-kicker {
+.content-queue-kicker {
     display: inline-flex;
     align-items: center;
-    width: fit-content;
     padding: 6px 10px;
     border-radius: 999px;
-    background: #fff2ea;
-    border: 1px solid #ffd8c6;
-    color: #ff6a2b;
-    font-size: 12px;
-    font-weight: 800;
-    margin-bottom: 10px;
-}
-
-.queue-top-copy h1 {
-    margin: 0;
-    font-size: 26px;
-    line-height: 1.12;
-    color: #15233b;
-}
-
-.queue-top-copy p {
-    margin: 12px 0 0;
-    font-size: 14px;
-    line-height: 1.65;
-    color: #627084;
-}
-
-.queue-top-actions {
-    display: grid;
-    gap: 10px;
-}
-
-.queue-summary-strip {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    overflow: hidden;
-}
-
-.queue-summary-item {
-    padding: 14px 12px;
-    border-right: 1px solid #e8edf5;
-}
-
-.queue-summary-item:last-child {
-    border-right: none;
-}
-
-.queue-summary-item span {
-    display: block;
+    background: #f4ebff;
+    color: #6d4aff;
     font-size: 12px;
     font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 6px;
+    margin-bottom: 12px;
 }
 
-.queue-summary-item strong {
-    font-size: 20px;
-    font-weight: 800;
-    color: #15233b;
-}
-
-.queue-main-card,
-.queue-card {
-    padding: 18px;
-}
-
-.section-head.compact {
-    margin-bottom: 14px;
-}
-
-.section-head.compact h2 {
+.content-queue-hero-copy h1 {
     margin: 0;
-    font-size: 20px;
-    font-weight: 800;
-    color: #15233b;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.08;
+    color: #16243c;
 }
 
-.section-head.compact p {
-    margin: 6px 0 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #6b7280;
+.content-queue-hero-copy p {
+    margin: 14px 0 0;
+    color: #627084;
+    line-height: 1.7;
+    font-size: 15px;
+    max-width: 760px;
 }
 
-.queue-list {
+.content-queue-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.queue-list-upgraded {
     display: grid;
     gap: 14px;
 }
 
-.queue-item-card {
+.queue-item-upgraded {
+    display: grid;
+    gap: 14px;
     padding: 18px;
-    background: #fbfcfe;
+    border-radius: 18px;
+    border: 1px solid #e7ebf3;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
 }
 
 .queue-item-top {
-    display: grid;
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.queue-item-main h3 {
-    margin: 8px 0 8px;
-    font-size: 20px;
-    line-height: 1.3;
-    color: #15233b;
+.queue-title {
+    display: block;
+    font-size: 17px;
+    color: #16243c;
+    line-height: 1.5;
 }
 
-.queue-item-main p {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.queue-item-type {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 12px;
-    border-radius: 999px;
-    background: #eef2ff;
-    color: #3730a3;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.queue-status {
+.queue-type-badge {
     display: inline-flex;
     align-items: center;
     width: fit-content;
-    padding: 8px 12px;
+    min-height: 30px;
+    padding: 0 10px;
     border-radius: 999px;
+    background: #eef2ff;
+    color: #5b5bd6;
     font-size: 12px;
     font-weight: 800;
-    white-space: nowrap;
 }
 
-.queue-status.queued {
-    background: #e2e8f0;
-    color: #475569;
-}
-
-.queue-status.in-progress {
-    background: #fef3c7;
-    color: #a16207;
-}
-
-.queue-status.ready,
-.queue-status.brief-ready,
-.queue-status.brief_generated {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.queue-status.published {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.queue-item-meta {
+.queue-meta {
+    margin-top: 6px;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px 18px;
-    margin-top: 14px;
-    color: #6b7280;
+    gap: 6px;
     font-size: 13px;
-    font-weight: 700;
+    color: #6b7280;
+    align-items: center;
+}
+
+.queue-status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #e83256;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.queue-meta-sep {
+    color: #b0b8c5;
 }
 
 .queue-item-actions {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 16px;
 }
 
-.queue-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.queue-focus-card {
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border-color: #ffe3d6;
-}
-
-.card-topline {
-    margin-bottom: 12px;
-}
-
-.card-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #ff6a2b;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.queue-focus-card h2 {
-    margin: 0;
-    font-size: 24px;
-    line-height: 1.2;
-    color: #15233b;
-}
-
-.queue-focus-card p {
-    margin: 14px 0 18px;
-    color: #627084;
-    line-height: 1.65;
-    font-size: 14px;
-}
-
-.full-width-btn {
-    width: 100%;
-}
-
-.stage-grid {
+.pipeline-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
 }
 
-.stage-card {
+.pipeline-item {
     padding: 16px;
+    border-radius: 16px;
     background: #f8fafc;
-}
-
-.stage-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    display: inline-block;
-    margin-bottom: 12px;
-}
-
-.stage-dot.queued { background: #94a3b8; }
-.stage-dot.progress { background: #f59e0b; }
-.stage-dot.ready { background: #2563eb; }
-.stage-dot.published { background: #16a34a; }
-
-.stage-card strong {
-    display: block;
-    color: #15233b;
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-
-.stage-card p {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.opportunity-list {
+    border: 1px solid #e7ebf3;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.opportunity-chip {
-    padding: 10px 14px;
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #445366;
+.pipeline-item strong {
+    font-size: 26px;
+    color: #16243c;
+    line-height: 1;
+}
+
+.pipeline-item span {
     font-size: 13px;
-    font-weight: 700;
-    box-shadow: none;
-}
-
-.empty-state.clean {
-    padding: 22px 18px;
-    text-align: center;
-}
-
-.empty-state.clean h3 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    color: #15233b;
-}
-
-.empty-state.clean p {
-    margin: 0 0 14px;
-    font-size: 14px;
-    line-height: 1.6;
     color: #6b7280;
 }
 
-@media (min-width: 769px) {
-    .queue-shell {
+.upgraded-empty-state {
+    background: #fff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.upgraded-empty-state h3 {
+    margin: 0;
+    color: #16243c;
+    font-size: 28px;
+}
+
+.upgraded-empty-state p {
+    margin: 12px auto 0;
+    max-width: 620px;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 15px;
+}
+
+.empty-state-actions {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (min-width: 900px) {
+    .content-queue-shell {
         padding: 20px;
-        gap: 20px;
     }
 
-    .queue-top-card {
-        grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
-        align-items: start;
+    .content-queue-hero {
+        grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+        align-items: stretch;
     }
 
-    .queue-top-card,
-    .queue-main-card,
-    .queue-card {
-        padding: 22px;
+    .queue-item-upgraded {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
     }
 
-    .queue-top-copy h1 {
-        font-size: 32px;
+    .queue-item-top {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
     }
 
-    .queue-top-actions {
-        align-content: start;
+    .pipeline-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .queue-item-actions {
-        grid-template-columns: repeat(2, minmax(0, auto));
-        justify-content: start;
+    .empty-state-actions {
+        flex-direction: row;
+        justify-content: center;
     }
 }
 
 @media (max-width: 768px) {
-    .queue-shell {
+    .content-queue-shell {
         padding: 12px;
     }
 
-    .queue-summary-strip {
-        grid-template-columns: 1fr 1fr;
+    .content-queue-hero-copy,
+    .content-queue-stats-card,
+    .content-queue-list-card,
+    .upgraded-empty-state {
+        padding: 18px;
+        border-radius: 20px;
     }
 
-    .queue-summary-item {
-        border-right: 1px solid #e8edf5;
-        border-bottom: 1px solid #e8edf5;
-    }
-
-    .queue-summary-item:nth-child(2n) {
-        border-right: none;
-    }
-
-    .queue-summary-item:nth-last-child(-n+2) {
-        border-bottom: none;
-    }
-
-    .queue-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .stage-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 640px) {
-    .queue-top-card,
-    .queue-main-card,
-    .queue-card,
-    .queue-item-card {
-        border-radius: 16px;
-    }
-
-    .queue-top-copy h1 {
-        font-size: 24px;
+    .content-queue-hero-actions .btn,
+    .queue-item-actions .btn,
+    .empty-state-actions .btn {
+        width: 100%;
     }
 }
 </style>

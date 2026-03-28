@@ -6,19 +6,19 @@
         <span class="nav-text">Dashboard</span>
     </a>
 
-    <a href="{{ url_for('new_audit') }}" class="nav-item {% if current_endpoint == 'new_audit' %}active{% endif %}">
+    <a href="{{ url_for('new_audit') }}" class="nav-item {% if current_endpoint in ['new_audit', 'start_audit'] %}active{% endif %}">
         <span class="nav-icon">⌕</span>
         <span class="nav-text">Create Audit</span>
     </a>
 
     <a href="{{ url_for('clients_page') }}" class="nav-item {% if current_endpoint == 'clients_page' %}active{% endif %}">
         <span class="nav-icon">◫</span>
-        <span class="nav-text">Workspace</span>
+        <span class="nav-text">Clients</span>
     </a>
 
     <a href="{{ url_for('content_queue_page') }}" class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}">
         <span class="nav-icon">✎</span>
-        <span class="nav-text">Content</span>
+        <span class="nav-text">Content Queue</span>
     </a>
 </div>
 

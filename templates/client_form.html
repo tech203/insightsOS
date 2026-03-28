@@ -191,9 +191,14 @@
                     <strong>Warning:</strong> This action cannot be undone from the UI.
                 </div>
 
-                <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}">
-                    <button type="submit" class="btn btn-danger">Delete Client</button>
-                </form>
+            <form
+                method="POST"
+                action="{{ url_for('delete_client', client_id=client.id) }}"
+                onsubmit="return confirm('Are you sure you want to delete this client workspace? Related queue items will also be removed. This action cannot be undone.')"
+            >
+                <button type="submit" class="btn btn-danger">Delete Client</button>
+            </form>
+            
             </section>
             {% else %}
             <section class="info-panel">

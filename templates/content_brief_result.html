@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 
 {% block title %}{{ client.name }} | Brief Result{% endblock %}
-{% block page_title %}{{ client.name }} · Brief Result{% endblock %}
-{% block page_subtitle %}Review the generated content brief, refine it if needed, then save it into the queue or use it to prepare a full draft.{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
-<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">Open Draft Generator</a>
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Brief Result</h1>
+        <p>Review the generated content brief, refine it if needed, then save it into the queue or use it to prepare a full draft.</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
+        <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">Open Draft Generator</a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -349,12 +355,6 @@
     resize: vertical;
 }
 
-.card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
 .action-list,
 .tips-list {
     display: grid;
@@ -445,14 +445,6 @@
 
     .form-grid-2 {
         grid-template-columns: 1fr;
-    }
-
-    .card-actions {
-        flex-direction: column;
-    }
-
-    .card-actions .btn {
-        width: 100%;
     }
 }
 </style>

@@ -1,6 +1,6 @@
 {
   "website": "https://example.com",
-  "audit_type": "free",
+  "audit_type": "quick",
   "saved_at": "2026-03-16T16:55:49.040057",
   "business_profile": {
     "title": "Example Domain",

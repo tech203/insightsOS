@@ -3,7 +3,7 @@
   "client_id": "darbot-ai",
   "client_name": "DarBot AI",
   "user_id": 1,
-  "audit_type": "free",
+  "audit_type": "quick",
   "saved_at": "2026-03-18T14:58:41",
   "scores": {
     "normalized_score": 29.2,
@@ -137,7 +137,7 @@
     "website_normalized": "darbotai.com",
     "industry": "Chatbot",
     "location": "Singapore",
-    "audit_type": "free",
+    "audit_type": "quick",
     "topic": "Chatbot",
     "client_id": "darbot-ai",
     "client_name": "DarBot AI",

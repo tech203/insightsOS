@@ -1,7 +1,7 @@
 # ===== AUDIT SETTINGS =====
 
-AUDIT_TYPE = "free"  
-# options: "free" or "detailed"
+AUDIT_TYPE = "quick"  
+# options: "quick" or "full"
 
 CLIENT_NAME = "Brightside Interior Design"
 

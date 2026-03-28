@@ -1,8 +1,10 @@
 from __future__ import annotations
+import os
 
 from typing import Any, Dict, List, Optional
 
 from audit_schema import build_audit_payload, save_audit_payload
+from save_results import save_audit_results
 
 
 def _safe_import(module_name: str, func_name: str):
@@ -167,7 +169,7 @@ def run_audit_for_input(
     website: str,
     industry: str,
     location: str,
-    audit_type: str = "free",
+    audit_type: str = "quick",
     topic: Optional[str] = None,
     client_id: Optional[str] = None,
     client_name: Optional[str] = None,
@@ -180,11 +182,43 @@ def run_audit_for_input(
     - saved summary/full outputs
     - backward-compatible keys for the current app
     """
-    raw_queries = _safe_call(generate_queries, website=website, industry=industry, location=location, topic=topic)
-    queries = _normalize_query_list(raw_queries, industry=industry, website=website, topic=topic)
+    print("========== RUN_AUDIT_FOR_INPUT START ==========")
+    print("website:", website)
+    print("industry:", industry)
+    print("location:", location)
+    print("audit_type:", audit_type)
+    print("topic:", topic)
+    print("client_id:", client_id)
+    print("client_name:", client_name)
+    print("user_id:", user_id)
 
-    raw_competitors = _safe_call(discover_competitors, website=website, industry=industry, location=location)
+    raw_queries = _safe_call(
+        generate_queries,
+        website=website,
+        industry=industry,
+        location=location,
+        topic=topic,
+    )
+    print("raw_queries:", raw_queries)
+
+    queries = _normalize_query_list(
+        raw_queries,
+        industry=industry,
+        website=website,
+        topic=topic,
+    )
+    print("queries:", queries)
+
+    raw_competitors = _safe_call(
+        discover_competitors,
+        website=website,
+        industry=industry,
+        location=location,
+    )
+    print("raw_competitors:", raw_competitors)
+
     competitors = _normalize_competitors(raw_competitors)
+    print("competitors:", competitors)
 
     raw_audit = _safe_call(
         audit_website,
@@ -194,8 +228,11 @@ def run_audit_for_input(
         audit_type=audit_type,
         topic=topic,
     ) or {}
+    print("raw_audit:", raw_audit)
 
     extracted_scores = _extract_site_scores(raw_audit)
+    print("extracted_scores:", extracted_scores)
+
     raw_audit.update(extracted_scores)
 
     ai_answer_results = _simulate_ai_answer_results(
@@ -205,6 +242,7 @@ def run_audit_for_input(
         competitors=competitors,
         audit_data=raw_audit,
     )
+    print("ai_answer_results count:", len(ai_answer_results))
 
     payload = build_audit_payload(
         website=website,
@@ -220,9 +258,26 @@ def run_audit_for_input(
         raw_audit_data=raw_audit,
     )
 
+    print("PAYLOAD BUILT")
+    print("payload keys:", list(payload.keys()))
+    print("payload client_id:", payload.get("client_id"))
+    print("payload client_name:", payload.get("client_name"))
+    print("payload user_id:", payload.get("user_id"))
+    print("payload website:", payload.get("website"))
+    print("payload audit_type:", payload.get("audit_type"))
+
     saved_files = save_audit_payload(payload)
 
+    print("SAVE COMPLETE")
+    print("saved_files:", saved_files)
+
+    summary_path = os.path.join("outputs", saved_files["summary_filename"])
+    full_path = os.path.join("outputs", saved_files["full_filename"])
+    print("summary exists:", os.path.exists(summary_path), summary_path)
+    print("full exists:", os.path.exists(full_path), full_path)
+
     report = _safe_call(build_report, payload) or {}
+    print("report built:", bool(report))
 
     response = {
         "website": website,
@@ -236,4 +291,6 @@ def run_audit_for_input(
         "report": report,
     }
 
+    print("========== RUN_AUDIT_FOR_INPUT END ==========")
+    print("response:", response)
     return response

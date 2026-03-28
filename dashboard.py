@@ -40,8 +40,8 @@ HTML = """
 <label class="font-semibold">Audit Type</label>
 
 <select class="border w-full p-2 mb-4" name="audit_type">
-<option value="free">Free Audit</option>
-<option value="detailed">Detailed Audit</option>
+<option value="quick">Quick Scan</option>
+<option value="full">Full Audit</option>
 </select>
 
 <button class="bg-blue-600 text-white px-6 py-2 rounded">

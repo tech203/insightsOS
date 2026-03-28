@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 
 {% block title %}{{ client.name }} | Audit Complete{% endblock %}
-{% block page_title %}{{ client.name }} · Audit Complete{% endblock %}
-{% block page_subtitle %}The audit finished successfully. Review the saved results and continue into the next best action.{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Audit Complete</h1>
+        <p>The audit finished successfully. Review the saved results and continue into the next best action.</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -95,7 +101,6 @@
         </section>
 
         <aside class="side-stack">
-
             <section class="panel">
                 <div class="panel-header">
                     <div>
@@ -111,7 +116,6 @@
                     <div class="tip-item">Use <strong>Brief</strong> or <strong>Draft</strong> generation while the audit findings are still fresh.</div>
                 </div>
             </section>
-
         </aside>
 
         <section class="panel panel-full">
@@ -161,7 +165,9 @@
 
 <style>
 .audit-complete-shell {
-    padding: 28px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 16px;
     display: grid;
     gap: 24px;
 }
@@ -398,7 +404,7 @@
 
 @media (max-width: 768px) {
     .audit-complete-shell {
-        padding: 18px;
+        padding: 12px;
     }
 
     .audit-complete-hero,

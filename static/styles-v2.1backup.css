@@ -86,7 +86,6 @@
     }
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: legacy ui token block
 :root {
     --ui-bg: #fff7fb;
     --ui-panel: #ffffff;
@@ -116,14 +115,11 @@
     --ui-card-padding: 16px;
 }
 
-END COMMENTED OUT FOR CLEANUP TEST: legacy ui token block */
-/* COMMENTED OUT FOR CLEANUP TEST: legacy ui body block
 body {
     background: var(--ui-bg);
     color: var(--ui-text);
 }
 
-END COMMENTED OUT FOR CLEANUP TEST: legacy ui body block */
 /* page wrappers */
 .dashboard-v2,
 .dash-v3,
@@ -463,7 +459,6 @@ h4 {
     font-size: 1rem;
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: legacy app shell block
 /*
 =========================
 APP SHELL
@@ -628,8 +623,6 @@ APP SHELL
     align-items: flex-start;
 }
 */
-
-END COMMENTED OUT FOR CLEANUP TEST: legacy app shell block */
 /* =========================
    BUTTONS
    ========================= */
@@ -1192,14 +1185,12 @@ textarea {
     background: var(--success);
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: duplicate card-actions block
 .card-actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
 
-END COMMENTED OUT FOR CLEANUP TEST: duplicate card-actions block */
 .empty-state {
     text-align: center;
     padding: 42px 22px;
@@ -2994,7 +2985,6 @@ a {
     }
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: old client detail v2 block
 /* ================================
    CLIENT DETAIL V2 - MOBILE FIRST
 ================================ */
@@ -3509,8 +3499,6 @@ a {
     }
 }
 
-
-END COMMENTED OUT FOR CLEANUP TEST: old client detail v2 block */
 /* ================================
    CONTENT QUEUE V2 - MOBILE FIRST
 ================================ */
@@ -5876,7 +5864,6 @@ table tbody td {
     }
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: duplicate lower flash block
 .flash-stack {
     display: flex;
     flex-direction: column;
@@ -5904,8 +5891,6 @@ table tbody td {
     color: #991b1b;
 }
 
-END COMMENTED OUT FOR CLEANUP TEST: duplicate lower flash block */
-/* COMMENTED OUT FOR CLEANUP TEST: first audit success system
 /* ================================
    AUDIT SUCCESS PAGE POLISH
 ================================ */
@@ -6137,8 +6122,6 @@ body {
     }
 }
 
-
-END COMMENTED OUT FOR CLEANUP TEST: first audit success system */
 /* ================================
    RUN AUDIT SUCCESS PAGE
 ================================ */
@@ -7203,7 +7186,6 @@ END COMMENTED OUT FOR CLEANUP TEST: first audit success system */
    SHARED PAGE HEADER
    ========================= */
 
-/* COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block
 .page-header-shell {
     margin-bottom: 18px;
 }
@@ -7249,7 +7231,6 @@ END COMMENTED OUT FOR CLEANUP TEST: first audit success system */
     }
 }
 
-END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .page-header-shell {
     margin-bottom: 18px;
 }

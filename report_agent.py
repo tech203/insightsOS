@@ -66,7 +66,7 @@ def build_report(
 
     report_text = ""
 
-    if audit_type == "free":
+    if audit_type == "quick":
         report_text = f"""
 ==================================================
              AI VISIBILITY SNAPSHOT

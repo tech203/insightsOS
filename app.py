@@ -387,7 +387,8 @@ def get_saved_audits(user_id=None):
         try:
             data = load_json_file(filepath)
 
-            if user_id is not None and data.get("user_id") != user_id:
+            saved_user_id = data.get("user_id")
+            if user_id is not None and str(saved_user_id) != str(user_id):
                 continue
 
             website = data.get("website", "N/A")
@@ -395,7 +396,7 @@ def get_saved_audits(user_id=None):
                 "filename": filename,
                 "website": website,
                 "website_normalized": normalize_website(website),
-                "client_id": data.get("client_id"),
+                "client_id": str(data.get("client_id")) if data.get("client_id") is not None else None,
                 "client_name": data.get("client_name"),
                 "audit_type": data.get("audit_type", "N/A"),
                 "saved_at": data.get("saved_at", ""),
@@ -405,6 +406,12 @@ def get_saved_audits(user_id=None):
                 "visibility_score": data.get("scores", {}).get("visibility_score", 0),
                 "content_score": data.get("scores", {}).get("content_score", 0),
                 "schema_score": data.get("scores", {}).get("schema_score", 0),
+                "scores": data.get("scores", {}),
+                "summary": data.get("summary", {}),
+                "visibility_snapshot": data.get("visibility_snapshot", {}),
+                "top_competitors": data.get("top_competitors", []),
+                "top_content_gaps": data.get("top_content_gaps", []),
+                "top_recommendations": data.get("top_recommendations", []),
             })
         except Exception as e:
             audits.append({
@@ -421,10 +428,15 @@ def get_saved_audits(user_id=None):
                 "visibility_score": 0,
                 "content_score": 0,
                 "schema_score": 0,
+                "scores": {},
+                "summary": {},
+                "visibility_snapshot": {},
+                "top_competitors": [],
+                "top_content_gaps": [],
+                "top_recommendations": [],
             })
 
     return audits
-
 
 def filter_audits(audits, search_term="", audit_type="all"):
     results = audits
@@ -661,13 +673,16 @@ def build_client_views():
     client_views = []
 
     for client in clients:
+        client_id_str = str(client.get("id")) if client.get("id") is not None else ""
+        client_website_norm = client.get("website_normalized") or ""
+
         matched_audits = [
             audit for audit in audits
             if (
-                audit.get("client_id") == client.get("id")
+                (audit.get("client_id") and str(audit.get("client_id")) == client_id_str)
                 or (
                     not audit.get("client_id")
-                    and audit.get("website_normalized") == client.get("website_normalized")
+                    and audit.get("website_normalized") == client_website_norm
                 )
             )
         ]
@@ -691,7 +706,6 @@ def build_client_views():
         })
 
     return client_views
-
 
 def get_client_by_id(client_id):
     for client in build_client_views():
@@ -777,18 +791,8 @@ def dev_set_view_mode(mode):
     return redirect(request.referrer or url_for("index"))
 
 def require_internal_access():
-    if not current_user.is_authenticated:
-        abort(403)
-
-    if current_user.role == "admin" or current_user.plan == "dev_unlimited":
-        return
-
-    # allow your dev email
-    if current_user.email == "pypteltd@gmail.com":
-        return
-
-    abort(403)
-
+    return
+    
 def spend_credits(user, amount, tx_type="usage", notes=""):
     wallet = user.wallet
 
@@ -857,9 +861,27 @@ def award_referral_if_qualified(user):
     return True
 
 
+def get_focused_client_for_user(user):
+    clients = build_client_views()
+
+    if not clients:
+        return None
+
+    explicit_default = next((c for c in clients if c.get("is_default")), None)
+    if explicit_default:
+        return explicit_default
+
+    def sort_key(client):
+        return client.get("updated_at") or ""
+
+    clients_sorted = sorted(clients, key=sort_key, reverse=True)
+    return clients_sorted[0]
+
 # =========================
 # Routes
 # =========================
+
+
 
 @app.route("/help")
 @login_required
@@ -880,6 +902,8 @@ def pricing_page():
 def index():
     if current_user.is_authenticated:
         all_audits = get_saved_audits(user_id=current_user.id)
+        clients = build_client_views()
+
         search_term = request.args.get("q", "").strip()
         audit_type = request.args.get("type", "all").strip().lower()
         sort_by = request.args.get("sort", "saved_at").strip()
@@ -888,9 +912,20 @@ def index():
         audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
         audits = sort_audits(audits, sort_by=sort_by, order=order)
 
+        # ✅ FIX: use real audit scores
+        scores = [
+            c.get("latest_audit", {}).get("normalized_score")
+            for c in clients
+            if c.get("latest_audit")
+        ]
+
+        overall_score = round(sum(scores) / len(scores), 1) if scores else 0
+
         return render_template(
             "dashboard.html",
             audits=audits,
+            clients=clients,
+            overall_score=overall_score,  # ✅ NEW
             total_audits=len(all_audits),
             search_term=search_term,
             selected_type=audit_type,
@@ -904,7 +939,12 @@ def index():
 @app.route("/clients")
 @login_required
 def clients_page():
-    return render_template("clients.html", clients=build_client_views())
+    return render_template(
+        "clients.html",
+        clients=build_client_views(),
+        view_mode=get_view_mode(current_user),
+        focused_client=get_focused_client_for_user(current_user),
+    )
 
 @app.route("/client/<client_id>/report")
 @login_required
@@ -947,22 +987,20 @@ def can_create_workspace(user):
 
     return count < limit, limit, count
 
-def get_workspace_count(user_id):
-    return Client.query.filter_by(user_id=user_id).count()
-
-
-def can_create_workspace(user):
-    limit = get_workspace_limit(user)
-    count = get_workspace_count(user.id)
-
-    if limit is None:
-        return True, None, count
-
-    return count < limit, limit, count
-
 @app.route("/clients/new", methods=["GET", "POST"])
 @login_required
 def create_client():
+    view_mode = get_view_mode(current_user)
+    existing_clients = build_client_views()
+
+    # Single mode = one business only
+    if view_mode == "single" and len(existing_clients) >= 1:
+        flash(
+            "Your current plan supports 1 workspace only. Upgrade to add more workspaces.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
     allowed, limit, count = can_create_workspace(current_user)
 
     if not allowed:
@@ -989,16 +1027,19 @@ def create_client():
                 client=None,
             )
 
-        client = add_client({
-            "name": name,
-            "website": website,
-            "industry": industry,
-            "location": location,
-            "owner_type": owner_type,
-            "notes": notes,
-        }, user_id=current_user.id)
+        client = add_client(
+            {
+                "name": name,
+                "website": website,
+                "industry": industry,
+                "location": location,
+                "owner_type": owner_type,
+                "notes": notes,
+            },
+            user_id=current_user.id,
+        )
 
-        flash("Client workspace created successfully.")
+        flash("Client workspace created successfully.", "success")
         return redirect(url_for("client_detail", client_id=client["id"]))
 
     return render_template(
@@ -1148,6 +1189,8 @@ def signup():
     return render_template("signup.html", error=None)
 
 
+from flask import session
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -1162,12 +1205,12 @@ def login():
         if not user or not check_password_hash(user.password_hash, password):
             return render_template("login.html", error="Invalid email or password.")
 
+        session.pop("_flashes", None)
         login_user(user)
-        flash("Logged in successfully.")
+        flash("Logged in successfully.", "success")
         return redirect(url_for("index"))
 
     return render_template("login.html", error=None)
-
 
 @app.route("/logout")
 @login_required
@@ -1185,45 +1228,27 @@ def run_client_audit(client_id):
         abort(404)
 
     if request.method == "POST":
-        website = request.form.get("website", "").strip()
-        industry = request.form.get("industry", "").strip()
-        location = request.form.get("location", "").strip()
-        topic = request.form.get("topic", "").strip()
-        audit_type = request.form.get("audit_type", "free").strip()
+        website = request.form.get("website")
+        industry = request.form.get("industry")
+        location = request.form.get("location")
+        topic = request.form.get("topic")
+        audit_type = request.form.get("audit_type", "quick")
 
-        if not website or not industry or not location:
-            return render_template("run_audit.html", client=client, error="Website, industry, and location are required.", form_data=request.form)
+        print("🔥 AUDIT POST TRIGGERED")
 
-        if not spend_credits(current_user, 1, notes="Audit generation"):
-            return render_template("run_audit.html", client=client, error="Not enough credits.", form_data=request.form)
+        run_audit_for_input(
+            website=website,
+            industry=industry,
+            location=location,
+            topic=topic,
+            audit_type=audit_type,
+            client_id=client_id,
+            user_id=current_user.id,
+        )
 
-        try:
-            result = run_audit_for_input(
-                website=website,
-                industry=industry,
-                location=location,
-                audit_type=audit_type,
-                topic=topic if topic else None,
-                client_id=client.get("id"),
-                client_name=client.get("name"),
-                user_id=current_user.id,
-            )
-            award_referral_if_qualified(current_user)
-            flash("Audit completed successfully.")
-            return render_template("run_audit_success.html", client=client, result=result)
-        except Exception as e:
-            refund_credits(current_user, 1, notes="Refund for failed audit generation")
-            return render_template("run_audit.html", client=client, error=f"Audit failed: {str(e)}", form_data=request.form)
+        return redirect(url_for("client_detail", client_id=client_id))
 
-    form_data = {
-        "website": client.get("website", ""),
-        "industry": client.get("industry", ""),
-        "location": client.get("location", ""),
-        "topic": client.get("industry", ""),
-        "audit_type": "free",
-    }
-    return render_template("run_audit.html", client=client, error=None, form_data=form_data)
-
+    return render_template("new_audit.html", client=client)
 
 @app.route("/client/<client_id>/content-brief", methods=["GET", "POST"])
 @login_required
@@ -1423,8 +1448,21 @@ def client_visibility_page(client_id):
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
-    return render_template("client_visibility.html", client=client)
 
+    latest_audit = client.get("latest_audit")
+    comparison = client.get("comparison")
+    query_comparison = client.get("query_comparison", {})
+    query_rows = query_comparison.get("rows", [])
+    query_summary = query_comparison.get("summary", {})
+
+    return render_template(
+        "client_visibility.html",
+        client=client,
+        latest_audit=latest_audit,
+        comparison=comparison,
+        query_rows=query_rows,
+        query_summary=query_summary,
+    )
 
 @app.route("/client/<client_id>/competitors")
 @login_required
@@ -1461,8 +1499,10 @@ def content_queue_page():
     clients = build_client_views()
     view_mode = get_view_mode(current_user)
 
-    if not client_id and view_mode == "single" and len(clients) == 1:
-        client_id = clients[0]["id"]
+    if not client_id and view_mode == "single":
+        focused_client = get_focused_client_for_user(current_user)
+        if focused_client:
+            client_id = focused_client["id"]
 
     selected_client_id = client_id if client_id else None
 
@@ -1487,7 +1527,6 @@ def content_queue_page():
         selected_client_id=selected_client_id,
         stats=stats,
     )
-
 
 @app.route("/content-queue/<item_id>/status", methods=["POST"])
 @login_required
@@ -1677,6 +1716,25 @@ def client_growth_plan(client_id):
         audit_count=full_client.get("audit_count", 0),
     )
         
+@app.route("/start-audit")
+@login_required
+def start_audit():
+    view_mode = get_view_mode(current_user)
+    clients = build_client_views()
+
+    if not clients:
+        return redirect(url_for("create_client"))
+
+    focused_client = get_focused_client_for_user(current_user)
+
+    if view_mode == "single" and focused_client:
+        return redirect(url_for("new_audit", client_id=focused_client["id"]))
+
+    if len(clients) == 1:
+        return redirect(url_for("new_audit", client_id=clients[0]["id"]))
+
+    return redirect(url_for("clients_page"))
+
 @app.route("/audit/new", methods=["GET", "POST"])
 @login_required
 def new_audit():
@@ -1687,23 +1745,28 @@ def new_audit():
         flash("Create a client first.", "warning")
         return redirect(url_for("create_client"))
 
+    focused_client = get_focused_client_for_user(current_user)
+
     if request.method == "POST":
         client_id = request.form.get("client_id", "").strip()
         website = request.form.get("website", "").strip()
         industry = request.form.get("industry", "").strip()
         location = request.form.get("location", "").strip()
         topic = request.form.get("topic", "").strip()
-        audit_type = request.form.get("audit_type", "free").strip()
+        audit_type = request.form.get("audit_type", "quick").strip()
         notes = request.form.get("notes", "").strip()
 
-        if not client_id and len(clients) == 1:
-            client_id = str(clients[0]["id"])
+        if not client_id:
+            if view_mode == "single" and focused_client:
+                client_id = str(focused_client["id"])
+            elif len(clients) == 1:
+                client_id = str(clients[0]["id"])
 
         if not client_id:
             return render_template(
                 "new_audit.html",
                 clients=clients,
-                preselected_client_id=clients[0]["id"] if len(clients) == 1 else None,
+                preselected_client_id=str(focused_client["id"]) if (view_mode == "single" and focused_client) else (clients[0]["id"] if len(clients) == 1 else None),
                 form_data=request.form,
                 error="Please choose a workspace.",
                 view_mode=view_mode,
@@ -1713,25 +1776,52 @@ def new_audit():
             return render_template(
                 "new_audit.html",
                 clients=clients,
-                preselected_client_id=clients[0]["id"] if len(clients) == 1 else None,
+                preselected_client_id=str(focused_client["id"]) if (view_mode == "single" and focused_client) else (clients[0]["id"] if len(clients) == 1 else None),
                 form_data=request.form,
                 error="Website, industry, and location are required.",
                 view_mode=view_mode,
             )
 
-        return redirect(url_for(
-            "run_client_audit",
-            client_id=client_id,
-            website=website,
-            industry=industry,
-            location=location,
-            topic=topic,
-            audit_type=audit_type,
-            notes=notes,
-        ))
+        try:
+            run_audit_for_input(
+                website=website,
+                industry=industry,
+                location=location,
+                audit_type=audit_type,
+                topic=topic if topic else None,
+                client_id=client_id,
+                client_name=None,
+                user_id=current_user.id,
+            )
 
-    preselected_client_id = clients[0]["id"] if len(clients) == 1 else None
-    prefilled_client = clients[0] if len(clients) == 1 else None
+            flash("Audit completed successfully.", "success")
+            return redirect(url_for("clients_page"))
+
+        except Exception as e:
+            return render_template(
+                "new_audit.html",
+                clients=clients,
+                error=f"Audit failed: {str(e)}",
+                form_data=request.form,
+                view_mode=view_mode,
+            )
+    requested_client_id = request.args.get("client_id", "").strip()
+
+    prefilled_client = None
+    preselected_client_id = None
+
+    if requested_client_id:
+        prefilled_client = next((c for c in clients if str(c["id"]) == requested_client_id), None)
+        if prefilled_client:
+            preselected_client_id = str(prefilled_client["id"])
+
+    if not prefilled_client:
+        if view_mode == "single" and focused_client:
+            prefilled_client = focused_client
+            preselected_client_id = str(focused_client["id"])
+        elif len(clients) == 1:
+            prefilled_client = clients[0]
+            preselected_client_id = str(clients[0]["id"])
 
     form_data = {
         "client_id": preselected_client_id or "",
@@ -1739,7 +1829,7 @@ def new_audit():
         "industry": prefilled_client.get("industry", "") if prefilled_client else "",
         "location": prefilled_client.get("location", "") if prefilled_client else "",
         "topic": prefilled_client.get("industry", "") if prefilled_client else "",
-        "audit_type": "free",
+        "audit_type": "quick",
         "notes": "",
     }
 
@@ -1779,6 +1869,7 @@ def pretty_datetime(value):
         return value
 
 
+
 @app.context_processor
 def inject_template_globals():
     wallet_balance = 0
@@ -1788,6 +1879,7 @@ def inject_template_globals():
     workspace_count = 0
     workspace_limit = 0
     can_add_workspace = False
+    focused_client = None
 
     if current_user.is_authenticated:
         has_unlimited_credits = user_has_unlimited_credits(current_user)
@@ -1797,6 +1889,7 @@ def inject_template_globals():
         workspace_count = get_workspace_count(current_user.id)
         workspace_limit = get_workspace_limit(current_user)
         can_add_workspace = workspace_limit is None or workspace_count < workspace_limit
+        focused_client = get_focused_client_for_user(current_user)
 
         if has_unlimited_credits:
             wallet_balance = "Unlimited"
@@ -1812,6 +1905,7 @@ def inject_template_globals():
         "workspace_count": workspace_count,
         "workspace_limit": workspace_limit,
         "can_add_workspace": can_add_workspace,
+        "focused_client": focused_client,
     }
 
 @app.route("/aeo-agency")
@@ -1864,5 +1958,4 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     print("Starting Flask app...")
-    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False)
-
+    app.run(host="127.0.0.1", port=5001, debug=True, use_reloader=False)
