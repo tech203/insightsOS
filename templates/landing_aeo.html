@@ -472,16 +472,35 @@
 </div>
 
 <style>
+:root {
+    --bg-main: #020617;
+    --bg-soft: #0b1120;
+    --panel: rgba(255, 255, 255, 0.05);
+    --panel-strong: rgba(15, 23, 42, 0.72);
+    --border: rgba(255, 255, 255, 0.10);
+    --text-main: #f8fafc;
+    --text-soft: #cbd5e1;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-strong: #6366f1;
+    --accent-soft: rgba(129, 140, 248, 0.12);
+    --success: #34d399;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 .aeo-landing-page {
     position: relative;
     min-height: 100vh;
-    color: #ffffff;
+    margin: 0;
+    color: var(--text-main);
     background:
-        radial-gradient(circle at top left, rgba(99, 102, 241, 0.25), transparent 35%),
-        radial-gradient(circle at top right, rgba(168, 85, 247, 0.18), transparent 30%),
-        linear-gradient(180deg, #020617 0%, #0f172a 100%);
-    margin: -24px;
-    padding-bottom: 40px;
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.22), transparent 34%),
+        radial-gradient(circle at top right, rgba(139, 92, 246, 0.16), transparent 28%),
+        linear-gradient(180deg, var(--bg-main) 0%, var(--bg-soft) 100%);
+    overflow-x: hidden;
 }
 
 .aeo-container {
@@ -491,15 +510,16 @@
 
 .aeo-container-narrow {
     width: min(920px, calc(100% - 32px));
+    margin: 0 auto;
 }
 
 .aeo-topbar {
     position: sticky;
     top: 0;
     z-index: 30;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(2, 6, 23, 0.70);
-    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(12px);
 }
 
 .aeo-topbar-inner {
@@ -513,37 +533,43 @@
 .aeo-brand {
     text-decoration: none;
     color: inherit;
+    min-width: 0;
 }
 
 .aeo-brand-title {
     font-size: 18px;
     font-weight: 700;
     letter-spacing: -0.02em;
+    color: var(--text-main);
 }
 
 .aeo-brand-subtitle {
+    margin-top: 2px;
     font-size: 14px;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .aeo-nav {
-    display: none;
+    display: flex;
     gap: 28px;
+    align-items: center;
 }
 
 .aeo-nav a {
-    color: #cbd5e1;
+    color: var(--text-soft);
     text-decoration: none;
     font-size: 14px;
+    transition: 0.2s ease;
 }
 
 .aeo-nav a:hover {
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-topbar-actions {
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
@@ -551,17 +577,18 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 18px;
-    border-radius: 999px;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 700;
+    border-radius: 999px;
     transition: 0.2s ease;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
-.aeo-btn-block {
-    width: 100%;
+.aeo-topbar-actions .aeo-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 136px;
 }
 
 .aeo-btn-light {
@@ -574,18 +601,19 @@
 }
 
 .aeo-btn-primary {
-    background: #6366f1;
+    background: var(--accent-strong);
     color: #ffffff;
 }
 
 .aeo-btn-primary:hover {
-    background: #818cf8;
+    background: var(--accent);
 }
 
-.aeo-btn-outline {
-    border-color: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
+.aeo-btn-outline,
+.aeo-btn-ghost {
     background: transparent;
+    color: var(--text-main);
+    border-color: rgba(255, 255, 255, 0.14);
 }
 
 .aeo-btn-outline:hover,
@@ -593,18 +621,18 @@
     background: rgba(255, 255, 255, 0.05);
 }
 
-.aeo-btn-ghost {
-    border-color: rgba(255, 255, 255, 0.14);
-    color: #e2e8f0;
+.aeo-btn-block {
+    width: 100%;
 }
 
 .aeo-hero {
-    padding: 72px 0 56px;
+    padding: 84px 0 64px;
 }
 
 .aeo-hero-grid {
     display: grid;
-    gap: 32px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 36px;
     align-items: start;
 }
 
@@ -615,35 +643,32 @@
     padding: 10px 16px;
     border-radius: 999px;
     background: rgba(129, 140, 248, 0.10);
-    border: 1px solid rgba(129, 140, 248, 0.20);
+    border: 1px solid rgba(129, 140, 248, 0.18);
     color: #c7d2fe;
     font-size: 14px;
+    line-height: 1.4;
 }
 
 .aeo-pill-dot {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 999px;
-    background: #34d399;
+    background: var(--success);
+    flex: 0 0 auto;
 }
 
 .aeo-hero-title {
-    margin: 22px 0 0;
-    font-size: 38px;
-    line-height: 0.98;
-    letter-spacing: -0.04em;
-    font-weight: 700;
-    color: #f8fafc;
+    margin: 24px 0 0;
+    font-size: clamp(36px, 7vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    font-weight: 800;
+    color: var(--text-main);
+    max-width: 11ch;
 }
 
 .aeo-hero-title .block {
     display: block;
-}
-
-.aeo-typed-line {
-    margin-top: 8px;
-    min-height: 1.15em;
-    color: #a5b4fc;
 }
 
 .aeo-typed-line,
@@ -655,7 +680,6 @@
 #heroCursor {
     display: inline-block;
     margin-left: 2px;
-    color: #a5b4fc;
 }
 
 .aeo-hero-copy {
@@ -663,43 +687,54 @@
     max-width: 760px;
     font-size: 18px;
     line-height: 1.8;
-    color: #cbd5e1;
+    color: var(--text-soft);
 }
 
 .aeo-note {
-    margin-top: 20px;
+    margin-top: 22px;
     max-width: 760px;
     padding: 16px 18px;
     border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.05);
-    color: #cbd5e1;
-    line-height: 1.65;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-soft);
     font-size: 14px;
+    line-height: 1.7;
 }
 
 .aeo-note strong {
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-hero-actions {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 12px;
     margin-top: 28px;
+}
+
+.aeo-hero-actions .aeo-btn {
+    padding: 13px 22px;
+    font-size: 15px;
+    border-radius: 18px;
 }
 
 .aeo-feature-grid,
 .aeo-strip-grid,
 .aeo-card-grid,
 .aeo-score-grid,
-.aeo-mini-stats {
+.aeo-mini-stats,
+.aeo-faq-list,
+.aeo-insight-list,
+.aeo-side-stack,
+.aeo-cta-points {
     display: grid;
     gap: 16px;
 }
 
 .aeo-feature-grid {
     margin-top: 36px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .aeo-feature-card,
@@ -707,12 +742,11 @@
 .aeo-content-card,
 .aeo-step-card,
 .aeo-faq-card,
-.aeo-stat-card,
-.aeo-insight-card,
 .aeo-pricing-card,
-.aeo-panel {
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.05);
+.aeo-panel,
+.aeo-scorecard {
+    border: 1px solid var(--border);
+    background: var(--panel);
     border-radius: 24px;
 }
 
@@ -730,7 +764,7 @@
 .aeo-strip-title {
     font-size: 22px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-feature-text,
@@ -740,8 +774,9 @@
 .aeo-faq-card p,
 .aeo-pricing-card p {
     margin-top: 10px;
-    color: #94a3b8;
+    color: var(--text-soft);
     line-height: 1.7;
+    font-size: 15px;
 }
 
 .aeo-tag-row {
@@ -754,18 +789,16 @@
 .aeo-tag-row span {
     padding: 10px 14px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.10);
-    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
     font-size: 14px;
 }
 
 .aeo-scorecard {
     padding: 24px;
-    border-radius: 28px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.05);
-    box-shadow: 0 24px 48px rgba(30, 27, 75, 0.32);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 24px 48px rgba(30, 27, 75, 0.26);
 }
 
 .aeo-scorecard-head,
@@ -780,14 +813,14 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .aeo-scorecard-title {
     margin-top: 6px;
     font-size: 22px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-badge {
@@ -804,22 +837,28 @@
     margin-top: 22px;
 }
 
+.aeo-score-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .aeo-stat-card {
     padding: 18px;
-    background: rgba(15, 23, 42, 0.72);
+    background: rgba(2, 6, 23, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 18px;
 }
 
 .aeo-stat-label {
     font-size: 14px;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .aeo-stat-value {
     margin-top: 8px;
     font-size: 34px;
     font-weight: 700;
-    color: #ffffff;
+    line-height: 1.1;
+    color: var(--text-main);
 }
 
 .aeo-stat-small {
@@ -830,70 +869,69 @@
     margin-top: 20px;
     padding: 16px 18px;
     border-radius: 18px;
-    border: 1px solid rgba(129, 140, 248, 0.20);
+    border: 1px solid rgba(129, 140, 248, 0.18);
     background: rgba(129, 140, 248, 0.10);
     color: #e0e7ff;
-    line-height: 1.65;
     font-size: 14px;
-}
-
-.aeo-insight-list {
-    display: grid;
-    gap: 12px;
-    margin-top: 18px;
+    line-height: 1.65;
 }
 
 .aeo-insight-card {
     padding: 16px 18px;
     background: rgba(2, 6, 23, 0.50);
+    border: 1px solid rgba(255,255,255,0.06);
     border-radius: 18px;
 }
 
 .aeo-insight-title {
     font-size: 14px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-insight-text {
     margin-top: 8px;
     font-size: 14px;
     line-height: 1.65;
-    color: #cbd5e1;
+    color: var(--text-soft);
 }
 
 .aeo-strip {
-    border-top: 1px solid rgba(255,255,255,0.10);
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    background: rgba(2, 6, 23, 0.38);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.36);
     padding: 26px 0;
 }
 
+.aeo-strip-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .aeo-section {
-    padding: 72px 0;
+    padding: 76px 0;
 }
 
 .aeo-section-dark {
-    border-top: 1px solid rgba(255,255,255,0.10);
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    background: rgba(2, 6, 23, 0.38);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.36);
 }
 
 .aeo-section-soft {
-    border-top: 1px solid rgba(255,255,255,0.10);
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.03);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .aeo-section-intro {
     max-width: 760px;
-    margin-bottom: 34px;
+    margin-bottom: 36px;
 }
 
 .aeo-section-intro.center {
-    text-align: center;
     margin-left: auto;
     margin-right: auto;
+    text-align: center;
 }
 
 .aeo-section-kicker {
@@ -908,9 +946,9 @@
 .aeo-cta-left h2 {
     margin: 14px 0 0;
     font-size: 34px;
-    line-height: 1.12;
+    line-height: 1.14;
     letter-spacing: -0.03em;
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-section-intro p,
@@ -918,16 +956,24 @@
     margin: 18px 0 0;
     font-size: 18px;
     line-height: 1.8;
-    color: #cbd5e1;
+    color: var(--text-soft);
+}
+
+.aeo-card-grid.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aeo-card-grid.four,
+.aeo-mini-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .aeo-content-card h3,
 .aeo-step-card h3,
-.aeo-faq-card h3,
-.aeo-pricing-card h3 {
+.aeo-faq-card h3 {
     margin: 0;
     font-size: 22px;
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .aeo-step-number {
@@ -936,29 +982,25 @@
     justify-content: center;
     width: 42px;
     height: 42px;
+    margin-bottom: 16px;
     border-radius: 16px;
     background: rgba(99, 102, 241, 0.20);
     color: #c7d2fe;
     font-weight: 800;
-    margin-bottom: 16px;
 }
 
 .aeo-split-grid,
 .aeo-cta-panel,
 .aeo-pricing-note {
     display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
     gap: 20px;
-}
-
-.aeo-side-stack {
-    display: grid;
-    gap: 16px;
 }
 
 .aeo-list {
     margin: 14px 0 0;
     padding-left: 18px;
-    color: #cbd5e1;
+    color: var(--text-soft);
     line-height: 1.8;
 }
 
@@ -967,7 +1009,7 @@
 }
 
 .aeo-accent-card {
-    border-color: rgba(129, 140, 248, 0.20);
+    border-color: rgba(129, 140, 248, 0.18);
     background: rgba(129, 140, 248, 0.10);
 }
 
@@ -975,7 +1017,7 @@
     margin-bottom: 22px;
     padding: 22px;
     border-radius: 24px;
-    border: 1px solid rgba(129, 140, 248, 0.20);
+    border: 1px solid rgba(129, 140, 248, 0.18);
     background: rgba(129, 140, 248, 0.10);
 }
 
@@ -983,8 +1025,8 @@
 .aeo-note-box-title {
     margin: 0;
     font-size: 22px;
-    color: #ffffff;
     font-weight: 700;
+    color: var(--text-main);
 }
 
 .aeo-pricing-note p {
@@ -996,7 +1038,7 @@
 .aeo-note-box {
     padding: 18px;
     border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid var(--border);
     background: rgba(2, 6, 23, 0.40);
 }
 
@@ -1004,14 +1046,9 @@
     position: relative;
 }
 
-.aeo-pricing-card.featured {
-    border-width: 1px;
-    border-color: rgba(255,255,255,0.12);
-}
-
 .aeo-pricing-card.accent {
-    border-color: rgba(129, 140, 248, 0.28);
-    background: linear-gradient(180deg, rgba(99,102,241,0.15), rgba(217,70,239,0.10));
+    border-color: rgba(129, 140, 248, 0.24);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.10));
 }
 
 .aeo-plan-badge {
@@ -1019,19 +1056,19 @@
     margin-bottom: 12px;
     padding: 8px 12px;
     border-radius: 999px;
-    background: rgba(99,102,241,0.20);
+    background: rgba(99, 102, 241, 0.20);
     color: #c7d2fe;
     font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
     font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
 }
 
 .aeo-plan-name {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-weight: 700;
 }
 
@@ -1039,109 +1076,87 @@
     margin-top: 14px;
     font-size: 42px;
     line-height: 1;
-    color: #ffffff;
     font-weight: 700;
+    color: var(--text-main);
 }
 
 .aeo-plan-price span {
     font-size: 16px;
-    color: #94a3b8;
     font-weight: 500;
+    color: var(--text-muted);
 }
 
 .aeo-inline-note {
     margin-top: 16px;
     padding: 14px;
     border-radius: 16px;
+    border: 1px solid var(--border);
     background: rgba(2, 6, 23, 0.40);
-    border: 1px solid rgba(255,255,255,0.10);
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
-    color: #cbd5e1;
-}
-
-.aeo-faq-list {
-    display: grid;
-    gap: 14px;
 }
 
 .aeo-cta-panel {
     padding: 28px;
     border-radius: 32px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(217,70,239,0.15));
-}
-
-.aeo-cta-points {
-    display: grid;
-    gap: 10px;
-    margin: 18px 0;
+    border: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.15));
 }
 
 .aeo-cta-point {
     padding: 14px 16px;
     border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid var(--border);
     background: rgba(255,255,255,0.05);
-    color: #cbd5e1;
+    color: var(--text-soft);
     font-size: 14px;
 }
 
-@media (min-width: 768px) {
-    .aeo-landing-page {
-        margin: -32px;
-    }
-
+@media (max-width: 1100px) {
     .aeo-nav {
-        display: flex;
+        display: none;
     }
 
-    .aeo-hero-grid,
-    .aeo-split-grid,
-    .aeo-cta-panel,
-    .aeo-pricing-note {
-        grid-template-columns: 1.08fr 0.92fr;
-    }
-
-    .aeo-hero-title {
-        font-size: 64px;
-    }
-
-    .aeo-hero-actions {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .aeo-feature-grid.three,
+    .aeo-feature-grid,
     .aeo-card-grid.three,
     .aeo-strip-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .aeo-card-grid.four,
     .aeo-mini-stats {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .aeo-score-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .aeo-strip-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
-@media (max-width: 900px) {
-    .aeo-nav {
-        display: none;
+@media (max-width: 980px) {
+    .aeo-hero-grid,
+    .aeo-split-grid,
+    .aeo-cta-panel,
+    .aeo-pricing-note {
+        grid-template-columns: 1fr;
+    }
+
+    .aeo-hero-title {
+        max-width: none;
+    }
+
+    .aeo-scorecard {
+        margin-top: 6px;
     }
 }
 
 @media (max-width: 767px) {
+    .aeo-container,
+    .aeo-container-narrow {
+        width: min(100%, calc(100% - 20px));
+    }
+
     .aeo-topbar-inner {
-        align-items: flex-start;
         flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
     }
 
     .aeo-topbar-actions {
@@ -1150,10 +1165,11 @@
 
     .aeo-topbar-actions .aeo-btn {
         flex: 1;
+        min-width: 0;
     }
 
-    .aeo-section,
-    .aeo-hero {
+    .aeo-hero,
+    .aeo-section {
         padding-top: 56px;
         padding-bottom: 56px;
     }
@@ -1167,6 +1183,30 @@
     .aeo-section-intro p,
     .aeo-cta-left p {
         font-size: 16px;
+    }
+
+    .aeo-feature-grid,
+    .aeo-card-grid.three,
+    .aeo-card-grid.four,
+    .aeo-strip-grid,
+    .aeo-score-grid,
+    .aeo-mini-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .aeo-feature-card,
+    .aeo-strip-card,
+    .aeo-content-card,
+    .aeo-step-card,
+    .aeo-faq-card,
+    .aeo-pricing-card,
+    .aeo-panel,
+    .aeo-scorecard {
+        border-radius: 20px;
+    }
+
+    .aeo-hero-actions .aeo-btn {
+        width: 100%;
     }
 }
 </style>
