@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Audit Summary | AEO Agents{% endblock %}
+{% block title %}Audit Summary | Insights OS{% endblock %}
 {% block page_title %}Audit Summary{% endblock %}
 {% block page_subtitle %}Quick summary view of the saved audit result with scores, verdict, and the clearest next interpretation.{% endblock %}
 
@@ -9,7 +9,7 @@
 <a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
 {% endif %}
 {% if full_filename %}
-<a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-primary">Open Full Audit</a>
+<a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
 {% endif %}
 {% endblock %}
 
@@ -73,6 +73,31 @@
                 </p>
             </div>
         </div>
+    </section>
+
+    <section class="upgrade-banner audit-summary-conversion-banner">
+        <div class="upgrade-banner-copy">
+            <strong>Your next growth step is ready</strong>
+            <p>
+                Turn this audit into action. Move into content execution and start improving your AI visibility with targeted briefs and drafts.
+            </p>
+        </div>
+
+        {% if data.client_id %}
+            {% if can_generate_brief or can_generate_draft %}
+            <a href="{{ url_for('content_queue_page', client_id=data.client_id) }}" class="btn btn-primary">
+                Start Execution
+            </a>
+            {% else %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                Unlock Execution
+            </a>
+            {% endif %}
+        {% else %}
+        <a href="{{ url_for('content_queue_page') }}" class="btn btn-primary">
+            Open Content Queue
+        </a>
+        {% endif %}
     </section>
 
     <section class="audit-summary-stats-grid">
@@ -192,7 +217,8 @@
 .stat-card,
 .panel,
 .audit-summary-verdict-card,
-.guide-item {
+.guide-item,
+.upgrade-banner {
     background: #ffffff;
     border: 1px solid #e7ebf3;
     border-radius: 24px;
@@ -317,6 +343,31 @@
     color: #627084;
     font-size: 14px;
     line-height: 1.6;
+}
+
+.audit-summary-conversion-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff7f3 0%, #ffffff 100%);
+}
+
+.upgrade-banner-copy strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.upgrade-banner-copy p {
+    margin: 6px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 720px;
 }
 
 .audit-summary-stats-grid {
@@ -461,7 +512,8 @@
     .stat-card,
     .panel,
     .audit-summary-verdict-card,
-    .guide-item {
+    .guide-item,
+    .upgrade-banner {
         padding: 18px;
         border-radius: 20px;
     }
@@ -472,6 +524,15 @@
 
     .summary-score-value {
         font-size: 50px;
+    }
+
+    .audit-summary-conversion-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .audit-summary-conversion-banner .btn {
+        width: 100%;
     }
 
     .info-row {

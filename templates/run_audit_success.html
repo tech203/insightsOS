@@ -86,7 +86,7 @@
             </div>
 
             <div class="card-actions">
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-primary">Open Visibility</a>
+                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Open Visibility</a>
 
                 {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com" %}
                     {% if result and result.summary_filename is defined %}

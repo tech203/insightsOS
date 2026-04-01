@@ -1,0 +1,665 @@
+{% extends "base.html" %}
+{% block title %}Prompt Detail | Insights OS{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard prompt-detail-page-header-minimal">
+    <div class="page-header-copy">
+        <h1>Prompt Detail</h1>
+        <p>Inspect how AI answers a tracked prompt, see who gets mentioned, and decide what to improve next.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% set prompt_text = prompt_text if prompt_text is defined else "best messaging platform for support" %}
+{% set project_domain = project_domain if project_domain is defined else "supportfast.ai" %}
+{% set selected_platform = selected_platform if selected_platform is defined else "ChatGPT" %}
+{% set selected_market = selected_market if selected_market is defined else "United States (English)" %}
+{% set tracked_topic = tracked_topic if tracked_topic is defined else "Messaging Apps and Platforms" %}
+{% set visibility = visibility if visibility is defined else "Low" %}
+{% set brand_mentioned = brand_mentioned if brand_mentioned is defined else "No" %}
+{% set ranking_position = ranking_position if ranking_position is defined else "Not mentioned" %}
+{% set last_checked = last_checked if last_checked is defined else "2 hours ago" %}
+{% set change = change if change is defined else "New" %}
+{% set top_competitors = top_competitors if top_competitors is defined else ["tawk.to", "wati.io", "botpenguin.com"] %}
+{% set source_domains = source_domains if source_domains is defined else ["microsoft.com", "whatsapp.com", "zapier.com", "g2.com"] %}
+{% set recommended_actions = recommended_actions if recommended_actions is defined else [
+    "Create a page directly answering this prompt intent",
+    "Strengthen brand mentions around messaging and live chat use cases",
+    "Add clearer entity and product positioning on your site",
+    "Build supporting pages that match the source domains influencing this answer"
+] %}
+{% set ai_answer = ai_answer if ai_answer is defined else
+"Some of the best messaging platforms for customer support include tawk.to, Wati, Intercom, and other live chat or messaging solutions depending on business size, WhatsApp integration needs, and automation features. Companies often choose based on pricing, chatbot capability, CRM integration, and multichannel support."
+%}
+
+<div class="prompt-detail-shell">
+
+    <section class="prompt-detail-hero-card">
+        <div class="prompt-detail-hero-main">
+            <span class="section-kicker">Tracked Prompt</span>
+            <h1>{{ prompt_text }}</h1>
+            <p class="prompt-detail-hero-text">
+                This view shows how AI currently responds to this prompt, whether your brand appears,
+                which competitors are being mentioned, and what to do next to improve visibility.
+            </p>
+
+            <div class="prompt-context-bar">
+                <span class="context-pill">{{ selected_platform }}</span>
+                <span class="context-pill context-pill-soft">{{ selected_market }}</span>
+                <span class="context-pill context-pill-soft">{{ tracked_topic }}</span>
+            </div>
+        </div>
+
+        <div class="prompt-detail-score-card">
+            <span class="score-card-label">Current visibility</span>
+            <strong class="score-card-value score-{{ visibility|lower }}">{{ visibility }}</strong>
+
+            <div class="score-card-meta">
+                <div class="score-meta-row">
+                    <span>Your brand</span>
+                    <strong class="mention-{{ brand_mentioned|lower|replace(' ', '-') }}">{{ brand_mentioned }}</strong>
+                </div>
+                <div class="score-meta-row">
+                    <span>Ranking</span>
+                    <strong>{{ ranking_position }}</strong>
+                </div>
+                <div class="score-meta-row">
+                    <span>Last checked</span>
+                    <strong>{{ last_checked }}</strong>
+                </div>
+                <div class="score-meta-row">
+                    <span>Change</span>
+                    <strong>{{ change }}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="prompt-detail-action-band">
+        <div class="action-band-copy">
+            <span class="section-kicker">What to do next</span>
+            <h2>
+                {% if brand_mentioned == "No" %}
+                    Your brand is missing from this answer
+                {% elif brand_mentioned == "Sometimes" %}
+                    Your brand appears inconsistently for this prompt
+                {% else %}
+                    Your brand is already appearing for this prompt
+                {% endif %}
+            </h2>
+            <p>
+                {% if brand_mentioned == "No" %}
+                    This prompt is a strong content and positioning opportunity. Focus on creating a page that directly answers the intent behind this query and strengthens your authority around this topic.
+                {% elif brand_mentioned == "Sometimes" %}
+                    You have partial visibility here. Improve answer relevance, supporting content, and entity signals so your brand appears more consistently.
+                {% else %}
+                    You already have visibility here. Protect it by improving depth, trust signals, and adjacent supporting prompts.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="action-band-actions">
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Send to Content Queue</a>
+            <a href="{{ url_for('position_tracking_page') }}" class="btn btn-secondary">Back to Tracking</a>
+        </div>
+    </section>
+
+    <section class="prompt-detail-summary-grid">
+        <article class="summary-card">
+            <span class="summary-label">Project</span>
+            <strong class="summary-value summary-value-text">{{ project_domain }}</strong>
+            <p class="summary-copy">The domain being evaluated for this prompt.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Top competitor</span>
+            <strong class="summary-value summary-value-text">{{ top_competitors[0] if top_competitors else "—" }}</strong>
+            <p class="summary-copy">Brand currently most visible for this prompt.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Sources found</span>
+            <strong class="summary-value">{{ source_domains|length }}</strong>
+            <p class="summary-copy">Domains shaping or supporting the AI answer.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Prompt state</span>
+            <strong class="summary-value summary-value-text">{{ visibility }}</strong>
+            <p class="summary-copy">Current visibility signal for this tracked query.</p>
+        </article>
+    </section>
+
+    <section class="prompt-detail-main-grid">
+        <article class="detail-card detail-card-main">
+            <div class="detail-card-header">
+                <div>
+                    <span class="section-kicker">AI Answer</span>
+                    <h2 class="section-title">Current answer snapshot</h2>
+                </div>
+            </div>
+
+            <div class="ai-answer-box">
+                {{ ai_answer }}
+            </div>
+        </article>
+
+        <aside class="detail-side-column">
+            <article class="detail-card">
+                <div class="detail-card-header">
+                    <div>
+                        <span class="section-kicker">Competitors</span>
+                        <h3 class="section-title section-title-sm">Mentioned brands</h3>
+                    </div>
+                </div>
+
+                <div class="tag-list">
+                    {% for brand in top_competitors %}
+                    <span class="tag-item">{{ brand }}</span>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="detail-card">
+                <div class="detail-card-header">
+                    <div>
+                        <span class="section-kicker">Sources</span>
+                        <h3 class="section-title section-title-sm">Source domains</h3>
+                    </div>
+                </div>
+
+                <div class="source-list">
+                    {% for source in source_domains %}
+                    <div class="source-item">{{ source }}</div>
+                    {% endfor %}
+                </div>
+            </article>
+        </aside>
+    </section>
+
+    <section class="detail-card">
+        <div class="detail-card-header">
+            <div>
+                <span class="section-kicker">Recommended Actions</span>
+                <h2 class="section-title">How to improve this prompt</h2>
+                <p class="section-copy">
+                    Use these actions to improve your visibility and increase the chances of being cited for this prompt.
+                </p>
+            </div>
+        </div>
+
+        <div class="action-checklist">
+            {% for item in recommended_actions %}
+            <div class="action-checklist-item">
+                <div class="check-bullet"></div>
+                <div class="action-checklist-copy">
+                    <strong>{{ item }}</strong>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="detail-card">
+        <div class="detail-card-header">
+            <div>
+                <span class="section-kicker">Workflow</span>
+                <h2 class="section-title">Continue the loop</h2>
+                <p class="section-copy">
+                    Use this prompt as part of your broader visibility workflow across research, tracking, and execution.
+                </p>
+            </div>
+        </div>
+
+        <div class="workflow-grid">
+            <a href="{{ url_for('prompt_research_page') }}" class="workflow-card">
+                <h3>Prompt Research</h3>
+                <p>Find adjacent prompts and related intent clusters.</p>
+            </a>
+
+            <a href="{{ url_for('competitor_page') }}" class="workflow-card">
+                <h3>Competitor Research</h3>
+                <p>Compare which brands are showing up instead of you.</p>
+            </a>
+
+            <a href="{{ url_for('position_tracking_page') }}" class="workflow-card">
+                <h3>Position Tracking</h3>
+                <p>Monitor whether visibility changes over time.</p>
+            </a>
+
+            <a href="{{ url_for('content_queue_page') }}" class="workflow-card">
+                <h3>Content Queue</h3>
+                <p>Turn this prompt into a clear content action.</p>
+            </a>
+        </div>
+    </section>
+</div>
+
+<style>
+.prompt-detail-page-header-minimal {
+    margin-bottom: 8px;
+}
+
+.prompt-detail-shell {
+    display: grid;
+    gap: 28px;
+}
+
+.prompt-detail-hero-card,
+.prompt-detail-action-band,
+.summary-card,
+.detail-card,
+.workflow-card {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.prompt-detail-hero-card {
+    padding: 32px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) 320px;
+    gap: 24px;
+    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
+    border-color: #ece8ff;
+}
+
+.section-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.prompt-detail-hero-main h1 {
+    margin: 14px 0 0;
+    font-size: clamp(34px, 5vw, 54px);
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #16243c;
+    max-width: 860px;
+}
+
+.prompt-detail-hero-text {
+    margin: 16px 0 0;
+    max-width: 760px;
+    font-size: 17px;
+    line-height: 1.72;
+    color: #627084;
+}
+
+.prompt-context-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.context-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #efe8ff;
+    color: #6d4aff;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.context-pill-soft {
+    background: #f6f8fc;
+    color: #5e6b7c;
+}
+
+.prompt-detail-score-card {
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid #e7ebf3;
+    background: #ffffff;
+    display: grid;
+    gap: 16px;
+    align-self: start;
+}
+
+.score-card-label {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.score-card-value {
+    display: block;
+    font-size: 40px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+.score-low {
+    color: #e35b35;
+}
+
+.score-medium {
+    color: #b78116;
+}
+
+.score-high {
+    color: #1f8b58;
+}
+
+.score-card-meta {
+    display: grid;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #edf1f7;
+}
+
+.score-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.score-meta-row span {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.score-meta-row strong {
+    color: #16243c;
+    font-size: 14px;
+}
+
+.mention-yes {
+    color: #1f8b58 !important;
+}
+
+.mention-no {
+    color: #e35b35 !important;
+}
+
+.mention-sometimes {
+    color: #b78116 !important;
+}
+
+.prompt-detail-action-band {
+    padding: 24px 26px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe1d5;
+}
+
+.action-band-copy h2 {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 30px;
+    line-height: 1.1;
+}
+
+.action-band-copy p {
+    margin: 14px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 760px;
+}
+
+.action-band-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.prompt-detail-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.summary-card {
+    padding: 20px;
+}
+
+.summary-label {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.summary-value {
+    display: block;
+    color: #16243c;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.summary-value-text {
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.summary-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.prompt-detail-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) 320px;
+    gap: 24px;
+}
+
+.detail-card {
+    padding: 24px;
+}
+
+.detail-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.section-title {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.section-title-sm {
+    font-size: 22px;
+}
+
+.section-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 760px;
+}
+
+.ai-answer-box {
+    padding: 20px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    color: #405066;
+    font-size: 15px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+}
+
+.detail-side-column {
+    display: grid;
+    gap: 24px;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f3edff;
+    color: #6d4aff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.source-list {
+    display: grid;
+    gap: 10px;
+}
+
+.source-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    color: #405066;
+    font-size: 14px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.action-checklist {
+    display: grid;
+    gap: 14px;
+}
+
+.action-checklist-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: #fafbfe;
+    border: 1px solid #e8edf5;
+}
+
+.check-bullet {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: #6d4aff;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.action-checklist-copy strong {
+    color: #16243c;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.workflow-card {
+    display: block;
+    padding: 18px;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.workflow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+}
+
+.workflow-card h3 {
+    margin: 0 0 8px;
+    color: #16243c;
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+.workflow-card p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 1280px) {
+    .prompt-detail-summary-grid,
+    .workflow-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1100px) {
+    .prompt-detail-hero-card,
+    .prompt-detail-main-grid,
+    .prompt-detail-action-band {
+        grid-template-columns: 1fr;
+    }
+
+    .action-band-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .prompt-detail-hero-card,
+    .prompt-detail-action-band,
+    .summary-card,
+    .detail-card,
+    .workflow-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .prompt-detail-summary-grid,
+    .workflow-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-band-actions,
+    .action-band-actions .btn {
+        width: 100%;
+    }
+
+    .prompt-detail-hero-main h1,
+    .action-band-copy h2 {
+        font-size: 32px;
+    }
+
+    .section-title {
+        font-size: 24px;
+    }
+}
+</style>
+{% endblock %}

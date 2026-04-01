@@ -1,16 +1,34 @@
 {% extends "base.html" %}
 
-{% block title %}Clients | AEO Agents{% endblock %}
+{% block title %}Clients | Insights OS{% endblock %}
 
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
-        <h1>Clients</h1>
-        <p>Manage client workspaces, review recent scores, and move into the next best action quickly.</p>
+        <h1>
+            {% if view_mode == "single" %}
+                Workspace
+            {% else %}
+                Clients
+            {% endif %}
+        </h1>
+        <p>
+            {% if view_mode == "single" %}
+                Review your workspace, run audits, and move into the next best action.
+            {% else %}
+                Manage client workspaces, review recent scores, and move into the next best action quickly.
+            {% endif %}
+        </p>
     </div>
-    <div class="page-header-actions">
-        <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add Client</a>
-        <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
+
+    <div class="page-actions">
+        {% if view_mode == "single" %}
+            <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Content Queue</a>
+        {% else %}
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add Client</a>
+            <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -20,24 +38,55 @@
 
     <section class="clients-page-hero">
         <div class="clients-page-copy">
-            <span class="clients-page-kicker">Client Workspaces</span>
-            <h1>Manage client workspaces with clearer next actions</h1>
-            <p>
-                Open a workspace, review the latest score, and continue from the most important action without digging around.
-            </p>
+            <span class="clients-page-kicker">
+                {% if view_mode == "single" %}
+                    Your Workspace
+                {% else %}
+                    Client Workspaces
+                {% endif %}
+            </span>
 
-            <div class="clients-page-actions">
-                <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add Client</a>
-                <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
-            </div>
+            <h1>
+                {% if view_mode == "single" %}
+                    Stay focused on the next best action
+                {% else %}
+                    Manage client workspaces with clearer next actions
+                {% endif %}
+            </h1>
+
+            <p>
+                {% if view_mode == "single" %}
+                    Open your workspace and continue from the next best action.
+                {% else %}
+                    Open a workspace and continue from the next best action.
+                {% endif %}
+            </p>
         </div>
 
         <div class="visual-placeholder visual-placeholder--soft clients-page-hero-visual">
             <div class="visual-placeholder-content">
-                <span class="visual-placeholder-kicker">Image Placeholder</span>
-                <h2 class="visual-placeholder-title">Client portfolio visual goes here</h2>
+                <span class="visual-placeholder-kicker">
+                    {% if view_mode == "single" %}
+                        Workspace Preview
+                    {% else %}
+                        Portfolio Preview
+                    {% endif %}
+                </span>
+
+                <h2 class="visual-placeholder-title">
+                    {% if view_mode == "single" %}
+                        Workspace visual goes here
+                    {% else %}
+                        Client portfolio visual goes here
+                    {% endif %}
+                </h2>
+
                 <p class="visual-placeholder-text">
-                    Replace this later with a workspace portfolio illustration or branded product visual.
+                    {% if view_mode == "single" %}
+                        Replace this later with a workspace illustration or a branded product preview.
+                    {% else %}
+                        Replace this later with a workspace portfolio illustration or branded product visual.
+                    {% endif %}
                 </p>
             </div>
         </div>
@@ -110,8 +159,19 @@
                     </div>
 
                     <div class="client-card-actions">
-                        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">Open Workspace</a>
-                        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run Audit</a>
+                        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
+                            Open Workspace
+                        </a>
+
+                        {% if current_user.is_authenticated and current_user.plan != "free" %}
+                            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">
+                                Run New Audit
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">
+                                Upgrade
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </article>
@@ -122,372 +182,51 @@
             <div class="visual-placeholder visual-placeholder--soft visual-placeholder--compact empty-state-illustration">
                 <div class="visual-placeholder-content">
                     <span class="visual-placeholder-kicker">Empty State Placeholder</span>
-                    <h2 class="visual-placeholder-title">First workspace visual goes here</h2>
+                    <h2 class="visual-placeholder-title">
+                        {% if view_mode == "single" %}
+                            First workspace visual goes here
+                        {% else %}
+                            First client workspace visual goes here
+                        {% endif %}
+                    </h2>
                     <p class="visual-placeholder-text">
-                        Replace this later with an onboarding illustration for first-time setup.
+                        {% if view_mode == "single" %}
+                            Replace this later with an onboarding illustration for first-time workspace setup.
+                        {% else %}
+                            Replace this later with an onboarding illustration for first-time client setup.
+                        {% endif %}
                     </p>
                 </div>
             </div>
 
-            <h3>No clients yet</h3>
-            <p>Create your first client workspace to start audits, actions, and content workflows.</p>
+            <h3>
+                {% if view_mode == "single" %}
+                    No workspace yet
+                {% else %}
+                    No clients yet
+                {% endif %}
+            </h3>
+
+            <p>
+                {% if view_mode == "single" %}
+                    Create your workspace to start audits, actions, and content workflows.
+                {% else %}
+                    Create your first client workspace to start audits, actions, and content workflows.
+                {% endif %}
+            </p>
 
             <div class="empty-state-actions">
-                <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
-                <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
+                {% if view_mode == "single" %}
+                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Create Workspace</a>
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Audit</a>
+                {% else %}
+                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
+                {% endif %}
             </div>
         </div>
     {% endif %}
 
 </div>
 
-<style>
-.clients-page-shell {
-    max-width: 1180px;
-    margin: 0 auto;
-    display: grid;
-    gap: 20px;
-    padding: 24px;
-}
-
-.clients-page-hero {
-    display: grid;
-    gap: 18px;
-}
-
-.clients-page-copy {
-    background: #fff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.clients-page-kicker {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #e83256;
-    font-size: 12px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
-
-.clients-page-copy h1 {
-    margin: 0;
-    font-size: clamp(2rem, 4vw, 3rem);
-    line-height: 1.08;
-    color: #16243c;
-}
-
-.clients-page-copy p {
-    margin: 14px 0 0;
-    color: #627084;
-    line-height: 1.7;
-    font-size: 15px;
-    max-width: 760px;
-}
-
-.clients-page-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.clients-grid-upgraded {
-    display: grid;
-    gap: 16px;
-}
-
-.client-card-upgraded {
-    background: #fff;
-    border: 1px solid #e7ebf3;
-    border-radius: 22px;
-    padding: 18px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-    display: grid;
-    gap: 16px;
-}
-
-.client-card-top {
-    display: grid;
-    gap: 14px;
-}
-
-.client-card-identity {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    min-width: 0;
-}
-
-.client-card-mark {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
-    color: #fff;
-    font-weight: 800;
-    font-size: 18px;
-    flex-shrink: 0;
-}
-
-.client-card-copy {
-    min-width: 0;
-}
-
-.client-card-copy h3 {
-    margin: 0;
-    font-size: 20px;
-    color: #16243c;
-    word-break: break-word;
-}
-
-.client-card-meta {
-    margin-top: 6px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.client-card-meta span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 10px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #5f6d80;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.client-card-score-block {
-    padding: 14px;
-    border-radius: 16px;
-    background: #fff8f4;
-    border: 1px solid #ffd8c6;
-}
-
-.client-card-score-block span {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 6px;
-}
-
-.client-card-score-block strong {
-    display: block;
-    font-size: 30px;
-    color: #e83256;
-    line-height: 1;
-    font-weight: 800;
-}
-
-.client-card-score-block small {
-    display: block;
-    margin-top: 8px;
-    color: #7a8595;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.client-card-site {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-    word-break: break-word;
-}
-
-.client-card-mini-placeholder {
-    margin-top: 14px;
-    min-height: 126px;
-    border-radius: 18px;
-    border: 1px dashed #d8deea;
-    background: linear-gradient(180deg, #fafcff 0%, #f5f7fc 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px;
-}
-
-.client-card-mini-placeholder-inner {
-    text-align: center;
-    max-width: 340px;
-}
-
-.mini-placeholder-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #eef2ff;
-    color: #5b5bd6;
-    font-size: 11px;
-    font-weight: 800;
-    margin-bottom: 10px;
-}
-
-.client-card-mini-placeholder strong {
-    display: block;
-    color: #16243c;
-    font-size: 16px;
-    margin-bottom: 6px;
-}
-
-.client-card-mini-placeholder p {
-    margin: 0;
-    color: #6b7280;
-    font-size: 13px;
-    line-height: 1.55;
-}
-
-.client-card-footer {
-    display: grid;
-    gap: 14px;
-    padding-top: 4px;
-}
-
-.client-card-status p {
-    margin: 8px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.client-status-pill {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.client-status-pill--warm {
-    background: #fff2ea;
-    color: #e83256;
-}
-
-.client-status-pill--neutral {
-    background: #eef4ff;
-    color: #2563eb;
-}
-
-.client-status-pill--soft {
-    background: #f4ebff;
-    color: #6d4aff;
-}
-
-.client-card-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.upgraded-empty-state {
-    background: #fff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    padding: 24px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.empty-state-illustration {
-    margin: 0 auto 18px;
-    width: min(100%, 480px);
-}
-
-.upgraded-empty-state h3 {
-    margin: 0;
-    color: #16243c;
-    font-size: 28px;
-}
-
-.upgraded-empty-state p {
-    margin: 12px auto 0;
-    max-width: 620px;
-    color: #627084;
-    line-height: 1.65;
-    font-size: 15px;
-}
-
-.empty-state-actions {
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-@media (min-width: 900px) {
-    .clients-page-shell {
-        padding: 28px;
-    }
-
-    .clients-page-hero {
-        grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-        align-items: stretch;
-    }
-
-    .clients-grid-upgraded {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .client-card-top {
-        grid-template-columns: minmax(0, 1fr) 190px;
-        align-items: start;
-    }
-
-    .client-card-footer {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
-        gap: 16px;
-    }
-
-    .client-card-actions {
-        flex-direction: row;
-        justify-content: flex-end;
-    }
-
-    .empty-state-actions {
-        flex-direction: row;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 768px) {
-    .clients-page-shell {
-        padding: 18px;
-        gap: 18px;
-    }
-
-    .clients-page-copy,
-    .client-card-upgraded,
-    .upgraded-empty-state {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .visual-placeholder-title {
-        font-size: 24px;
-    }
-
-    .clients-page-actions .btn,
-    .client-card-actions .btn,
-    .empty-state-actions .btn {
-        width: 100%;
-    }
-}
-</style>
 {% endblock %}

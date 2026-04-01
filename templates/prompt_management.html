@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Tracked Prompts | Insights OS{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Tracked Prompts</h1>
+        <p>Monitor AI visibility gaps and turn them into content opportunities.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="prompt-shell premium-prompt-shell">
+
+    <!-- HERO -->
+    <section class="prompt-hero">
+        <div>
+            <span class="section-kicker">Tracking Layer</span>
+            <h2>Turn prompts into growth opportunities</h2>
+            <p>
+                These prompts represent visibility gaps where your brand is missing.
+                Prioritise high-impact prompts and generate content to improve coverage.
+            </p>
+        </div>
+
+        <div class="hero-actions">
+            <a href="{{ url_for('position_tracking_page') }}" class="btn btn-secondary">
+                View Tracking
+            </a>
+        </div>
+    </section>
+
+    <!-- FILTER -->
+    <section class="prompt-filter">
+        <form method="get">
+            <select name="topic" onchange="this.form.submit()">
+                <option value="">All Topics</option>
+                {% for t in topics %}
+                <option value="{{ t }}" {% if t == selected_topic %}selected{% endif %}>
+                    {{ t }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </section>
+
+    <!-- EMPTY STATE -->
+    {% if not prompts %}
+    <section class="empty-state">
+        <span class="section-kicker">No Data</span>
+        <h3>No prompts tracked yet</h3>
+        <p>Start from competitor research to discover opportunities worth tracking.</p>
+
+        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">
+            Go to Clients
+        </a>
+    </section>
+    {% endif %}
+
+    <!-- TABLE -->
+    {% if prompts %}
+    <section class="prompt-table-card">
+
+        <div class="table-header">
+            <h2>All tracked prompts</h2>
+        </div>
+
+        <div class="table-wrap">
+            <table class="prompt-table">
+                <thead>
+                    <tr>
+                        <th>Prompt</th>
+                        <th>Topic</th>
+                        <th>Visibility</th>
+                        <th>Competitor</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in prompts %}
+                    <tr>
+                        <td class="prompt-cell">
+                            <strong>{{ row.prompt }}</strong>
+                        </td>
+
+                        <td>{{ row.topic }}</td>
+
+                        <td>
+                            <span class="pill visibility-{{ row.visibility|lower }}">
+                                {{ row.visibility }}
+                            </span>
+                        </td>
+
+                        <td>{{ row.top_competitor }}</td>
+
+                        <td>
+                            <span class="pill status">{{ row.status }}</span>
+                        </td>
+
+                        <td class="action-cell">
+
+                            <a href="{{ url_for('generate_content_from_prompt', prompt_id=row.id) }}"
+                               class="btn btn-primary btn-sm">
+                                Generate
+                            </a>
+
+                            <form method="post" action="{{ url_for('delete_prompt', prompt_id=row.id) }}">
+                                <button class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </section>
+    {% endif %}
+
+</div>
+
+<style>
+.premium-prompt-shell {
+    display: grid;
+    gap: 24px;
+}
+
+/* HERO */
+.prompt-hero {
+    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
+    border: 1px solid #e8edf5;
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.prompt-hero h2 {
+    margin: 10px 0 0;
+    font-size: 28px;
+}
+
+.prompt-hero p {
+    margin: 12px 0 0;
+    color: #627084;
+    max-width: 600px;
+}
+
+/* FILTER */
+.prompt-filter select {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #dbe2ee;
+}
+
+/* TABLE CARD */
+.prompt-table-card,
+.empty-state {
+    background: #fff;
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid #e7ebf3;
+}
+
+/* EMPTY */
+.empty-state {
+    text-align: center;
+}
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+
+.prompt-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.prompt-table th,
+.prompt-table td {
+    padding: 14px;
+    border-bottom: 1px solid #e7ebf3;
+    text-align: left;
+}
+
+.prompt-table th {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 800;
+}
+
+/* PROMPT TEXT */
+.prompt-cell strong {
+    line-height: 1.5;
+}
+
+/* PILLS */
+.pill {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.visibility-low { background:#ffe9e3; color:#e35b35; }
+.visibility-medium { background:#fff4da; color:#b9811b; }
+.visibility-high { background:#e7f7ee; color:#1f8b58; }
+
+.status { background:#eef3ff; color:#466ac9; }
+
+/* ACTIONS */
+.action-cell {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.action-cell form {
+    margin: 0;
+}
+
+.btn-danger {
+    background: #ffe5e5;
+    color: #c0392b;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .prompt-hero {
+        flex-direction: column;
+    }
+
+    .action-cell {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-cell .btn,
+    .action-cell form button {
+        width: 100%;
+    }
+}
+</style>
+
+{% endblock %}

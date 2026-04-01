@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
-<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run New Audit</a>
+<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run New Audit</a>
 {% endblock %}
 
 {% block content %}
@@ -30,7 +30,9 @@
 
             <div class="history-hero-actions">
                 <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">View Visibility</a>
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Open Actions</a>
+<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+    View All Actions
+</a>
             </div>
         </div>
 
@@ -78,7 +80,13 @@
 
     {% if total_audits >= 2 %}
     <div class="start-here">
-        <strong>Start here:</strong> Review what changed between the latest audits.
+        <strong>
+    {% if view_mode == "single" %}
+        Start here:
+    {% else %}
+        Recommended starting point:
+    {% endif %}
+</strong> Review what changed between the latest audits.
     </div>
     {% endif %}
 

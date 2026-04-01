@@ -7,8 +7,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
-<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary">Open Actions</a>
-<button class="btn btn-primary" onclick="window.print()">Export PDF</button>
+<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+    View All Actions
+</a>
+<button class="btn btn-secondary" onclick="window.print()">Export PDF</button>
 {% endblock %}
 
 {% block content %}
@@ -182,8 +184,9 @@
                     <h3>Priority Actions</h3>
                     <p>The highest-value next steps based on the latest audit and comparison signals.</p>
                 </div>
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="text-link">Open full actions</a>
-            </div>
+<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+    View All Actions
+</a>            </div>
 
             {% if actions %}
             <div class="action-grid">

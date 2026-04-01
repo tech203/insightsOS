@@ -3,22 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AEO Agents{% endblock %}</title>
+    <title>{% block title %}Insights OS{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="marketing-body">
+
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-wrap">
-          {% for category, message in messages %}
-            <div class="flash flash-{{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
+        {% if messages %}
+            <div class="marketing-flash-wrap">
+                {% for category, message in messages %}
+                    <div class="marketing-flash marketing-flash-{{ category if category else 'info' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     {% endwith %}
 
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
+
+    <style>
+        .marketing-flash-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 80;
+            display: grid;
+            gap: 10px;
+            padding: 12px 16px 0;
+            pointer-events: none;
+        }
+
+        .marketing-flash {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 700;
+            pointer-events: auto;
+        }
+
+        .marketing-flash-info,
+        .marketing-flash-message {
+            background: rgba(30, 41, 59, 0.9);
+            color: #e2e8f0;
+        }
+
+        .marketing-flash-success {
+            background: rgba(6, 78, 59, 0.9);
+            color: #d1fae5;
+            border-color: rgba(52, 211, 153, 0.35);
+        }
+
+        .marketing-flash-warning {
+            background: rgba(120, 53, 15, 0.9);
+            color: #ffedd5;
+            border-color: rgba(251, 191, 36, 0.35);
+        }
+
+        .marketing-flash-error,
+        .marketing-flash-danger {
+            background: rgba(127, 29, 29, 0.92);
+            color: #fee2e2;
+            border-color: rgba(248, 113, 113, 0.35);
+        }
+
+        @media (max-width: 768px) {
+            .marketing-flash-wrap {
+                padding: 10px 10px 0;
+            }
+
+            .marketing-flash {
+                width: min(100%, calc(100% - 12px));
+                padding: 12px 14px;
+                border-radius: 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
 </body>
 </html>

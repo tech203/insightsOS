@@ -4,12 +4,32 @@
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
-        <h1>{{ client.name if client and client.name else "Client Workspace" }}</h1>
-        <p>Your client overview and next best actions.</p>
+        <h1>
+            {{ client.name if client and client.name else ("Workspace" if view_mode == "single" else "Client Workspace") }}
+        </h1>
+        <p>
+            {% if view_mode == "single" %}
+                Your workspace overview and next best actions.
+            {% else %}
+                Your client overview and next best actions.
+            {% endif %}
+        </p>
     </div>
+
     <div class="page-header-actions">
+        {% if view_mode != "single" %}
         <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
-        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+        {% endif %}
+
+        {% if current_user.is_authenticated and current_user.plan != "free" %}
+        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">
+            Run New Audit
+        </a>
+        {% else %}
+        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+            Upgrade to Continue
+        </a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -22,6 +42,7 @@
 {% set top_action = recommended_actions[0] if recommended_actions else none %}
 {% set question_rows = client.query_comparison.rows if client.query_comparison is defined and client.query_comparison and client.query_comparison.rows else [] %}
 {% set missing_rows = question_rows | selectattr("latest_brand_mentioned", "equalto", false) | list if question_rows else [] %}
+{% set first_missing_query = missing_rows[0].query if missing_rows else "" %}
 
 <div class="client-overview-shell">
 
@@ -42,7 +63,9 @@
                         {% endif %}
                     </div>
 
-                    <h1>{{ client.name if client and client.name else "Client Workspace" }}</h1>
+                    <h1>
+                        {{ client.name if client and client.name else ("Workspace" if view_mode == "single" else "Client Workspace") }}
+                    </h1>
 
                     {% if client.website %}
                     <p class="client-website">{{ client.website }}</p>
@@ -53,38 +76,87 @@
             <div class="visual-placeholder visual-placeholder--soft client-workspace-visual">
                 <div class="visual-placeholder-content">
                     <span class="visual-placeholder-kicker">Image Placeholder</span>
-                    <h2 class="visual-placeholder-title">Client workspace visual goes here</h2>
+                    <h2 class="visual-placeholder-title">
+                        {% if view_mode == "single" %}
+                            Workspace visual goes here
+                        {% else %}
+                            Client workspace visual goes here
+                        {% endif %}
+                    </h2>
+
                     <p class="visual-placeholder-text">
-                        Replace this later with a branded workspace illustration, growth scene, or client insight visual.
+                        {% if view_mode == "single" %}
+                            Replace this later with a product-style workspace illustration or growth visual.
+                        {% else %}
+                            Replace this later with a branded workspace illustration or client insight visual.
+                        {% endif %}
                     </p>
                 </div>
             </div>
 
-            <div class="priority-strip strong">
-                <div class="priority-strip-copy">
-                    <span class="priority-label">Top Priority</span>
-                    {% if has_audit and top_action %}
-                        <h2>{{ top_action.title }}</h2>
-                        <p>Start here first to unlock the clearest improvement path.</p>
-                    {% elif has_audit %}
-                        <h2>Fix visibility gaps</h2>
-                        <p>Start here first to improve discoverability and answer coverage.</p>
-                    {% else %}
-                        <h2>Run your first audit</h2>
-                        <p>Start here to generate scores, findings, and next-step actions.</p>
-                    {% endif %}
+            <section class="execution-panel">
+                <div class="execution-panel-copy">
+                    <span class="section-kicker">Next Best Step</span>
+
+                    <h2>
+                        {% if not has_audit %}
+                            Run your first audit
+                        {% elif missing_rows %}
+                            Fix missing query coverage first
+                        {% elif top_action %}
+                            {{ top_action.title }}
+                        {% else %}
+                            Review visibility and move into action
+                        {% endif %}
+                    </h2>
+
+                    <p>
+                        {% if not has_audit %}
+                            Start by running your first audit so you can generate scores, identify weak spots, and unlock the next actions for this workspace.
+                        {% elif missing_rows %}
+                            Your brand is still missing from important tracked queries. The fastest next move is to turn those gaps into content briefs and drafts.
+                        {% elif top_action %}
+                            This is the clearest next action from your latest audit. Completing it first will give you the strongest immediate improvement path.
+                        {% else %}
+                            Start by reviewing where the brand is visible, then move into structured actions and content execution.
+                        {% endif %}
+                    </p>
                 </div>
 
-                <div class="priority-strip-actions">
+                <div class="execution-panel-actions">
                     {% if not has_audit %}
-                        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">Run First Audit</a>
-                        <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-block">Edit Client</a>
+                        {% if current_user.is_authenticated and current_user.plan != "free" %}
+                        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
+                            Run First Audit
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
+                            Upgrade to Continue
+                        </a>
+                        {% endif %}
+
+                        <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                            Edit Details
+                        </a>
+
+                    {% elif missing_rows %}
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=first_missing_query) }}" class="btn btn-primary btn-block">
+                            Create Content
+                        </a>
+                        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                            View Visibility
+                        </a>
+
                     {% else %}
-                        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">View Visibility</a>
-                        <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary btn-block">Open Actions</a>
+                        <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary btn-block">
+                            Start with Top Actions
+                        </a>
+                        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                            View Visibility
+                        </a>
                     {% endif %}
                 </div>
-            </div>
+            </section>
         </div>
 
         <div class="client-overview-side">
@@ -128,19 +200,6 @@
             </div>
         </div>
     </section>
-
-    {% if has_audit %}
-    <div class="start-here">
-        <strong>Start here:</strong>
-        {% if missing_rows %}
-            Create content for missing questions first.
-        {% elif top_action %}
-            Follow the top recommended action first.
-        {% else %}
-            Review visibility first, then move into actions.
-        {% endif %}
-    </div>
-    {% endif %}
 
     <section class="client-section-card">
         <div class="section-head compact">
@@ -193,46 +252,64 @@
         </div>
     </section>
 
-    <section class="client-section-card">
-        <div class="section-head compact">
-            <div>
-                <h3>What We Found</h3>
-                <p>Plain-language findings for quick review.</p>
+<section class="client-section-card">
+    <div class="section-head compact">
+        <div>
+            <h3>Audit Summary</h3>
+            <p>Main findings from your latest AEO audit.</p>
+        </div>
+    </div>
+
+    <div class="finding-list">
+        <div class="finding-item warning">
+            <div class="finding-icon">!</div>
+            <div class="finding-copy">
+                <strong>Coverage gaps remain</strong>
+                <p>
+                    {% if missing_rows %}
+                        Your brand is still missing from {{ missing_rows|length }} tracked question{{ '' if missing_rows|length == 1 else 's' }} that matter for discovery.
+                    {% else %}
+                        Important customer questions are not yet fully covered across your content.
+                    {% endif %}
+                </p>
             </div>
         </div>
 
-        <div class="finding-list">
-            <div class="finding-item warning">
-                <div class="finding-icon">!</div>
-                <div class="finding-copy">
-                    <strong>Weak coverage</strong>
-                    <p>Important questions are not answered clearly enough yet.</p>
-                </div>
-            </div>
-
-            <div class="finding-item neutral">
-                <div class="finding-icon">i</div>
-                <div class="finding-copy">
-                    <strong>Visibility gaps</strong>
-                    <p>Your brand appears inconsistently across tracked answer scenarios.</p>
-                </div>
-            </div>
-
-            <div class="finding-item success">
-                <div class="finding-icon">✓</div>
-                <div class="finding-copy">
-                    <strong>Good starting point</strong>
-                    <p>You already have a base to improve from, which makes the next actions more targeted.</p>
-                </div>
+        <div class="finding-item neutral">
+            <div class="finding-icon">i</div>
+            <div class="finding-copy">
+                <strong>AI visibility is inconsistent</strong>
+                <p>
+                    {% if latest and latest.visibility_score %}
+                        Your current visibility score suggests the brand is appearing unevenly across tracked answer scenarios.
+                    {% else %}
+                        Run an audit to see where the brand is appearing and where competitors are winning attention.
+                    {% endif %}
+                </p>
             </div>
         </div>
-    </section>
+
+        <div class="finding-item success">
+            <div class="finding-icon">✓</div>
+            <div class="finding-copy">
+                <strong>Strongest next move is clear</strong>
+                <p>
+                    {% if top_action %}
+                        Prioritise "{{ top_action.title }}" first to improve visibility faster.
+                    {% else %}
+                        Once baseline data is in place, the platform will surface the clearest next priority automatically.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
 
     <section class="client-section-card">
         <div class="section-head compact">
             <div>
                 <h3>Top Recommended Actions</h3>
-                <p>Start here.</p>
+                <p>Move through the workflow from visibility to execution.</p>
             </div>
         </div>
 
@@ -271,6 +348,136 @@
             </div>
         </div>
 
+<section class="client-section-card">
+    <div class="section-head compact">
+        <div>
+            <h3>External Market Signals</h3>
+            <p>
+                Third-party visibility benchmarks and open-web discussion signals that support the audit.
+            </p>
+        </div>
+    </div>
+
+    <div class="external-signals-grid">
+        <div class="signal-panel">
+            <div class="signal-panel-head">
+                <h4>Visibility Benchmark</h4>
+                <p>Use Semrush and similar tools as supporting reference, not final score logic.</p>
+            </div>
+
+            <div class="signal-summary-grid">
+                <div class="signal-summary-card">
+                    <span class="signal-label">AI Share of Voice</span>
+                    <strong class="signal-value">0%</strong>
+                    <p class="signal-copy">Brand is not yet surfacing in tracked benchmark prompts.</p>
+                </div>
+
+                <div class="signal-summary-card">
+                    <span class="signal-label">Mention Quality</span>
+                    <strong class="signal-value">46% Fav.</strong>
+                    <p class="signal-copy">Perception is decent when mentioned, but recommendation presence is weak.</p>
+                </div>
+
+                <div class="signal-summary-card">
+                    <span class="signal-label">Prompt Coverage</span>
+                    <strong class="signal-value">0 / 3</strong>
+                    <p class="signal-copy">Tracked benchmark prompts currently show no brand visibility.</p>
+                </div>
+
+                <div class="signal-summary-card">
+                    <span class="signal-label">Competitor Gap</span>
+                    <strong class="signal-value">High</strong>
+                    <p class="signal-copy">Competitors are occupying the recommendation space first.</p>
+                </div>
+            </div>
+
+            <div class="signal-table-wrap">
+                <table class="signal-table">
+                    <thead>
+                        <tr>
+                            <th>Brand</th>
+                            <th>Visibility</th>
+                            <th>Signal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ client.website if client.website else client.name }}</td>
+                            <td>0%</td>
+                            <td>Positive perception, low visibility</td>
+                        </tr>
+                        <tr>
+                            <td>Intercom</td>
+                            <td>16%</td>
+                            <td>Leading benchmark competitor</td>
+                        </tr>
+                        <tr>
+                            <td>Zendesk</td>
+                            <td>15%</td>
+                            <td>Strong recommendation presence</td>
+                        </tr>
+                        <tr>
+                            <td>HubSpot</td>
+                            <td>8%</td>
+                            <td>Ecosystem visibility</td>
+                        </tr>
+                        <tr>
+                            <td>Freshworks</td>
+                            <td>6%</td>
+                            <td>Mid-tier benchmark presence</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="signal-panel">
+            <div class="signal-panel-head">
+                <h4>Voice of Market</h4>
+                <p>Use Reddit, Quora, forums, reviews, and discussion sites to surface buyer language and demand themes.</p>
+            </div>
+
+            <div class="voice-market-grid">
+                <div class="voice-market-card">
+                    <span class="voice-title">Top Questions</span>
+                    <ul>
+                        <li>How easy is setup?</li>
+                        <li>Does it support no-code use cases?</li>
+                        <li>Can it integrate with CRM or helpdesk tools?</li>
+                    </ul>
+                </div>
+
+                <div class="voice-market-card">
+                    <span class="voice-title">Pain Points</span>
+                    <ul>
+                        <li>Complex onboarding</li>
+                        <li>Pricing confusion</li>
+                        <li>Weak or unclear integrations</li>
+                    </ul>
+                </div>
+
+                <div class="voice-market-card">
+                    <span class="voice-title">Competitor Praise</span>
+                    <ul>
+                        <li>Trusted brand reputation</li>
+                        <li>Better support workflows</li>
+                        <li>Broader integration ecosystem</li>
+                    </ul>
+                </div>
+
+                <div class="voice-market-card">
+                    <span class="voice-title">Content Opportunities</span>
+                    <ul>
+                        <li>No-code setup page</li>
+                        <li>Onboarding comparison page</li>
+                        <li>Integration-specific landing pages</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
         <div class="opportunity-list">
             {% if missing_rows %}
                 {% for row in missing_rows[:6] %}
@@ -291,8 +498,18 @@
         </div>
 
         <div class="card-actions top-space">
-            <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">Generate Brief</a>
-            <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Draft</a>
+            {% if current_user.is_authenticated and current_user.plan != "free" %}
+            <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=first_missing_query if first_missing_query else '') }}" class="btn btn-secondary">
+                Generate Brief
+            </a>
+            <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=first_missing_query if first_missing_query else '') }}" class="btn btn-primary">
+                Generate Draft
+            </a>
+            {% else %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                Unlock AI Generation
+            </a>
+            {% endif %}
         </div>
     </section>
 
@@ -313,7 +530,8 @@
 .finding-item,
 .action-step-card,
 .overview-score-card,
-.overview-mini-card {
+.overview-mini-card,
+.execution-panel {
     background: #ffffff;
     border: 1px solid #e8edf5;
     border-radius: 18px;
@@ -389,21 +607,36 @@
     word-break: break-word;
 }
 
-.priority-strip {
+.execution-panel {
     margin-top: 16px;
-    padding: 16px 18px;
-    border-radius: 16px;
     display: grid;
-    gap: 14px;
-}
-
-.priority-strip.strong {
-    border: 1px solid #ffd9c7;
-    background: linear-gradient(180deg, #fff6f2 0%, #ffffff 100%);
+    gap: 20px;
+    padding: 22px;
+    border: 1px solid #f1ddd4;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
     box-shadow: 0 10px 30px rgba(255, 106, 43, 0.08);
 }
 
-.priority-label {
+.execution-panel-copy h2 {
+    margin: 10px 0 0;
+    font-size: 28px;
+    line-height: 1.14;
+    color: #15233b;
+}
+
+.execution-panel-copy p {
+    margin: 14px 0 0;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #627084;
+}
+
+.execution-panel-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.section-kicker {
     display: inline-flex;
     align-items: center;
     width: fit-content;
@@ -413,26 +646,6 @@
     color: #E83256;
     font-size: 12px;
     font-weight: 800;
-    margin-bottom: 10px;
-}
-
-.priority-strip-copy h2 {
-    margin: 0;
-    font-size: 22px;
-    line-height: 1.18;
-    color: #15233b;
-}
-
-.priority-strip-copy p {
-    margin: 10px 0 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #627084;
-}
-
-.priority-strip-actions {
-    display: grid;
-    gap: 10px;
 }
 
 .btn-block {
@@ -496,16 +709,6 @@
 .overview-mini-card strong.small-copy {
     font-size: 15px;
     line-height: 1.45;
-}
-
-.start-here {
-    padding: 12px 14px;
-    border-radius: 14px;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    color: #9a3412;
-    font-size: 14px;
-    line-height: 1.5;
 }
 
 .section-head.compact {
@@ -681,11 +884,149 @@
     margin-top: 14px;
 }
 
+
+.external-signals-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.signal-panel {
+    background: #fbfcfe;
+    border: 1px solid #e8edf5;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.signal-panel-head h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.signal-panel-head p {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b7280;
+}
+
+.signal-summary-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.signal-summary-card {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.signal-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.signal-value {
+    display: block;
+    margin-top: 10px;
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.signal-copy {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #627084;
+}
+
+.signal-table-wrap {
+    margin-top: 16px;
+    overflow-x: auto;
+}
+
+.signal-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+}
+
+.signal-table th,
+.signal-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e8edf5;
+    text-align: left;
+    font-size: 14px;
+    color: #15233b;
+}
+
+.signal-table th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+}
+
+.voice-market-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.voice-market-card {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.voice-title {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #15233b;
+}
+
+.voice-market-card ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #627084;
+}
+
+.voice-market-card li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
 @media (min-width: 900px) {
     .client-overview-shell {
         padding: 20px;
         gap: 18px;
     }
+
+    .external-signals-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .signal-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .voice-market-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
 
     .client-overview-hero,
     .client-section-card {
@@ -701,7 +1042,7 @@
         font-size: 38px;
     }
 
-    .priority-strip {
+    .execution-panel {
         grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.7fr);
         align-items: center;
     }
@@ -727,7 +1068,8 @@
     .finding-item,
     .action-step-card,
     .overview-score-card,
-    .overview-mini-card {
+    .overview-mini-card,
+    .execution-panel {
         border-radius: 16px;
     }
 

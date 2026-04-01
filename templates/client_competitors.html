@@ -1,419 +1,1202 @@
 {% extends "base.html" %}
+{% block title %}Competitor Research | Insights OS{% endblock %}
 
-{% block title %}{{ client.name }} | Competitors{% endblock %}
-{% block page_title %}{{ client.name }} · Competitors{% endblock %}
-{% block page_subtitle %}See where competitors appear instead of your brand.{% endblock %}
-
-{% block topbar_actions %}
-<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
-<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-primary">Generate Brief</a>
+{% block page_header %}
+<div class="page-header-standard competitor-page-header-minimal">
+    <div class="page-header-copy">
+        <h1>Competitor Research</h1>
+        <p>See where competitors appear in AI answers, uncover the topics you are missing, and move high-value prompts into tracking.</p>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
+{% set project_domain = project_domain if project_domain is defined else "supportfast.ai" %}
+{% set selected_platform = selected_platform if selected_platform is defined else "ChatGPT" %}
+{% set selected_market = selected_market if selected_market is defined else "United States (English)" %}
+{% set competitor_list = competitors if competitors is defined else ["tawk.to", "wati.io", "botpenguin.com", "chatmaxima.com"] %}
 
-{% set has_comparison = client.query_comparison and client.query_comparison.rows %}
-{% set competitor_rows = client.query_comparison.rows | selectattr("latest_competitors") | list if has_comparison else [] %}
-{% set missing_rows = client.query_comparison.rows | selectattr("latest_brand_mentioned", "equalto", false) | list if has_comparison else [] %}
+{% set summary_cards = summary_cards if summary_cards is defined else [
+    {"label": "Missing Topics", "value": 638, "desc": "Competitors appear but you do not"},
+    {"label": "Shared Topics", "value": 11, "desc": "You and competitors both appear"},
+    {"label": "Unique Opportunities", "value": 1, "desc": "Topics where you can differentiate"},
+    {"label": "Source Domains", "value": "4.8K", "desc": "Domains influencing AI answers"}
+] %}
 
-<div class="competitors-shell">
+{% set gap_topics = gap_topics if gap_topics is defined else [
+    {
+        "topic": "AI Chatbots and GPT Technology",
+        "your_mentions": 0,
+        "best_competitor": "tawk.to",
+        "best_mentions": 3,
+        "ai_volume": "11.8M",
+        "intent": "Commercial",
+        "priority": "High",
+        "sample_prompts": ["free for a chat", "chat box free", "site chat"]
+    },
+    {
+        "topic": "Knowledge Base and Management Solutions",
+        "your_mentions": 0,
+        "best_competitor": "tawk.to",
+        "best_mentions": 1,
+        "ai_volume": "2.6M",
+        "intent": "Informational",
+        "priority": "Medium",
+        "sample_prompts": ["best knowledge base software", "knowledge base chat integration", "help center tools"]
+    },
+    {
+        "topic": "WhatsApp and Web Messaging",
+        "your_mentions": 0,
+        "best_competitor": "botpenguin.com",
+        "best_mentions": 2,
+        "ai_volume": "2.1M",
+        "intent": "Commercial",
+        "priority": "High",
+        "sample_prompts": ["whatsapp chat widget", "website whatsapp automation", "whatsapp web chatbot"]
+    },
+    {
+        "topic": "Digital Calendar and Scheduling Tools",
+        "your_mentions": 0,
+        "best_competitor": "botpenguin.com",
+        "best_mentions": 1,
+        "ai_volume": "2M",
+        "intent": "Commercial",
+        "priority": "Medium",
+        "sample_prompts": ["calendar chatbot", "booking bot for website", "appointment automation"]
+    },
+    {
+        "topic": "Messaging Apps and Platforms",
+        "your_mentions": 0,
+        "best_competitor": "tawk.to",
+        "best_mentions": 5,
+        "ai_volume": "1.8M",
+        "intent": "Commercial",
+        "priority": "High",
+        "sample_prompts": ["best messaging platform for support", "live messaging software", "customer support messaging app"]
+    }
+] %}
 
-    <section class="competitors-hero-card">
-        <div class="competitors-hero-main">
-            <h1>Competitor gaps</h1>
-            <p class="competitors-hero-copy">See where competitors appear instead of your brand.</p>
+{% set source_gaps = source_gaps if source_gaps is defined else [
+    {"domain": "microsoft.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 15, "urls": 35, "prompts": 26, "traffic": "3.2M"},
+    {"domain": "google.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 62, "urls": 182, "prompts": 131, "traffic": "3M"},
+    {"domain": "whatsapp.com", "your_mentions": 0, "top_competitor": "wati.io", "comp_mentions": 64, "urls": 80, "prompts": 89, "traffic": "2.6M"},
+    {"domain": "zoom.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 16, "urls": 9, "prompts": 18, "traffic": "949.7K"}
+] %}
 
-            <div class="competitors-hero-actions">
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">View Visibility</a>
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Open Actions</a>
-            </div>
-        </div>
+<div class="competitor-shell">
 
-        {% if has_comparison %}
-        <div class="competitors-hero-side">
-            <div class="competitors-focus-card">
-                <span class="competitors-focus-label">Best next move</span>
-                <strong class="competitors-focus-value">
-                    {% if missing_rows|length > 0 %}
-                        Target missing-query gaps
-                    {% else %}
-                        Review competitor patterns
-                    {% endif %}
-                </strong>
-                <p class="competitors-focus-text">
-                    {% if missing_rows|length > 0 %}
-                        Start with queries where your brand is missing and competitors are already being surfaced.
-                    {% else %}
-                        Look for repeated competitor appearances and turn those into briefs or stronger comparison content.
-                    {% endif %}
-                </p>
-            </div>
-        </div>
-        {% endif %}
-    </section>
+    <section class="competitor-hero-card">
+        <div class="competitor-hero-main">
+            <span class="section-kicker">Competitor Gap Analysis</span>
+            <h1>Find the gaps in your AI visibility</h1>
+            <p class="hero-text">
+                Compare your brand against competitors, uncover the topics where they are cited but you are not,
+                and move directly into prompt tracking for the opportunities that matter most.
+            </p>
 
-    {% if missing_rows %}
-    <div class="start-here">
-        <strong>Start here:</strong> Target queries where your brand is missing.
-    </div>
-    {% endif %}
+            <form class="competitor-search-form" method="get" action="">
+                <div class="competitor-form-grid">
+                    <div class="form-field form-field-full">
+                        <label for="domain">Your domain</label>
+                        <input id="domain" name="domain" type="text" value="{{ project_domain }}" placeholder="yourdomain.com">
+                    </div>
 
-    <section class="competitors-card competitors-full">
-        <div class="section-head">
-            <h3>Competitor Mentions by Query</h3>
-            <p>Review the queries where competitors appear and decide what to respond to first.</p>
-        </div>
+                    <div class="form-field">
+                        <label for="competitor_1">Competitor 1</label>
+                        <input id="competitor_1" name="competitor_1" type="text" value="{{ competitor_list[0] if competitor_list|length > 0 else '' }}" placeholder="competitor.com">
+                    </div>
 
-        {% if has_comparison and competitor_rows %}
-        <div class="competitor-query-grid">
-            {% for row in competitor_rows %}
-            <article class="competitor-query-card">
-                <h4>{{ row.query }}</h4>
+                    <div class="form-field">
+                        <label for="competitor_2">Competitor 2</label>
+                        <input id="competitor_2" name="competitor_2" type="text" value="{{ competitor_list[1] if competitor_list|length > 1 else '' }}" placeholder="competitor.com">
+                    </div>
 
-                <p class="competitor-status-copy">
-                    {% if row.latest_brand_mentioned %}
-                        Your brand appears here.
-                    {% else %}
-                        Your brand is missing here.
-                    {% endif %}
-                </p>
+                    <div class="form-field">
+                        <label for="competitor_3">Competitor 3</label>
+                        <input id="competitor_3" name="competitor_3" type="text" value="{{ competitor_list[2] if competitor_list|length > 2 else '' }}" placeholder="competitor.com">
+                    </div>
 
-                <div class="competitor-tag-wrap">
-                    {% for comp in row.latest_competitors %}
-                    <span class="competitor-tag">{{ comp }}</span>
-                    {% endfor %}
-                </div>
-
-                <div class="card-actions">
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Brief</a>
-                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Draft</a>
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state-card compact">
-            <h3>No named competitors yet</h3>
-            <p>The current comparison data does not show competitor names for tracked queries yet.</p>
-        </div>
-        {% endif %}
-    </section>
-
-    <section class="competitors-card competitors-full">
-        <div class="section-head">
-            <h3>Highest-Priority Counter Opportunities</h3>
-            <p>These are the most useful missed-query opportunities to respond to first.</p>
-        </div>
-
-        {% if has_comparison and missing_rows %}
-        <div class="opportunity-grid">
-            {% for row in missing_rows[:6] %}
-            <article class="opportunity-card">
-                <div class="opportunity-top">
-                    <span class="priority-badge high">High Priority</span>
-                    <h4>{{ row.query }}</h4>
-                </div>
-
-                <p class="opportunity-copy">Your brand is missing for this query.</p>
-
-                <div class="opportunity-meta">
-                    <div class="opportunity-meta-row">
-                        <span>Competitors seen</span>
-                        <strong>
-                            {% if row.latest_competitors %}
-                                {{ row.latest_competitors|join(", ") }}
-                            {% else %}
-                                None recorded
-                            {% endif %}
-                        </strong>
+                    <div class="form-field">
+                        <label for="competitor_4">Competitor 4</label>
+                        <input id="competitor_4" name="competitor_4" type="text" value="{{ competitor_list[3] if competitor_list|length > 3 else '' }}" placeholder="competitor.com">
                     </div>
                 </div>
 
-                <div class="card-actions">
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">Generate Brief</a>
-                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-secondary">Generate Draft</a>
+                <div class="competitor-toolbar">
+                    <div class="toolbar-meta">
+                        <span class="meta-pill">{{ selected_platform }}</span>
+                        <span class="meta-pill meta-pill-soft">{{ selected_market }}</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">Run Competitor Analysis</button>
                 </div>
-            </article>
-            {% endfor %}
+            </form>
         </div>
-        {% elif has_comparison %}
-        <div class="empty-state-card compact">
-            <h3>No missed-query competitor gaps</h3>
-            <p>The current comparison data does not show any queries where competitors appear while your brand is missing.</p>
-        </div>
-        {% else %}
-        <div class="empty-state-card compact">
-            <h3>No comparison data yet</h3>
-            <p>Run and save more audits to unlock stronger competitor comparison insights.</p>
-        </div>
-        {% endif %}
+
+        <aside class="competitor-hero-side">
+            <div class="hero-side-card">
+                <span class="mini-kicker">What this module reveals</span>
+                <ul class="hero-check-list">
+                    <li>Topics competitors dominate but you miss</li>
+                    <li>High-intent prompts worth tracking</li>
+                    <li>Source domains influencing competitor visibility</li>
+                    <li>Immediate next steps for content and tracking</li>
+                </ul>
+            </div>
+        </aside>
     </section>
 
+    <section class="competitor-summary-grid">
+        {% for card in summary_cards %}
+        <article class="summary-card">
+            <span class="summary-label">{{ card.label }}</span>
+            <strong class="summary-value">{{ card.value }}</strong>
+            <p class="summary-copy">{{ card.desc }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="competitor-insight-band">
+        <div class="insight-band-copy">
+            <span class="section-kicker">Competitor Insight</span>
+            <h2>Competitors are winning visibility in prompts your audience is likely asking</h2>
+            <p>
+                Start with missing commercial and transactional topics first. These usually create the fastest path
+                to improving discoverability, recommendation strength, and prompt-level presence.
+            </p>
+        </div>
+
+        <div class="insight-band-side">
+            <div class="insight-side-card">
+                <span>Highest priority cluster</span>
+                <strong>Messaging, chatbot, and scheduling prompts</strong>
+            </div>
+            <div class="insight-side-card">
+                <span>Best next move</span>
+                <strong>Track the prompts, then build content for the missing intent</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="results-section-card">
+        <div class="results-section-header">
+            <div>
+                <span class="section-kicker">Opportunity Engine</span>
+                <h2 class="section-title">Missed topic opportunities</h2>
+                <p class="section-copy">
+                    These are the topics where competitors are being mentioned and your brand is currently absent from AI answers.
+                </p>
+            </div>
+
+            <div class="results-header-actions">
+                <button type="button" class="btn btn-secondary" id="open-track-all">Track All Priority Prompts</button>
+            </div>
+        </div>
+
+        <div class="table-toolbar">
+            <div class="toolbar-tabs">
+                <button type="button" class="table-tab active">Missing</button>
+                <button type="button" class="table-tab">Weak</button>
+                <button type="button" class="table-tab">Shared</button>
+                <button type="button" class="table-tab">Strong</button>
+            </div>
+
+            <div class="toolbar-filters">
+                <input type="text" placeholder="Filter by topic">
+                <select>
+                    <option>All AI Volume</option>
+                    <option>High AI Volume</option>
+                    <option>Medium AI Volume</option>
+                    <option>Low AI Volume</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="insights-table">
+                <thead>
+                    <tr>
+                        <th>Topic</th>
+                        <th>Your Presence</th>
+                        <th>Top Competitor</th>
+                        <th>AI Volume</th>
+                        <th>Intent</th>
+                        <th>Priority</th>
+                        <th class="table-action-col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in gap_topics %}
+                    <tr>
+                        <td>
+                            <div class="topic-cell">
+                                <strong>{{ row.topic }}</strong>
+                                <small>{{ row.sample_prompts|length }} example prompts available</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span>
+                        </td>
+                        <td>
+                            <div class="competitor-cell">
+                                <strong>{{ row.best_competitor }}</strong>
+                                <small>{{ row.best_mentions }} mentions</small>
+                            </div>
+                        </td>
+                        <td>{{ row.ai_volume }}</td>
+                        <td><span class="intent-badge">{{ row.intent }}</span></td>
+                        <td>
+                            <span class="priority-pill priority-{{ row.priority|lower }}">{{ row.priority }}</span>
+                        </td>
+<td class="table-action-col action-stack-cell">
+    <button
+        type="button"
+        class="btn btn-secondary btn-sm view-prompts-btn"
+        data-topic="{{ row.topic }}"
+        data-prompts="{{ row.sample_prompts|join('||') }}"
+    >
+        View Prompts
+    </button>
+
+    <form method="POST" action="{{ url_for('save_prompts') }}" class="inline-track-form">
+        <input type="hidden" name="domain" value="{{ project_domain }}">
+        <input type="hidden" name="platform" value="{{ selected_platform }}">
+        <input type="hidden" name="market" value="{{ selected_market }}">
+        <input type="hidden" name="topic" value="{{ row.topic }}">
+        <textarea name="prompts" class="hidden-prompt-field">{{- row.sample_prompts|join('\n') -}}</textarea>
+
+        <button type="submit" class="btn btn-primary btn-sm">
+            Track
+        </button>
+    </form>
+</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="results-section-card">
+        <div class="results-section-header">
+            <div>
+                <span class="section-kicker">Sources</span>
+                <h2 class="section-title">Domains influencing competitor visibility</h2>
+                <p class="section-copy">
+                    These are the source domains that appear to support competitor mentions more often than yours.
+                </p>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="insights-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Source Domain</th>
+                        <th>Your Mentions</th>
+                        <th>Top Competitor</th>
+                        <th>URLs</th>
+                        <th>Prompts</th>
+                        <th>Organic Traffic</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in source_gaps %}
+                    <tr>
+                        <td><strong>{{ row.domain }}</strong></td>
+                        <td><span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span></td>
+                        <td>
+                            <div class="competitor-cell">
+                                <strong>{{ row.top_competitor }}</strong>
+                                <small>{{ row.comp_mentions }} mentions</small>
+                            </div>
+                        </td>
+                        <td>{{ row.urls }}</td>
+                        <td>{{ row.prompts }}</td>
+                        <td>{{ row.traffic }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<div class="modal-backdrop" id="competitorModalBackdrop"></div>
+
+<div class="app-modal" id="promptPreviewModal">
+    <div class="app-modal-card">
+        <div class="app-modal-header">
+            <div>
+                <span class="section-kicker">Topic Prompts</span>
+                <h3 id="previewTopicTitle">Topic prompts</h3>
+            </div>
+            <button type="button" class="modal-close-btn" data-close-competitor-modal>&times;</button>
+        </div>
+
+        <div class="app-modal-body">
+            <div class="prompt-preview-list" id="previewPromptList"></div>
+        </div>
+    </div>
+</div>
+
+<div class="app-modal" id="trackingModal">
+    <div class="app-modal-card app-modal-md">
+        <div class="app-modal-header">
+            <div>
+                <span class="section-kicker">Tracking Setup</span>
+                <h3>Track AI prompts</h3>
+                <p>Save prompts from missed competitor topics and start monitoring visibility over time.</p>
+            </div>
+            <button type="button" class="modal-close-btn" data-close-competitor-modal>&times;</button>
+        </div>
+
+        <div class="app-modal-body">
+            <div class="modal-meta-grid">
+                <div class="modal-meta-card">
+                    <span>Project</span>
+                    <strong>{{ project_domain }}</strong>
+                </div>
+                <div class="modal-meta-card">
+                    <span>Platform</span>
+                    <strong>{{ selected_platform }}</strong>
+                </div>
+                <div class="modal-meta-card">
+                    <span>Market</span>
+                    <strong>{{ selected_market }}</strong>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="trackingTopic">Topic</label>
+                <input id="trackingTopic" type="text" value="" readonly>
+            </div>
+
+            <div class="form-field">
+                <label for="trackingPrompts">Prompts to track</label>
+                <textarea id="trackingPrompts" rows="8" placeholder="Enter one prompt per line"></textarea>
+                <small class="field-hint">One prompt per line. These can be saved to your project for ongoing tracking.</small>
+            </div>
+        </div>
+
+        <div class="app-modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelTrackingModal">
+                Cancel
+            </button>
+
+<form method="POST" action="{{ url_for('save_prompts') }}" id="trackingForm">
+    <input type="hidden" name="domain" value="{{ project_domain }}">
+    <input type="hidden" name="platform" value="{{ selected_platform }}">
+    <input type="hidden" name="market" value="{{ selected_market }}">
+    <input type="hidden" name="topic" id="trackingTopicHidden">
+
+    <textarea name="prompts" id="trackingPromptsHidden" class="hidden-prompt-field"></textarea>
+
+    <button type="submit" class="btn btn-primary">
+        Start Tracking
+    </button>
+</form>
+        </div>    
+    </div>
 </div>
 
 <style>
-.competitors-shell {
-    padding: 18px;
+.competitor-page-header-minimal {
+    margin-bottom: 8px;
+}
+
+.competitor-shell {
+    display: grid;
+    gap: 28px;
+}
+
+.competitor-hero-card,
+.summary-card,
+.competitor-insight-band,
+.results-section-card,
+.hero-side-card,
+.app-modal-card {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.competitor-hero-card {
+    padding: 32px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) 320px;
+    gap: 24px;
+    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
+    border-color: #ece8ff;
+}
+
+.section-kicker,
+.mini-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.competitor-hero-main h1 {
+    margin: 14px 0 0;
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 1.02;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #16243c;
+    max-width: 820px;
+}
+
+.hero-text {
+    margin: 16px 0 0;
+    max-width: 820px;
+    font-size: 17px;
+    line-height: 1.72;
+    color: #627084;
+}
+
+.competitor-search-form {
+    margin-top: 24px;
     display: grid;
     gap: 18px;
 }
 
-.competitors-hero-card,
-.competitors-card,
-.competitors-focus-card,
-.competitor-query-card,
-.opportunity-card,
-.empty-state-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.competitors-hero-card {
-    padding: 18px;
+.competitor-form-grid {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
 }
 
-.competitors-hero-main h1 {
-    margin: 0;
-    font-size: 30px;
-    line-height: 1.08;
+.form-field {
+    display: grid;
+    gap: 8px;
+}
+
+.form-field-full {
+    grid-column: 1 / -1;
+}
+
+.form-field label {
+    font-size: 13px;
     font-weight: 800;
-    color: #15233b;
+    color: #4f5d73;
 }
 
-.competitors-hero-copy {
-    margin: 12px 0 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #617084;
-}
-
-.competitors-hero-actions,
-.card-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 16px;
-}
-
-.competitors-hero-actions .btn,
-.card-actions .btn {
+.form-field input,
+.form-field textarea,
+.toolbar-filters input,
+.toolbar-filters select {
     width: 100%;
-}
-
-.competitors-focus-card {
-    padding: 18px;
-    border: 1px solid #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-}
-
-.competitors-focus-label {
-    font-size: 12px;
-    font-weight: 800;
-    color: #6b7280;
-}
-
-.competitors-focus-value {
-    display: block;
-    margin-top: 10px;
-    font-size: 24px;
-    line-height: 1.2;
-    font-weight: 800;
-    color: #E83256;
-}
-
-.competitors-focus-text {
-    margin: 10px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.start-here {
-    padding: 12px 14px;
+    border: 1px solid #dbe2ee;
+    background: #ffffff;
+    color: #16243c;
     border-radius: 14px;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    color: #9a3412;
-    font-size: 14px;
+    padding: 13px 14px;
+    font-size: 15px;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.toolbar-filters input:focus,
+.toolbar-filters select:focus {
+    border-color: #8f73ff;
+    box-shadow: 0 0 0 4px rgba(109, 74, 255, 0.10);
+}
+
+.field-hint {
+    color: #6b7280;
+    font-size: 12px;
     line-height: 1.5;
 }
 
-.competitors-card {
-    padding: 18px;
+.competitor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
 }
 
-.competitors-full {
-    width: 100%;
+.toolbar-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.section-head {
-    margin-bottom: 14px;
-}
-
-.section-head h3 {
-    margin: 0;
-    font-size: 20px;
+.meta-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #efe8ff;
+    color: #6d4aff;
+    font-size: 13px;
     font-weight: 800;
-    color: #16243c;
 }
 
-.section-head p {
-    margin: 6px 0 0;
-    color: #6b7280;
+.meta-pill-soft {
+    background: #f6f8fc;
+    color: #5e6b7c;
+}
+
+.btn-large {
+    padding: 14px 22px;
+    font-size: 16px;
+}
+
+.hero-side-card {
+    padding: 20px;
+    background: linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
+}
+
+.hero-check-list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    display: grid;
+    gap: 12px;
+}
+
+.hero-check-list li {
+    position: relative;
+    padding-left: 22px;
+    color: #405066;
+    line-height: 1.55;
     font-size: 14px;
+}
+
+.hero-check-list li::before {
+    content: "•";
+    position: absolute;
+    left: 6px;
+    top: 0;
+    color: #6d4aff;
+    font-weight: 800;
+}
+
+.competitor-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.summary-card {
+    padding: 20px;
+}
+
+.summary-label {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.summary-value {
+    display: block;
+    color: #16243c;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.summary-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 13px;
     line-height: 1.6;
 }
 
-.competitor-query-grid,
-.opportunity-grid {
+.competitor-insight-band {
+    padding: 24px 26px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #ffe1d5;
+}
+
+.insight-band-copy h2 {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 30px;
+    line-height: 1.1;
+}
+
+.insight-band-copy p {
+    margin: 14px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 760px;
+}
+
+.insight-band-side {
     display: grid;
     gap: 14px;
 }
 
-.competitor-query-card,
-.opportunity-card {
-    padding: 18px;
-    background: #fbfcfe;
+.insight-side-card {
+    border: 1px solid #f1e0d9;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 16px;
 }
 
-.competitor-query-card h4,
-.opportunity-card h4 {
-    margin: 0;
-    font-size: 18px;
+.insight-side-card span {
+    display: block;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+}
+
+.insight-side-card strong {
     color: #16243c;
-    line-height: 1.35;
+    font-size: 16px;
+    line-height: 1.45;
 }
 
-.competitor-status-copy,
-.opportunity-copy {
-    margin: 10px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
+.results-section-card {
+    padding: 24px;
 }
 
-.competitor-tag-wrap {
+.results-section-header {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 18px;
 }
 
-.competitor-tag,
-.priority-badge.high {
+.section-title {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.section-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 780px;
+}
+
+.table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.toolbar-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.table-tab {
+    border: 1px solid #dce4ef;
+    background: #ffffff;
+    color: #516077;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.table-tab.active {
+    border-color: #8f73ff;
+    background: #f3edff;
+    color: #6d4aff;
+}
+
+.toolbar-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.toolbar-filters input {
+    min-width: 220px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+.insights-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 980px;
+}
+
+.insights-table th,
+.insights-table td {
+    padding: 16px 14px;
+    border-bottom: 1px solid #e9edf5;
+    vertical-align: top;
+    text-align: left;
+}
+
+.insights-table th {
+    color: #5c6a7d;
+    font-size: 13px;
+    font-weight: 800;
+    background: #fafbfe;
+}
+
+.topic-cell,
+.competitor-cell {
+    display: grid;
+    gap: 4px;
+}
+
+.topic-cell strong,
+.competitor-cell strong,
+.insights-table td strong {
+    color: #16243c;
+    font-size: 15px;
+}
+
+.topic-cell small,
+.competitor-cell small {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.presence-pill {
     display: inline-flex;
     align-items: center;
-    padding: 7px 12px;
+    justify-content: center;
+    min-width: 44px;
+    padding: 8px 12px;
     border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.presence-pill-empty {
+    background: #fff1ea;
+    color: #e35b35;
+}
+
+.intent-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #eff4ff;
+    color: #4266d6;
     font-size: 12px;
     font-weight: 800;
 }
 
-.competitor-tag {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #445366;
-}
-
-.priority-badge.high {
-    background: #ffe2dd;
-    color: #c2412d;
-}
-
-.opportunity-top {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.opportunity-meta {
-    display: grid;
-    gap: 10px;
-    margin-top: 12px;
-}
-
-.opportunity-meta-row span {
-    color: #627084;
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.opportunity-meta-row strong {
-    display: block;
-    color: #16243c;
-    margin-top: 4px;
-    line-height: 1.5;
-    font-size: 14px;
-}
-
-.empty-state-card.compact {
-    padding: 20px;
-    border: 1px dashed #d6dde8;
-    background: #fafcff;
-}
-
-.empty-state-card.compact h3 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    color: #16243c;
-}
-
-.empty-state-card.compact p {
+.inline-track-form {
     margin: 0;
-    color: #6b7280;
+}
+
+.hidden-prompt-field {
+    display: none;
+}
+
+.priority-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.priority-high {
+    background: #ffe7df;
+    color: #d95b39;
+}
+
+.priority-medium {
+    background: #fff4da;
+    color: #b9811b;
+}
+
+.priority-low {
+    background: #e8f3ff;
+    color: #2c78d1;
+}
+
+.table-action-col {
+    white-space: nowrap;
+}
+
+.action-stack-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.compact-table {
+    min-width: 860px;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.48);
+    z-index: 1000;
+    display: none;
+}
+
+.modal-backdrop.is-open {
+    display: block;
+}
+
+.app-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    place-items: center;
+    z-index: 1001;
+    padding: 20px;
+}
+
+.app-modal {
+    pointer-events: none;
+}
+
+.app-modal.is-open {
+    pointer-events: auto;
+}
+
+.app-modal-card {
+    pointer-events: auto;
+}
+
+.app-modal.is-open {
+    display: grid;
+}
+
+.app-modal-card {
+    width: min(560px, 100%);
+    max-height: 78vh;
+    overflow: auto;
+    padding: 20px;
+}
+
+.app-modal-md {
+    width: min(640px, 100%);
+}
+
+.app-modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.app-modal-header h3 {
+    margin: 10px 0 0;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #16243c;
+}
+
+.app-modal-header p {
+    margin: 10px 0 0;
+    color: #627084;
     font-size: 14px;
     line-height: 1.6;
+    max-width: 520px;
 }
 
-@media (min-width: 769px) {
-    .competitors-shell {
-        padding: 24px;
-        gap: 20px;
-    }
+.modal-close-btn {
+    border: 0;
+    background: transparent;
+    font-size: 34px;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+}
 
-    .competitors-hero-card {
-        grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.78fr);
-        align-items: start;
-        padding: 24px;
-    }
+.app-modal-body {
+    display: grid;
+    gap: 18px;
+}
 
-    .competitors-card,
-    .competitors-focus-card {
-        padding: 22px;
-    }
+.prompt-preview-list {
+    display: grid;
+    gap: 12px;
+}
 
-    .competitors-hero-main h1 {
-        font-size: 38px;
-    }
+.prompt-preview-item {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    color: #405066;
+    font-size: 14px;
+    line-height: 1.55;
+}
 
-    .competitor-query-grid {
+.modal-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.modal-meta-card {
+    border: 1px solid #e7ebf3;
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.modal-meta-card span {
+    display: block;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.modal-meta-card strong {
+    color: #16243c;
+    font-size: 15px;
+}
+
+.app-modal-footer {
+    margin-top: 18px;
+    padding-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid #eef2f7;
+}
+
+.btn-sm {
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+#trackingPrompts {
+    min-height: 120px;
+    max-height: 180px;
+    resize: vertical;
+}
+
+@media (max-width: 1280px) {
+    .competitor-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .opportunity-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .competitors-hero-actions,
-    .card-actions {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .competitors-hero-actions .btn,
-    .card-actions .btn {
-        width: auto;
     }
 }
 
-@media (min-width: 1100px) {
-    .opportunity-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (max-width: 1100px) {
+    .competitor-hero-card,
+    .competitor-insight-band {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .competitor-form-grid,
+    .modal-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .results-section-header,
+    .competitor-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .competitor-hero-card,
+    .summary-card,
+    .competitor-insight-band,
+    .results-section-card,
+    .hero-side-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .app-modal-card {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    #trackingPrompts {
+        min-height: 140px;
+    }
+
+    .competitor-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .toolbar-filters {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .toolbar-filters input,
+    .toolbar-filters select,
+    .competitor-toolbar .btn,
+    .results-header-actions .btn,
+    .app-modal-footer .btn {
+        width: 100%;
+    }
+
+    .app-modal {
+        padding: 14px;
+    }
+
+    .app-modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    .action-stack-cell {
+        flex-direction: column;
     }
 }
 </style>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const backdrop = document.getElementById("competitorModalBackdrop");
+    const previewModal = document.getElementById("promptPreviewModal");
+    const trackingModal = document.getElementById("trackingModal");
+
+    const previewTitle = document.getElementById("previewTopicTitle");
+    const previewList = document.getElementById("previewPromptList");
+
+    const topicInput = document.getElementById("trackingTopic");
+    const promptTextarea = document.getElementById("trackingPrompts");
+    const topicHidden = document.getElementById("trackingTopicHidden");
+    const promptsHidden = document.getElementById("trackingPromptsHidden");
+    const trackingForm = document.getElementById("trackingForm");
+    const cancelTrackingModal = document.getElementById("cancelTrackingModal");
+
+    function openModal(modal) {
+        if (!modal || !backdrop) return;
+        backdrop.classList.add("is-open");
+        modal.classList.add("is-open");
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeAllModals() {
+        if (backdrop) backdrop.classList.remove("is-open");
+        if (previewModal) previewModal.classList.remove("is-open");
+        if (trackingModal) trackingModal.classList.remove("is-open");
+        document.body.style.overflow = "";
+    }
+
+    function renderPromptPreview(topic, prompts) {
+        if (previewTitle) {
+            previewTitle.textContent = topic || "Topic prompts";
+        }
+
+        if (!previewList) return;
+
+        previewList.innerHTML = "";
+
+        if (!prompts.length) {
+            previewList.innerHTML = '<div class="prompt-preview-item">No prompts available.</div>';
+            return;
+        }
+
+        prompts.forEach((prompt) => {
+            const item = document.createElement("div");
+            item.className = "prompt-preview-item";
+            item.textContent = prompt;
+            previewList.appendChild(item);
+        });
+    }
+
+    function openTracking(topic, prompts) {
+        if (topicInput) topicInput.value = topic || "";
+        if (promptTextarea) promptTextarea.value = prompts.length ? prompts.join("\n") : "";
+        openModal(trackingModal);
+    }
+
+    document.querySelectorAll(".view-prompts-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const topic = this.dataset.topic || "";
+            const prompts = (this.dataset.prompts || "").split("||").filter(Boolean);
+            renderPromptPreview(topic, prompts);
+            openModal(previewModal);
+        });
+    });
+
+const openTrackAll = document.getElementById("open-track-all");
+if (openTrackAll) {
+    openTrackAll.addEventListener("click", function () {
+        const allPrompts = [];
+
+        document.querySelectorAll(".view-prompts-btn").forEach((btn) => {
+            const promptSet = (btn.dataset.prompts || "").split("||").filter(Boolean);
+            promptSet.forEach((prompt) => {
+                if (!allPrompts.includes(prompt)) {
+                    allPrompts.push(prompt);
+                }
+            });
+        });
+
+        openTracking("Priority competitor gap topics", allPrompts);
+    });
+}
+
+    if (trackingForm) {
+        trackingForm.addEventListener("submit", function () {
+            if (topicHidden) topicHidden.value = topicInput ? topicInput.value : "";
+            if (promptsHidden) promptsHidden.value = promptTextarea ? promptTextarea.value : "";
+        });
+    }
+
+document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-close-competitor-modal]")) {
+        e.preventDefault();
+        closeAllModals();
+    }
+});
+
+    if (cancelTrackingModal) {
+        cancelTrackingModal.addEventListener("click", function (event) {
+            event.preventDefault();
+            closeAllModals();
+        });
+    }
+
+    if (backdrop) {
+        backdrop.addEventListener("click", closeAllModals);
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            closeAllModals();
+        }
+    });
+});
+</script>
 {% endblock %}

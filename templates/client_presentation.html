@@ -6,7 +6,9 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
-<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Open Growth Plan</a>
+<a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary">
+    View Action Plan
+</a>
 {% endblock %}
 
 {% block content %}

@@ -39,6 +39,8 @@ from content_queue import (
     create_queue_item_from_audit_opportunity,
 )
 
+from flask_migrate import Migrate
+
 app = Flask(__name__)
 print("Flask app initialized")
 
@@ -47,6 +49,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///app
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
@@ -149,6 +152,36 @@ class Client(db.Model):
         db.UniqueConstraint("user_id", "slug", name="uq_clients_user_slug"),
     )
 
+class PromptTracking(db.Model):
+    __tablename__ = "prompt_tracking"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+
+    domain = db.Column(db.String(255), nullable=True, index=True)
+    platform = db.Column(db.String(100), nullable=True, index=True)
+    market = db.Column(db.String(255), nullable=True, index=True)
+    topic = db.Column(db.String(255), nullable=True, index=True)
+
+    prompt = db.Column(db.Text, nullable=False)
+
+    status = db.Column(db.String(50), default="Tracking", nullable=False)
+    visibility = db.Column(db.String(50), default="Low", nullable=False)
+    mentioned = db.Column(db.String(50), default="No", nullable=False)
+    top_competitor = db.Column(db.String(255), nullable=True)
+
+    last_checked = db.Column(db.String(100), default="Just added", nullable=True)
+    change = db.Column(db.String(50), default="New", nullable=True)
+
+    prompt_score = db.Column(db.Integer, default=0, nullable=False)
+    score_band = db.Column(db.String(50), default="Weak", nullable=True)
+    opportunity_label = db.Column(db.String(100), default="High opportunity", nullable=True)
+    brand_position = db.Column(db.String(100), default="Not mentioned", nullable=True)
+    competitor_count = db.Column(db.Integer, default=0, nullable=False)
+    source_support = db.Column(db.String(100), default="Low", nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -158,6 +191,199 @@ def load_user(user_id):
 # =========================
 # General helpers
 # =========================
+
+def get_prompt_visibility(client_id, target_query):
+    rows = PromptTracking.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
+    if not rows:
+        return 30  # fallback
+
+    total = len(rows)
+    mentions = 0
+
+    for row in rows:
+        if row.domain and row.domain.lower() in (target_query or "").lower():
+            mentions += 1
+
+    visibility = (mentions / total) * 100
+    return int(visibility)
+
+def get_competitor_strength(client_id):
+    rows = PromptTracking.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
+    if not rows:
+        return 50
+
+    competitor_hits = 0
+
+    for row in rows:
+        if row.top_competitor:
+            competitor_hits += 1
+
+    strength = (competitor_hits / len(rows)) * 100
+    return int(strength)
+
+def get_content_score(result):
+    if not result:
+        return 40
+
+    text = str(result)
+
+    length_score = min(len(text) / 1000 * 100, 100)
+
+    return int(length_score)
+
+def calculate_aeo_score(visibility=None, competitors=None, content_score=None):
+    # fallback defaults
+    visibility = visibility or 40
+    competitors = competitors or 60
+    content_score = content_score or 50
+
+    # weighted scoring
+    score = (
+        (visibility * 0.4) +
+        ((100 - competitors) * 0.3) +
+        (content_score * 0.3)
+    )
+
+    # classify
+    if score >= 70:
+        opportunity = "High"
+    elif score >= 40:
+        opportunity = "Moderate"
+    else:
+        opportunity = "Low"
+
+    return {
+        "score": int(score),
+        "opportunity": opportunity,
+        "competitor_strength": "High" if competitors > 60 else "Low",
+        "visibility": visibility
+    }
+
+def score_to_opportunity_label(score: float) -> str:
+    if score >= 80:
+        return "Strong visibility"
+    if score >= 55:
+        return "Moderate visibility"
+    return "High opportunity"
+
+
+def compute_prompt_visibility_score(
+    brand_mentioned: bool,
+    brand_position: int | None,
+    competitor_count: int,
+    source_support: str = "mixed",
+) -> dict:
+    # 1. Brand mention score (35)
+    mention_score = 35 if brand_mentioned else 0
+
+    # 2. Brand position score (25)
+    if not brand_mentioned or brand_position is None:
+        position_score = 0
+    elif brand_position == 1:
+        position_score = 25
+    elif brand_position <= 3:
+        position_score = 18
+    elif brand_position <= 5:
+        position_score = 10
+    else:
+        position_score = 4
+
+    # 3. Competitor pressure score (20)
+    if competitor_count == 0:
+        competitor_score = 20
+    elif competitor_count == 1:
+        competitor_score = 14
+    elif competitor_count == 2:
+        competitor_score = 8
+    else:
+        competitor_score = 0
+
+    # 4. Source support score (20)
+    if source_support == "strong":
+        source_score = 20
+    elif source_support == "mixed":
+        source_score = 10
+    else:
+        source_score = 0
+
+    total = mention_score + position_score + competitor_score + source_score
+
+    if total >= 80:
+        band = "High"
+    elif total >= 55:
+        band = "Medium"
+    else:
+        band = "Low"
+
+    return {
+        "score": round(total, 1),
+        "band": band,
+        "mention_score": mention_score,
+        "position_score": position_score,
+        "competitor_score": competitor_score,
+        "source_score": source_score,
+        "opportunity_label": score_to_opportunity_label(total),
+    }
+
+
+def compute_mvp_prompt_inputs(
+    visibility: str,
+    mentioned: str,
+    top_competitor: str | None,
+) -> dict:
+    brand_mentioned = mentioned in ["Yes", "Sometimes"]
+
+    if mentioned == "Yes":
+        brand_position = 1 if visibility == "High" else 3 if visibility == "Medium" else 5
+    elif mentioned == "Sometimes":
+        brand_position = 4
+    else:
+        brand_position = None
+
+    competitor_count = 0 if not top_competitor or top_competitor == "—" else 1
+
+    if visibility == "High" and mentioned == "Yes":
+        source_support = "strong"
+    elif mentioned in ["Yes", "Sometimes"]:
+        source_support = "mixed"
+    else:
+        source_support = "weak"
+
+    return {
+        "brand_mentioned": brand_mentioned,
+        "brand_position": brand_position,
+        "competitor_count": competitor_count,
+        "source_support": source_support,
+    }
+
+
+def apply_prompt_score(row: PromptTracking) -> None:
+    inputs = compute_mvp_prompt_inputs(
+        visibility=row.visibility,
+        mentioned=row.mentioned,
+        top_competitor=row.top_competitor,
+    )
+
+    result = compute_prompt_visibility_score(
+        brand_mentioned=inputs["brand_mentioned"],
+        brand_position=inputs["brand_position"],
+        competitor_count=inputs["competitor_count"],
+        source_support=inputs["source_support"],
+    )
+
+    row.brand_position = inputs["brand_position"]
+    row.competitor_count = inputs["competitor_count"]
+    row.source_support = inputs["source_support"]
+
+    row.prompt_score = result["score"]
+    row.score_band = result["band"]
+    row.opportunity_label = result["opportunity_label"]
 
 def ensure_data_dirs():
     os.makedirs(DATA_FOLDER, exist_ok=True)
@@ -824,6 +1050,15 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     db.session.commit()
     return True
 
+def has_enough_credits(user, amount):
+    if user_has_unlimited_credits(user):
+        return True
+
+    if not user or not user.wallet:
+        return False
+
+    return user.wallet.balance >= amount
+
 def award_referral_if_qualified(user):
     referral = Referral.query.filter_by(referred_user_id=user.id, status="pending").first()
     if not referral:
@@ -939,11 +1174,17 @@ def index():
 @app.route("/clients")
 @login_required
 def clients_page():
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
+
+    if view_mode == "single" and focused_client:
+        return redirect(url_for("client_detail", client_id=focused_client["id"]))
+
     return render_template(
         "clients.html",
         clients=build_client_views(),
-        view_mode=get_view_mode(current_user),
-        focused_client=get_focused_client_for_user(current_user),
+        view_mode=view_mode,
+        focused_client=focused_client,
     )
 
 @app.route("/client/<client_id>/report")
@@ -986,6 +1227,45 @@ def can_create_workspace(user):
         return True, None, count
 
     return count < limit, limit, count
+
+@app.route("/create-checkout-session")
+@login_required
+def create_checkout_session():
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",  # simple one-time payment
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": "Insights OS Pro Upgrade",
+                    },
+                    "unit_amount": 2900,  # $29.00
+                },
+                "quantity": 1,
+            }],
+            success_url=url_for("payment_success", _external=True),
+            cancel_url=url_for("pricing_page", _external=True),
+        )
+
+        return redirect(session.url, code=303)
+
+    except Exception as e:
+        return str(e)
+
+@app.route("/payment-success")
+@login_required
+def payment_success():
+    # 🔥 Upgrade user
+    current_user.plan = "pro"
+    db.session.commit()
+
+    flash("Upgrade successful! You now have full access 🚀", "success")
+
+    return redirect(url_for("dashboard"))
+
+
 
 @app.route("/clients/new", methods=["GET", "POST"])
 @login_required
@@ -1216,8 +1496,8 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash("You have been logged out.")
-    return redirect(url_for("login"))
+    flash("You have been logged out.", "info")
+    return redirect(url_for("aeo_agency_page"))
 
 
 @app.route("/client/<client_id>/run-audit", methods=["GET", "POST"])
@@ -1234,21 +1514,52 @@ def run_client_audit(client_id):
         topic = request.form.get("topic")
         audit_type = request.form.get("audit_type", "quick")
 
-        print("🔥 AUDIT POST TRIGGERED")
+        if not has_enough_credits(current_user, 1):
+            flash("You don’t have enough credits to run another audit.", "warning")
+            return redirect(url_for("pricing_page"))
 
-        run_audit_for_input(
-            website=website,
-            industry=industry,
-            location=location,
-            topic=topic,
-            audit_type=audit_type,
-            client_id=client_id,
-            user_id=current_user.id,
-        )
+        if not spend_credits(current_user, 1, notes="Client audit run"):
+            flash("Unable to deduct credits for audit.", "warning")
+            return redirect(url_for("pricing_page"))
 
-        return redirect(url_for("client_detail", client_id=client_id))
+        try:
+            run_audit_for_input(
+                website=website,
+                industry=industry,
+                location=location,
+                topic=topic,
+                audit_type=audit_type,
+                client_id=client_id,
+                user_id=current_user.id,
+            )
+            flash("Audit completed successfully.", "success")
+            return redirect(url_for("client_detail", client_id=client_id))
 
+        except Exception as e:
+            refund_credits(current_user, 1, notes="Refund for failed client audit")
+            flash(f"Audit failed: {str(e)}", "error")
+            return redirect(url_for("client_detail", client_id=client_id))
+                
     return render_template("new_audit.html", client=client)
+
+@app.route("/generate-content/<int:prompt_id>")
+@login_required
+def generate_content_from_prompt(prompt_id):
+    row = PromptTracking.query.filter_by(
+        id=prompt_id,
+        user_id=current_user.id
+    ).first()
+
+    if not row:
+        flash("Prompt not found.", "warning")
+        return redirect(url_for("prompt_management_page"))
+
+    return redirect(url_for(
+        "content_queue_page",
+        query=row.prompt,
+        topic=row.topic,
+        source="prompt_tracking"
+    ))
 
 @app.route("/client/<client_id>/content-brief", methods=["GET", "POST"])
 @login_required
@@ -1265,11 +1576,22 @@ def generate_client_content_brief(client_id):
         target_query = safe_str(request.form.get("target_query"))
         content_type = safe_str(request.form.get("content_type", "service_page")) or "service_page"
         brand_context = safe_str(request.form.get("brand_context"))
+
         if not target_query:
-            return render_template("content_brief_form.html", client=client, error="Target query is required.", form_data=request.form)
+            return render_template(
+                "content_brief_form.html",
+                client=client,
+                error="Target query is required.",
+                form_data=request.form
+            )
+
+        if not has_enough_credits(current_user, 1):
+            flash("You don’t have enough credits to generate another brief.", "warning")
+            return redirect(url_for("pricing_page"))
 
         if not spend_credits(current_user, 1, notes="Content brief generation"):
-            return render_template("content_brief_form.html", client=client, error="Not enough credits.", form_data=request.form)
+            flash("Unable to deduct credits for brief generation.", "warning")
+            return redirect(url_for("pricing_page"))
 
         try:
             result = generate_content_brief(
@@ -1281,11 +1603,65 @@ def generate_client_content_brief(client_id):
                 content_type=content_type,
                 brand_context=brand_context,
             )
+
             flash("Content brief generated successfully.")
-            return render_template("content_brief_result.html", client=client, result=result)
+
+            tracked_rows = PromptTracking.query.filter_by(
+                user_id=current_user.id
+            ).filter(
+                PromptTracking.prompt.ilike(f"%{target_query}%")
+            ).all()
+
+            top_competitors = list(set([
+                row.top_competitor
+                for row in tracked_rows
+                if row.top_competitor and row.top_competitor != "—"
+            ]))[:3]
+
+            if tracked_rows:
+                total_rows = len(tracked_rows)
+
+                visible_rows = [
+                    row for row in tracked_rows
+                    if (row.mentioned or "").strip() in ["Yes", "Sometimes"]
+                ]
+                visibility = int((len(visible_rows) / total_rows) * 100) if total_rows > 0 else 30
+
+                competitor_rows = [
+                    row for row in tracked_rows
+                    if row.top_competitor and row.top_competitor != "—"
+                ]
+                competitors = int((len(competitor_rows) / total_rows) * 100) if total_rows > 0 else 50
+            else:
+                visibility = 30
+                competitors = 50
+
+            brief_text = result.get("brief", "") if isinstance(result, dict) else str(result)
+            content_score = min(max(int(len(brief_text) / 12), 20), 100)
+
+            aeo = calculate_aeo_score(
+                visibility=visibility,
+                competitors=competitors,
+                content_score=content_score,
+            )
+
+            return render_template(
+                "content_brief_result.html",
+                result=result,
+                client=client,
+                aeo=aeo,
+                top_competitors=top_competitors,
+                tracked_prompt_count=len(tracked_rows),
+            )
+
         except Exception as e:
             refund_credits(current_user, 1, notes="Refund for failed content brief generation")
-            return render_template("content_brief_form.html", client=client, error=f"Brief generation failed: {str(e)}", form_data=request.form)
+            return render_template(
+                "content_brief_form.html",
+                client=client,
+                error=f"Brief generation failed: {str(e)}",
+                form_data=request.form
+            )
 
     prefill_query = safe_str(request.args.get("target_query"))
     prefill_context = safe_str(request.args.get("brand_context"))
@@ -1295,7 +1671,13 @@ def generate_client_content_brief(client_id):
         "content_type": "service_page",
         "brand_context": prefill_context if prefill_context else client.get("notes", ""),
     }
-    return render_template("content_brief_form.html", client=client, error=None, form_data=form_data)
+
+    return render_template(
+        "content_brief_form.html",
+        client=client,
+        error=None,
+        form_data=form_data
+    )
 
 @app.route("/generate-brief/<item_id>")
 @login_required
@@ -1305,6 +1687,14 @@ def generate_brief_from_queue(item_id):
     if not item:
         flash("Queue item not found.", "error")
         return redirect(url_for("content_queue_page"))
+
+    if not has_enough_credits(current_user, 1):
+        flash("You don’t have enough credits to generate another brief.", "warning")
+        return redirect(url_for("pricing_page"))
+
+    if not spend_credits(current_user, 1, notes="Queue content brief generation"):
+        flash("Unable to deduct credits for brief generation.", "warning")
+        return redirect(url_for("pricing_page"))
 
     try:
         brief = generate_content_brief(
@@ -1325,6 +1715,7 @@ def generate_brief_from_queue(item_id):
         )
 
         if not updated_item:
+            refund_credits(current_user, 1, notes="Refund for unsaved queue brief")
             flash("Brief was generated but could not be saved to the queue item.", "error")
             return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
 
@@ -1332,9 +1723,10 @@ def generate_brief_from_queue(item_id):
         return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
 
     except Exception as e:
+        refund_credits(current_user, 1, notes="Refund for failed queue brief generation")
         flash(f"Failed to generate brief: {str(e)}", "error")
         return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
-
+    
 @app.route("/client/<client_id>/content-draft", methods=["GET", "POST"])
 @login_required
 def generate_client_content_draft(client_id):
@@ -1371,14 +1763,14 @@ def generate_client_content_draft(client_id):
                 form_data=request.form,
             )
 
-        if not spend_credits(current_user, 2, notes="Content draft generation"):
-            return render_template(
-                "content_draft_form.html",
-                client=client,
-                error="Not enough credits.",
-                form_data=request.form,
-            )
+        if not has_enough_credits(current_user, 2):
+            flash("You don’t have enough credits to generate another draft.", "warning")
+            return redirect(url_for("pricing_page"))
 
+        if not spend_credits(current_user, 2, notes="Content draft generation"):
+            flash("Unable to deduct credits for draft generation.", "warning")
+            return redirect(url_for("pricing_page"))
+        
         try:
             result = generate_content_draft(
                 client_name=client.get("name", ""),
@@ -1464,6 +1856,221 @@ def client_visibility_page(client_id):
         query_summary=query_summary,
     )
 
+@app.route("/prompt-detail")
+@login_required
+def prompt_detail_page():
+    prompt_text = request.args.get("prompt", "").strip()
+    project_domain = request.args.get("domain", "supportfast.ai").strip()
+    selected_platform = request.args.get("platform", "ChatGPT").strip()
+    selected_market = request.args.get("market", "United States (English)").strip()
+    tracked_topic = request.args.get("topic", "Tracked prompts").strip()
+
+    row = None
+    if prompt_text:
+        row = PromptTracking.query.filter_by(
+            user_id=current_user.id,
+            domain=project_domain,
+            platform=selected_platform,
+            market=selected_market,
+            topic=tracked_topic,
+            prompt=prompt_text,
+        ).first()
+
+    if row:
+        visibility = row.visibility
+        brand_mentioned = row.mentioned
+        ranking_position = row.brand_position or "Not mentioned"
+        last_checked = row.last_checked or "Unknown"
+        change = row.change or "—"
+        top_competitors = [row.top_competitor] if row.top_competitor else []
+        recommended_actions = [
+            f"Improve visibility for '{row.prompt}'",
+            "Create a page directly matching this prompt intent",
+            "Add stronger entity and trust signals to relevant pages",
+            "Compare your answer coverage against the competitor being cited",
+        ]
+        ai_answer = (
+            f"Current tracked visibility for this prompt is {row.visibility}. "
+            f"Your brand mention status is {row.mentioned}. "
+            f"Top competitor currently associated with this prompt is {row.top_competitor or 'unknown'}."
+        )
+    else:
+        visibility = "Low"
+        brand_mentioned = "No"
+        ranking_position = "Not mentioned"
+        last_checked = "Unknown"
+        change = "New"
+        top_competitors = ["tawk.to"]
+        recommended_actions = [
+            "Create a page directly answering this prompt",
+            "Add stronger supporting content and FAQs",
+            "Improve brand entity signals",
+            "Track this prompt over time",
+        ]
+        ai_answer = "No saved AI answer is available for this prompt yet."
+
+    source_domains = ["microsoft.com", "google.com", "g2.com"]
+
+    return render_template(
+        "prompt_detail.html",
+        prompt_text=prompt_text or "Tracked prompt",
+        project_domain=project_domain,
+        selected_platform=selected_platform,
+        selected_market=selected_market,
+        tracked_topic=tracked_topic,
+        visibility=visibility,
+        brand_mentioned=brand_mentioned,
+        ranking_position=ranking_position,
+        last_checked=last_checked,
+        change=change,
+        top_competitors=top_competitors,
+        source_domains=source_domains,
+        recommended_actions=recommended_actions,
+        ai_answer=ai_answer,
+    )
+
+@app.route("/save-prompts", methods=["POST"])
+@login_required
+def save_prompts():
+    prompts = request.form.get("prompts", "").strip()
+    domain = request.form.get("domain", "supportfast.ai").strip()
+    platform = request.form.get("platform", "ChatGPT").strip()
+    market = request.form.get("market", "United States (English)").strip()
+    topic = request.form.get("topic", "Tracked prompts").strip()
+
+    prompt_list = [p.strip() for p in prompts.splitlines() if p.strip()]
+
+    if not prompt_list:
+        flash("No prompts entered.", "warning")
+        return redirect(url_for("position_tracking_page"))
+
+    def guess_competitor(prompt: str) -> str:
+        p = prompt.lower()
+        if "whatsapp" in p:
+            return "wati.io"
+        if "knowledge base" in p or "help center" in p:
+            return "tawk.to"
+        if "booking" in p or "calendar" in p or "appointment" in p:
+            return "botpenguin.com"
+        if "chat" in p or "messaging" in p:
+            return "tawk.to"
+        return "tawk.to"
+
+    created_count = 0
+
+    for i, prompt in enumerate(prompt_list):
+        existing = PromptTracking.query.filter_by(
+            user_id=current_user.id,
+            domain=domain,
+            platform=platform,
+            market=market,
+            topic=topic,
+            prompt=prompt,
+        ).first()
+
+        if existing:
+            existing.last_checked = "Updated now"
+            apply_prompt_score(existing)
+            continue
+
+        row = PromptTracking(
+            user_id=current_user.id,
+            domain=domain,
+            platform=platform,
+            market=market,
+            topic=topic or "Tracked prompts",
+            prompt=prompt,
+            status="Tracking",
+            visibility="Medium" if i == 0 else "Low",
+            mentioned="Sometimes" if i == 0 else "No",
+            top_competitor=guess_competitor(prompt),
+            last_checked="Just added",
+            change="New",
+        )
+
+        apply_prompt_score(row)
+        db.session.add(row)
+        created_count += 1
+
+    db.session.commit()
+
+    if created_count > 0:
+        flash(f"{created_count} prompts added to tracking.", "success")
+    else:
+        flash("These prompts were already being tracked.", "info")
+
+    return redirect(url_for(
+        "position_tracking_page",
+        domain=domain,
+        platform=platform,
+        market=market,
+        topic=topic,
+    ))
+
+@app.route("/position-tracking")
+@login_required
+def position_tracking_page():
+    domain = request.args.get("domain", "").strip()
+    platform = request.args.get("platform", "ChatGPT").strip()
+    market = request.args.get("market", "United States (English)").strip()
+    topic = request.args.get("topic", "").strip()
+
+    query = PromptTracking.query.filter_by(user_id=current_user.id)
+
+    if domain:
+        query = query.filter_by(domain=domain)
+    if platform:
+        query = query.filter_by(platform=platform)
+    if market:
+        query = query.filter_by(market=market)
+    if topic:
+        query = query.filter_by(topic=topic)
+
+    rows = query.order_by(PromptTracking.created_at.desc()).all()
+
+    tracked_prompts = []
+    for row in rows:
+        tracked_prompts.append({
+            "id": row.id,
+            "prompt": row.prompt,
+            "status": row.status,
+            "visibility": row.visibility,
+            "mentioned": row.mentioned,
+            "top_competitor": row.top_competitor or "—",
+            "last_checked": row.last_checked,
+            "change": row.change,
+            "prompt_score": row.prompt_score,
+            "score_band": row.score_band,
+            "opportunity_label": row.opportunity_label,
+            "brand_position": row.brand_position,
+            "competitor_count": row.competitor_count,
+            "source_support": row.source_support,
+        })
+
+    mentioned_count = sum(1 for row in tracked_prompts if row["mentioned"] == "Yes")
+    partial_count = sum(1 for row in tracked_prompts if row["mentioned"] == "Sometimes")
+    low_visibility_count = sum(1 for row in tracked_prompts if row["visibility"] == "Low")
+    highest_competitor = tracked_prompts[0]["top_competitor"] if tracked_prompts else "—"
+    best_next_move = "Build content for missing prompts" if low_visibility_count > 0 else "Keep tracking visibility"
+
+    return render_template(
+        "position_tracking.html",
+        project_domain=domain or "supportfast.ai",
+        selected_platform=platform,
+        selected_market=market,
+        tracked_topic=topic or "Tracked prompts",
+        total_prompts=len(tracked_prompts),
+        tracked_prompts=tracked_prompts,
+        tracking_ready=len(tracked_prompts) > 0,
+        progress_percent=100 if tracked_prompts else 0,
+        mentioned_count=mentioned_count,
+        partial_count=partial_count,
+        low_visibility_count=low_visibility_count,
+        highest_competitor=highest_competitor,
+        best_next_move=best_next_move,
+    )
+
+
 @app.route("/client/<client_id>/competitors")
 @login_required
 def client_competitors_page(client_id):
@@ -1496,6 +2103,10 @@ def client_history_page(client_id):
 @login_required
 def content_queue_page():
     client_id = request.args.get("client_id", "").strip()
+    incoming_query = request.args.get("query", "").strip()
+    incoming_topic = request.args.get("topic", "").strip()
+    incoming_source = request.args.get("source", "").strip()
+
     clients = build_client_views()
     view_mode = get_view_mode(current_user)
 
@@ -1521,11 +2132,22 @@ def content_queue_page():
         "published": len([i for i in items if (i.get("status") or "").lower() == "published"]),
     }
 
+    selected_client = None
+    if selected_client_id:
+        selected_client = next(
+            (client for client in clients if str(client.get("id")) == str(selected_client_id)),
+            None
+        )
+
     return render_template(
         "content_queue.html",
         queue_items=items,
         selected_client_id=selected_client_id,
+        selected_client=selected_client,
         stats=stats,
+        incoming_query=incoming_query,
+        incoming_topic=incoming_topic,
+        incoming_source=incoming_source,
     )
 
 @app.route("/content-queue/<item_id>/status", methods=["POST"])
@@ -1782,6 +2404,14 @@ def new_audit():
                 view_mode=view_mode,
             )
 
+        if not has_enough_credits(current_user, 1):
+            flash("You don’t have enough credits to run another audit.", "warning")
+            return redirect(url_for("pricing_page"))
+
+        if not spend_credits(current_user, 1, notes="New audit run"):
+            flash("Unable to deduct credits for audit.", "warning")
+            return redirect(url_for("pricing_page"))
+
         try:
             run_audit_for_input(
                 website=website,
@@ -1798,6 +2428,7 @@ def new_audit():
             return redirect(url_for("clients_page"))
 
         except Exception as e:
+            refund_credits(current_user, 1, notes="Refund for failed new audit")
             return render_template(
                 "new_audit.html",
                 clients=clients,
@@ -1873,6 +2504,7 @@ def pretty_datetime(value):
 @app.context_processor
 def inject_template_globals():
     wallet_balance = 0
+    credit_balance_numeric = 0
     has_unlimited_credits = False
     view_mode = "single"
     can_use_presentation_mode = False
@@ -1893,12 +2525,15 @@ def inject_template_globals():
 
         if has_unlimited_credits:
             wallet_balance = "Unlimited"
+            credit_balance_numeric = 999999
         elif getattr(current_user, "wallet", None):
             wallet_balance = current_user.wallet.balance
+            credit_balance_numeric = current_user.wallet.balance
 
     return {
         "HELP_GLOSSARY": HELP_GLOSSARY,
         "wallet_balance": wallet_balance,
+        "credit_balance_numeric": credit_balance_numeric,
         "has_unlimited_credits": has_unlimited_credits,
         "view_mode": view_mode,
         "can_use_presentation_mode": can_use_presentation_mode,
@@ -1906,6 +2541,21 @@ def inject_template_globals():
         "workspace_limit": workspace_limit,
         "can_add_workspace": can_add_workspace,
         "focused_client": focused_client,
+        "can_run_audit": (
+            current_user.is_authenticated and (
+                has_unlimited_credits or credit_balance_numeric >= 1
+            )
+        ),
+        "can_generate_brief": (
+            current_user.is_authenticated and (
+                has_unlimited_credits or credit_balance_numeric >= 1
+            )
+        ),
+        "can_generate_draft": (
+            current_user.is_authenticated and (
+                has_unlimited_credits or credit_balance_numeric >= 2
+            )
+        ),
     }
 
 @app.route("/aeo-agency")
@@ -1958,4 +2608,4 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     print("Starting Flask app...")
-    app.run(host="127.0.0.1", port=5001, debug=True, use_reloader=False)
+    app.run(host="127.0.0.1", port=5001, debug=True)

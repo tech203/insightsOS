@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Help Center | AEO Agents{% endblock %}
+{% block title %}Help Center | Insights OS{% endblock %}
 {% block page_title %}Help Center{% endblock %}
 {% block page_subtitle %}Simple guidance for busy business owners and teams who want clarity fast.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('dashboard') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
-<a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-primary">Open Clients</a>
+<a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-secondary">Open Clients</a>
 {% endblock %}
 
 {% block content %}

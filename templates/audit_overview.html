@@ -1,0 +1,776 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Overview | Insights OS{% endblock %}
+{% block page_title %}Audit Overview{% endblock %}
+{% block page_subtitle %}See where this site stands, what is holding it back, and what to do next.{% endblock %}
+
+{% block topbar_actions %}
+{% if data.client_id %}
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
+{% endif %}
+{% if summary_filename %}
+<a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Open Summary</a>
+{% endif %}
+{% if full_filename %}
+<a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% set normalized = data.scores.normalized_score if data.scores and data.scores.normalized_score is not none else 0 %}
+{% set visibility = data.scores.visibility_score if data.scores and data.scores.visibility_score is not none else 0 %}
+{% set content = data.scores.content_score if data.scores and data.scores.content_score is not none else 0 %}
+{% set schema = data.scores.schema_score if data.scores and data.scores.schema_score is not none else 0 %}
+{% set verdict = data.summary.verdict if data.summary and data.summary.verdict else "No verdict available yet." %}
+{% set opportunity = data.summary.opportunity_level if data.summary and data.summary.opportunity_level else "N/A" %}
+{% set ai_results = data.ai_answer_results if data.ai_answer_results is defined and data.ai_answer_results else [] %}
+{% set total_queries = ai_results|length %}
+{% set mentioned_count = namespace(value=0) %}
+{% for row in ai_results %}
+    {% if row.brand_mentioned is defined and row.brand_mentioned %}
+        {% set mentioned_count.value = mentioned_count.value + 1 %}
+    {% elif row.client_mentioned is defined and row.client_mentioned %}
+        {% set mentioned_count.value = mentioned_count.value + 1 %}
+    {% endif %}
+{% endfor %}
+{% set presence_rate = ((mentioned_count.value / total_queries) * 100)|round(0)|int if total_queries > 0 else 0 %}
+
+<div class="audit-overview-shell">
+
+    <section class="audit-overview-hero">
+        <div class="audit-overview-hero-main">
+            <div class="audit-overview-badge-row">
+                <span class="audit-overview-badge audit-overview-badge-primary">Audit Overview</span>
+                <span class="audit-overview-badge">{{ data.audit_type or "N/A" }}</span>
+                <span class="audit-overview-badge">{{ data.saved_at|pretty_datetime if data.saved_at else "N/A" }}</span>
+                {% if data.client_name %}
+                <span class="audit-overview-badge">{{ data.client_name }}</span>
+                {% endif %}
+            </div>
+
+            <h1>{{ data.website or "Unknown Website" }}</h1>
+
+            <p class="audit-overview-subcopy">
+                {% if normalized >= 80 %}
+                    This site shows a strong AI visibility foundation. The next step is to expand coverage, maintain consistency, and protect its lead.
+                {% elif normalized >= 60 %}
+                    This site has moderate AI visibility. It is discoverable in some areas, but key gaps are still limiting stronger recommendation and coverage.
+                {% else %}
+                    This site has clear room to improve. It is not yet strongly represented across AI answers, content coverage, and machine-readable trust signals.
+                {% endif %}
+            </p>
+
+            <div class="audit-verdict-card">
+                <span class="verdict-label">Current read</span>
+                <strong class="verdict-title">
+                    {% if normalized >= 80 %}
+                        Strong visibility foundation
+                    {% elif normalized >= 60 %}
+                        Moderate opportunity to improve
+                    {% else %}
+                        High opportunity to improve
+                    {% endif %}
+                </strong>
+                <p>{{ verdict }}</p>
+            </div>
+        </div>
+
+        <div class="audit-overview-hero-side">
+            <div class="overview-score-card">
+                <div class="overview-score-label">Overall Score</div>
+                <div class="overview-score-value">{{ normalized }}</div>
+                <div class="overview-score-meta">{{ opportunity }}</div>
+
+                <div class="overview-score-track">
+                    <div class="overview-score-fill" style="width: {{ normalized }}%;"></div>
+                </div>
+
+                <div class="overview-score-note">
+                    {% if normalized >= 80 %}
+                        Strong position across key signals.
+                    {% elif normalized >= 60 %}
+                        Good base, but not consistent enough yet.
+                    {% else %}
+                        Early-stage visibility with clear upside.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="audit-overview-stats-grid">
+        <div class="signal-card">
+            <span class="signal-label">Visibility</span>
+            <strong class="signal-value">{{ visibility }}</strong>
+            <p class="signal-note">How often the brand appears across answer scenarios.</p>
+        </div>
+
+        <div class="signal-card">
+            <span class="signal-label">Content</span>
+            <strong class="signal-value">{{ content }}</strong>
+            <p class="signal-note">How well the site supports relevant user questions and topics.</p>
+        </div>
+
+        <div class="signal-card">
+            <span class="signal-label">Schema</span>
+            <strong class="signal-value">{{ schema }}</strong>
+            <p class="signal-note">How clearly the site communicates structured, machine-readable signals.</p>
+        </div>
+
+        <div class="signal-card signal-card-accent">
+            <span class="signal-label">AI Presence Rate</span>
+            <strong class="signal-value">{{ presence_rate }}%</strong>
+            <p class="signal-note">
+                {{ mentioned_count.value }} of {{ total_queries }} tracked queries mention the brand.
+            </p>
+        </div>
+    </section>
+
+    <section class="audit-overview-grid">
+        <section class="panel panel-critical">
+            <div class="panel-header">
+                <div>
+                    <h2>What is holding this site back</h2>
+                    <p class="panel-subtitle">The clearest blockers surfaced from this audit.</p>
+                </div>
+            </div>
+
+            <div class="blocker-list">
+                <div class="blocker-item">
+                    <div class="blocker-severity {% if presence_rate < 35 %}high{% elif presence_rate < 65 %}medium{% else %}low{% endif %}"></div>
+                    <div class="blocker-copy">
+                        <strong>Brand mention coverage</strong>
+                        <p>
+                            {% if total_queries == 0 %}
+                                No query-level answer data is available yet, so visibility coverage cannot be assessed from answer scenarios.
+                            {% elif presence_rate >= 70 %}
+                                The brand is already mentioned across many tracked queries. The main opportunity is to improve consistency and ranking position.
+                            {% elif presence_rate >= 40 %}
+                                The brand appears in some answer scenarios, but mention coverage is still uneven across the tracked query set.
+                            {% else %}
+                                The brand is missing from most tracked answer scenarios. This is one of the clearest visibility gaps to address first.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <span class="blocker-pill">
+                        {% if presence_rate < 35 %}Critical{% elif presence_rate < 65 %}Needs work{% else %}Stable{% endif %}
+                    </span>
+                </div>
+
+                <div class="blocker-item">
+                    <div class="blocker-severity {% if content < 40 %}high{% elif content < 70 %}medium{% else %}low{% endif %}"></div>
+                    <div class="blocker-copy">
+                        <strong>Content support level</strong>
+                        <p>
+                            {% if content >= 70 %}
+                                Content coverage is relatively healthy. The next opportunity is to target missed questions and strengthen priority pages.
+                            {% elif content >= 40 %}
+                                Content support exists, but it is not yet strong enough to consistently win relevant AI answers.
+                            {% else %}
+                                Content coverage is a major weakness. The site likely needs stronger question-targeted content and better supporting pages.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <span class="blocker-pill">
+                        {% if content < 40 %}Critical{% elif content < 70 %}Needs work{% else %}Stable{% endif %}
+                    </span>
+                </div>
+
+                <div class="blocker-item">
+                    <div class="blocker-severity {% if schema < 40 %}high{% elif schema < 70 %}medium{% else %}low{% endif %}"></div>
+                    <div class="blocker-copy">
+                        <strong>Machine-readable clarity</strong>
+                        <p>
+                            {% if schema >= 70 %}
+                                Structured signals are in a relatively good place, though there may still be room to improve coverage on key templates or pages.
+                            {% elif schema >= 40 %}
+                                Structured data and machine-readable clarity are partially present, but not yet strong enough to fully support discovery.
+                            {% else %}
+                                Structured data is weak or incomplete. This reduces how clearly AI systems can interpret the site.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <span class="blocker-pill">
+                        {% if schema < 40 %}Critical{% elif schema < 70 %}Needs work{% else %}Stable{% endif %}
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <aside class="side-stack">
+            <section class="panel panel-next-step">
+                <div class="panel-header">
+                    <div>
+                        <h2>Best next move</h2>
+                        <p class="panel-subtitle">Start with the highest-leverage action.</p>
+                    </div>
+                </div>
+
+                <div class="next-step-card">
+                    <span class="next-step-label">Recommended priority</span>
+                    <strong>
+                        {% if presence_rate < 40 %}
+                            Improve answer presence first
+                        {% elif content < schema and content < visibility %}
+                            Expand missing content coverage
+                        {% elif schema < 50 %}
+                            Strengthen structured signals
+                        {% else %}
+                            Review competitors and refine priority queries
+                        {% endif %}
+                    </strong>
+                    <p>
+                        {% if presence_rate < 40 %}
+                            The brand is absent from too many answer scenarios. Start by identifying where it is missing and building support around those queries.
+                        {% elif content < schema and content < visibility %}
+                            Content readiness is lagging behind other signals. This is the fastest path to stronger visibility.
+                        {% elif schema < 50 %}
+                            Improve machine-readable clarity so AI systems can better understand and trust the site.
+                        {% else %}
+                            The foundation is in place. The next gains may come from competitor gaps and higher-priority opportunities.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="action-stack">
+                    {% if data.client_id %}
+                    <a href="{{ url_for('client_actions_page', client_id=client.id) }}"
+   class="{% if current_endpoint == 'client_actions_page' %}active{% endif %}">
+                    <a href="{{ url_for('client_visibility_page', client_id=data.client_id) }}" class="btn btn-secondary">Open Visibility</a>
+                    <a href="{{ url_for('client_competitors_page', client_id=data.client_id) }}" class="btn btn-secondary">Review Competitors</a>
+                    {% endif %}
+                </div>
+            </section>
+        </aside>
+
+        <section class="panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h2>Query-level AI visibility snapshot</h2>
+                    <p class="panel-subtitle">A quick look at how the brand appears across tracked answer scenarios.</p>
+                </div>
+            </div>
+
+            {% if ai_results %}
+            <div class="table-wrap">
+                <div class="simple-table">
+                    <div class="simple-table-row head audit-ai-row">
+                        <div>Query</div>
+                        <div>Mentioned</div>
+                        <div>Position</div>
+                        <div>Score</div>
+                    </div>
+
+                    {% for row in ai_results[:8] %}
+                    <div class="simple-table-row audit-ai-row">
+                        <div>{{ row.query if row.query is defined else "N/A" }}</div>
+                        <div>
+                            {% if row.brand_mentioned is defined %}
+                                {% if row.brand_mentioned %}
+                                    <span class="status-pill status-good">Yes</span>
+                                {% else %}
+                                    <span class="status-pill status-bad">No</span>
+                                {% endif %}
+                            {% elif row.client_mentioned is defined %}
+                                {% if row.client_mentioned %}
+                                    <span class="status-pill status-good">Yes</span>
+                                {% else %}
+                                    <span class="status-pill status-bad">No</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="status-pill status-neutral">N/A</span>
+                            {% endif %}
+                        </div>
+                        <div>{{ row.brand_position if row.brand_position is defined and row.brand_position is not none else "—" }}</div>
+                        <div>{{ row.score if row.score is defined else "N/A" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state-inline">
+                <strong>No query-level answer results available yet</strong>
+                <p>This audit does not currently include AI answer snapshot data to show here.</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h2>Interpret the score</h2>
+                    <p class="panel-subtitle">Use these signals to understand what the result is really saying.</p>
+                </div>
+            </div>
+
+            <div class="interpret-grid">
+                <div class="interpret-card">
+                    <strong>Overall score</strong>
+                    <p>The normalized score is the fastest way to understand whether the site is early-stage, moderately visible, or already operating from a strong foundation.</p>
+                </div>
+
+                <div class="interpret-card">
+                    <strong>Visibility</strong>
+                    <p>This reflects answer presence and discoverability. A low score usually means the brand is not being surfaced often enough in relevant AI responses.</p>
+                </div>
+
+                <div class="interpret-card">
+                    <strong>Content</strong>
+                    <p>This reflects whether the site has enough relevant coverage to support visibility. Low content often means missing questions, weak depth, or poor targeting.</p>
+                </div>
+
+                <div class="interpret-card">
+                    <strong>Schema</strong>
+                    <p>This reflects how clearly the site communicates structured meaning to machines. Low schema can weaken trust and understanding.</p>
+                </div>
+            </div>
+        </section>
+    </section>
+</div>
+
+<style>
+.audit-overview-shell {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+}
+
+.audit-overview-hero,
+.overview-score-card,
+.audit-overview-badge,
+.signal-card,
+.panel,
+.audit-verdict-card,
+.blocker-item,
+.next-step-card,
+.interpret-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.audit-overview-hero {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.78fr);
+    gap: 24px;
+    align-items: start;
+    background:
+        radial-gradient(circle at top left, rgba(244, 235, 255, 0.8), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(255, 243, 234, 0.75), transparent 34%),
+        #ffffff;
+}
+
+.audit-overview-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.audit-overview-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    box-shadow: none;
+    color: #4a586c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.audit-overview-badge-primary {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #E83256;
+}
+
+.audit-overview-hero-main h1 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #15233b;
+    word-break: break-word;
+}
+
+.audit-overview-subcopy {
+    margin: 16px 0 0;
+    color: #617084;
+    font-size: 16px;
+    line-height: 1.68;
+    max-width: 760px;
+}
+
+.audit-verdict-card {
+    margin-top: 20px;
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.verdict-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.verdict-title {
+    display: block;
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.audit-verdict-card p {
+    margin: 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.overview-score-card {
+    padding: 22px;
+    border-color: #ffd8c6;
+    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+}
+
+.overview-score-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.overview-score-value {
+    font-size: 68px;
+    line-height: 1;
+    font-weight: 800;
+    color: #E83256;
+    margin-top: 14px;
+}
+
+.overview-score-meta {
+    margin-top: 10px;
+    color: #15233b;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.overview-score-track {
+    width: 100%;
+    height: 12px;
+    background: #eceff5;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.overview-score-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #E83256, #ff8b57);
+}
+
+.overview-score-note {
+    margin: 16px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.audit-overview-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.signal-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.signal-card-accent {
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ebe7ff;
+}
+
+.signal-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.signal-value {
+    display: block;
+    font-size: 30px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.signal-note {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.55;
+}
+
+.audit-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.side-stack {
+    display: grid;
+    gap: 24px;
+}
+
+.panel {
+    padding: 24px;
+}
+
+.panel-full {
+    grid-column: 1 / -1;
+}
+
+.panel-header {
+    margin-bottom: 18px;
+}
+
+.panel-header h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.panel-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.blocker-list {
+    display: grid;
+    gap: 14px;
+}
+
+.blocker-item {
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: start;
+    background: #fbfcfe;
+}
+
+.blocker-severity {
+    width: 10px;
+    border-radius: 999px;
+    min-height: 100%;
+}
+
+.blocker-severity.high { background: #ef4444; }
+.blocker-severity.medium { background: #f59e0b; }
+.blocker-severity.low { background: #10b981; }
+
+.blocker-copy strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.blocker-copy p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.blocker-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    color: #4a586c;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.next-step-card {
+    padding: 18px;
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ebe7ff;
+    margin-bottom: 16px;
+}
+
+.next-step-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.next-step-card strong {
+    display: block;
+    color: #16243c;
+    font-size: 22px;
+    line-height: 1.2;
+    margin-bottom: 10px;
+}
+
+.next-step-card p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.action-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.audit-ai-row {
+    grid-template-columns: minmax(260px, 1.8fr) 140px 120px 120px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.status-good {
+    background: #ecfdf3;
+    color: #027a48;
+}
+
+.status-bad {
+    background: #fff1f2;
+    color: #be123c;
+}
+
+.status-neutral {
+    background: #f8fafc;
+    color: #475569;
+}
+
+.empty-state-inline {
+    padding: 18px;
+    border-radius: 18px;
+    background: #fafcff;
+    border: 1px dashed #d6dde8;
+}
+
+.empty-state-inline strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.empty-state-inline p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.interpret-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.interpret-card {
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.interpret-card strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.interpret-card p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+    .audit-overview-hero,
+    .audit-overview-stats-grid,
+    .audit-overview-grid,
+    .interpret-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .audit-overview-shell {
+        padding: 18px;
+    }
+
+    .audit-overview-hero,
+    .overview-score-card,
+    .signal-card,
+    .panel,
+    .audit-verdict-card,
+    .blocker-item,
+    .next-step-card,
+    .interpret-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .audit-overview-hero-main h1 {
+        font-size: 30px;
+    }
+
+    .overview-score-value {
+        font-size: 52px;
+    }
+
+    .blocker-item {
+        grid-template-columns: 10px 1fr;
+    }
+
+    .blocker-pill {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .audit-ai-row {
+        min-width: 760px;
+    }
+}
+</style>
+
+{% endblock %}

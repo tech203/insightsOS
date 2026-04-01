@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Content Draft | AEO Agents{% endblock %}
+{% block title %}Content Draft | Insights OS{% endblock %}
 
 {% block page_title %}{{ draft.client_name if draft is defined and draft.client_name else "Content Draft" }}{% endblock %}
 {% block page_subtitle %}Review, refine, and prepare this AI-generated draft for publishing{% endblock %}
@@ -34,7 +34,7 @@
             <div class="draft-hero-actions">
                 <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
                 <a href="{{ url_for('content_brief_detail', item_id=draft.id) if draft is defined and draft.id else '#' }}" class="btn btn-secondary">View Brief</a>
-                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary">Re-Audit Later</a>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-secondary">Re-Audit Later</a>
             </div>
         </div>
 
@@ -98,7 +98,7 @@ For businesses, content like this does more than educate readers. It also improv
             </div>
 
             <div class="draft-editor-actions">
-                <button type="button" class="btn btn-primary" id="copyDraftBtn">Copy Full Draft</button>
+                <button type="button" class="btn btn-secondary" id="copyDraftBtn">Copy Full Draft</button>
                 <button type="button" class="btn btn-secondary">Save Changes</button>
                 <button type="button" class="btn btn-secondary">Mark as Ready</button>
             </div>
@@ -193,7 +193,7 @@ For businesses, content like this does more than educate readers. It also improv
 
             <div class="draft-cta-actions">
                 <button type="button" class="btn btn-secondary">Mark as Published</button>
-                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-primary">Run New Audit</a>
+                <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-secondary">Run New Audit</a>
             </div>
         </div>
 

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Growth Reports | AEO Agents{% endblock %}
+{% block title %}Growth Reports | Insights OS{% endblock %}
 {% block page_title %}Growth Reports{% endblock %}
 {% block page_subtitle %}See your latest reports, track progress, and open the next best action for each website.{% endblock %}
 
 {% block topbar_actions %}
-<a href="/clients" class="btn btn-primary">Open Clients</a>
+<a href="/clients" class="btn btn-secondary">Open Clients</a>
 {% endblock %}
 
 {% block content %}
@@ -120,7 +120,7 @@
         </div>
 
         <div class="card-actions">
-            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <button type="submit" class="btn btn-secondary">Apply Filters</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Reset</a>
         </div>
     </form>
@@ -187,7 +187,7 @@
                 <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-secondary">View Summary</a>
                 <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="btn btn-secondary">Full Report</a>
                 {% if audit.client_slug %}
-                <a href="/client/{{ client.id }}/growth-plan" class="btn btn-primary">View Growth Plan</a>
+                <a href="/client/{{ client.id }}/growth-plan" class="btn btn-secondary">View Growth Plan</a>
                 {% endif %}
             </div>
         </article>

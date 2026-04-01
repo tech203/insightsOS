@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AEO Agents{% endblock %}</title>
+    <title>{% block title %}Insights OS{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
 </head>
 <body>
+    {% set globals = {} %}
     {% set current_endpoint = request.endpoint if request and request.endpoint else '' %}
     {% set is_admin_user = current_user.is_authenticated and (current_user.email == "pypteltd@gmail.com" or current_user.role == "admin") %}
 
@@ -28,7 +29,7 @@
 
             <a href="{{ url_for('index') }}" class="mobile-brand" aria-label="Go to dashboard">
                 <span class="mobile-brand-mark">A</span>
-                <span class="mobile-brand-text">AEO Agents</span>
+                <span class="mobile-brand-text">Insights OS</span>
             </a>
         </header>
 
@@ -41,7 +42,7 @@
                     <a href="{{ url_for('index') }}" class="brand-link">
                         <div class="brand-mark">A</div>
                         <div class="brand-copy">
-                            <strong>AEO Agents</strong>
+                            <strong> Insights OS</strong>
                             <span>AI Visibility Workspace</span>
                         </div>
                     </a>
@@ -59,63 +60,79 @@
                     {% endif %}
                 </nav>
 
-                {% if is_admin_user %}
-                <div class="nav-group dev-view-switcher">
-                    <div class="nav-label">Dev View Mode</div>
+<div class="sidebar-footer">
 
-                    <div class="dev-view-buttons">
-                        <a
-                            href="{{ url_for('dev_set_view_mode', mode='single') }}"
-                            class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}"
-                        >
-                            Single
-                        </a>
+    {% if is_admin_user %}
+    <div class="sidebar-footer-panel sidebar-dev-panel">
+        <div class="sidebar-footer-head">
+            <span class="sidebar-footer-kicker">Dev View Mode</span>
+        </div>
 
-                        <a
-                            href="{{ url_for('dev_set_view_mode', mode='multi') }}"
-                            class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}"
-                        >
-                            Multi
-                        </a>
+        <div class="dev-view-buttons">
+            <a
+                href="{{ url_for('dev_set_view_mode', mode='single') }}"
+                class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}"
+            >
+                Single
+            </a>
 
-                        <a
-                            href="{{ url_for('dev_set_view_mode', mode='admin') }}"
-                            class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}"
-                        >
-                            Admin
-                        </a>
+            <a
+                href="{{ url_for('dev_set_view_mode', mode='multi') }}"
+                class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}"
+            >
+                Multi
+            </a>
 
-                        <a
-                            href="{{ url_for('dev_set_view_mode', mode='auto') }}"
-                            class="dev-view-btn {% if not session.get('dev_view_mode') %}active{% endif %}"
-                        >
-                            Auto
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
+            <a
+                href="{{ url_for('dev_set_view_mode', mode='admin') }}"
+                class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}"
+            >
+                Admin
+            </a>
 
-                <div class="sidebar-footer">
-                    <div class="sidebar-wallet">
-                        <span>Credits</span>
-                        <strong>{{ wallet_balance if wallet_balance is defined else 14 }}</strong>
-                    </div>
+            <a
+                href="{{ url_for('dev_set_view_mode', mode='auto') }}"
+                class="dev-view-btn {% if not session.get('dev_view_mode') %}active{% endif %}"
+            >
+                Auto
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
-                    <a
-                        href="{{ url_for('pricing_page') }}"
-                        class="sidebar-buy-btn {% if current_endpoint == 'pricing_page' %}active{% endif %}"
-                    >
-                        Buy Credits
-                    </a>
+    <div class="sidebar-footer-panel sidebar-credits-panel">
+        <div class="sidebar-footer-head">
+            <span class="sidebar-footer-kicker">Credits</span>
+        </div>
 
-                    <a
-                        href="{{ url_for('logout') }}"
-                        class="sidebar-logout-btn"
-                    >
-                        Logout
-                    </a>
-                </div>
-            </div>
+        <div class="sidebar-credits-value">
+            {{ wallet_balance if wallet_balance is defined else 14 }}
+        </div>
+
+        <div class="sidebar-credits-meta">
+            Available for audits and workspace actions
+        </div>
+
+        <a href="{{ url_for('pricing_page') }}" class="sidebar-buy-btn">
+            Buy Credits
+        </a>
+    </div>
+
+    <div class="sidebar-footer-panel sidebar-account-panel">
+        <div class="sidebar-footer-head">
+            <span class="sidebar-footer-kicker">Account</span>
+        </div>
+
+        <div class="sidebar-account-email" title="{{ current_user.email }}">
+            {{ current_user.email }}
+        </div>
+
+        <a href="{{ url_for('logout') }}" class="sidebar-logout-btn">
+            Logout
+        </a>
+    </div>
+
+</div>
         </aside>
 
         <main class="app-main">
@@ -131,18 +148,10 @@
                 </section>
             {% endif %}
 
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="flash-stack">
-                            {% for category, message in messages %}
-                                <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-
                 <section class="page-body-shell">
-                    {% block content %}{% endblock %}
+                    <div class="page-shell">
+                        {% block content %}{% endblock %}
+                    </div>
                 </section>
             </div>
         </main>

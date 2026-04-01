@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">New Draft</a>
-<a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">Open Queue</a>
+<a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-secondary">Open Queue</a>
 {% endblock %}
 
 {% block content %}
@@ -86,7 +86,7 @@
                 </div>
 
                 <div class="card-actions">
-                    <button type="submit" class="btn btn-primary">Save to Queue</button>
+                    <button type="submit" class="btn btn-secondary">Save to Queue</button>
                     <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Another</a>
                 </div>
             </form>

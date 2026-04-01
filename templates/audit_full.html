@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Full Audit | AEO Agents{% endblock %}
+{% block title %}Full Audit | Insights OS{% endblock %}
 {% block page_title %}Full Audit{% endblock %}
 {% block page_subtitle %}Detailed audit view with the full saved payload for validation, debugging, and deeper analysis.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Back to Summary</a>
 {% if data.client_id %}
-<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-primary">Open Client</a>
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
 {% endif %}
 {% endblock %}
 
@@ -100,14 +100,14 @@
             <div>Brand Position</div>
             <d{% extends "base.html" %}
 
-{% block title %}Full Audit | AEO Agents{% endblock %}
+{% block title %}Full Audit | Insights OS{% endblock %}
 {% block page_title %}Full Audit{% endblock %}
 {% block page_subtitle %}Detailed audit inspection view with the full saved payload for validation, debugging, and deeper analysis.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Back to Summary</a>
 {% if data.client_id %}
-<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-primary">Open Client</a>
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
 {% endif %}
 {% endblock %}
 

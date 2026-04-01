@@ -1,6 +1,6 @@
 {% extends "marketing_base.html" %}
 
-{% block title %}AEO Agency Singapore | Audit AI Visibility, Fix Gaps, Grow Brand Mentions{% endblock %}
+{% block title %}Insights OS | Improve AI Visibility and Know What to Fix Next{% endblock %}
 
 {% block content %}
 
@@ -9,15 +9,13 @@
     <header class="aeo-topbar">
         <div class="aeo-container aeo-topbar-inner">
             <a href="{{ url_for('index') }}" class="aeo-brand">
-                <div class="aeo-brand-title">AEO Audit</div>
-                <div class="aeo-brand-subtitle">Visibility Intelligence for AI Search</div>
+                <div class="aeo-brand-title">Insights OS</div>
+                <div class="aeo-brand-subtitle">AI Visibility Operating System</div>
             </a>
 
             <nav class="aeo-nav">
-                <a href="#why-aeo">Why AEO</a>
-                <a href="#framework">Framework</a>
-                <a href="#platform">Platform</a>
-                <a href="#pricing">Pricing</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="{{ url_for('pricing_page') }}">Pricing</a>
                 <a href="#faq">FAQ</a>
             </nav>
 
@@ -46,43 +44,41 @@
                 </h1>
 
                 <p class="aeo-hero-copy">
-                    AEO Audit helps you see where your brand is being missed in AI answers,
-                    which competitors are being recommended instead, and what pages or
-                    content you should build next to improve visibility across ChatGPT,
-                    Google AI Overviews, Perplexity, and other answer engines.
+                    Insights OS helps you see where your brand is being missed in AI answers,
+                    which competitors are being recommended instead, and what pages, signals,
+                    or content you should improve next.
                 </p>
 
                 <div class="aeo-note">
-                    <strong>Two ways to work with us:</strong>
-                    use the platform self-serve, or engage us as your done-for-you AEO partner.
-                    You can also combine both in a hybrid model.
+                    Built for teams that want more than a one-time report. Move from audit
+                    to priority to execution with a workflow your team can actually use.
                 </div>
 
                 <div class="aeo-hero-actions">
                     <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
                     <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-primary">Book Strategy Call</a>
-                    <a href="#platform" class="aeo-btn aeo-btn-outline">See the Platform</a>
+                    <a href="#how-it-works" class="aeo-btn aeo-btn-outline">See How It Works</a>
                 </div>
 
                 <div class="aeo-feature-grid">
                     <div class="aeo-feature-card">
-                        <div class="aeo-feature-title">Built for AI answers</div>
-                        <div class="aeo-feature-text">Structured for recommendation-driven discovery, not just old-school ranking reports.</div>
+                        <div class="aeo-feature-title">Audit AI visibility</div>
+                        <div class="aeo-feature-text">See where your brand is present, where it is missing, and where competitors are winning.</div>
                     </div>
                     <div class="aeo-feature-card">
-                        <div class="aeo-feature-title">Clear diagnosis</div>
-                        <div class="aeo-feature-text">See weak queries, missed brand mentions, competitor presence, and score movement.</div>
+                        <div class="aeo-feature-title">Get clear priorities</div>
+                        <div class="aeo-feature-text">Surface missed queries, weak coverage, and the next best actions to improve visibility.</div>
                     </div>
                     <div class="aeo-feature-card">
-                        <div class="aeo-feature-title">Execution included</div>
-                        <div class="aeo-feature-text">Turn audit findings into briefs, drafts, and a tracked content queue your team can use.</div>
+                        <div class="aeo-feature-title">Execute faster</div>
+                        <div class="aeo-feature-text">Turn opportunities into briefs, drafts, and a content queue that supports real production.</div>
                     </div>
                 </div>
 
                 <div class="aeo-tag-row">
-                    <span>3 starter credits</span>
-                    <span>Multi-client workspace</span>
-                    <span>Agency white-label add-on</span>
+                    <span>Start free</span>
+                    <span>Credits-based usage</span>
+                    <span>Agency-ready workflow</span>
                 </div>
             </div>
 
@@ -116,7 +112,7 @@
                     </div>
 
                     <div class="aeo-highlight">
-                        Clear takeaway: the brand has room to grow through stronger service-page coverage,
+                        Clear takeaway: this brand has room to grow through stronger service-page coverage,
                         FAQ structure, comparison content, and better AI-readable authority signals.
                     </div>
 
@@ -127,7 +123,7 @@
                         </div>
                         <div class="aeo-insight-card">
                             <div class="aeo-insight-title">Recommended next action</div>
-                            <div class="aeo-insight-text">Create a comparison page + FAQ cluster + supporting trust content.</div>
+                            <div class="aeo-insight-text">Create a comparison page, FAQ cluster, and trust-supporting content.</div>
                         </div>
                         <div class="aeo-insight-card">
                             <div class="aeo-insight-title">Workflow output</div>
@@ -142,206 +138,101 @@
     <section class="aeo-strip">
         <div class="aeo-container aeo-strip-grid">
             <div class="aeo-strip-card">
-                <div class="aeo-strip-title">Self-serve platform</div>
-                <div class="aeo-strip-text">For internal teams and agencies running audits themselves.</div>
+                <div class="aeo-strip-title">Audit</div>
+                <div class="aeo-strip-text">Measure how visible your brand is in AI-generated answers.</div>
             </div>
             <div class="aeo-strip-card">
-                <div class="aeo-strip-title">Done-for-you service</div>
-                <div class="aeo-strip-text">For teams who want strategy, prioritisation, and execution help.</div>
+                <div class="aeo-strip-title">Prioritize</div>
+                <div class="aeo-strip-text">Turn weak queries and missing mentions into focused next steps.</div>
             </div>
             <div class="aeo-strip-card">
-                <div class="aeo-strip-title">Hybrid model</div>
-                <div class="aeo-strip-text">Use the software while getting expert support when needed.</div>
+                <div class="aeo-strip-title">Execute</div>
+                <div class="aeo-strip-text">Generate briefs and drafts, then manage output in one queue.</div>
             </div>
             <div class="aeo-strip-card">
-                <div class="aeo-strip-title">White-label ready</div>
-                <div class="aeo-strip-text">Agency add-on for branded client-facing delivery.</div>
+                <div class="aeo-strip-title">Scale</div>
+                <div class="aeo-strip-text">Use it for your own brand, multiple clients, or an agency workflow.</div>
             </div>
         </div>
     </section>
 
-    <section id="why-aeo" class="aeo-section aeo-section-dark">
+    <section id="how-it-works" class="aeo-section aeo-section-dark">
         <div class="aeo-container">
-            <div class="aeo-section-intro">
-                <div class="aeo-section-kicker">Why AEO matters now</div>
-                <h2>Search behaviour changed. Most agencies still pitch old SEO language.</h2>
+            <div class="aeo-section-intro center">
+                <div class="aeo-section-kicker">How It Works</div>
+                <h2>A simpler workflow for AI visibility</h2>
                 <p>
-                    Users increasingly ask AI tools for direct recommendations. If your brand is not the source AI trusts,
-                    your competitors get named first. Traditional rankings still matter, but recommendation visibility is now a separate growth layer.
+                    Run an audit, identify what is holding your brand back, and move directly into action.
                 </p>
             </div>
 
             <div class="aeo-card-grid three">
-                <div class="aeo-content-card">
-                    <h3>SEO gets clicks</h3>
-                    <p>AEO helps your brand appear inside the answer itself, especially for research, comparison, and recommendation queries.</p>
-                </div>
-                <div class="aeo-content-card">
-                    <h3>AI picks trusted structure</h3>
-                    <p>Clear entity signals, FAQ patterns, service explainers, and proof-rich content make your pages easier for answer engines to use.</p>
-                </div>
-                <div class="aeo-content-card">
-                    <h3>Visibility must be measured</h3>
-                    <p>We track query-level brand mentions, missed answers, competitor presence, and next actions—not rankings alone.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="framework" class="aeo-section">
-        <div class="aeo-container">
-            <div class="aeo-section-intro">
-                <div class="aeo-section-kicker">Framework</div>
-                <h2>A clearer, more credible AEO workflow</h2>
-                <p>Instead of inflated promises, we focus on a measurable system your team can understand and use.</p>
-            </div>
-
-            <div class="aeo-card-grid four">
                 <div class="aeo-step-card">
                     <div class="aeo-step-number">1</div>
                     <h3>Audit</h3>
-                    <p>Check structure, schema, query visibility, brand mentions, and competitor patterns.</p>
+                    <p>Check visibility, content coverage, and machine-readable signals.</p>
                 </div>
                 <div class="aeo-step-card">
                     <div class="aeo-step-number">2</div>
-                    <h3>Prioritise</h3>
-                    <p>Translate weak queries into recommended actions with clear priority and page recommendations.</p>
+                    <h3>Prioritize</h3>
+                    <p>See the most important gaps, missed queries, and next best actions.</p>
                 </div>
                 <div class="aeo-step-card">
                     <div class="aeo-step-number">3</div>
-                    <h3>Generate</h3>
-                    <p>Create content briefs and first drafts for service pages, FAQs, comparisons, and authority content.</p>
-                </div>
-                <div class="aeo-step-card">
-                    <div class="aeo-step-number">4</div>
-                    <h3>Track</h3>
-                    <p>Monitor changes over time with comparison views, content queue management, and query-level progress.</p>
+                    <h3>Execute</h3>
+                    <p>Generate briefs and drafts, then move work through your content queue.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="platform" class="aeo-section aeo-section-soft">
+    <section class="aeo-section">
         <div class="aeo-container">
-            <div class="aeo-section-intro">
-                <div class="aeo-section-kicker">Platform</div>
-                <h2>A workspace built for audit → action → content delivery</h2>
-                <p>
-                    The platform is designed for agencies and operators who need more than a one-time report.
-                    It brings audits, comparison, action planning, and content production into one workflow.
-                </p>
-            </div>
-
             <div class="aeo-split-grid">
-                <div class="aeo-panel">
-                    <div class="aeo-panel-head">
-                        <div>
-                            <div class="aeo-kicker">Client Workspace Preview</div>
-                            <div class="aeo-scorecard-title">What users manage inside the product</div>
-                        </div>
-                        <div class="aeo-badge">Preview</div>
-                    </div>
-
-                    <div class="aeo-mini-stats">
-                        <div class="aeo-stat-card">
-                            <div class="aeo-stat-label">Weak Queries</div>
-                            <div class="aeo-stat-value">7</div>
-                        </div>
-                        <div class="aeo-stat-card">
-                            <div class="aeo-stat-label">Recommended Actions</div>
-                            <div class="aeo-stat-value">5</div>
-                        </div>
-                        <div class="aeo-stat-card">
-                            <div class="aeo-stat-label">Content Assets</div>
-                            <div class="aeo-stat-value aeo-stat-small">Brief + Draft</div>
-                        </div>
-                    </div>
-
-                    <div class="aeo-insight-list">
-                        <div class="aeo-insight-card">
-                            <div class="aeo-insight-title">Client portfolio</div>
-                            <div class="aeo-insight-text">Manage multiple clients, each with saved audits, visibility views, competitor comparison, and action pages.</div>
-                        </div>
-                        <div class="aeo-insight-card">
-                            <div class="aeo-insight-title">Visibility analysis</div>
-                            <div class="aeo-insight-text">Review query-level brand mention changes, missed queries, and score movement between audits.</div>
-                        </div>
-                        <div class="aeo-insight-card">
-                            <div class="aeo-insight-title">Content workflow</div>
-                            <div class="aeo-insight-text">Generate briefs and drafts, then save them into a content queue for production tracking.</div>
-                        </div>
+                <div class="aeo-side-stack">
+                    <div class="aeo-section-intro">
+                        <div class="aeo-section-kicker">What You Get</div>
+                        <h2>A clearer view of what to improve</h2>
+                        <p>
+                            Instead of guessing, you get a clearer operating view of your AI visibility,
+                            what is missing, and what your team should work on next.
+                        </p>
                     </div>
                 </div>
 
                 <div class="aeo-side-stack">
                     <div class="aeo-content-card">
-                        <h3>What the platform helps you do</h3>
-                        <ul class="aeo-list">
-                            <li>run audits for your own brand or for clients</li>
-                            <li>compare historical score movement over time</li>
-                            <li>identify queries where the brand is missing</li>
-                            <li>see where competitors appear instead</li>
-                            <li>generate briefs and first drafts from missed opportunities</li>
-                            <li>organise content production in a queue your team can actually use</li>
-                        </ul>
+                        <h3>Visibility snapshot</h3>
+                        <p>See whether your brand is present in the answer scenarios that matter.</p>
                     </div>
-
-                    <div class="aeo-content-card aeo-accent-card">
-                        <h3>Important expectation</h3>
-                        <p>
-                            This is not an instant “AI ranking hack.” It is a system for diagnosing visibility gaps,
-                            prioritising improvements, and building better AI-readable content over time.
-                        </p>
-                    </div>
-
                     <div class="aeo-content-card">
-                        <h3>Best fit</h3>
-                        <p>Best for agencies, consultants, and in-house teams that want repeatable delivery, not one-off guesswork.</p>
+                        <h3>Missed opportunities</h3>
+                        <p>Identify weak queries, missing coverage, and gaps your competitors may be winning.</p>
+                    </div>
+                    <div class="aeo-content-card">
+                        <h3>Actionable output</h3>
+                        <p>Move straight into briefs, drafts, and a queue your team can actually use.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="pricing" class="aeo-section">
+    <section class="aeo-section aeo-section-soft">
         <div class="aeo-container">
-            <div class="aeo-section-intro">
+            <div class="aeo-section-intro center">
                 <div class="aeo-section-kicker">Pricing</div>
-                <h2>Start free. Scale with credits. Deliver with white-label.</h2>
+                <h2>Start free, then scale when usage grows</h2>
                 <p>
-                    Get started with free credits, top up anytime with bundles, or upgrade to a monthly plan
-                    for recurring usage and stronger workflow tools.
+                    Use free credits to experience the workflow, then upgrade only when you need more recurring usage and production capacity.
                 </p>
             </div>
 
-            <div class="aeo-pricing-note">
-                <div>
-                    <h3>How pricing works</h3>
-                    <p>Usage is credit-based. Plans unlock recurring credits and workflow value. The agency add-on unlocks white-label delivery for client-facing use.</p>
-                </div>
-
-                <div class="aeo-note-box">
-                    <div class="aeo-note-box-title">Credits pay for usage. Plans unlock workflow.</div>
-                    <ul class="aeo-list compact">
-                        <li>1 credit = standard audit</li>
-                        <li>1 credit = content brief</li>
-                        <li>2 credits = content draft</li>
-                        <li>2 credits = competitor comparison audit</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="aeo-card-grid four">
+            <div class="aeo-card-grid three">
                 <div class="aeo-pricing-card">
                     <div class="aeo-plan-name">Free</div>
                     <div class="aeo-plan-price">US$0</div>
-                    <p>Start learning the workflow without commitment.</p>
-                    <ul class="aeo-list">
-                        <li>3 starter credits</li>
-                        <li>Basic audit reports</li>
-                        <li>Standard branding</li>
-                        <li>Limited history</li>
-                    </ul>
+                    <p>Explore the product and run the core workflow with starter credits.</p>
                     <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
                 </div>
 
@@ -349,43 +240,15 @@
                     <div class="aeo-plan-badge">Most Popular</div>
                     <div class="aeo-plan-name">Pro</div>
                     <div class="aeo-plan-price">US$29 <span>/month</span></div>
-                    <p>Best for regular self-serve usage and recurring content workflow.</p>
-                    <ul class="aeo-list">
-                        <li>Includes 20 monthly credits</li>
-                        <li>Buy extra credits anytime</li>
-                        <li>Content brief + draft workflow</li>
-                        <li>Better history and workflow access</li>
-                    </ul>
-                    <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Choose Pro</a>
-                </div>
-
-                <div class="aeo-pricing-card">
-                    <div class="aeo-plan-name">Growth</div>
-                    <div class="aeo-plan-price">US$79 <span>/month</span></div>
-                    <p>For heavier users, higher audit volume, or small teams.</p>
-                    <ul class="aeo-list">
-                        <li>Includes 75 monthly credits</li>
-                        <li>Stronger recurring usage value</li>
-                        <li>Better fit for ongoing audit and content cycles</li>
-                        <li>Can still buy extra credits anytime</li>
-                    </ul>
-                    <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-outline">Choose Growth</a>
+                    <p>Best for recurring audits, content support, and solo operators who need regular usage.</p>
+                    <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-light">View Pricing</a>
                 </div>
 
                 <div class="aeo-pricing-card accent">
-                    <div class="aeo-plan-name">Agency Add-on</div>
-                    <div class="aeo-plan-price">US$79 <span>/month add-on</span></div>
-                    <p>A premium delivery layer for client-facing presentation and white-label reporting.</p>
-                    <ul class="aeo-list">
-                        <li>White-label reports</li>
-                        <li>Agency branding</li>
-                        <li>Client-ready exports</li>
-                        <li>Shareable branded reports</li>
-                    </ul>
-                    <div class="aeo-inline-note">
-                        Agency is not a replacement for usage credits. It is an add-on layer for white-label delivery and presentation.
-                    </div>
-                    <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-primary">Get Agency Setup</a>
+                    <div class="aeo-plan-name">Agency</div>
+                    <div class="aeo-plan-price">Optional add-on</div>
+                    <p>For branded delivery, white-label reports, and client-facing workflows.</p>
+                    <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-outline">See Plans</a>
                 </div>
             </div>
         </div>
@@ -395,38 +258,23 @@
         <div class="aeo-container aeo-container-narrow">
             <div class="aeo-section-intro center">
                 <div class="aeo-section-kicker">FAQ</div>
-                <h2>Questions buyers will ask</h2>
+                <h2>Quick answers</h2>
             </div>
 
             <div class="aeo-faq-list">
                 <div class="aeo-faq-card">
-                    <h3>What is the difference between SEO and AEO?</h3>
-                    <p>SEO focuses on ranking pages in search results. AEO focuses on improving the chances that your brand appears inside AI-generated answers and recommendations.</p>
+                    <h3>What does Insights OS do?</h3>
+                    <p>It helps you audit AI visibility, identify missed opportunities, and turn findings into content actions.</p>
                 </div>
 
                 <div class="aeo-faq-card">
-                    <h3>How do you measure AEO progress?</h3>
-                    <p>We use query-level tests, brand mention tracking, comparison snapshots, content coverage reviews, and implementation progress—not rankings alone.</p>
+                    <h3>Who is it for?</h3>
+                    <p>It is built for agencies, consultants, in-house teams, and businesses that want a clearer AI visibility workflow.</p>
                 </div>
 
                 <div class="aeo-faq-card">
-                    <h3>What is the difference between the audit, the brief, and the draft?</h3>
-                    <p>The audit shows where you are visible and where you are being missed. The brief plans what content should be created. The draft is the first written version of that content.</p>
-                </div>
-
-                <div class="aeo-faq-card">
-                    <h3>Do I need new content?</h3>
-                    <p>In many cases, yes. Common gaps include service explainers, FAQs, comparison pages, and proof-rich content that is easier for answer engines to understand and reuse.</p>
-                </div>
-
-                <div class="aeo-faq-card">
-                    <h3>Is this for self-serve users or for agencies?</h3>
-                    <p>Both. Self-serve users can run the workflow themselves, while agencies can manage multiple clients and optionally use the white-label add-on for delivery.</p>
-                </div>
-
-                <div class="aeo-faq-card">
-                    <h3>Is this a guarantee that AI tools will recommend my brand?</h3>
-                    <p>No. It is a structured system for identifying gaps, improving content and brand clarity, and increasing your readiness for answer engines over time.</p>
+                    <h3>Do I need to be technical?</h3>
+                    <p>No. The product is designed to surface what matters and guide you toward the next best action.</p>
                 </div>
             </div>
         </div>
@@ -436,11 +284,11 @@
         <div class="aeo-container">
             <div class="aeo-cta-panel">
                 <div class="aeo-cta-left">
-                    <div class="aeo-section-kicker">Call to action</div>
+                    <div class="aeo-section-kicker">Get Started</div>
                     <h2>Want to improve your visibility in AI answers without guessing what to do next?</h2>
                     <p>
                         Start free if you want to explore the platform yourself.
-                        Book a strategy call if you want help deciding between software, service, or a hybrid setup.
+                        Book a strategy call if you want help deciding what to fix first.
                     </p>
 
                     <div class="aeo-hero-actions">
@@ -451,19 +299,16 @@
 
                 <div class="aeo-cta-right">
                     <div class="aeo-content-card">
-                        <h3>Book a 30-minute strategy call</h3>
-                        <p>Use the booking link below to discuss the platform, the service, or an agency setup.</p>
+                        <h3>Need a deeper walkthrough?</h3>
+                        <p>Use the pricing page for plan details, or book a call to discuss self-serve, agency, or hybrid use.</p>
 
                         <div class="aeo-cta-points">
-                            <div class="aeo-cta-point">30-minute consultation</div>
-                            <div class="aeo-cta-point">Discuss platform, service, or hybrid setup</div>
-                            <div class="aeo-cta-point">Review your use case and next best step</div>
-                            <div class="aeo-cta-point">Instant access to the Cal.com booking page</div>
+                            <div class="aeo-cta-point">Start with free credits</div>
+                            <div class="aeo-cta-point">Upgrade only when usage grows</div>
+                            <div class="aeo-cta-point">Get help if you want a faster rollout</div>
                         </div>
 
-                        <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-primary aeo-btn-block">
-                            Open Cal.com Booking
-                        </a>
+                        <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-primary aeo-btn-block">View Pricing</a>
                     </div>
                 </div>
             </div>
@@ -476,14 +321,12 @@
     --bg-main: #020617;
     --bg-soft: #0b1120;
     --panel: rgba(255, 255, 255, 0.05);
-    --panel-strong: rgba(15, 23, 42, 0.72);
     --border: rgba(255, 255, 255, 0.10);
     --text-main: #f8fafc;
     --text-soft: #cbd5e1;
     --text-muted: #94a3b8;
     --accent: #818cf8;
     --accent-strong: #6366f1;
-    --accent-soft: rgba(129, 140, 248, 0.12);
     --success: #34d399;
 }
 
@@ -702,10 +545,6 @@
     line-height: 1.7;
 }
 
-.aeo-note strong {
-    color: var(--text-main);
-}
-
 .aeo-hero-actions {
     display: flex;
     flex-wrap: wrap;
@@ -723,7 +562,6 @@
 .aeo-strip-grid,
 .aeo-card-grid,
 .aeo-score-grid,
-.aeo-mini-stats,
 .aeo-faq-list,
 .aeo-insight-list,
 .aeo-side-stack,
@@ -743,7 +581,6 @@
 .aeo-step-card,
 .aeo-faq-card,
 .aeo-pricing-card,
-.aeo-panel,
 .aeo-scorecard {
     border: 1px solid var(--border);
     background: var(--panel);
@@ -755,8 +592,7 @@
 .aeo-content-card,
 .aeo-step-card,
 .aeo-faq-card,
-.aeo-pricing-card,
-.aeo-panel {
+.aeo-pricing-card {
     padding: 22px;
 }
 
@@ -801,8 +637,7 @@
     box-shadow: 0 24px 48px rgba(30, 27, 75, 0.26);
 }
 
-.aeo-scorecard-head,
-.aeo-panel-head {
+.aeo-scorecard-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -832,12 +667,8 @@
     white-space: nowrap;
 }
 
-.aeo-score-grid,
-.aeo-mini-stats {
-    margin-top: 22px;
-}
-
 .aeo-score-grid {
+    margin-top: 22px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -963,14 +794,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.aeo-card-grid.four,
-.aeo-mini-stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.aeo-content-card h3,
 .aeo-step-card h3,
-.aeo-faq-card h3 {
+.aeo-faq-card h3,
+.aeo-content-card h3,
+.aeo-pricing-card h3 {
     margin: 0;
     font-size: 22px;
     color: var(--text-main);
@@ -990,60 +817,19 @@
 }
 
 .aeo-split-grid,
-.aeo-cta-panel,
-.aeo-pricing-note {
+.aeo-cta-panel {
     display: grid;
     grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
     gap: 20px;
 }
 
-.aeo-list {
-    margin: 14px 0 0;
-    padding-left: 18px;
-    color: var(--text-soft);
-    line-height: 1.8;
-}
-
-.aeo-list.compact {
-    margin-top: 10px;
-}
-
-.aeo-accent-card {
-    border-color: rgba(129, 140, 248, 0.18);
-    background: rgba(129, 140, 248, 0.10);
-}
-
-.aeo-pricing-note {
-    margin-bottom: 22px;
-    padding: 22px;
-    border-radius: 24px;
-    border: 1px solid rgba(129, 140, 248, 0.18);
-    background: rgba(129, 140, 248, 0.10);
-}
-
-.aeo-pricing-note h3,
-.aeo-note-box-title {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-main);
-}
-
-.aeo-pricing-note p {
-    margin-top: 12px;
-    color: #e2e8f0;
-    line-height: 1.7;
-}
-
-.aeo-note-box {
-    padding: 18px;
-    border-radius: 18px;
-    border: 1px solid var(--border);
-    background: rgba(2, 6, 23, 0.40);
-}
-
 .aeo-pricing-card {
     position: relative;
+}
+
+.aeo-pricing-card.featured {
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+    border-color: rgba(255, 255, 255, 0.16);
 }
 
 .aeo-pricing-card.accent {
@@ -1086,15 +872,12 @@
     color: var(--text-muted);
 }
 
-.aeo-inline-note {
-    margin-top: 16px;
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: rgba(2, 6, 23, 0.40);
-    color: var(--text-soft);
-    font-size: 14px;
-    line-height: 1.6;
+.aeo-faq-list {
+    gap: 18px;
+}
+
+.aeo-faq-card {
+    padding: 24px;
 }
 
 .aeo-cta-panel {
@@ -1102,6 +885,10 @@
     border-radius: 32px;
     border: 1px solid var(--border);
     background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.15));
+}
+
+.aeo-cta-points {
+    margin-top: 16px;
 }
 
 .aeo-cta-point {
@@ -1123,18 +910,12 @@
     .aeo-strip-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
-    .aeo-card-grid.four,
-    .aeo-mini-stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 @media (max-width: 980px) {
     .aeo-hero-grid,
     .aeo-split-grid,
-    .aeo-cta-panel,
-    .aeo-pricing-note {
+    .aeo-cta-panel {
         grid-template-columns: 1fr;
     }
 
@@ -1187,10 +968,8 @@
 
     .aeo-feature-grid,
     .aeo-card-grid.three,
-    .aeo-card-grid.four,
     .aeo-strip-grid,
-    .aeo-score-grid,
-    .aeo-mini-stats {
+    .aeo-score-grid {
         grid-template-columns: 1fr;
     }
 
@@ -1200,7 +979,6 @@
     .aeo-step-card,
     .aeo-faq-card,
     .aeo-pricing-card,
-    .aeo-panel,
     .aeo-scorecard {
         border-radius: 20px;
     }

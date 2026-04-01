@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+{% block title %}Position Tracking | Insights OS{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Position Tracking</h1>
+        <p>Monitor how your brand appears across tracked AI prompts and see where visibility improves over time.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% set project_domain = project_domain if project_domain is defined else "supportfast.ai" %}
+{% set selected_platform = selected_platform if selected_platform is defined else "ChatGPT" %}
+{% set selected_market = selected_market if selected_market is defined else "United States (English)" %}
+{% set total_prompts = total_prompts if total_prompts is defined else 12 %}
+{% set tracked_topic = tracked_topic if tracked_topic is defined else "Tracked prompts" %}
+{% set tracked_prompts = tracked_prompts if tracked_prompts is defined else [
+    {
+        "prompt": "free for a chat",
+        "status": "Tracking",
+        "visibility": "Low",
+        "mentioned": "No",
+        "top_competitor": "tawk.to",
+        "last_checked": "2 hours ago",
+        "change": "New"
+    },
+    {
+        "prompt": "chat box free",
+        "status": "Tracking",
+        "visibility": "Low",
+        "mentioned": "No",
+        "top_competitor": "tawk.to",
+        "last_checked": "2 hours ago",
+        "change": "New"
+    },
+    {
+        "prompt": "site chat",
+        "status": "Tracking",
+        "visibility": "Low",
+        "mentioned": "No",
+        "top_competitor": "wati.io",
+        "last_checked": "2 hours ago",
+        "change": "New"
+    },
+    {
+        "prompt": "whatsapp chat widget",
+        "status": "Tracking",
+        "visibility": "Medium",
+        "mentioned": "Sometimes",
+        "top_competitor": "botpenguin.com",
+        "last_checked": "1 hour ago",
+        "change": "+1"
+    }
+] %}
+
+{% set tracking_ready = tracking_ready if tracking_ready is defined else false %}
+{% set progress_percent = progress_percent if progress_percent is defined else 35 %}
+
+<div class="tracking-shell">
+
+    <section class="tracking-hero-card">
+        <div class="tracking-hero-copy">
+            <span class="tracking-kicker">AI Visibility Tracking</span>
+            <h1>Track prompt-level visibility over time</h1>
+            <p>
+                Save important prompts, monitor how AI platforms respond, and see whether your brand is
+                becoming more visible across the topics that matter most.
+            </p>
+        </div>
+
+        <div class="tracking-meta-grid">
+            <div class="tracking-meta-card">
+                <span>Project</span>
+                <strong>{{ project_domain }}</strong>
+            </div>
+            <div class="tracking-meta-card">
+                <span>Platform</span>
+                <strong>{{ selected_platform }}</strong>
+            </div>
+            <div class="tracking-meta-card">
+                <span>Market</span>
+                <strong>{{ selected_market }}</strong>
+            </div>
+            <div class="tracking-meta-card">
+                <span>Tracked Prompts</span>
+                <strong>{{ total_prompts }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="tracking-status-card">
+        <div class="tracking-status-copy">
+            <span class="section-kicker">Tracking Status</span>
+            {% if tracking_ready %}
+                <h2>Your prompt visibility data is ready</h2>
+                <p>
+                    Your tracked prompts are now being monitored. Review visibility levels, competitor presence,
+                    and changes over time below.
+                </p>
+            {% else %}
+                <h2>Gathering AI visibility data</h2>
+                <p>
+                    We are checking how AI platforms respond to your saved prompts and whether your brand appears
+                    in those answers. Results will improve as more tracking data is collected.
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="tracking-progress-box">
+            <div class="tracking-progress-top">
+                <span>Tracking progress</span>
+                <strong>{{ progress_percent }}%</strong>
+            </div>
+
+            <div class="tracking-progress-bar">
+                <div class="tracking-progress-fill" style="width: {{ progress_percent }}%;"></div>
+            </div>
+
+            <p class="tracking-progress-note">
+                {% if tracking_ready %}
+                    Tracking is active across your saved prompts.
+                {% else %}
+                    Initial prompt collection is still in progress.
+                {% endif %}
+            </p>
+        </div>
+    </section>
+
+    <section class="tracking-summary-grid">
+        <article class="summary-stat-card">
+            <span class="summary-label">Prompts tracked</span>
+            <strong class="summary-value">{{ total_prompts }}</strong>
+            <p class="summary-copy">Queries being monitored for AI visibility.</p>
+        </article>
+
+        <article class="summary-stat-card">
+            <span class="summary-label">Brand mentioned</span>
+            <strong class="summary-value">1 / {{ total_prompts }}</strong>
+            <p class="summary-copy">Prompts where your brand is currently appearing.</p>
+        </article>
+
+        <article class="summary-stat-card">
+            <span class="summary-label">Highest competitor</span>
+            <strong class="summary-value">tawk.to</strong>
+            <p class="summary-copy">Brand most often appearing across tracked prompts.</p>
+        </article>
+
+        <article class="summary-stat-card">
+            <span class="summary-label">Best next move</span>
+            <strong class="summary-value summary-value-text">Improve content</strong>
+            <p class="summary-copy">Create pages that directly answer missing prompt intent.</p>
+        </article>
+    </section>
+
+    <section class="tracking-table-card">
+        <div class="table-card-header">
+            <div>
+                <span class="section-kicker">Tracked Prompts</span>
+                <h2 class="section-title">Prompt visibility overview</h2>
+                <p class="section-copy">
+                    Review tracked prompts, current visibility, brand mentions, and the competitors currently appearing instead.
+                </p>
+            </div>
+
+            <div class="table-card-actions">
+                <a href="{{ url_for('competitor_page') }}" class="btn btn-secondary">Back to Competitor Research</a>
+                <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Content Queue</a>
+            </div>
+        </div>
+
+        <div class="table-toolbar">
+            <input type="text" placeholder="Filter prompts">
+            <select>
+                <option>All visibility levels</option>
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table class="tracking-table">
+                <thead>
+                    <tr>
+                        <th>Prompt</th>
+                        <th>Status</th>
+                        <th>Visibility</th>
+                        <th>Your Brand</th>
+                        <th>Top Competitor</th>
+                        <th>Last Checked</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in tracked_prompts %}
+                    <tr>
+<td>
+    <div class="prompt-main">
+        <a
+            href="{{ url_for(
+                'prompt_detail_page',
+                prompt=row.prompt,
+                domain=project_domain,
+                platform=selected_platform,
+                market=selected_market,
+                topic=tracked_topic
+            ) }}"
+            class="prompt-detail-link"
+        >
+            {{ row.prompt }}
+        </a>
+    </div>
+</td>
+                        <td>
+                            <span class="status-pill status-neutral">{{ row.status }}</span>
+                        </td>
+                        <td>
+                            <span class="visibility-pill visibility-{{ row.visibility|lower }}">{{ row.visibility }}</span>
+                        </td>
+                        <td>{{ row.mentioned }}</td>
+                        <td>{{ row.top_competitor }}</td>
+                        <td>{{ row.last_checked }}</td>
+                        <td>
+                            <span class="change-pill">{{ row.change }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+
+<style>
+.tracking-shell {
+    display: grid;
+    gap: 24px;
+}
+
+.tracking-hero-card,
+.tracking-status-card,
+.summary-stat-card,
+.tracking-table-card {
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.tracking-hero-card {
+    padding: 32px;
+    display: grid;
+    gap: 22px;
+}
+
+.tracking-kicker,
+.section-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f3edff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.tracking-hero-copy h1 {
+    margin: 14px 0 0;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #16243c;
+    max-width: 900px;
+}
+
+.tracking-hero-copy p {
+    margin: 14px 0 0;
+    color: #627084;
+    font-size: 17px;
+    line-height: 1.72;
+    max-width: 860px;
+}
+
+.tracking-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.tracking-meta-card {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.tracking-meta-card span {
+    display: block;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.tracking-meta-card strong {
+    color: #16243c;
+    font-size: 16px;
+    line-height: 1.35;
+}
+
+.tracking-status-card {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 24px;
+    align-items: center;
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ece8ff;
+}
+
+.tracking-status-copy h2 {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 30px;
+    line-height: 1.12;
+}
+
+.tracking-status-copy p {
+    margin: 14px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 760px;
+}
+
+.tracking-progress-box {
+    padding: 20px;
+    border-radius: 20px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+.tracking-progress-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.tracking-progress-top span {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.tracking-progress-top strong {
+    color: #16243c;
+    font-size: 16px;
+}
+
+.tracking-progress-bar {
+    width: 100%;
+    height: 12px;
+    background: #edf1f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.tracking-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6d4aff, #2e9cff);
+}
+
+.tracking-progress-note {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.tracking-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.summary-stat-card {
+    padding: 22px;
+}
+
+.summary-label {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.summary-value {
+    display: block;
+    color: #16243c;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    margin-bottom: 10px;
+}
+
+.summary-value-text {
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.summary-copy {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.tracking-table-card {
+    padding: 24px;
+}
+
+.table-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.section-title {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.section-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 760px;
+}
+
+.table-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.table-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.table-toolbar input,
+.table-toolbar select {
+    border: 1px solid #dbe2ee;
+    background: #ffffff;
+    color: #16243c;
+    border-radius: 14px;
+    padding: 13px 14px;
+    font-size: 15px;
+    line-height: 1.4;
+    outline: none;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.tracking-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 920px;
+}
+
+.tracking-table th,
+.tracking-table td {
+    padding: 16px 14px;
+    border-bottom: 1px solid #e9edf5;
+    text-align: left;
+    vertical-align: top;
+}
+
+.tracking-topic-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #e35b35;
+    font-size: 13px;
+    font-weight: 800;
+    width: fit-content;
+    margin-top: 12px;
+}
+
+.tracking-table th {
+    color: #5c6a7d;
+    font-size: 13px;
+    font-weight: 800;
+    background: #fafbfe;
+}
+
+.prompt-main a,
+.prompt-main a:visited {
+    color: #16243c;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.prompt-main a:hover {
+    color: #6d4aff;
+    text-decoration: underline;
+}
+
+.status-pill,
+.visibility-pill,
+.change-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.status-neutral {
+    background: #eef3ff;
+    color: #466ac9;
+}
+
+.visibility-low {
+    background: #fff1ea;
+    color: #e35b35;
+}
+
+.visibility-medium {
+    background: #fff5df;
+    color: #b78116;
+}
+
+.visibility-high {
+    background: #e7f7ee;
+    color: #1f8b58;
+}
+
+.change-pill {
+    background: #f3edff;
+    color: #6d4aff;
+}
+
+@media (max-width: 1200px) {
+    .tracking-meta-grid,
+    .tracking-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tracking-status-card {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .tracking-hero-card,
+    .tracking-status-card,
+    .summary-stat-card,
+    .tracking-table-card {
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .tracking-meta-grid,
+    .tracking-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .table-card-actions,
+    .table-card-actions .btn,
+    .table-toolbar,
+    .table-toolbar input,
+    .table-toolbar select {
+        width: 100%;
+    }
+
+    .section-title {
+        font-size: 24px;
+    }
+}
+</style>
+{% endblock %}

@@ -1,15 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Dashboard | AEO Agents{% endblock %}
+{% block title %}Dashboard | Insights OS{% endblock %}
 
 {% block page_header %}
-<div class="page-header-standard">
+<div class="page-header-standard dashboard-page-header-minimal">
     <div class="page-header-copy">
         <h1>Dashboard</h1>
-        <p>See what needs attention and move quickly into the next best action across audits, clients, and content.</p>
-    </div>
-    <div class="page-header-actions">
-        <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Start Audit</a>
-        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
+        <p>Understand your AI visibility, spot the biggest gaps, and move into the next best action.</p>
     </div>
 </div>
 {% endblock %}
@@ -21,283 +17,659 @@
 {% set ent_score = entity_score if entity_score is defined else 57 %}
 {% set tr_score = trust_score if trust_score is defined else 66 %}
 {% set credit_balance = wallet_balance if wallet_balance is defined else 14 %}
+{% set has_clients = clients is defined and clients %}
 
-<div class="dashboard-shell">
+<div class="dashboard-v3">
 
-    <section class="dashboard-hero-card upgraded-dashboard-hero">
-        <div class="dashboard-hero-copy">
-            <span class="dashboard-kicker">Overview</span>
-            <h1>See what needs attention and take the next best step fast.</h1>
+    <section class="dashboard-hero-v3">
+        <div class="dashboard-hero-copy-card">
+            <span class="hero-badge">AI Visibility Overview</span>
+            <h1>Grow your AI visibility with clearer next steps</h1>
             <p>
-                This dashboard gives you a simple view of your AI visibility, content readiness,
-                and the actions most likely to improve discoverability.
+                Understand how your brand appears in AI answers, identify where visibility is weak,
+                and move directly into the highest-impact action.
             </p>
 
             <div class="dashboard-hero-actions">
-                <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Start Audit</a>
-                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Clients</a>
+                <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run New Audit</a>
+                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">View Clients</a>
             </div>
-        </div>
 
-        <div class="visual-placeholder dashboard-hero-visual">
-            <div class="visual-placeholder-content">
-                <span class="visual-placeholder-kicker">Image Placeholder</span>
-                <h2 class="visual-placeholder-title">Dashboard workspace visual goes here</h2>
-                <p class="visual-placeholder-text">
-                    Replace this later with a product illustration, dashboard scene, or branded hero visual.
-                </p>
+            <div class="dashboard-hero-mini-grid">
+                <div class="hero-mini-card">
+                    <span>Tracked Prompts</span>
+                    <strong>{{ total_prompts or 0 }}</strong>
+                </div>
+                <div class="hero-mini-card">
+                    <span>Brand Mentioned</span>
+                    <strong>{{ mentioned_count or 0 }}</strong>
+                </div>
+                <div class="hero-mini-card">
+                    <span>Credits</span>
+                    <strong>{{ credit_balance }}</strong>
+                </div>
             </div>
         </div>
 
         <div class="dashboard-score-panel">
-            <div class="score-panel-top">
-                <span class="score-panel-label">Overall AEO Score</span>
-                <span class="score-panel-status">Live</span>
+            <span class="dashboard-score-label">AI Visibility Score</span>
+            <strong class="dashboard-score-value">{{ aeo_score }}</strong>
+
+            <div class="dashboard-score-pill-row">
+                {% if aeo_score >= 80 %}
+                    <span class="score-pill score-pill-success">Strong visibility</span>
+                {% elif aeo_score >= 55 %}
+                    <span class="score-pill score-pill-warning">Moderate visibility</span>
+                {% else %}
+                    <span class="score-pill score-pill-danger">High opportunity</span>
+                {% endif %}
             </div>
 
-            <div class="score-panel-value">{{ aeo_score }}%</div>
-
-            <p class="score-panel-text">
+            <p class="dashboard-score-text">
                 {% if aeo_score >= 80 %}
-                    Strong visibility. Focus on consistency and expanding coverage.
-                {% elif aeo_score >= 60 %}
-                    Moderate visibility. You are discoverable, but not consistently recommended.
+                    Your brand is showing strong visibility across tracked AI answers.
+                {% elif aeo_score >= 55 %}
+                    You have some visibility, but there are still meaningful gaps to improve.
                 {% else %}
-                    Low visibility. There is clear room to improve discoverability and trust.
+                    Your brand has low visibility right now, which means there is strong upside.
                 {% endif %}
             </p>
 
-            <div class="score-progress">
-                <div class="score-progress-fill" style="width: {{ aeo_score }}%;"></div>
-            </div>
+            <div class="dashboard-score-breakdown">
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Visibility</span>
+                        <strong>{{ vis_score }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-blue" style="width: {{ vis_score }}%;"></div>
+                    </div>
+                </div>
 
-            <div class="score-panel-foot">
-                <span>Best next move:</span>
-                <strong>
-                    {% if cont_score < vis_score %}
-                        Build content for missing questions
-                    {% elif ent_score < 60 %}
-                        Strengthen entity signals
-                    {% else %}
-                        Refresh your latest audit
-                    {% endif %}
-                </strong>
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Content</span>
+                        <strong>{{ cont_score }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-orange" style="width: {{ cont_score }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Entity</span>
+                        <strong>{{ ent_score }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-purple" style="width: {{ ent_score }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Trust</span>
+                        <strong>{{ tr_score }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-green" style="width: {{ tr_score }}%;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="dashboard-grid dashboard-grid-primary">
-        <article class="dashboard-card dashboard-priority-card">
-            <div class="card-kicker">Next Best Action</div>
+    <section class="dashboard-insights-v3">
+        <div class="dashboard-metric-card">
+            <span class="dashboard-metric-label">Tracked Prompts</span>
+            <strong class="dashboard-metric-value">{{ total_prompts or 0 }}</strong>
+            <p class="dashboard-metric-note">Active prompts being monitored across your workspace.</p>
+        </div>
 
-            <h2>
-                {% if cont_score < vis_score %}
-                    Generate content for missing questions
-                {% elif ent_score < 60 %}
-                    Improve brand and entity coverage
-                {% else %}
-                    Refresh your latest audit and review gaps
-                {% endif %}
-            </h2>
+        <div class="dashboard-metric-card">
+            <span class="dashboard-metric-label">Brand Mentioned</span>
+            <strong class="dashboard-metric-value">{{ mentioned_count or 0 }}</strong>
+            <p class="dashboard-metric-note">Prompts where your brand currently appears in AI answers.</p>
+        </div>
 
-            <p>
-                {% if cont_score < vis_score %}
-                    Your content coverage is lower than your visibility. This is one of the fastest ways to improve performance.
-                {% elif ent_score < 60 %}
-                    Your business signals are not yet strong enough across the web. Improving clarity and consistency can help AI systems understand you better.
-                {% else %}
-                    A fresh report can help you confirm what changed and where to focus next.
-                {% endif %}
-            </p>
+        <div class="dashboard-metric-card">
+            <span class="dashboard-metric-label">Low Visibility</span>
+            <strong class="dashboard-metric-value">{{ cont_score_count or 0 }}</strong>
+            <p class="dashboard-metric-note">Prompts that likely need content or entity improvements.</p>
+        </div>
 
-            <div class="priority-actions">
-                <a href="{{ url_for('content_queue_page') }}" class="btn btn-primary">Open Content Queue</a>
-                <a href="{{ url_for('help_page') }}" class="btn btn-secondary">Read Guides</a>
-            </div>
-        </article>
-
-        <article class="dashboard-card">
-            <div class="section-row">
-                <h3 class="section-title">Quick Actions</h3>
-            </div>
-
-            <div class="quick-actions-grid">
-                <a href="{{ url_for('new_audit') }}" class="quick-action-card">
-                    <span class="quick-action-icon">⌕</span>
-                    <div>
-                        <strong>Start Audit</strong>
-                        <small>Go to the correct audit flow</small>
-                    </div>
-                </a>
-
-                <a href="{{ url_for('clients_page') }}" class="quick-action-card">
-                    <span class="quick-action-icon">◫</span>
-                    <div>
-                        <strong>Clients</strong>
-                        <small>Open all workspaces</small>
-                    </div>
-                </a>
-
-                <a href="{{ url_for('content_queue_page') }}" class="quick-action-card">
-                    <span class="quick-action-icon">✎</span>
-                    <div>
-                        <strong>Content Queue</strong>
-                        <small>Briefs and execution</small>
-                    </div>
-                </a>
-
-                <a href="{{ url_for('help_page') }}" class="quick-action-card">
-                    <span class="quick-action-icon">?</span>
-                    <div>
-                        <strong>Glossary & Guides</strong>
-                        <small>Learn what each score means</small>
-                    </div>
-                </a>
-            </div>
-        </article>
+        <div class="dashboard-metric-card dashboard-metric-card-highlight">
+            <span class="dashboard-metric-label">Top Opportunity</span>
+            <strong class="dashboard-metric-value dashboard-metric-value-small">
+                {{ high_priority_action or "Start tracking prompts" }}
+            </strong>
+            <p class="dashboard-metric-note">The clearest next move based on current visibility signals.</p>
+        </div>
     </section>
 
-    <section class="dashboard-grid dashboard-grid-secondary">
-        <article class="dashboard-card">
-            <div class="section-row">
-                <h3 class="section-title">Key Metrics</h3>
-                <span class="section-hint">Core visibility signals</span>
-            </div>
+    <section class="dashboard-next-v3">
+        <div class="dashboard-section-head">
+            <h2>Next Best Action</h2>
+            <p>Move directly into the highest-value workflow from your current state.</p>
+        </div>
 
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <span class="metric-label">Visibility</span>
-                    <strong class="metric-value">{{ vis_score }}</strong>
-                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ vis_score }}%;"></div></div>
+        <div class="dashboard-next-card">
+            {% if total_prompts == 0 %}
+                <span class="dashboard-next-kicker">Getting Started</span>
+                <h3>Start tracking your first prompts</h3>
+                <p>
+                    Build your initial prompt set to understand how your brand appears in AI answers
+                    and where competitors are getting recommended first.
+                </p>
+                <div class="dashboard-next-actions">
+                    <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Go to Clients</a>
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Audit</a>
                 </div>
-                <div class="metric-card">
-                    <span class="metric-label">Content</span>
-                    <strong class="metric-value">{{ cont_score }}</strong>
-                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ cont_score }}%;"></div></div>
+
+            {% elif cont_score < vis_score %}
+                <span class="dashboard-next-kicker">Content Opportunity</span>
+                <h3>Improve low-visibility prompts first</h3>
+                <p>
+                    Focus on prompts where your brand is weak or missing. These are often the fastest
+                    wins for growing AI visibility.
+                </p>
+                <div class="dashboard-next-actions">
+                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-primary">Open Content Queue</a>
+                    <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">View Clients</a>
                 </div>
-                <div class="metric-card">
-                    <span class="metric-label">Entity</span>
-                    <strong class="metric-value">{{ ent_score }}</strong>
-                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ ent_score }}%;"></div></div>
+
+            {% else %}
+                <span class="dashboard-next-kicker">Coverage Expansion</span>
+                <h3>Expand your prompt coverage</h3>
+                <p>
+                    Your current visibility is improving. Add more prompts to capture new demand,
+                    strengthen brand presence, and widen answer coverage.
+                </p>
+                <div class="dashboard-next-actions">
+                    <a href="{{ url_for('client_competitors_page', client_id=clients[0].id if clients else '') }}" class="btn btn-primary">
+                        Find More Prompts
+                    </a>
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Another Audit</a>
                 </div>
-                <div class="metric-card">
-                    <span class="metric-label">Trust</span>
-                    <strong class="metric-value">{{ tr_score }}</strong>
-                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ tr_score }}%;"></div></div>
-                </div>
-            </div>
-        </article>
-
-        <article class="dashboard-card">
-            <div class="section-row">
-                <h3 class="section-title">Recent Clients</h3>
-                <a href="{{ url_for('clients_page') }}" class="section-link">View all</a>
-            </div>
-
-            <div class="client-stack">
-                {% if clients is defined and clients %}
-                    {% for client in clients[:4] %}
-                    <div class="client-row">
-                        <div class="client-row-main">
-                            <strong>{{ client.name or "Client" }}</strong>
-                            <small>{{ client.industry or "Industry not set" }}</small>
-                        </div>
-                        <div class="client-row-side">
-                            <span class="client-score-pill">{{ client.latest_audit.normalized_score if client.latest_audit else "—" }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="empty-inline-state">
-                        <strong>No recent clients yet</strong>
-                        <p>Add a client to start building workspaces, reports, and action plans.</p>
-                        <a href="{{ url_for('create_client') }}" class="btn btn-secondary">Add Client</a>
-                    </div>
-                {% endif %}
-            </div>
-        </article>
-
-        <article class="dashboard-card dashboard-credits-card">
-            <div class="section-row">
-                <h3 class="section-title">Credits</h3>
-                <span class="section-hint">Usage balance</span>
-            </div>
-
-            <div class="credits-balance">{{ credit_balance }}</div>
-            <p class="credits-copy">Use credits for reports and workspace actions. Top up when you need more capacity.</p>
-            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary full-width">Buy Credits</a>
-        </article>
+            {% endif %}
+        </div>
     </section>
+
+    <section class="dashboard-clients-v3">
+        <div class="dashboard-section-head">
+            <h2>Your Clients</h2>
+            <p>Jump into a workspace, review tracked research, or continue an audit workflow.</p>
+        </div>
+
+        {% if clients %}
+            <div class="dashboard-clients-grid">
+                {% for client in clients %}
+                <article class="dashboard-client-card">
+                    <div class="dashboard-client-top">
+                        <div class="dashboard-client-mark">
+                            {{ (client.name[0] if client.name else "C")|upper }}
+                        </div>
+
+                        <div class="dashboard-client-copy">
+                            <h3>{{ client.name or "Untitled Client" }}</h3>
+                            <p>{{ client.domain or client.website or "No domain added yet" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-client-actions">
+                        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">
+                            Open Workspace
+                        </a>
+                        <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="text-link">
+                            Competitors
+                        </a>
+                        <a href="{{ url_for('position_tracking_page', client_id=client.id) }}" class="text-link">
+                            Tracking
+                        </a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="dashboard-empty-card">
+                <h3>No clients yet</h3>
+                <p>Add your first client workspace to start audits, prompt tracking, and visibility analysis.</p>
+                <div class="dashboard-next-actions">
+                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Audit</a>
+                </div>
+            </div>
+        {% endif %}
+    </section>
+
 </div>
 
 <style>
-.dashboard-shell { padding: 0; display: grid; gap: 24px; }
-.dashboard-hero-card, .dashboard-card { background: #ffffff; border: 1px solid #e7ebf3; border-radius: 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); }
-.dashboard-hero-card { padding: 30px; display: grid; gap: 24px; align-items: stretch; }
-.upgraded-dashboard-hero { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr) minmax(280px, 0.75fr); }
-.dashboard-kicker { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; background: #f4ebff; color: #6d4aff; font-size: 12px; font-weight: 700; margin-bottom: 12px; }
-.dashboard-hero-copy h1 { margin: 0; font-size: 38px; line-height: 1.08; font-weight: 800; color: #15233b; max-width: 760px; }
-.dashboard-hero-copy p { margin: 16px 0 0; font-size: 17px; line-height: 1.65; color: #617084; max-width: 760px; }
-.dashboard-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
-.dashboard-hero-visual { min-height: 100%; }
-.dashboard-score-panel { padding: 22px; border-radius: 22px; border: 1px solid #ffd8c6; background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%); display: flex; flex-direction: column; }
-.score-panel-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.score-panel-label, .score-panel-status { font-size: 13px; font-weight: 800; }
-.score-panel-label { color: #6b7280; }
-.score-panel-status { color: #E83256; }
-.score-panel-value { margin-top: 16px; font-size: 58px; line-height: 1; font-weight: 800; color: #E83256; }
-.score-panel-text { margin: 14px 0 0; color: #5f6d80; line-height: 1.6; font-size: 15px; }
-.score-progress { width: 100%; height: 12px; background: #f0e2d9; border-radius: 999px; overflow: hidden; margin-top: 18px; }
-.score-progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #E83256, #ff8b57); }
-.score-panel-foot { margin-top: 18px; padding-top: 18px; border-top: 1px solid #f1dfd5; display: grid; gap: 6px; }
-.score-panel-foot span { font-size: 13px; font-weight: 700; color: #6b7280; }
-.score-panel-foot strong { color: #15233b; font-size: 15px; }
-.dashboard-grid { display: grid; gap: 24px; }
-.dashboard-grid-primary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.dashboard-grid-secondary { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(280px, 0.6fr); }
-.dashboard-card { padding: 24px; }
-.dashboard-priority-card { background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%); border-color: #ffe3d6; }
-.card-kicker { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; background: #fff2ea; color: #E83256; font-size: 12px; font-weight: 800; margin-bottom: 14px; }
-.dashboard-priority-card h2 { margin: 0; font-size: 28px; line-height: 1.15; color: #16243c; }
-.dashboard-priority-card p { margin: 14px 0 0; color: #627084; line-height: 1.65; font-size: 15px; max-width: 720px; }
-.priority-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
-.section-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 16px; }
-.section-title { margin: 0; font-size: 21px; font-weight: 800; color: #16243c; }
-.section-hint, .section-link { color: #6b7280; font-size: 13px; font-weight: 700; }
-.quick-actions-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.quick-action-card { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 18px; background: #f8fafc; border: 1px solid #e7ebf3; text-decoration: none; color: inherit; }
-.quick-action-icon { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: #fff2ea; color: #E83256; font-size: 18px; font-weight: 800; flex-shrink: 0; }
-.quick-action-card strong { display: block; color: #16243c; font-size: 15px; }
-.quick-action-card small { display: block; margin-top: 4px; color: #6b7280; font-size: 13px; }
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-.metric-card { background: #f8fafc; border: 1px solid #e7ebf3; border-radius: 18px; padding: 16px; }
-.metric-label { display: block; font-size: 13px; font-weight: 700; color: #6b7280; margin-bottom: 8px; }
-.metric-value { display: block; font-size: 28px; font-weight: 800; color: #16243c; margin-bottom: 12px; }
-.client-stack { display: grid; gap: 12px; }
-.client-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #f8fafc; border: 1px solid #e7ebf3; }
-.client-row-main strong { display: block; color: #16243c; font-size: 15px; }
-.client-row-main small { display: block; margin-top: 4px; color: #6b7280; font-size: 13px; }
-.client-score-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; padding: 8px 12px; border-radius: 999px; background: #fff2ea; color: #E83256; font-size: 13px; font-weight: 800; }
-.empty-inline-state { padding: 16px; border-radius: 18px; background: #fafcff; border: 1px dashed #d6dde8; }
-.empty-inline-state strong { display: block; color: #16243c; margin-bottom: 8px; }
-.empty-inline-state p { margin: 0 0 14px; color: #627084; font-size: 14px; line-height: 1.55; }
-.dashboard-credits-card { display: flex; flex-direction: column; }
-.credits-balance { font-size: 52px; line-height: 1; font-weight: 800; color: #16243c; margin-top: 8px; }
-.credits-copy { margin: 12px 0 18px; color: #627084; line-height: 1.6; font-size: 14px; }
-.full-width { width: 100%; }
-@media (max-width: 1200px) {
-  .upgraded-dashboard-hero, .dashboard-grid-primary, .dashboard-grid-secondary { grid-template-columns: 1fr; }
-  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dashboard-hero-visual { min-height: 220px; }
+.dashboard-v3 {
+    display: grid;
+    gap: 20px;
 }
+
+.dashboard-hero-v3 {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.dashboard-hero-copy-card,
+.dashboard-score-panel,
+.dashboard-metric-card,
+.dashboard-next-card,
+.dashboard-client-card,
+.dashboard-empty-card {
+    background: #ffffff;
+    border: 1px solid #e6ebf2;
+    border-radius: 20px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.dashboard-hero-copy-card {
+    padding: 24px;
+    background:
+        radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 26%),
+        linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    border: 1px solid #e7dcff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.dashboard-hero-copy-card h1 {
+    margin: 14px 0 10px;
+    font-size: clamp(2rem, 4vw, 3.1rem);
+    line-height: 1.04;
+    color: #16243c;
+}
+
+.dashboard-hero-copy-card p {
+    margin: 0;
+    max-width: 720px;
+    color: #627084;
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+.dashboard-hero-actions,
+.dashboard-next-actions {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dashboard-hero-mini-grid {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.hero-mini-card {
+    padding: 14px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #e6ebf2;
+}
+
+.hero-mini-card span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.hero-mini-card strong {
+    display: block;
+    font-size: 24px;
+    line-height: 1;
+    color: #16243c;
+}
+
+.dashboard-score-panel {
+    padding: 22px;
+    background: linear-gradient(180deg, #fff8f2 0%, #ffffff 100%);
+    border-color: #f2dfd2;
+}
+
+.dashboard-score-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.dashboard-score-value {
+    display: block;
+    margin-top: 10px;
+    font-size: 62px;
+    line-height: 0.95;
+    font-weight: 800;
+    color: #f97316;
+    letter-spacing: -0.04em;
+}
+
+.dashboard-score-pill-row {
+    margin-top: 12px;
+}
+
+.score-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.score-pill-success {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.score-pill-warning {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.score-pill-danger {
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+.dashboard-score-text {
+    margin: 12px 0 0;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 14px;
+}
+
+.dashboard-score-breakdown {
+    margin-top: 18px;
+    display: grid;
+    gap: 12px;
+}
+
+.score-row {
+    display: grid;
+    gap: 8px;
+}
+
+.score-row-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.score-row-top span {
+    font-size: 14px;
+    font-weight: 700;
+    color: #243247;
+}
+
+.score-row-top strong {
+    font-size: 15px;
+    color: #16243c;
+}
+
+.score-row-track {
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #edf1f7;
+}
+
+.score-row-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.fill-blue {
+    background: linear-gradient(90deg, #60a5fa, #2563eb);
+}
+
+.fill-orange {
+    background: linear-gradient(90deg, #fb923c, #f97316);
+}
+
+.fill-purple {
+    background: linear-gradient(90deg, #a78bfa, #7c3aed);
+}
+
+.fill-green {
+    background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+
+.dashboard-insights-v3 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.dashboard-metric-card {
+    padding: 18px;
+}
+
+.dashboard-metric-card-highlight {
+    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
+    border-color: #f0e2d8;
+}
+
+.dashboard-metric-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.dashboard-metric-value {
+    display: block;
+    font-size: 28px;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.dashboard-metric-value-small {
+    font-size: 20px;
+    line-height: 1.35;
+}
+
+.dashboard-metric-note {
+    margin: 10px 0 0;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 13px;
+}
+
+.dashboard-section-head {
+    margin-bottom: 14px;
+}
+
+.dashboard-section-head h2 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    color: #16243c;
+}
+
+.dashboard-section-head p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.dashboard-next-card {
+    padding: 22px;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border-color: #f5dfd1;
+}
+
+.dashboard-next-kicker {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #e83256;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.dashboard-next-card h3 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    color: #16243c;
+}
+
+.dashboard-next-card p {
+    margin: 12px 0 0;
+    max-width: 760px;
+    color: #627084;
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+.dashboard-clients-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.dashboard-client-card {
+    padding: 18px;
+    display: grid;
+    gap: 16px;
+}
+
+.dashboard-client-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.dashboard-client-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.dashboard-client-copy {
+    min-width: 0;
+}
+
+.dashboard-client-copy h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #16243c;
+    word-break: break-word;
+}
+
+.dashboard-client-copy p {
+    margin: 6px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.dashboard-client-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.dashboard-empty-card {
+    padding: 24px;
+    text-align: center;
+}
+
+.dashboard-empty-card h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #16243c;
+}
+
+.dashboard-empty-card p {
+    margin: 10px auto 0;
+    max-width: 640px;
+    color: #627084;
+    line-height: 1.65;
+    font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-hero-v3,
+    .dashboard-insights-v3,
+    .dashboard-clients-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-hero-mini-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
-  .dashboard-hero-card, .dashboard-card { padding: 18px; border-radius: 20px; }
-  .dashboard-hero-copy h1 { font-size: 30px; }
-  .dashboard-hero-actions, .priority-actions { flex-direction: column; }
-  .dashboard-hero-actions .btn, .priority-actions .btn, .full-width { width: 100%; }
-  .quick-actions-grid, .metric-grid { grid-template-columns: 1fr; }
-  .section-row, .client-row { flex-direction: column; align-items: flex-start; }
-  .score-panel-value { font-size: 48px; }
+    .dashboard-v3 {
+        gap: 18px;
+    }
+
+    .dashboard-hero-copy-card,
+    .dashboard-score-panel,
+    .dashboard-metric-card,
+    .dashboard-next-card,
+    .dashboard-client-card,
+    .dashboard-empty-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .dashboard-next-card h3,
+    .dashboard-section-head h2 {
+        font-size: 22px;
+    }
+
+    .dashboard-score-value {
+        font-size: 52px;
+    }
+
+    .dashboard-hero-actions .btn,
+    .dashboard-next-actions .btn {
+        width: 100%;
+    }
 }
 </style>
 {% endblock %}

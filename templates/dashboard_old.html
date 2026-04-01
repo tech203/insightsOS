@@ -1,0 +1,828 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Insights OS{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard dashboard-page-header-minimal">
+    <div class="page-header-copy">
+        <h1>Dashboard</h1>
+        <p>Understand your AI visibility, see your biggest gaps, and move into the next best action.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% set aeo_score = overall_score if overall_score is defined else 0 %}
+{% set vis_score = visibility_score if visibility_score is defined else 72 %}
+{% set cont_score = content_score if content_score is defined else 61 %}
+{% set ent_score = entity_score if entity_score is defined else 57 %}
+{% set tr_score = trust_score if trust_score is defined else 66 %}
+{% set credit_balance = wallet_balance if wallet_balance is defined else 14 %}
+{% set has_clients = clients is defined and clients %}
+
+<div class="dashboard-shell dashboard-shell-premium">
+
+    {% if current_user.is_authenticated and current_user.plan == "free" %}
+    <div class="upgrade-banner">
+        <div class="upgrade-banner-copy">
+            <strong>Ready to keep growing?</strong>
+            <p>Upgrade to unlock more audits, actions, and content execution.</p>
+        </div>
+
+        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+            See Plans
+        </a>
+    </div>
+    {% endif %}
+
+    <section class="dashboard-hero-clean">
+                <div class="dashboard-hero-main">
+            <span class="dashboard-kicker">Insights OS</span>
+            <h1>Your AI visibility workspace</h1>
+            <p class="dashboard-hero-text">
+                Track how discoverable your business is in AI search, understand where you are weak,
+                and take the next step to improve visibility with confidence.
+            </p>
+
+            <div class="dashboard-primary-action">
+                <a href="{{ url_for('new_audit') }}" class="btn btn-primary btn-large">Run New Audit</a>
+            </div>
+
+            <div class="dashboard-hero-guidance">
+                {% if aeo_score > 0 %}
+                    <span class="guidance-label">Current status</span>
+                    <strong>
+                        {% if aeo_score >= 80 %}
+                            Strong visibility
+                        {% elif aeo_score >= 60 %}
+                            Moderate visibility
+                        {% else %}
+                            Clear room to improve
+                        {% endif %}
+                    </strong>
+                    <p>
+                        {% if cont_score < vis_score %}
+                            Your biggest opportunity right now is to improve content coverage for the questions users are likely asking.
+                        {% elif ent_score < 60 %}
+                            Your biggest opportunity right now is to strengthen your entity signals so AI systems understand your business more clearly.
+                        {% else %}
+                            Your biggest opportunity right now is to refresh your audit and review your latest gaps.
+                        {% endif %}
+                    </p>
+                {% else %}
+                    <span class="guidance-label">Getting started</span>
+                    <strong>Run your first audit</strong>
+                    <p>
+                        Start with one audit to create your baseline score, identify your main gaps,
+                        and see exactly what to improve first.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard-score-section">
+        <article class="dashboard-card dashboard-score-card-main">
+            <div class="score-card-header">
+                <div>
+                    <span class="section-kicker">Overall Score</span>
+                    <h2>AI visibility snapshot</h2>
+                </div>
+                <span class="live-badge">Live</span>
+            </div>
+
+            <div class="score-card-body">
+                <div class="score-main-value-wrap">
+                    <div class="score-main-value">{{ aeo_score }}%</div>
+
+                    <div class="score-main-context">
+                        <strong>
+                            {% if aeo_score >= 80 %}
+                                Strong visibility
+                            {% elif aeo_score >= 60 %}
+                                Moderate opportunity
+                            {% else %}
+                                Clear room to improve
+                            {% endif %}
+                        </strong>
+
+                        <p>
+                            {% if aeo_score >= 80 %}
+                                Your business is performing well in AI discovery. Focus on maintaining consistency and expanding into more relevant questions and surfaces.
+                            {% elif aeo_score >= 60 %}
+                                You are visible in some areas, but not consistently enough yet. There is still room to improve discoverability and recommendation strength.
+                            {% else %}
+                                Your business is not yet strongly represented in AI answers. There is meaningful opportunity to improve discoverability, clarity, and trust.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="score-progress">
+                    <div class="score-progress-fill" style="width: {{ aeo_score }}%;"></div>
+                </div>
+
+                <div class="score-next-step-row">
+                    <span>Best next step</span>
+                    <strong>
+                        {% if cont_score < vis_score %}
+                            Build content for missing queries
+                        {% elif ent_score < 60 %}
+                            Improve brand and entity coverage
+                        {% else %}
+                            Refresh your latest audit and review gaps
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <section class="dashboard-action-section">
+        <article class="dashboard-card dashboard-action-card">
+            <div class="action-copy">
+                <span class="section-kicker">What to do next</span>
+
+                <h2>
+                    {% if cont_score < vis_score %}
+                        Improve content coverage for unanswered questions
+                    {% elif ent_score < 60 %}
+                        Strengthen your entity and brand signals
+                    {% else %}
+                        Refresh your audit and review the latest opportunities
+                    {% endif %}
+                </h2>
+
+                <p>
+                    {% if cont_score < vis_score %}
+                        Your content readiness is behind your visibility potential. Expanding the right pages and answers is one of the fastest ways to improve AI discoverability.
+                    {% elif ent_score < 60 %}
+                        AI systems need stronger signals about who you are, what you do, and why your business is credible. Clearer entity consistency helps them understand you better.
+                    {% else %}
+                        Run a fresh audit to confirm what changed, identify new gaps, and decide what to prioritise next.
+                    {% endif %}
+                </p>
+
+                <div class="action-cta-wrap">
+                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Take Action</a>
+                </div>
+
+                <p class="action-note">
+                    Other tools and sections remain available from the menu.
+                </p>
+            </div>
+        </article>
+    </section>
+
+    <section class="dashboard-metrics-section">
+        <article class="dashboard-card">
+            <div class="section-row">
+                <div>
+                    <span class="section-kicker">Key Metrics</span>
+                    <h3 class="section-title">Core visibility signals</h3>
+                </div>
+                <span class="section-hint">Track the areas that shape AI discoverability</span>
+            </div>
+
+            <div class="metric-grid premium-metric-grid">
+                <div class="metric-card premium-metric-card">
+                    <span class="metric-label">Visibility</span>
+                    <strong class="metric-value">{{ vis_score }}</strong>
+                    <p class="metric-copy">How discoverable your business appears across relevant AI answers.</p>
+                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ vis_score }}%;"></div></div>
+                </div>
+
+                <div class="metric-card premium-metric-card">
+                    <span class="metric-label">Content Coverage</span>
+                    <strong class="metric-value">{{ cont_score }}</strong>
+                    <p class="metric-copy">How well your content addresses the questions users are likely to ask.</p>
+                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ cont_score }}%;"></div></div>
+                </div>
+
+                <div class="metric-card premium-metric-card">
+                    <span class="metric-label">Entity Strength</span>
+                    <strong class="metric-value">{{ ent_score }}</strong>
+                    <p class="metric-copy">How clearly AI systems can understand your brand, business, and relevance.</p>
+                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ ent_score }}%;"></div></div>
+                </div>
+
+                <div class="metric-card premium-metric-card">
+                    <span class="metric-label">Trust Signals</span>
+                    <strong class="metric-value">{{ tr_score }}</strong>
+                    <p class="metric-copy">How credible and well-supported your business appears across key signals.</p>
+                    <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ tr_score }}%;"></div></div>
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <section class="dashboard-lower-grid">
+        <article class="dashboard-card">
+            <div class="section-row">
+                <div>
+                    <span class="section-kicker">Clients</span>
+                    <h3 class="section-title">Recent clients</h3>
+                </div>
+                <a href="{{ url_for('clients_page') }}" class="section-link">Open clients</a>
+            </div>
+
+            <div class="client-stack">
+                {% if has_clients %}
+                    {% for client in clients[:4] %}
+                    <div class="client-row">
+                        <div class="client-row-main">
+                            <strong>{{ client.name or "Client" }}</strong>
+                            <small>{{ client.industry or "Industry not set" }}</small>
+                        </div>
+                        <div class="client-row-side">
+                            <span class="client-score-pill">{{ client.latest_audit.normalized_score if client.latest_audit else "—" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-inline-state">
+                        <strong>No clients yet</strong>
+                        <p>Add your first client when you are ready to organise audits, reports, and workspaces in one place.</p>
+                        <a href="{{ url_for('create_client') }}" class="btn btn-secondary">Add Client</a>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="dashboard-card premium-credits-card">
+            <div class="section-row">
+                <div>
+                    <span class="section-kicker">Usage</span>
+                    <h3 class="section-title">Credits</h3>
+                </div>
+                <span class="credits-status-pill">
+                    {% if credit_balance == "Unlimited" %}
+                        Unlimited
+                    {% elif credit_balance|int > 10 %}
+                        Healthy
+                    {% elif credit_balance|int > 0 %}
+                        Low
+                    {% else %}
+                        Empty
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="credits-premium-value">
+                {% if credit_balance == "Unlimited" %}
+                    Unlimited
+                {% else %}
+                    {{ credit_balance }}
+                {% endif %}
+            </div>
+
+            <p class="credits-copy compact">
+                {% if credit_balance == "Unlimited" %}
+                    Your workspace currently has unlimited usage enabled.
+                {% elif credit_balance|int > 0 %}
+                    Credits are available for audits and selected content actions.
+                {% else %}
+                    Your workspace has no credits remaining. Add more to continue running actions.
+                {% endif %}
+            </p>
+
+            {% if credit_balance != "Unlimited" and credit_balance_numeric == 0 and current_user.plan != "free" %}
+            <p style="margin-top:10px; color:#e35b35; font-weight:700;">
+                You’ve run out of credits. Upgrade to continue improving your visibility.
+            </p>
+            {% elif credit_balance != "Unlimited" and credit_balance_numeric <= 1 %}
+            <p style="margin-top:10px; color:#e35b35; font-weight:600;">
+                You’re running low on credits.
+            </p>
+            {% endif %}
+
+            {% if credit_balance != "Unlimited" %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary full-width">Manage Credits</a>
+            {% endif %}
+        </article>
+    </section>
+</div>
+
+<style>
+.dashboard-page-header-minimal {
+    margin-bottom: 8px;
+}
+
+.dashboard-shell-premium {
+    padding: 0;
+    display: grid;
+    gap: 32px;
+}
+
+.dashboard-card,
+.dashboard-hero-clean {
+    background: #ffffff;
+    border: 1px solid #e9edf5;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.dashboard-hero-clean {
+    padding: 36px;
+}
+
+.dashboard-hero-main {
+    display: grid;
+    gap: 20px;
+    max-width: 840px;
+}
+
+.dashboard-kicker,
+.section-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f3edff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.dashboard-hero-main h1 {
+    margin: 0;
+    font-size: clamp(34px, 5vw, 54px);
+    line-height: 1.04;
+    font-weight: 800;
+    color: #16243c;
+    letter-spacing: -0.03em;
+}
+
+.dashboard-hero-text {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.72;
+    color: #627084;
+    max-width: 740px;
+}
+
+.dashboard-primary-action {
+    margin-top: 2px;
+}
+
+.btn-large {
+    padding: 14px 22px;
+    font-size: 16px;
+}
+
+.dashboard-hero-guidance {
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    display: grid;
+    gap: 8px;
+    max-width: 740px;
+}
+
+.guidance-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dashboard-hero-guidance strong {
+    color: #16243c;
+    font-size: 18px;
+    line-height: 1.25;
+}
+
+.dashboard-hero-guidance p {
+    margin: 0;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.dashboard-score-card-main {
+    max-width: 980px;
+    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
+    border-color: #f1ddd4;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-card {
+    padding: 28px;
+}
+
+.score-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.score-card-header h2 {
+    margin: 8px 0 0;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #16243c;
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff1ea;
+    color: #e35b35;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.score-card-body {
+    display: grid;
+    gap: 20px;
+}
+
+.score-main-value-wrap {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.score-main-value {
+    font-size: clamp(64px, 8vw, 88px);
+    line-height: 0.92;
+    font-weight: 800;
+    color: #e35b35;
+    letter-spacing: -0.05em;
+}
+
+.score-main-context strong {
+    display: block;
+    margin-bottom: 10px;
+    color: #16243c;
+    font-size: 22px;
+    line-height: 1.2;
+}
+
+.score-main-context p {
+    margin: 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.72;
+    max-width: 720px;
+}
+
+.score-progress {
+    width: 100%;
+    height: 14px;
+    background: #efe2d9;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.score-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e35b35, #ff9b68);
+}
+
+.score-next-step-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+    padding-top: 18px;
+    border-top: 1px solid #f0ddd4;
+}
+
+.score-next-step-row span {
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.score-next-step-row strong {
+    color: #16243c;
+    font-size: 16px;
+}
+
+.dashboard-action-card {
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ebe7ff;
+}
+
+.action-copy {
+    max-width: 900px;
+}
+
+.action-copy h2 {
+    margin: 10px 0 0;
+    font-size: 30px;
+    line-height: 1.12;
+    color: #16243c;
+    max-width: 780px;
+}
+
+.action-copy p {
+    margin: 14px 0 0;
+    color: #627084;
+    line-height: 1.7;
+    font-size: 15px;
+    max-width: 780px;
+}
+
+.action-cta-wrap {
+    margin-top: 22px;
+}
+
+.action-note {
+    margin-top: 14px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.section-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.section-title {
+    margin: 8px 0 0;
+    font-size: 22px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-hint,
+.section-link {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.premium-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.premium-metric-card {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 18px;
+}
+
+.metric-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    display: block;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 800;
+    color: #16243c;
+    margin-bottom: 12px;
+}
+
+.metric-copy {
+    margin: 0 0 14px;
+    color: #627084;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.mini-progress {
+    width: 100%;
+    height: 10px;
+    background: #edf1f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6d4aff, #9f7bff);
+}
+
+.dashboard-lower-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.68fr);
+    gap: 24px;
+}
+
+.client-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.client-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+}
+
+.client-row-main strong {
+    display: block;
+    color: #16243c;
+    font-size: 15px;
+}
+
+.client-row-main small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.client-score-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff2ea;
+    color: #e35b35;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.empty-inline-state {
+    padding: 18px;
+    border-radius: 18px;
+    background: #fafcff;
+    border: 1px dashed #d6dde8;
+}
+
+.empty-inline-state strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.empty-inline-state p {
+    margin: 0 0 14px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.premium-credits-card {
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border: 1px solid #ebe7ff;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.credits-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.credits-premium-value {
+    margin-top: 6px;
+    font-size: 40px;
+    line-height: 1;
+    font-weight: 800;
+    color: #16243c;
+    letter-spacing: -0.04em;
+}
+
+.credits-copy.compact {
+    margin: 14px 0 18px;
+    color: #627084;
+    line-height: 1.6;
+    font-size: 14px;
+    max-width: 28ch;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.upgrade-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #fff7f3 0%, #ffffff 100%);
+    border: 1px solid #ffd8c6;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.upgrade-banner-copy strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.upgrade-banner-copy p {
+    margin: 6px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+    .premium-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-lower-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .score-main-value-wrap {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-hero-clean,
+    .dashboard-card {
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .upgrade-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .upgrade-banner .btn {
+        width: 100%;
+    }
+
+    .dashboard-shell-premium {
+        gap: 22px;
+    }
+
+    .premium-metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-row,
+    .client-row,
+    .score-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dashboard-primary-action,
+    .dashboard-primary-action .btn,
+    .action-cta-wrap .btn,
+    .full-width {
+        width: 100%;
+    }
+
+    .action-copy h2 {
+        font-size: 26px;
+    }
+
+    .section-title {
+        font-size: 20px;
+    }
+
+    .credits-premium-value {
+        font-size: 34px;
+    }
+}
+</style>
+{% endblock %}

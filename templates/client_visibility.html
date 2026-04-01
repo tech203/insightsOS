@@ -2,197 +2,952 @@
 
 {% block title %}{{ client.name }} | Visibility{% endblock %}
 {% block page_title %}{{ client.name }} · Visibility{% endblock %}
-{% block page_subtitle %}Track where your brand appears and where it is missing.{% endblock %}
+{% block page_subtitle %}Understand how your brand is performing in AI visibility and where to improve next.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back</a>
-<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run Audit</a>
+<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+<a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run Audit</a>
 {% endblock %}
 
 {% block content %}
 
-{% set has_latest = client.latest_audit is not none %}
-{% set latest = client.latest_audit %}
+{% set has_latest = latest_audit is not none %}
+{% set score = latest_audit.normalized_score if has_latest else 0 %}
+{% set vis_score = latest_audit.visibility_score if has_latest else 0 %}
+{% set content_score = latest_audit.content_score if has_latest else 0 %}
+{% set schema_score = latest_audit.schema_score if has_latest else 0 %}
+{% set verdict = latest_audit.verdict if has_latest else "No audit yet" %}
+{% set audit_date = latest_audit.saved_at if has_latest else None %}
 
-<div class="visibility-shell">
+{% set normalized_delta = comparison.normalized_delta if comparison else 0 %}
+{% set visibility_delta = comparison.visibility_delta if comparison else 0 %}
+{% set content_delta = comparison.content_delta if comparison else 0 %}
+{% set schema_delta = comparison.schema_delta if comparison else 0 %}
+{% set overall_change = comparison.overall_change if comparison else "unchanged" %}
 
-    <!-- HERO -->
-    <section class="card hero">
-        <div>
-            <h1>Visibility Score</h1>
-            <p>
-                {% if has_latest %}
-                    Track your AI visibility and performance over time.
-                {% else %}
-                    Run your first audit to unlock visibility tracking.
-                {% endif %}
+{% set total_queries = query_summary.total_queries if query_summary else 0 %}
+{% set missed_brand_mentions = query_summary.missed_brand_mentions if query_summary else 0 %}
+{% set improved_queries = query_summary.improved if query_summary else 0 %}
+{% set declined_queries = query_summary.declined if query_summary else 0 %}
+
+<div class="visibility-page-shell">
+
+    {% if has_latest %}
+    <section class="visibility-hero-card">
+        <div class="visibility-hero-main">
+            <span class="section-kicker">Visibility Analysis</span>
+            <h1>Understand your AI visibility</h1>
+            <p class="hero-copy">
+                See how visible your brand is in AI answers, identify what is holding performance back,
+                and move directly into the next actions that improve discoverability.
             </p>
 
-            <div class="actions">
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary">Competitors</a>
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary">Actions</a>
+            <div class="hero-actions">
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary">Competitor Research</a>
+                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+    Open Action Plan →
+</a>
             </div>
         </div>
 
-        <div class="score-box">
-            <div class="label">Latest Score</div>
-            <div class="value">
-                {% if has_latest %}
-                    {{ latest.visibility_score or latest.normalized_score }}
-                {% else %}
-                    —
-                {% endif %}
+        <div class="visibility-hero-score">
+            <span class="score-label">Overall Visibility Snapshot</span>
+
+            <div class="score-main-row">
+                <div class="score-main-value">{{ score }}%</div>
+
+                <div class="score-main-context">
+                    <strong>
+                        {% if score >= 80 %}
+                            Strong visibility
+                        {% elif score >= 60 %}
+                            Moderate visibility
+                        {% else %}
+                            Clear room to improve
+                        {% endif %}
+                    </strong>
+
+                    <p>
+                        {% if score >= 80 %}
+                            Your brand is performing well in AI discovery. Focus on defending key queries and expanding coverage.
+                        {% elif score >= 60 %}
+                            Your brand is appearing in some AI answers, but not consistently enough yet.
+                        {% else %}
+                            Your brand is not consistently appearing in AI answers. Focus on coverage, visibility, and structure first.
+                        {% endif %}
+                    </p>
+                </div>
             </div>
-            <div class="sub">
-                {% if has_latest %}
-                    Baseline available
-                {% else %}
-                    Awaiting first audit
-                {% endif %}
+
+            <div class="score-progress">
+                <div class="score-progress-fill" style="width: {{ score }}%;"></div>
+            </div>
+
+            <div class="score-foot">
+                <span>Latest verdict</span>
+                <strong>{{ verdict }}</strong>
             </div>
         </div>
     </section>
 
-    <!-- SNAPSHOT -->
-    <section class="card">
-        <h3>Latest Snapshot</h3>
+    <section class="visibility-summary-strip">
+        <article class="summary-card summary-card-highlight">
+            <span class="summary-label">Latest score</span>
+            <strong class="summary-value">{{ score }}</strong>
+            <p class="summary-copy">
+                {% if comparison %}
+                    {% if normalized_delta > 0 %}
+                        Up {{ normalized_delta }} from the previous audit.
+                    {% elif normalized_delta < 0 %}
+                        Down {{ normalized_delta|abs }} from the previous audit.
+                    {% else %}
+                        No change from the previous audit.
+                    {% endif %}
+                {% else %}
+                    First saved baseline for this client.
+                {% endif %}
+            </p>
+        </article>
 
-        {% if has_latest %}
-        <div class="grid-4">
-            <div class="mini">
-                <span>Date</span>
-                <strong>{{ latest.saved_at|pretty_datetime }}</strong>
+        <article class="summary-card">
+            <span class="summary-label">Visibility score</span>
+            <strong class="summary-value">{{ vis_score }}</strong>
+            <p class="summary-copy">
+                {% if comparison %}
+                    {% if visibility_delta > 0 %}
+                        Improved by {{ visibility_delta }}.
+                    {% elif visibility_delta < 0 %}
+                        Declined by {{ visibility_delta|abs }}.
+                    {% else %}
+                        No change.
+                    {% endif %}
+                {% else %}
+                    Current AI visibility score.
+                {% endif %}
+            </p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Tracked queries</span>
+            <strong class="summary-value">{{ total_queries }}</strong>
+            <p class="summary-copy">Queries available in the latest query-level comparison.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Missed mentions</span>
+            <strong class="summary-value">{{ missed_brand_mentions }}</strong>
+            <p class="summary-copy">Tracked queries where your brand is not currently mentioned.</p>
+        </article>
+    </section>
+
+    <section class="module-card">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Score Breakdown</span>
+                <h2>Core visibility pillars</h2>
             </div>
+            <p>These are the main inputs currently shaping your AI visibility performance.</p>
+        </div>
 
-            <div class="mini">
-                <span>Visibility</span>
-                <strong>{{ latest.visibility_score or latest.normalized_score }}</strong>
+        <div class="pillar-grid">
+            <article class="pillar-card">
+                <span class="pillar-label">Visibility</span>
+                <strong class="pillar-value">{{ vis_score }}</strong>
+                <p class="pillar-copy">How often your brand appears in AI answers for tracked queries.</p>
+                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ vis_score * 10 if vis_score <= 10 else vis_score }}%;"></div></div>
+                {% if comparison %}
+                <span class="delta-pill {% if visibility_delta > 0 %}up{% elif visibility_delta < 0 %}down{% else %}flat{% endif %}">
+                    {% if visibility_delta > 0 %}+{{ visibility_delta }}{% elif visibility_delta < 0 %}{{ visibility_delta }}{% else %}No change{% endif %}
+                </span>
+                {% endif %}
+            </article>
+
+            <article class="pillar-card">
+                <span class="pillar-label">Content Coverage</span>
+                <strong class="pillar-value">{{ content_score }}</strong>
+                <p class="pillar-copy">How well your content supports the questions and intents AI systems evaluate.</p>
+                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ content_score * 10 if content_score <= 10 else content_score }}%;"></div></div>
+                {% if comparison %}
+                <span class="delta-pill {% if content_delta > 0 %}up{% elif content_delta < 0 %}down{% else %}flat{% endif %}">
+                    {% if content_delta > 0 %}+{{ content_delta }}{% elif content_delta < 0 %}{{ content_delta }}{% else %}No change{% endif %}
+                </span>
+                {% endif %}
+            </article>
+
+            <article class="pillar-card">
+                <span class="pillar-label">Structured Data</span>
+                <strong class="pillar-value">{{ schema_score }}</strong>
+                <p class="pillar-copy">How well your site structure and schema support AI interpretation and citation.</p>
+                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ schema_score * 10 if schema_score <= 10 else schema_score }}%;"></div></div>
+                {% if comparison %}
+                <span class="delta-pill {% if schema_delta > 0 %}up{% elif schema_delta < 0 %}down{% else %}flat{% endif %}">
+                    {% if schema_delta > 0 %}+{{ schema_delta }}{% elif schema_delta < 0 %}{{ schema_delta }}{% else %}No change{% endif %}
+                </span>
+                {% endif %}
+            </article>
+
+            <article class="pillar-card pillar-card-neutral">
+                <span class="pillar-label">Audit status</span>
+                <strong class="pillar-value pillar-value-text">{{ verdict }}</strong>
+                <p class="pillar-copy">Latest overall audit verdict for this client.</p>
+                <div class="meta-stack">
+                    <span><strong>Saved:</strong> {{ audit_date|pretty_datetime }}</span>
+                    {% if comparison %}
+                    <span><strong>Trend:</strong> {{ overall_change|title }}</span>
+                    {% else %}
+                    <span><strong>Trend:</strong> Baseline only</span>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="module-card">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">What’s Holding You Back</span>
+                <h2>Main blockers</h2>
             </div>
+            <p>These are the biggest areas currently limiting stronger AI visibility.</p>
+        </div>
 
-            <div class="mini">
-                <span>Score</span>
-                <strong>{{ latest.normalized_score }}</strong>
+        <div class="blocker-grid">
+            {% if vis_score <= 5 %}
+            <article class="blocker-card">
+                <strong>Low AI answer visibility</strong>
+                <p>Your brand is not appearing often enough in tracked AI responses.</p>
+            </article>
+            {% endif %}
+
+            {% if content_score <= 3 %}
+            <article class="blocker-card">
+                <strong>Weak content coverage</strong>
+                <p>Your current content footprint is not broad or deep enough for target query coverage.</p>
+            </article>
+            {% endif %}
+
+            {% if schema_score <= 3 %}
+            <article class="blocker-card">
+                <strong>Weak structured data</strong>
+                <p>Your site structure and schema signals need improvement to support better AI understanding.</p>
+            </article>
+            {% endif %}
+
+            {% if missed_brand_mentions > 0 %}
+            <article class="blocker-card">
+                <strong>Missed tracked mentions</strong>
+                <p>Your brand is absent in {{ missed_brand_mentions }} tracked queries inside the current comparison set.</p>
+            </article>
+            {% endif %}
+
+            {% if vis_score > 5 and content_score > 3 and schema_score > 3 and missed_brand_mentions == 0 %}
+            <article class="blocker-card blocker-card-positive">
+                <strong>No major blockers surfaced</strong>
+                <p>Your latest audit does not show a major weak point in the current tracked set. Focus on maintaining and expanding coverage.</p>
+            </article>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="module-card">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Query Signals</span>
+                <h2>Query-level movement</h2>
             </div>
+            <p>See how tracked query performance is changing between audits.</p>
+        </div>
 
-            <div class="mini">
-                <span>Verdict</span>
-                <strong>{{ latest.verdict }}</strong>
+        <div class="query-summary-grid">
+            <article class="query-summary-card">
+                <span class="summary-label">Improved</span>
+                <strong class="summary-value">{{ improved_queries }}</strong>
+            </article>
+
+            <article class="query-summary-card">
+                <span class="summary-label">Declined</span>
+                <strong class="summary-value">{{ declined_queries }}</strong>
+            </article>
+
+            <article class="query-summary-card">
+                <span class="summary-label">Missed brand mentions</span>
+                <strong class="summary-value">{{ missed_brand_mentions }}</strong>
+            </article>
+
+            <article class="query-summary-card">
+                <span class="summary-label">Tracked queries</span>
+                <strong class="summary-value">{{ total_queries }}</strong>
+            </article>
+        </div>
+
+        {% if query_rows %}
+        <div class="query-table-wrap">
+            <div class="query-table">
+                <div class="query-table-head">
+                    <span>Query</span>
+                    <span>Status</span>
+                    <span>Latest score</span>
+                    <span>Previous score</span>
+                    <span>Delta</span>
+                </div>
+
+                {% for row in query_rows[:8] %}
+                <div class="query-table-row">
+                    <span class="query-name">{{ row.query }}</span>
+
+                    <span>
+                        <span class="status-pill {% if row.latest_brand_mentioned %}present{% else %}missing{% endif %}">
+                            {% if row.latest_brand_mentioned %}
+                                Brand present
+                            {% else %}
+                                Brand missing
+                            {% endif %}
+                        </span>
+                    </span>
+
+                    <span>{{ row.latest_score }}</span>
+                    <span>{{ row.previous_score }}</span>
+
+                    <span class="{% if row.score_delta > 0 %}delta-up{% elif row.score_delta < 0 %}delta-down{% else %}delta-flat{% endif %}">
+                        {% if row.score_delta > 0 %}
+                            +{{ row.score_delta }}
+                        {% else %}
+                            {{ row.score_delta }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
             </div>
         </div>
         {% else %}
-        <div class="empty">
-            <p>No audit yet.</p>
-            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run First Audit</a>
+        <div class="empty-state-card">
+            <h3>No query comparison data yet</h3>
+            <p>Run and save another audit later to unlock stronger query-level comparison and movement tracking.</p>
         </div>
         {% endif %}
     </section>
 
-    <!-- NOTE -->
-    {% if has_latest %}
-    <section class="card note">
-        <strong>Next step:</strong> Run another audit later to unlock trend tracking and query-level insights.
+    <section class="module-card module-card-soft">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Recommended Next Steps</span>
+                <h2>What to do next</h2>
+            </div>
+            <p>Move directly into the module that best addresses your current gaps.</p>
+        </div>
+
+        <div class="next-action-grid">
+            <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="next-action-card">
+                <h3>Competitor Research</h3>
+                <p>Find where competitors are being surfaced and where your brand is missing.</p>
+            </a>
+
+            <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="next-action-card">
+                <h3>Recommended Actions</h3>
+                <p>Review priority actions generated from your latest audit and query gaps.</p>
+            </a>
+
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="next-action-card">
+                <h3>Run Fresh Audit</h3>
+                <p>Generate a newer snapshot to track progress and surface new opportunities.</p>
+            </a>
+        </div>
+    </section>
+
+    {% else %}
+    <section class="empty-hero-card">
+        <span class="section-kicker">Visibility Analysis</span>
+        <h1>No visibility baseline yet</h1>
+        <p>
+            Run the first audit for this client to generate a visibility score, unlock breakdowns,
+            and start tracking where the brand appears or is missing.
+        </p>
+
+        <div class="hero-actions">
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">Run First Audit</a>
+            <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+        </div>
+
+        {% if current_user.is_authenticated and current_user.plan == "free" %}
+        <div class="upgrade-banner">
+            <div class="upgrade-banner-copy">
+                <strong>Go beyond the free baseline</strong>
+                <p>Upgrade to continue tracking improvements and unlock deeper visibility work.</p>
+            </div>
+
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                Upgrade to Pro
+            </a>
+        </div>
+{% endif %}
+
     </section>
     {% endif %}
 
 </div>
 
 <style>
-.visibility-shell {
+.visibility-page-shell {
+    padding: 24px;
     display: grid;
-    gap: 18px;
-    padding: 20px;
+    gap: 24px;
 }
 
-.card {
-    background: #fff;
-    border-radius: 18px;
-    padding: 20px;
+.visibility-hero-card,
+.module-card,
+.summary-card,
+.pillar-card,
+.blocker-card,
+.query-summary-card,
+.empty-state-card,
+.next-action-card,
+.empty-hero-card {
+    background: #ffffff;
     border: 1px solid #e7ebf3;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.hero {
+.visibility-hero-card {
+    padding: 30px;
     display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.85fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.section-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.visibility-hero-main h1,
+.empty-hero-card h1 {
+    margin: 14px 0 0;
+    font-size: clamp(34px, 5vw, 54px);
+    line-height: 1.03;
+    font-weight: 800;
+    color: #16243c;
+    letter-spacing: -0.03em;
+    max-width: 760px;
+}
+
+.hero-copy,
+.empty-hero-card p {
+    margin: 16px 0 0;
+    font-size: 16px;
+    line-height: 1.72;
+    color: #627084;
+    max-width: 760px;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.visibility-hero-score {
+    padding: 22px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
+    border: 1px solid #f1ddd4;
+}
+
+.score-label {
+    display: block;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.score-main-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    margin-top: 16px;
+}
+
+.score-main-value {
+    font-size: clamp(58px, 7vw, 84px);
+    line-height: 0.92;
+    font-weight: 800;
+    color: #e35b35;
+    letter-spacing: -0.05em;
+}
+
+.score-main-context strong {
+    display: block;
+    color: #16243c;
+    font-size: 22px;
+    line-height: 1.15;
+}
+
+.score-main-context p {
+    margin: 10px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.score-progress {
+    width: 100%;
+    height: 12px;
+    background: #efe2d9;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.score-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e35b35, #ff9b68);
+}
+
+.score-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #f0ddd4;
+}
+
+.score-foot span {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.score-foot strong {
+    color: #16243c;
+    font-size: 15px;
+}
+
+.visibility-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
 }
 
-.hero h1 {
-    margin: 0;
-    font-size: 30px;
-    font-weight: 800;
-}
-
-.actions {
-    margin-top: 12px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.score-box {
-    border: 1px solid #ffd8c6;
-    background: #fff7f3;
-    padding: 16px;
-    border-radius: 16px;
-}
-
-.score-box .label {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 700;
-}
-
-.score-box .value {
-    font-size: 42px;
-    font-weight: 800;
-    margin-top: 6px;
-    color: #e83256;
-}
-
-.score-box .sub {
-    font-size: 13px;
-    margin-top: 6px;
-    color: #16243c;
-}
-
-.grid-4 {
-    display: grid;
-    gap: 12px;
-}
-
-.mini {
-    background: #f8fafc;
-    padding: 14px;
-    border-radius: 12px;
-}
-
-.mini span {
-    font-size: 12px;
-    color: #6b7280;
-    display: block;
-}
-
-.mini strong {
-    font-size: 18px;
-}
-
-.empty {
-    text-align: center;
+.summary-card {
     padding: 20px;
 }
 
-.note {
-    background: #fff7ed;
-    border-color: #fed7aa;
-    color: #9a3412;
+.summary-card-highlight {
+    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
+    border-color: #f1ddd4;
 }
 
-@media (min-width: 768px) {
-    .hero {
-        grid-template-columns: 2fr 1fr;
+.summary-label {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.summary-value {
+    display: block;
+    color: #16243c;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+.summary-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.module-card {
+    padding: 26px;
+}
+
+.module-card-soft {
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ebe7ff;
+}
+
+.section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.section-head h2 {
+    margin: 10px 0 0;
+    font-size: 30px;
+    line-height: 1.1;
+    color: #16243c;
+    font-weight: 800;
+}
+
+.section-head p {
+    margin: 0;
+    max-width: 430px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.pillar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.pillar-card {
+    padding: 20px;
+    background: #fbfcfe;
+}
+
+.pillar-card-neutral {
+    background: #f8fafc;
+}
+
+.pillar-label {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.pillar-value {
+    display: block;
+    color: #16243c;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.pillar-value-text {
+    font-size: 22px;
+    line-height: 1.2;
+}
+
+.pillar-copy {
+    margin: 0 0 14px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.mini-progress {
+    width: 100%;
+    height: 10px;
+    background: #edf1f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6d4aff, #9f7bff);
+}
+
+.delta-pill {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 14px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.delta-pill.up {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.delta-pill.down {
+    background: #fff1ea;
+    color: #e35b35;
+}
+
+.delta-pill.flat {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.meta-stack {
+    display: grid;
+    gap: 8px;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.blocker-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.blocker-card {
+    padding: 18px;
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.blocker-card-positive {
+    background: #ecfdf3;
+    border-color: #bbf7d0;
+}
+
+.blocker-card strong {
+    display: block;
+    color: #16243c;
+    font-size: 18px;
+    line-height: 1.3;
+}
+
+.blocker-card p {
+    margin: 10px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.query-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.query-summary-card {
+    padding: 18px;
+    background: #fbfcfe;
+}
+
+.query-table-wrap {
+    overflow-x: auto;
+}
+
+.query-table {
+    min-width: 760px;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.query-table-head,
+.query-table-row {
+    display: grid;
+    grid-template-columns: minmax(280px, 2fr) minmax(140px, 1fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(90px, 0.7fr);
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+}
+
+.query-table-head {
+    background: #f8fafc;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.query-table-row {
+    background: #ffffff;
+    border-top: 1px solid #edf1f7;
+    color: #16243c;
+    font-size: 14px;
+}
+
+.query-name {
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.status-pill.present {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.status-pill.missing {
+    background: #fff1ea;
+    color: #e35b35;
+}
+
+.delta-up {
+    color: #15803d;
+    font-weight: 800;
+}
+
+.delta-down {
+    color: #e35b35;
+    font-weight: 800;
+}
+
+.delta-flat {
+    color: #6b7280;
+    font-weight: 800;
+}
+
+.empty-state-card,
+.empty-hero-card {
+    padding: 28px;
+}
+
+.empty-state-card {
+    border-style: dashed;
+    background: #fafcff;
+}
+
+.empty-state-card h3 {
+    margin: 0 0 8px;
+    color: #16243c;
+    font-size: 20px;
+}
+
+.empty-state-card p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.next-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.next-action-card {
+    display: block;
+    padding: 20px;
+    background: #ffffff;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.next-action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.next-action-card h3 {
+    margin: 0;
+    color: #16243c;
+    font-size: 20px;
+    line-height: 1.25;
+}
+
+.next-action-card p {
+    margin: 10px 0 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+@media (max-width: 1200px) {
+    .visibility-summary-strip,
+    .pillar-grid,
+    .query-summary-grid,
+    .next-action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .visibility-hero-card,
+    .blocker-grid,
+    .visibility-summary-strip,
+    .pillar-grid,
+    .query-summary-grid,
+    .next-action-grid {
+        grid-template-columns: 1fr;
     }
 
-    .grid-4 {
-        grid-template-columns: repeat(4, 1fr);
+    .section-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .section-head p {
+        max-width: none;
+    }
+
+    .score-main-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .visibility-page-shell {
+        padding: 18px;
+        gap: 18px;
+    }
+
+    .visibility-hero-card,
+    .module-card,
+    .summary-card,
+    .pillar-card,
+    .blocker-card,
+    .query-summary-card,
+    .empty-state-card,
+    .next-action-card,
+    .empty-hero-card {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+    }
+
+    .section-head h2 {
+        font-size: 26px;
+    }
+
+    .score-main-context strong {
+        font-size: 20px;
+    }
+
+    .score-foot {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 </style>

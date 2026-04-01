@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Running Audit...{% endblock %}
+
+{% block content %}
+<div class="processing-shell">
+
+    <div class="processing-card">
+
+        <div class="processing-spinner"></div>
+
+        <h1>Analyzing AI visibility</h1>
+
+        <p>
+            We are scanning how your brand appears across AI-generated answers,
+            identifying gaps, and calculating your visibility score.
+        </p>
+
+        <div class="processing-steps">
+            <div class="step active">Analyzing queries</div>
+            <div class="step">Checking content coverage</div>
+            <div class="step">Evaluating schema signals</div>
+            <div class="step">Generating recommendations</div>
+        </div>
+
+        <div class="processing-note">
+            This usually takes 10–20 seconds
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+setTimeout(() => {
+    window.location.href = "{{ redirect_url }}";
+}, 3000);
+</script>
+
+<style>
+.processing-shell {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.processing-card {
+    max-width: 520px;
+    text-align: center;
+    padding: 40px;
+    border-radius: 24px;
+    background: #fff;
+    border: 1px solid #e7ebf3;
+}
+
+.processing-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #eee;
+    border-top: 4px solid #6C5CE7;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.processing-steps {
+    margin-top: 24px;
+    text-align: left;
+}
+
+.step {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 8px;
+}
+
+.step.active {
+    color: #111827;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

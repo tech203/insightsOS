@@ -1,0 +1,1160 @@
+{% extends "base.html" %}
+{% block title %}Prompt Research | Insights OS{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard prompt-page-header-minimal">
+    <div class="page-header-copy">
+        <h1>Prompt Research</h1>
+        <p>Discover the prompts, topics, brands, and sources shaping AI answers in your market.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% set current_query = query if query is defined and query else "" %}
+{% set current_market = selected_market if selected_market is defined and selected_market else "US" %}
+{% set current_platform = selected_platform if selected_platform is defined and selected_platform else "all" %}
+{% set summary_data = summary if summary is defined and summary else {} %}
+{% set topic_items = topics if topics is defined and topics else [] %}
+{% set prompt_items = prompts if prompts is defined and prompts else [] %}
+{% set brand_items = brands if brands is defined and brands else [] %}
+{% set source_items = sources if sources is defined and sources else [] %}
+
+<div class="prompt-research-shell">
+
+    <section class="prompt-hero-card">
+        <div class="prompt-hero-copy">
+            <span class="section-kicker">Discovery</span>
+            <h1>Uncover the prompts where your brand should appear</h1>
+            <p>
+                Research what people are asking AI, see which brands are being mentioned,
+                identify the sources shaping answers, and turn those insights into action.
+            </p>
+
+            <form method="POST" action="{{ url_for('prompt_research_page') }}" class="prompt-search-form">
+                <div class="prompt-search-bar">
+                    <input
+                        type="text"
+                        name="topic"
+                        value="{{ current_query }}"
+                        placeholder="e.g. chatbot builder, bakery near Chinatown, AI customer support"
+                        required
+                    >
+                    <button type="submit" class="btn btn-primary btn-large">Analyze</button>
+                </div>
+
+                <div class="prompt-search-filters">
+                    <label>
+                        <span>Market</span>
+                        <select name="market">
+                            <option value="US" {% if current_market == "US" %}selected{% endif %}>US</option>
+                            <option value="UK" {% if current_market == "UK" %}selected{% endif %}>UK</option>
+                            <option value="SG" {% if current_market == "SG" %}selected{% endif %}>SG</option>
+                            <option value="AU" {% if current_market == "AU" %}selected{% endif %}>AU</option>
+                            <option value="MY" {% if current_market == "MY" %}selected{% endif %}>MY</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Platform</span>
+                        <select name="platform">
+                            <option value="all" {% if current_platform == "all" %}selected{% endif %}>All AI platforms</option>
+                            <option value="chatgpt" {% if current_platform == "chatgpt" %}selected{% endif %}>ChatGPT</option>
+                            <option value="gemini" {% if current_platform == "gemini" %}selected{% endif %}>Gemini</option>
+                            <option value="perplexity" {% if current_platform == "perplexity" %}selected{% endif %}>Perplexity</option>
+                            <option value="google_ai" {% if current_platform == "google_ai" %}selected{% endif %}>Google AI</option>
+                        </select>
+                    </label>
+                </div>
+            </form>
+        </div>
+
+        <div class="prompt-hero-side">
+            <div class="hero-side-card">
+                <span class="mini-kicker">What this module does</span>
+                <ul class="hero-check-list">
+                    <li>Find high-intent AI prompts</li>
+                    <li>See which brands AI mentions</li>
+                    <li>Identify source domains shaping answers</li>
+                    <li>Push winning prompts into tracking</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    {% if current_query %}
+    <section class="prompt-summary-grid">
+        <article class="summary-card">
+            <span class="summary-label">AI Volume</span>
+            <strong class="summary-value">{{ summary_data.ai_volume if summary_data.ai_volume is defined else "—" }}</strong>
+            <p class="summary-copy">Estimated demand and prompt activity around this topic.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Topics</span>
+            <strong class="summary-value">{{ summary_data.topic_count if summary_data.topic_count is defined else topic_items|length }}</strong>
+            <p class="summary-copy">Clusters of related AI search intent around your topic.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Prompts</span>
+            <strong class="summary-value">{{ summary_data.prompt_count if summary_data.prompt_count is defined else prompt_items|length }}</strong>
+            <p class="summary-copy">Specific prompts users may ask across AI platforms.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Brands Mentioned</span>
+            <strong class="summary-value">{{ summary_data.brand_count if summary_data.brand_count is defined else brand_items|length }}</strong>
+            <p class="summary-copy">Brands appearing across AI-generated answers.</p>
+        </article>
+
+        <article class="summary-card">
+            <span class="summary-label">Source Domains</span>
+            <strong class="summary-value">{{ summary_data.source_count if summary_data.source_count is defined else source_items|length }}</strong>
+            <p class="summary-copy">Websites shaping the AI answers users are seeing.</p>
+        </article>
+    </section>
+
+    <section class="prompt-insight-band">
+        <div class="insight-band-copy">
+            <span class="section-kicker">Opportunity</span>
+            <h2>Turn discovery into action</h2>
+            <p>
+                Once you find important prompts, you can track them, compare competitors,
+                and create content for the gaps where your brand should be appearing.
+            </p>
+        </div>
+
+        <div class="insight-band-actions">
+            <a href="{{ url_for('prompt_tracking_page') }}" class="btn btn-secondary">Open Prompt Tracking</a>
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Content Queue</a>
+            <a href="{{ url_for('competitor_page') }}" class="btn btn-secondary">Compare Competitors</a>
+        </div>
+    </section>
+
+    <section class="prompt-results-shell">
+
+        <div class="results-section-card">
+            <div class="results-section-header">
+                <div>
+                    <span class="section-kicker">Topics</span>
+                    <h3 class="section-title">Related topics</h3>
+                </div>
+                <span class="section-hint">{{ topic_items|length }} found</span>
+            </div>
+
+            {% if topic_items %}
+            <div class="table-wrap">
+                <table class="insights-table">
+                    <thead>
+                        <tr>
+                            <th>Topic</th>
+                            <th>AI Volume</th>
+                            <th>Intent</th>
+                            <th>Opportunity</th>
+                            <th class="table-action-col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in topic_items %}
+                        {% set opp = item.opportunity if item.opportunity is defined else "Medium" %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.topic if item.topic is defined else item.name }}</strong>
+                            </td>
+                            <td>{{ item.ai_volume if item.ai_volume is defined else "—" }}</td>
+                            <td>
+                                <span class="intent-badge">{{ item.intent if item.intent is defined else "Mixed" }}</span>
+                            </td>
+                            <td>
+                                <span class="opportunity-pill opportunity-{{ opp|lower }}">{{ opp }}</span>
+                            </td>
+                            <td class="table-action-col">
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-modal-target="trackPromptModal"
+                                    data-prompt="{{ item.topic if item.topic is defined else item.name }}"
+                                >
+                                    Track
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-module-state">
+                <strong>No topic clusters yet</strong>
+                <p>Run a topic search above to discover related AI topics and intent clusters.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="results-section-card">
+            <div class="results-section-header">
+                <div>
+                    <span class="section-kicker">Prompts</span>
+                    <h3 class="section-title">Prompt opportunities</h3>
+                </div>
+                <span class="section-hint">{{ prompt_items|length }} found</span>
+            </div>
+
+            {% if prompt_items %}
+            <div class="table-wrap">
+                <table class="insights-table">
+                    <thead>
+                        <tr>
+                            <th>Prompt</th>
+                            <th>AI Response Snapshot</th>
+                            <th>Brands</th>
+                            <th>Sources</th>
+                            <th>Opportunity</th>
+                            <th class="table-action-col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in prompt_items %}
+                        {% set opp = item.opportunity if item.opportunity is defined else "High" %}
+                        <tr>
+                            <td class="prompt-cell">
+                                <strong>{{ item.prompt if item.prompt is defined else item.name }}</strong>
+                            </td>
+                            <td class="response-cell">
+                                {{ item.response_excerpt if item.response_excerpt is defined else item.response if item.response is defined else "AI answer preview not available." }}
+                            </td>
+                            <td>{{ item.brand_count if item.brand_count is defined else item.brands|length if item.brands is defined else "—" }}</td>
+                            <td>{{ item.source_count if item.source_count is defined else item.sources|length if item.sources is defined else "—" }}</td>
+                            <td>
+                                <span class="opportunity-pill opportunity-{{ opp|lower }}">{{ opp }}</span>
+                            </td>
+                            <td class="table-action-col action-stack-cell">
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-modal-target="promptDetailModal"
+                                    data-prompt="{{ item.prompt if item.prompt is defined else item.name }}"
+                                    data-response="{{ item.full_response if item.full_response is defined else item.response if item.response is defined else '' }}"
+                                    data-brands="{{ item.brands|join(', ') if item.brands is defined else '' }}"
+                                    data-sources="{{ item.sources|join('||') if item.sources is defined else '' }}"
+                                >
+                                    View
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-primary btn-sm"
+                                    data-modal-target="trackPromptModal"
+                                    data-prompt="{{ item.prompt if item.prompt is defined else item.name }}"
+                                >
+                                    Track
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-module-state">
+                <strong>No prompt opportunities yet</strong>
+                <p>Run a topic search above to surface prompts and AI answer opportunities.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="results-two-col">
+            <div class="results-section-card">
+                <div class="results-section-header">
+                    <div>
+                        <span class="section-kicker">Brands</span>
+                        <h3 class="section-title">Brands being mentioned</h3>
+                    </div>
+                    <span class="section-hint">{{ brand_items|length }} found</span>
+                </div>
+
+                {% if brand_items %}
+                <div class="table-wrap">
+                    <table class="insights-table compact-table">
+                        <thead>
+                            <tr>
+                                <th>Brand</th>
+                                <th>Mentions</th>
+                                <th>Example Prompt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in brand_items %}
+                            <tr>
+                                <td><strong>{{ item.brand if item.brand is defined else item.name }}</strong></td>
+                                <td>{{ item.mentions if item.mentions is defined else "—" }}</td>
+                                <td>{{ item.example_prompt if item.example_prompt is defined else "—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-module-state small-empty-state">
+                    <p>No brand mentions available yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="results-section-card">
+                <div class="results-section-header">
+                    <div>
+                        <span class="section-kicker">Sources</span>
+                        <h3 class="section-title">Source domains shaping answers</h3>
+                    </div>
+                    <span class="section-hint">{{ source_items|length }} found</span>
+                </div>
+
+                {% if source_items %}
+                <div class="table-wrap">
+                    <table class="insights-table compact-table">
+                        <thead>
+                            <tr>
+                                <th>Source Domain</th>
+                                <th>Mentions</th>
+                                <th>Example Prompt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in source_items %}
+                            <tr>
+                                <td><strong>{{ item.domain if item.domain is defined else item.name }}</strong></td>
+                                <td>{{ item.mentions if item.mentions is defined else "—" }}</td>
+                                <td>{{ item.example_prompt if item.example_prompt is defined else "—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-module-state small-empty-state">
+                    <p>No source domains available yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% else %}
+    <section class="prompt-empty-state">
+        <div class="empty-state-card">
+            <span class="section-kicker">How to use this</span>
+            <h2>Start with a topic, not a domain</h2>
+            <p>
+                Prompt research is your demand-side discovery layer. Enter a category, service,
+                product, or problem your audience cares about, and use the results to decide what to track,
+                what to write, and where competitors are gaining visibility.
+            </p>
+
+            <div class="empty-state-grid">
+                <div class="empty-feature-card">
+                    <h3>Discover prompts</h3>
+                    <p>Find the questions people are likely asking AI about your market.</p>
+                </div>
+                <div class="empty-feature-card">
+                    <h3>See mentioned brands</h3>
+                    <p>Understand which brands are appearing in AI answers around that topic.</p>
+                </div>
+                <div class="empty-feature-card">
+                    <h3>Find source domains</h3>
+                    <p>See which sites and pages are shaping AI-generated responses.</p>
+                </div>
+                <div class="empty-feature-card">
+                    <h3>Send to tracking</h3>
+                    <p>Push valuable prompts into your tracking workflow for ongoing monitoring.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden></div>
+
+<div class="app-modal" id="promptDetailModal" hidden>
+    <div class="app-modal-card app-modal-lg">
+        <div class="app-modal-header">
+            <div>
+                <span class="section-kicker">AI Answer Breakdown</span>
+                <h3 id="detailPromptTitle">Prompt detail</h3>
+            </div>
+            <button type="button" class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+
+        <div class="app-modal-body modal-two-col">
+            <div class="modal-main-column">
+                <h4>AI Response</h4>
+                <div class="modal-response-box" id="detailResponseText">
+                    No response available.
+                </div>
+            </div>
+
+            <div class="modal-side-column">
+                <div class="modal-side-block">
+                    <h4>Brands mentioned</h4>
+                    <div class="tag-list" id="detailBrandsList"></div>
+                </div>
+
+                <div class="modal-side-block">
+                    <h4>Sources</h4>
+                    <div class="source-link-list" id="detailSourcesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="app-modal" id="trackPromptModal" hidden>
+    <div class="app-modal-card">
+        <div class="app-modal-header">
+            <div>
+                <span class="section-kicker">Tracking Setup</span>
+                <h3>Track AI prompts</h3>
+            </div>
+            <button type="button" class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('prompt_tracking_page') }}" class="app-modal-body track-form-grid">
+            <div class="form-group full-span">
+                <label for="tracked_prompts">Prompts</label>
+                <textarea id="tracked_prompts" name="tracked_prompts" rows="7" placeholder="Enter one prompt per line"></textarea>
+                <small>The selected prompt will be inserted automatically. You can add more prompts before starting tracking.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="tracking_platform">Platform</label>
+                <select id="tracking_platform" name="platform">
+                    <option value="chatgpt">ChatGPT</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="perplexity">Perplexity</option>
+                    <option value="google_ai">Google AI</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tracking_market">Market</label>
+                <select id="tracking_market" name="market">
+                    <option value="US">US</option>
+                    <option value="UK">UK</option>
+                    <option value="SG">SG</option>
+                    <option value="AU">AU</option>
+                    <option value="MY">MY</option>
+                </select>
+            </div>
+
+            <div class="form-group full-span modal-action-row">
+                <button type="submit" class="btn btn-primary btn-large">Start Tracking</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.prompt-page-header-minimal {
+    margin-bottom: 8px;
+}
+
+.prompt-research-shell {
+    display: grid;
+    gap: 28px;
+}
+
+.prompt-hero-card,
+.summary-card,
+.results-section-card,
+.empty-state-card,
+.hero-side-card,
+.app-modal-card,
+.prompt-insight-band {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.prompt-hero-card {
+    padding: 32px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) 320px;
+    gap: 24px;
+    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
+    border-color: #ece8ff;
+}
+
+.prompt-hero-copy h1 {
+    margin: 0;
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 1.02;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #16243c;
+    max-width: 780px;
+}
+
+.prompt-hero-copy p {
+    margin: 16px 0 0;
+    max-width: 760px;
+    font-size: 17px;
+    line-height: 1.72;
+    color: #627084;
+}
+
+.section-kicker,
+.mini-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f4ebff;
+    color: #6d4aff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.prompt-search-form {
+    margin-top: 24px;
+    display: grid;
+    gap: 14px;
+}
+
+.prompt-search-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+}
+
+.prompt-search-bar input,
+.prompt-search-filters select,
+.track-form-grid textarea,
+.track-form-grid select {
+    width: 100%;
+    border: 1px solid #dbe3ef;
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #16243c;
+    background: #ffffff;
+    outline: none;
+}
+
+.prompt-search-bar input:focus,
+.prompt-search-filters select:focus,
+.track-form-grid textarea:focus,
+.track-form-grid select:focus {
+    border-color: #8d72ff;
+    box-shadow: 0 0 0 4px rgba(141, 114, 255, 0.12);
+}
+
+.prompt-search-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.prompt-search-filters label {
+    display: grid;
+    gap: 8px;
+    min-width: 180px;
+}
+
+.prompt-search-filters label span,
+.form-group label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #627084;
+}
+
+.hero-side-card {
+    padding: 20px;
+    background: linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
+}
+
+.hero-check-list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    display: grid;
+    gap: 12px;
+}
+
+.hero-check-list li {
+    position: relative;
+    padding-left: 22px;
+    color: #405066;
+    line-height: 1.55;
+    font-size: 14px;
+}
+
+.hero-check-list li::before {
+    content: "•";
+    position: absolute;
+    left: 6px;
+    top: 0;
+    color: #6d4aff;
+    font-weight: 800;
+}
+
+.prompt-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.summary-card {
+    padding: 20px;
+}
+
+.summary-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.summary-value {
+    display: block;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    color: #16243c;
+    letter-spacing: -0.03em;
+}
+
+.summary-copy {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.prompt-insight-band {
+    padding: 24px 26px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ece8ff;
+}
+
+.insight-band-copy h2 {
+    margin: 10px 0 0;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #16243c;
+}
+
+.insight-band-copy p {
+    margin: 14px 0 0;
+    max-width: 760px;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.insight-band-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.prompt-results-shell {
+    display: grid;
+    gap: 24px;
+}
+
+.results-section-card {
+    padding: 24px;
+}
+
+.results-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.section-title {
+    margin: 8px 0 0;
+    font-size: 24px;
+    line-height: 1.12;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.section-hint {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+.insights-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 880px;
+}
+
+.insights-table th,
+.insights-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #edf1f7;
+    vertical-align: top;
+    text-align: left;
+}
+
+.insights-table th {
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+    background: #fafbfe;
+}
+
+.insights-table td {
+    font-size: 14px;
+    color: #405066;
+    line-height: 1.55;
+}
+
+.prompt-cell strong,
+.insights-table td strong {
+    color: #16243c;
+}
+
+.response-cell {
+    max-width: 420px;
+    color: #5d6c80;
+}
+
+.intent-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #eff4ff;
+    color: #4266d6;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.opportunity-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.opportunity-high {
+    background: #fff0eb;
+    color: #dd5a38;
+}
+
+.opportunity-medium {
+    background: #fff7df;
+    color: #b7791f;
+}
+
+.opportunity-low {
+    background: #ecfdf3;
+    color: #1f8f5f;
+}
+
+.table-action-col {
+    white-space: nowrap;
+}
+
+.action-stack-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.results-two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.compact-table {
+    min-width: 640px;
+}
+
+.empty-module-state,
+.small-empty-state,
+.empty-state-card {
+    padding: 22px;
+}
+
+.empty-module-state strong {
+    display: block;
+    color: #16243c;
+    margin-bottom: 8px;
+}
+
+.empty-module-state p,
+.small-empty-state p,
+.empty-state-card p {
+    margin: 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.prompt-empty-state .empty-state-card h2 {
+    margin: 10px 0 0;
+    font-size: 30px;
+    line-height: 1.1;
+    color: #16243c;
+}
+
+.empty-state-grid {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.empty-feature-card {
+    padding: 18px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+}
+
+.empty-feature-card h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: #16243c;
+}
+
+.empty-feature-card p {
+    font-size: 14px;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.48);
+    z-index: 999;
+}
+
+.app-modal {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+    padding: 24px;
+}
+
+.app-modal-card {
+    width: min(760px, 100%);
+    max-height: 88vh;
+    overflow: auto;
+    padding: 24px;
+}
+
+.app-modal-lg {
+    width: min(1080px, 100%);
+}
+
+.app-modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.app-modal-header h3 {
+    margin: 10px 0 0;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #16243c;
+}
+
+.modal-close-btn {
+    border: 0;
+    background: transparent;
+    font-size: 34px;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.app-modal-body {
+    display: grid;
+    gap: 18px;
+}
+
+.modal-two-col {
+    grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.72fr);
+}
+
+.modal-main-column h4,
+.modal-side-block h4 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #16243c;
+}
+
+.modal-response-box {
+    padding: 18px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    color: #405066;
+    font-size: 15px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.modal-side-column {
+    display: grid;
+    gap: 18px;
+}
+
+.modal-side-block {
+    padding: 18px;
+    border-radius: 18px;
+    background: #fafbfe;
+    border: 1px solid #e8edf5;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: #f2f4f8;
+    color: #405066;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.source-link-list {
+    display: grid;
+    gap: 10px;
+}
+
+.source-link-item {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    color: #4266d6;
+    font-size: 13px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.track-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-group {
+    display: grid;
+    gap: 8px;
+}
+
+.form-group small {
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.full-span {
+    grid-column: 1 / -1;
+}
+
+.modal-action-row {
+    padding-top: 6px;
+}
+
+.btn-sm {
+    padding: 9px 12px;
+    font-size: 13px;
+}
+
+.btn-large {
+    padding: 14px 22px;
+    font-size: 16px;
+}
+
+@media (max-width: 1280px) {
+    .prompt-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .empty-state-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1100px) {
+    .prompt-hero-card,
+    .prompt-insight-band,
+    .results-two-col,
+    .modal-two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .insight-band-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .prompt-hero-card,
+    .summary-card,
+    .results-section-card,
+    .empty-state-card,
+    .app-modal-card,
+    .prompt-insight-band {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .prompt-summary-grid,
+    .empty-state-grid,
+    .track-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prompt-search-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .prompt-hero-copy h1 {
+        font-size: 32px;
+    }
+
+    .app-modal {
+        padding: 14px;
+    }
+
+    .action-stack-cell {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+(function () {
+    const backdrop = document.getElementById("modalBackdrop");
+    const detailModal = document.getElementById("promptDetailModal");
+    const trackModal = document.getElementById("trackPromptModal");
+    const detailTitle = document.getElementById("detailPromptTitle");
+    const detailResponse = document.getElementById("detailResponseText");
+    const detailBrands = document.getElementById("detailBrandsList");
+    const detailSources = document.getElementById("detailSourcesList");
+    const trackedPrompts = document.getElementById("tracked_prompts");
+
+    function openModal(modal) {
+        if (!modal || !backdrop) return;
+        backdrop.hidden = false;
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeAllModals() {
+        if (backdrop) backdrop.hidden = true;
+        if (detailModal) detailModal.hidden = true;
+        if (trackModal) trackModal.hidden = true;
+        document.body.style.overflow = "";
+    }
+
+    function renderTagList(container, values) {
+        container.innerHTML = "";
+        if (!values || !values.length) {
+            container.innerHTML = '<span class="tag-item">No data</span>';
+            return;
+        }
+
+        values.forEach(value => {
+            const el = document.createElement("span");
+            el.className = "tag-item";
+            el.textContent = value;
+            container.appendChild(el);
+        });
+    }
+
+    function renderSourceList(container, values) {
+        container.innerHTML = "";
+        if (!values || !values.length) {
+            container.innerHTML = '<div class="source-link-item">No sources available.</div>';
+            return;
+        }
+
+        values.forEach(value => {
+            const el = document.createElement("div");
+            el.className = "source-link-item";
+            el.textContent = value;
+            container.appendChild(el);
+        });
+    }
+
+    document.querySelectorAll("[data-modal-target]").forEach(button => {
+        button.addEventListener("click", function () {
+            const target = this.getAttribute("data-modal-target");
+            const prompt = this.getAttribute("data-prompt") || "";
+
+            if (target === "promptDetailModal") {
+                const response = this.getAttribute("data-response") || "No response available.";
+                const brands = (this.getAttribute("data-brands") || "").split(",").map(x => x.trim()).filter(Boolean);
+                const sources = (this.getAttribute("data-sources") || "").split("||").map(x => x.trim()).filter(Boolean);
+
+                if (detailTitle) detailTitle.textContent = prompt || "Prompt detail";
+                if (detailResponse) detailResponse.textContent = response;
+                if (detailBrands) renderTagList(detailBrands, brands);
+                if (detailSources) renderSourceList(detailSources, sources);
+
+                openModal(detailModal);
+            }
+
+            if (target === "trackPromptModal") {
+                if (trackedPrompts) {
+                    trackedPrompts.value = prompt ? prompt : "";
+                }
+                openModal(trackModal);
+            }
+        });
+    });
+
+    document.querySelectorAll("[data-close-modal]").forEach(button => {
+        button.addEventListener("click", closeAllModals);
+    });
+
+    if (backdrop) {
+        backdrop.addEventListener("click", closeAllModals);
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") closeAllModals();
+    });
+})();
+</script>
+{% endblock %}

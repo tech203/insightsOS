@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Pricing | AEO Agents{% endblock %}
+{% block title %}Pricing | Insights OS{% endblock %}
 
 {% block content %}
 <div class="pricing-shell">
@@ -12,16 +12,20 @@
                 <span class="pricing-badge">Plans + Credits + Add-ons</span>
             </div>
 
-            <h1>Simple pricing for audits, content, and client delivery</h1>
-            <p class="pricing-hero-copy">
-                Choose the workspace plan that fits your usage, use credits for platform actions,
-                and add agency delivery features only when you need white-label reporting and client-facing output.
-            </p>
+<h1>
+    Start free.<br>
+    Scale when it works.
+</h1>
 
-            <div class="pricing-hero-actions">
-                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary">Manage Billing</a>
-                <a href="{{ url_for('index') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
-            </div>
+<p class="pricing-hero-copy">
+    Run your first audits for free. Upgrade when you need more usage,
+    more content output, and a smoother workflow.
+</p>
+
+<div class="pricing-hero-actions">
+    <a href="#main-plans" class="btn btn-primary btn-large">Start Free</a>
+    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage Billing</a>
+</div>
         </div>
 
         <div class="pricing-hero-side">
@@ -35,31 +39,49 @@
         </div>
     </section>
 
-    <section class="pricing-explainer-grid">
-        <div class="pricing-explainer-card">
-            <div class="pricing-explainer-no">1</div>
-            <strong>Choose a Plan</strong>
-            <p>Pick the workspace level that fits your monthly usage and workflow needs.</p>
+<section class="pricing-roi-card">
+
+    <div class="roi-copy">
+        <span class="pricing-badge pricing-badge-primary">ROI</span>
+
+        <h2>This pays for itself with one client</h2>
+
+        <p>
+            If your visibility improvements bring just <strong>1 additional customer</strong>,
+            your subscription is already covered.
+        </p>
+
+        <ul class="roi-points">
+            <li>1 new client → covers Pro plan</li>
+            <li>Consistent content → compounds visibility</li>
+            <li>Better AI presence → higher trust & conversions</li>
+        </ul>
+    </div>
+
+    <div class="roi-math">
+        <div class="roi-box">
+            <span>Avg client value</span>
+            <strong>$500+</strong>
         </div>
 
-        <div class="pricing-explainer-card">
-            <div class="pricing-explainer-no">2</div>
-            <strong>Use Credits</strong>
-            <p>Credits are consumed when you run high-value actions like audits or content generation.</p>
+        <div class="roi-box">
+            <span>Pro plan</span>
+            <strong>$29</strong>
         </div>
 
-        <div class="pricing-explainer-card">
-            <div class="pricing-explainer-no">3</div>
-            <strong>Add Agency Features</strong>
-            <p>Only agencies that need white-label delivery and branded reporting need this extra layer.</p>
+        <div class="roi-box highlight">
+            <span>ROI</span>
+            <strong>17×+</strong>
         </div>
-    </section>
+    </div>
 
-    <section class="pricing-section">
-        <div class="pricing-section-head">
-            <h2>Main Plans</h2>
-            <p>For self-serve businesses, solo operators, and growing teams.</p>
-        </div>
+</section>
+
+<section class="pricing-section" id="main-plans">
+    <div class="pricing-section-head">
+        <h2>Main Plans</h2>
+        <p>For self-serve businesses, solo operators, and growing teams.</p>
+    </div>
 
         <div class="pricing-plan-grid">
 
@@ -75,7 +97,7 @@
                 </div>
 
                 <p class="pricing-plan-desc">
-                    Good for testing the platform and experiencing the core workflow before upgrading.
+                    Best for trying the product and running your first audits.
                 </p>
 
                 <div class="pricing-feature-list">
@@ -100,7 +122,8 @@
                 </div>
 
                 <p class="pricing-plan-desc">
-                    Best for active business owners and solo operators who want regular audits and content support.
+                    Designed to help you consistently improve visibility and generate new business.
+                    One client win can cover your entire subscription.
                 </p>
 
                 <div class="pricing-feature-list">
@@ -110,7 +133,7 @@
                     <div class="pricing-feature-item">Better history and workflow access</div>
                 </div>
 
-                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary full-width-btn">Choose Pro</a>
+                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary full-width-btn">Start Growing Visibility</a>
             </article>
 
             <article class="pricing-plan-card">
@@ -120,12 +143,15 @@
                 </div>
 
                 <div class="pricing-price-block">
+                    <div class="roi-inline">
+                        Just 1 client → pays for this plan
+                    </div>
                     <strong>US$79</strong>
                     <small>per month</small>
                 </div>
 
                 <p class="pricing-plan-desc">
-                    For heavier users, small teams, and more frequent audit and content workflows.
+                    For teams or higher-volume usage.
                 </p>
 
                 <div class="pricing-feature-list">
@@ -143,8 +169,8 @@
 
     <section class="pricing-section">
         <div class="pricing-section-head">
-            <h2>Agency Add-on</h2>
-            <p>This is an add-on layer, not a replacement for credits or plans.</p>
+<h2>Agency (Optional)</h2>
+<p>Only needed if you deliver reports to clients.</p>
         </div>
 
         <div class="pricing-addon-card">
@@ -160,7 +186,7 @@
                 </div>
 
                 <p class="pricing-plan-desc">
-                    Unlock agency-friendly delivery features for client work and branded outputs.
+                    Unlock white-label reports and client-facing delivery.
                 </p>
 
                 <div class="pricing-feature-list">
@@ -249,10 +275,10 @@
             </p>
         </div>
 
-        <div class="pricing-cta-actions">
-            <a href="{{ url_for('index') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
-            <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary">Manage Billing</a>
-        </div>
+<div class="pricing-cta-actions">
+    <a href="#main-plans" class="btn btn-primary">Start Free</a>
+    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage Billing</a>
+</div>
     </section>
 
 </div>
@@ -264,6 +290,13 @@
     gap: 24px;
 }
 
+.roi-inline {
+    font-size: 13px;
+    margin-top: 8px;
+    color: #E83256;
+    font-weight: 700;
+}
+
 .pricing-hero-card,
 .pricing-explainer-card,
 .pricing-plan-card,
@@ -272,12 +305,68 @@
 .pricing-topup-card,
 .pricing-faq-item,
 .pricing-cta-card,
-.pricing-logic-card,
 .pricing-summary-card {
     background: #ffffff;
     border: 1px solid #e7ebf3;
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+
+.pricing-roi-card {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    padding: 26px;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    border: 1px solid #ffe3d6;
+    border-radius: 24px;
+}
+
+.roi-copy h2 {
+    margin: 10px 0;
+    font-size: 26px;
+    font-weight: 800;
+}
+
+.roi-copy p {
+    color: #627084;
+    line-height: 1.6;
+}
+
+.roi-points {
+    margin-top: 14px;
+    padding-left: 18px;
+    color: #445366;
+}
+
+.roi-math {
+    display: grid;
+    gap: 12px;
+}
+
+.roi-box {
+    padding: 14px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+}
+
+.roi-box span {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.roi-box strong {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+.roi-box.highlight {
+    border: 2px solid #E83256;
+    background: #fff2ea;
 }
 
 .pricing-hero-card {
@@ -343,6 +432,7 @@
     border: 1px solid #ffd8c6;
     background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
 }
+
 
 .pricing-logic-label {
     font-size: 13px;
@@ -448,10 +538,23 @@
     gap: 16px;
 }
 
-.pricing-plan-card.featured,
+.pricing-plan-card.featured {
+    border: 2px solid #E83256;
+    background: linear-gradient(180deg, #fff7f3 0%, #ffffff 100%);
+    box-shadow: 0 20px 50px rgba(232, 50, 86, 0.12);
+    transform: translateY(-6px);
+}
+
 .pricing-topup-card.featured {
     border-color: #ffd8c6;
     background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+}
+
+.pricing-plan-card:hover,
+.pricing-topup-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    transition: all 0.2s ease;
 }
 
 .pricing-plan-top {
@@ -475,9 +578,9 @@
 }
 
 .featured-badge {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
+    background: #E83256;
+    color: #ffffff;
+    border: none;
 }
 
 .pricing-price-block strong {
@@ -595,11 +698,16 @@
     .pricing-addon-note,
     .pricing-topup-card,
     .pricing-faq-item,
-    .pricing-cta-card,
-    .pricing-logic-card {
+    .pricing-cta-card {
         padding: 18px;
         border-radius: 20px;
     }
+
+    .btn-large {
+    padding: 14px 22px;
+    font-size: 15px;
+    font-weight: 700;
+}
 
     .pricing-hero-main h1 {
         font-size: 30px;

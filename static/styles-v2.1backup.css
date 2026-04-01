@@ -2873,10 +2873,6 @@ a {
     transition: all 0.2s ease;
 }
 
-.sidebar-logout-btn:hover {
-    background: #e5e7eb;
-}
-
 .sidebar-wallet {
     padding: 14px;
     border-radius: 16px;

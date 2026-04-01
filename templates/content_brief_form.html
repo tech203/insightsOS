@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
-<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">Open Draft Generator</a>
+<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Open Draft Generator</a>
 {% endblock %}
 
 {% block content %}
@@ -22,11 +22,11 @@
                 <span class="hero-badge">Draft Ready</span>
             </div>
 
-            <h1>Your content brief is ready for review.</h1>
-            <p>
-                Check the target query, confirm the content type, refine the brief if needed,
-                and then either save it to the queue or use it immediately for draft generation.
-            </p>
+<h1>Refine this brief before execution</h1>
+<p>
+    Tighten the angle, confirm search intent, and make this brief clear enough
+    to move directly into drafting.
+</p>
         </div>
 
         <div class="brief-result-hero-card">
@@ -38,14 +38,78 @@
         </div>
     </section>
 
+<section class="aeo-score-card">
+
+    <div class="aeo-score-main">
+        <span class="section-kicker">AI Visibility Score</span>
+
+        <div class="score-row">
+            <div class="score-value">{{ aeo.score if aeo else 0 }}</div>
+
+            <div class="score-meta">
+                <strong>{{ aeo.opportunity }} Opportunity</strong>
+                <p>
+                    Visibility is currently {{ aeo.visibility }}%.
+                    Competitor strength is {{ aeo.competitor_strength }}.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="aeo-score-breakdown">
+        <div class="score-item">
+            <span>Visibility</span>
+            <strong>{{ aeo.visibility if aeo else 0 }}%</strong>
+        </div>
+
+        <div class="score-item">
+            <span>Competitors</span>
+            <strong>{{ aeo.competitor_strength }}</strong>
+        </div>
+
+        <div class="score-item">
+            <span>Opportunity</span>
+            <strong>{{ aeo.opportunity }}</strong>
+        </div>
+    </div>
+
+</section>
+
+<section class="brief-summary-strip">
+
+    <div class="summary-card">
+        <span>Target Query</span>
+        <strong>{{ result.target_query if result and result.target_query is defined else "Not set" }}</strong>
+    </div>
+
+    <div class="summary-card">
+        <span>Content Type</span>
+        <strong>{{ result.content_type if result and result.content_type is defined else "Not set" }}</strong>
+    </div>
+
+    <div class="summary-card highlight">
+        <span>Next Step</span>
+        <strong>
+            {% if result.brief and result.brief|length > 120 %}
+                Move to Draft
+            {% else %}
+                Refine First
+            {% endif %}
+        </strong>
+    </div>
+
+</section>
+
     <section class="brief-result-grid">
 
         <div class="panel panel-main">
-            <div class="panel-header">
+            <div class="panel-header panel-header-spread">
                 <div>
                     <h2>Generated Brief</h2>
                     <p class="panel-subtitle">Review and edit before saving to the content queue.</p>
                 </div>
+
+                <button id="copyBtn" class="btn btn-ghost">Copy</button>
             </div>
 
             <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}" class="form-stack">
@@ -86,27 +150,33 @@
                     </div>
                 </div>
 
-                <div class="card-actions">
-                    <button type="submit" class="btn btn-primary">Save to Queue</button>
-                    <a
-                        href="{{ url_for('generate_client_content_draft',
-                            client_id=client.id,
-                            target_query=(result.target_query if result and result.target_query is defined else ''),
-                            brief_context=(result.brief if result and result.brief is defined else ''),
-                            brand_context=client.notes
-                        ) }}"
-                        class="btn btn-secondary"
-                    >
-                        Use for Draft
-                    </a>
-                </div>
+<div class="card-actions">
+
+    <a
+        href="{{ url_for('generate_client_content_draft',
+            client_id=client.id,
+            target_query=(result.target_query if result and result.target_query is defined else ''),
+            brief_context=(result.brief if result and result.brief is defined else ''),
+            brand_context=client.notes
+        ) }}"
+        class="btn btn-primary"
+    >
+        Generate Draft
+    </a>
+
+    <button type="submit" class="btn btn-secondary">
+        Save to Queue
+    </button>
+
+</div>
             </form>
         </div>
 
         <aside class="side-stack">
 
             <div class="panel">
-                <div class="panel-header">
+                <div class="panel-header panel-header-spread">
+                    <button id="copyBtn" class="btn btn-ghost">Copy</button>
                     <div>
                         <h2>Next Actions</h2>
                         <p class="panel-subtitle">Choose the best next move for this brief.</p>
@@ -454,7 +524,37 @@
     .card-actions .btn {
         width: 100%;
     }
+
+    .brief-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.summary-card {
+    background: #fff;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #e7ebf3;
+}
+
+.summary-card.highlight {
+    background: #fff4ef;
+}
+
+.panel-header-spread {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 }
 </style>
 
 {% endblock %}
+
+<script>
+document.getElementById("copyBtn").onclick = async () => {
+    const text = document.getElementById("brief_text").value;
+    await navigator.clipboard.writeText(text);
+};
+</script>

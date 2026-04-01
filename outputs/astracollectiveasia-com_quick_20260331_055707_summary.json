@@ -1,0 +1,149 @@
+{
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "tech-astra-collective",
+  "client_name": null,
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-03-31T05:57:07",
+  "scores": {
+    "normalized_score": 29.2,
+    "visibility_score": 0.0,
+    "content_score": 4.0,
+    "schema_score": 3.0,
+    "entity_score": 3.0,
+    "technical_score": 4.0,
+    "avg_query_score": 5.45,
+    "brand_mention_rate": 0.0,
+    "total_queries": 6,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "https://www.astracollectiveasia.com is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'Chatbot alternatives'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Target missed query: Chatbot alternatives",
+      "Target missed query: Chatbot pricing"
+    ]
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot alternatives",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Chatbot alternatives' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot alternatives",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot pricing",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a service page focused on 'Chatbot pricing' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot pricing",
+      "suggested_content_type": "service_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Chatbot",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a service page focused on 'best Chatbot' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Chatbot",
+      "suggested_content_type": "service_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot for small business",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a service page focused on 'Chatbot for small business' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot for small business",
+      "suggested_content_type": "service_page",
+      "support_signal": "Competitors seen: none recorded"
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "Chatbot alternatives",
+      "target_query": "Chatbot alternatives",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot alternatives",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot pricing",
+      "target_query": "Chatbot pricing",
+      "content_type": "service_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot pricing",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "best Chatbot",
+      "target_query": "best Chatbot",
+      "content_type": "service_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Chatbot",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot for small business",
+      "target_query": "Chatbot for small business",
+      "content_type": "service_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot for small business",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "what is Chatbot",
+      "target_query": "what is Chatbot",
+      "content_type": "guide",
+      "priority": "high",
+      "source_action_title": "Target missed query: what is Chatbot",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "meta": {
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
+    "industry": "Chatbot",
+    "location": "Singapore",
+    "audit_type": "quick",
+    "topic": null,
+    "client_id": "tech-astra-collective",
+    "client_name": null,
+    "user_id": 1,
+    "saved_at": "2026-03-31T05:57:07",
+    "schema_version": "2.0"
+  },
+  "schema_version": "2.0"
+}

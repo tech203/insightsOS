@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-    {% if mode == "edit" %}Edit Client{% else %}Add Client{% endif %} | AEO Agents
+    {% if mode == "edit" %}Edit Client{% else %}Add Client{% endif %} | Insights OS
 {% endblock %}
 
 {% block page_title %}
@@ -140,7 +140,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-secondary">
                         {% if mode == "edit" %}Save Changes{% else %}Create Client Workspace{% endif %}
                     </button>
 
