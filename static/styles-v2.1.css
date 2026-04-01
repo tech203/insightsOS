@@ -3092,10 +3092,6 @@ a {
     gap: 12px;
 }
 
-.dev-view-switcher {
-    margin-top: 0;
-}
-
 .dev-view-buttons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3206,44 +3202,6 @@ a {
 
 .app-content {
     padding: 16px;
-}
-
-/* ===== DESKTOP ===== */
-
-@media (min-width: 900px) {
-    .app-shell {
-        display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
-        min-height: 100vh;
-    }
-
-    .mobile-topbar {
-        display: none;
-    }
-
-    .sidebar-overlay {
-        display: none;
-    }
-
-    .app-sidebar {
-        position: sticky;
-        top: 0;
-        transform: none !important;
-        width: 280px;
-        max-width: none;
-        height: 100vh;
-        box-shadow: none;
-        z-index: 100;
-    }
-
-    .app-main {
-        min-width: 0;
-        min-height: 100vh;
-    }
-
-    .app-content {
-        padding: 28px;
-    }
 }
 
 /* ===== LARGE DESKTOP ===== */
@@ -8060,9 +8018,9 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     .dashboard-next-actions .btn {
         width: 100%;
     }
-
+}
 /* =========================
-   CLIENTS.HTML V3
+   CLIENTS PAGE UPGRADED
    ========================= */
 
 .clients-page-shell {

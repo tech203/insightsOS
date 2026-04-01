@@ -252,58 +252,58 @@
         </div>
     </section>
 
-<section class="client-section-card">
-    <div class="section-head compact">
-        <div>
-            <h3>Audit Summary</h3>
-            <p>Main findings from your latest AEO audit.</p>
-        </div>
-    </div>
-
-    <div class="finding-list">
-        <div class="finding-item warning">
-            <div class="finding-icon">!</div>
-            <div class="finding-copy">
-                <strong>Coverage gaps remain</strong>
-                <p>
-                    {% if missing_rows %}
-                        Your brand is still missing from {{ missing_rows|length }} tracked question{{ '' if missing_rows|length == 1 else 's' }} that matter for discovery.
-                    {% else %}
-                        Important customer questions are not yet fully covered across your content.
-                    {% endif %}
-                </p>
+    <section class="client-section-card">
+        <div class="section-head compact">
+            <div>
+                <h3>Audit Summary</h3>
+                <p>Main findings from your latest AEO audit.</p>
             </div>
         </div>
 
-        <div class="finding-item neutral">
-            <div class="finding-icon">i</div>
-            <div class="finding-copy">
-                <strong>AI visibility is inconsistent</strong>
-                <p>
-                    {% if latest and latest.visibility_score %}
-                        Your current visibility score suggests the brand is appearing unevenly across tracked answer scenarios.
-                    {% else %}
-                        Run an audit to see where the brand is appearing and where competitors are winning attention.
-                    {% endif %}
-                </p>
+        <div class="finding-list">
+            <div class="finding-item warning">
+                <div class="finding-icon">!</div>
+                <div class="finding-copy">
+                    <strong>Coverage gaps remain</strong>
+                    <p>
+                        {% if missing_rows %}
+                            Your brand is still missing from {{ missing_rows|length }} tracked question{{ '' if missing_rows|length == 1 else 's' }} that matter for discovery.
+                        {% else %}
+                            Important customer questions are not yet fully covered across your content.
+                        {% endif %}
+                    </p>
+                </div>
             </div>
-        </div>
 
-        <div class="finding-item success">
-            <div class="finding-icon">✓</div>
-            <div class="finding-copy">
-                <strong>Strongest next move is clear</strong>
-                <p>
-                    {% if top_action %}
-                        Prioritise "{{ top_action.title }}" first to improve visibility faster.
-                    {% else %}
-                        Once baseline data is in place, the platform will surface the clearest next priority automatically.
-                    {% endif %}
-                </p>
+            <div class="finding-item neutral">
+                <div class="finding-icon">i</div>
+                <div class="finding-copy">
+                    <strong>AI visibility is inconsistent</strong>
+                    <p>
+                        {% if latest and latest.visibility_score %}
+                            Your current visibility score suggests the brand is appearing unevenly across tracked answer scenarios.
+                        {% else %}
+                            Run an audit to see where the brand is appearing and where competitors are winning attention.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="finding-item success">
+                <div class="finding-icon">✓</div>
+                <div class="finding-copy">
+                    <strong>Strongest next move is clear</strong>
+                    <p>
+                        {% if top_action %}
+                            Prioritise "{{ top_action.title }}" first to improve visibility faster.
+                        {% else %}
+                            Once baseline data is in place, the platform will surface the clearest next priority automatically.
+                        {% endif %}
+                    </p>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
     <section class="client-section-card">
         <div class="section-head compact">
@@ -343,140 +343,140 @@
     <section class="client-section-card">
         <div class="section-head compact">
             <div>
+                <h3>External Market Signals</h3>
+                <p>
+                    Third-party visibility benchmarks and open-web discussion signals that support the audit.
+                </p>
+            </div>
+        </div>
+
+        <div class="external-signals-grid">
+            <div class="signal-panel">
+                <div class="signal-panel-head">
+                    <h4>Visibility Benchmark</h4>
+                    <p>Use Semrush and similar tools as supporting reference, not final score logic.</p>
+                </div>
+
+                <div class="signal-summary-grid">
+                    <div class="signal-summary-card">
+                        <span class="signal-label">AI Share of Voice</span>
+                        <strong class="signal-value">0%</strong>
+                        <p class="signal-copy">Brand is not yet surfacing in tracked benchmark prompts.</p>
+                    </div>
+
+                    <div class="signal-summary-card">
+                        <span class="signal-label">Mention Quality</span>
+                        <strong class="signal-value">46% Fav.</strong>
+                        <p class="signal-copy">Perception is decent when mentioned, but recommendation presence is weak.</p>
+                    </div>
+
+                    <div class="signal-summary-card">
+                        <span class="signal-label">Prompt Coverage</span>
+                        <strong class="signal-value">0 / 3</strong>
+                        <p class="signal-copy">Tracked benchmark prompts currently show no brand visibility.</p>
+                    </div>
+
+                    <div class="signal-summary-card">
+                        <span class="signal-label">Competitor Gap</span>
+                        <strong class="signal-value">High</strong>
+                        <p class="signal-copy">Competitors are occupying the recommendation space first.</p>
+                    </div>
+                </div>
+
+                <div class="signal-table-wrap">
+                    <table class="signal-table">
+                        <thead>
+                            <tr>
+                                <th>Brand</th>
+                                <th>Visibility</th>
+                                <th>Signal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{ client.website if client.website else client.name }}</td>
+                                <td>0%</td>
+                                <td>Positive perception, low visibility</td>
+                            </tr>
+                            <tr>
+                                <td>Intercom</td>
+                                <td>16%</td>
+                                <td>Leading benchmark competitor</td>
+                            </tr>
+                            <tr>
+                                <td>Zendesk</td>
+                                <td>15%</td>
+                                <td>Strong recommendation presence</td>
+                            </tr>
+                            <tr>
+                                <td>HubSpot</td>
+                                <td>8%</td>
+                                <td>Ecosystem visibility</td>
+                            </tr>
+                            <tr>
+                                <td>Freshworks</td>
+                                <td>6%</td>
+                                <td>Mid-tier benchmark presence</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="signal-panel">
+                <div class="signal-panel-head">
+                    <h4>Voice of Market</h4>
+                    <p>Use Reddit, Quora, forums, reviews, and discussion sites to surface buyer language and demand themes.</p>
+                </div>
+
+                <div class="voice-market-grid">
+                    <div class="voice-market-card">
+                        <span class="voice-title">Top Questions</span>
+                        <ul>
+                            <li>How easy is setup?</li>
+                            <li>Does it support no-code use cases?</li>
+                            <li>Can it integrate with CRM or helpdesk tools?</li>
+                        </ul>
+                    </div>
+
+                    <div class="voice-market-card">
+                        <span class="voice-title">Pain Points</span>
+                        <ul>
+                            <li>Complex onboarding</li>
+                            <li>Pricing confusion</li>
+                            <li>Weak or unclear integrations</li>
+                        </ul>
+                    </div>
+
+                    <div class="voice-market-card">
+                        <span class="voice-title">Competitor Praise</span>
+                        <ul>
+                            <li>Trusted brand reputation</li>
+                            <li>Better support workflows</li>
+                            <li>Broader integration ecosystem</li>
+                        </ul>
+                    </div>
+
+                    <div class="voice-market-card">
+                        <span class="voice-title">Content Opportunities</span>
+                        <ul>
+                            <li>No-code setup page</li>
+                            <li>Onboarding comparison page</li>
+                            <li>Integration-specific landing pages</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="client-section-card">
+        <div class="section-head compact">
+            <div>
                 <h3>Question Opportunities</h3>
                 <p>Topics your website should answer more clearly.</p>
             </div>
         </div>
-
-<section class="client-section-card">
-    <div class="section-head compact">
-        <div>
-            <h3>External Market Signals</h3>
-            <p>
-                Third-party visibility benchmarks and open-web discussion signals that support the audit.
-            </p>
-        </div>
-    </div>
-
-    <div class="external-signals-grid">
-        <div class="signal-panel">
-            <div class="signal-panel-head">
-                <h4>Visibility Benchmark</h4>
-                <p>Use Semrush and similar tools as supporting reference, not final score logic.</p>
-            </div>
-
-            <div class="signal-summary-grid">
-                <div class="signal-summary-card">
-                    <span class="signal-label">AI Share of Voice</span>
-                    <strong class="signal-value">0%</strong>
-                    <p class="signal-copy">Brand is not yet surfacing in tracked benchmark prompts.</p>
-                </div>
-
-                <div class="signal-summary-card">
-                    <span class="signal-label">Mention Quality</span>
-                    <strong class="signal-value">46% Fav.</strong>
-                    <p class="signal-copy">Perception is decent when mentioned, but recommendation presence is weak.</p>
-                </div>
-
-                <div class="signal-summary-card">
-                    <span class="signal-label">Prompt Coverage</span>
-                    <strong class="signal-value">0 / 3</strong>
-                    <p class="signal-copy">Tracked benchmark prompts currently show no brand visibility.</p>
-                </div>
-
-                <div class="signal-summary-card">
-                    <span class="signal-label">Competitor Gap</span>
-                    <strong class="signal-value">High</strong>
-                    <p class="signal-copy">Competitors are occupying the recommendation space first.</p>
-                </div>
-            </div>
-
-            <div class="signal-table-wrap">
-                <table class="signal-table">
-                    <thead>
-                        <tr>
-                            <th>Brand</th>
-                            <th>Visibility</th>
-                            <th>Signal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{{ client.website if client.website else client.name }}</td>
-                            <td>0%</td>
-                            <td>Positive perception, low visibility</td>
-                        </tr>
-                        <tr>
-                            <td>Intercom</td>
-                            <td>16%</td>
-                            <td>Leading benchmark competitor</td>
-                        </tr>
-                        <tr>
-                            <td>Zendesk</td>
-                            <td>15%</td>
-                            <td>Strong recommendation presence</td>
-                        </tr>
-                        <tr>
-                            <td>HubSpot</td>
-                            <td>8%</td>
-                            <td>Ecosystem visibility</td>
-                        </tr>
-                        <tr>
-                            <td>Freshworks</td>
-                            <td>6%</td>
-                            <td>Mid-tier benchmark presence</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="signal-panel">
-            <div class="signal-panel-head">
-                <h4>Voice of Market</h4>
-                <p>Use Reddit, Quora, forums, reviews, and discussion sites to surface buyer language and demand themes.</p>
-            </div>
-
-            <div class="voice-market-grid">
-                <div class="voice-market-card">
-                    <span class="voice-title">Top Questions</span>
-                    <ul>
-                        <li>How easy is setup?</li>
-                        <li>Does it support no-code use cases?</li>
-                        <li>Can it integrate with CRM or helpdesk tools?</li>
-                    </ul>
-                </div>
-
-                <div class="voice-market-card">
-                    <span class="voice-title">Pain Points</span>
-                    <ul>
-                        <li>Complex onboarding</li>
-                        <li>Pricing confusion</li>
-                        <li>Weak or unclear integrations</li>
-                    </ul>
-                </div>
-
-                <div class="voice-market-card">
-                    <span class="voice-title">Competitor Praise</span>
-                    <ul>
-                        <li>Trusted brand reputation</li>
-                        <li>Better support workflows</li>
-                        <li>Broader integration ecosystem</li>
-                    </ul>
-                </div>
-
-                <div class="voice-market-card">
-                    <span class="voice-title">Content Opportunities</span>
-                    <ul>
-                        <li>No-code setup page</li>
-                        <li>Onboarding comparison page</li>
-                        <li>Integration-specific landing pages</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
         <div class="opportunity-list">
             {% if missing_rows %}
@@ -884,7 +884,6 @@
     margin-top: 14px;
 }
 
-
 .external-signals-grid {
     display: grid;
     gap: 16px;
@@ -1026,7 +1025,6 @@
     .voice-market-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
 
     .client-overview-hero,
     .client-section-card {
