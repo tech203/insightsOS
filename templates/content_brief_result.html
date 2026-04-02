@@ -17,9 +17,8 @@
 
 <section class="brief-result-shell">
 
-    <!-- HERO -->
     <section class="brief-result-hero">
-        <div>
+        <div class="hero-copy">
             <span class="section-kicker">Brief Ready</span>
             <h1>Refine this brief before execution</h1>
             <p>
@@ -29,64 +28,226 @@
         </div>
 
         <div class="hero-card">
-            <span>Recommended</span>
-            <strong>Refine → Draft → Publish</strong>
+            <span class="hero-card-label">Recommended</span>
+            <strong class="hero-card-value">Refine → Draft → Publish</strong>
+            <p class="hero-card-copy">
+                Use the score and diagnostics below to decide whether to move straight into drafting
+                or sharpen the brief first.
+            </p>
         </div>
     </section>
 
-<section class="aeo-score-card">
+    <section class="aeo-score-card premium-aeo-card">
+        <div class="score-top-row">
+            <div class="score-main">
+                <div class="score-value
+                    {% if aeo and aeo.score >= 70 %}text-green
+                    {% elif aeo and aeo.score >= 40 %}text-amber
+                    {% else %}text-red{% endif %}">
+                    {{ aeo.score if aeo else 0 }}<span>%</span>
+                </div>
 
-    <div class="score-row">
-        <div class="score-value">{{ aeo.score if aeo else 0 }}</div>
+                <div class="score-meta">
+                    <strong class="score-headline">
+                        {% if aeo and aeo.opportunity == "High" %}
+                            High opportunity to capture visibility
+                        {% elif aeo and aeo.opportunity == "Moderate" %}
+                            Moderate opportunity — refine positioning
+                        {% else %}
+                            Low opportunity — consider a different angle
+                        {% endif %}
+                    </strong>
 
-<div class="score-meta">
-    <strong>
-        {% if aeo.opportunity == "High" %}
-            Strong opportunity — act now.
-        {% elif aeo.opportunity == "Moderate" %}
-            Moderate opportunity — refine positioning.
+                    <p class="score-subtext">
+                        Visibility is {{ aeo.visibility if aeo else 0 }}%.
+                        Competitor strength is {{ aeo.competitor_strength if aeo else "N/A" }}.
+                    </p>
+
+                    <p class="score-context">
+                        Based on {{ tracked_prompt_count }} tracked prompts related to this query
+                    </p>
+
+                    {% if top_competitors %}
+                    <p class="score-context">
+                        Competing with: {{ top_competitors | join(", ") }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="score-badge
+                {% if aeo and aeo.score >= 70 %}score-green
+                {% elif aeo and aeo.score >= 40 %}score-amber
+                {% else %}score-red{% endif %}">
+                {{ aeo.opportunity if aeo else "Unknown" }}
+            </div>
+        </div>
+
+        <div class="score-progress-bar">
+            <div class="score-progress-fill" style="width: {{ aeo.score if aeo else 0 }}%;"></div>
+        </div>
+
+        <div class="score-breakdown-grid">
+            <div class="breakdown-item">
+                <span>Visibility</span>
+                <strong>{{ aeo.visibility if aeo else 0 }}%</strong>
+            </div>
+
+            <div class="breakdown-item">
+                <span>Competitor Pressure</span>
+                <strong>{{ aeo.competitor_strength if aeo else "N/A" }}</strong>
+            </div>
+
+            <div class="breakdown-item">
+                <span>Opportunity</span>
+                <strong>{{ aeo.opportunity if aeo else "Unknown" }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="aeo-diagnostic-card">
+        <div class="diagnostic-header">
+            <div>
+                <span class="section-kicker">Why this score looks like this</span>
+                <h3>Diagnostic summary</h3>
+                <p class="diagnostic-copy">
+                    These signals explain what is limiting visibility and what to improve next.
+                </p>
+            </div>
+        </div>
+
+        <div class="diagnostic-grid">
+            <article class="diagnostic-item">
+                <span class="diagnostic-label">Visibility coverage</span>
+                <strong class="diagnostic-value">
+                    {% if aeo and aeo.visibility >= 60 %}
+                        Strong
+                    {% elif aeo and aeo.visibility >= 35 %}
+                        Partial
+                    {% else %}
+                        Weak
+                    {% endif %}
+                </strong>
+                <p>
+                    {% if aeo and aeo.visibility >= 60 %}
+                        Your brand is already appearing in a meaningful share of tracked prompts.
+                    {% elif aeo and aeo.visibility >= 35 %}
+                        Your brand appears sometimes, but coverage is still inconsistent.
+                    {% else %}
+                        Your brand is missing from most tracked prompts related to this topic.
+                    {% endif %}
+                </p>
+            </article>
+
+            <article class="diagnostic-item">
+                <span class="diagnostic-label">Competitor pressure</span>
+                <strong class="diagnostic-value">
+                    {% if aeo and aeo.competitor_strength == "High" %}
+                        High
+                    {% else %}
+                        Manageable
+                    {% endif %}
+                </strong>
+                <p>
+                    {% if aeo and aeo.competitor_strength == "High" %}
+                        Competitors are appearing frequently, so you need stronger topic coverage and clearer positioning.
+                    {% else %}
+                        Competitor pressure is present but still beatable with better targeted content.
+                    {% endif %}
+                </p>
+            </article>
+
+            <article class="diagnostic-item">
+                <span class="diagnostic-label">Recommended move</span>
+                <strong class="diagnostic-value">
+                    {% if aeo and aeo.opportunity == "High" %}
+                        Publish targeted content now
+                    {% elif aeo and aeo.opportunity == "Moderate" %}
+                        Refine angle and structure
+                    {% else %}
+                        Rework targeting
+                    {% endif %}
+                </strong>
+                <p>
+                    {% if aeo and aeo.opportunity == "High" %}
+                        This is a strong opportunity gap. Move quickly into draft generation and publishing.
+                    {% elif aeo and aeo.opportunity == "Moderate" %}
+                        Improve the brief so the draft is more specific, more useful, and more competitive.
+                    {% else %}
+                        The signal is weaker. Adjust the topic, query, or intent before investing further.
+                    {% endif %}
+                </p>
+            </article>
+        </div>
+    </section>
+
+    <section class="content-gap-card">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Opportunity</span>
+                <h3>Content Gap Opportunities</h3>
+                <p>These are the highest-impact content moves to improve visibility for this topic.</p>
+            </div>
+        </div>
+
+        {% if tracked_prompt_count > 0 %}
+        <div class="gap-list">
+
+            <div class="gap-item">
+                <div class="gap-main">
+                    <strong>Create content for "{{ target_query or 'this query' }}"</strong>
+                    <p>
+                        Your brand is not consistently appearing for this query. Creating a focused page can improve coverage and visibility.
+                    </p>
+                </div>
+
+                <div class="gap-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
+                        Generate Brief
+                    </a>
+                </div>
+            </div>
+
+            {% if top_competitors %}
+            <div class="gap-item">
+                <div class="gap-main">
+                    <strong>Compete with {{ top_competitors[0] }}</strong>
+                    <p>
+                        This competitor is appearing in AI answers for similar intent. Build a stronger alternative page targeting the same topic.
+                    </p>
+                </div>
+
+                <div class="gap-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
+                        Build Competing Page
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="gap-item">
+                <div class="gap-main">
+                    <strong>Expand supporting topic coverage</strong>
+                    <p>
+                        Create supporting content around this topic cluster to increase authority and improve presence across related prompts.
+                    </p>
+                </div>
+
+                <div class="gap-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+                        Explore Topics
+                    </a>
+                </div>
+            </div>
+
+        </div>
         {% else %}
-            Low opportunity — consider another angle.
+        <div class="empty-inline">
+            <p>No tracked data yet. Start tracking prompts to unlock content opportunities.</p>
+        </div>
         {% endif %}
-    </strong>
+    </section>
 
-    <p>
-        Visibility is {{ aeo.visibility if aeo else 0 }}%.
-        Competitor strength is {{ aeo.competitor_strength if aeo else "N/A" }}.
-    </p>
-
-    <p class="score-context">
-        Based on {{ tracked_prompt_count }} tracked prompts related to this query
-    </p>
-
-    {% if top_competitors %}
-    <p class="score-context">
-        Competing with: {{ top_competitors | join(", ") }}
-    </p>
-    {% endif %}
-</div>
-    </div>
-
-    <div class="aeo-score-breakdown">
-        <div class="score-item">
-            <span>Visibility</span>
-            <strong>{{ aeo.visibility if aeo else 0 }}%</strong>
-        </div>
-
-        <div class="score-item">
-            <span>Competitors</span>
-            <strong>{{ aeo.competitor_strength if aeo else "N/A" }}</strong>
-        </div>
-
-        <div class="score-item">
-            <span>Opportunity</span>
-            <strong>{{ aeo.opportunity if aeo else "Unknown" }}</strong>
-        </div>
-    </div>
-
-</section>
-
-    <!-- SUMMARY STRIP -->
     <section class="summary-strip">
         <div class="summary-card">
             <span>Target Query</span>
@@ -111,10 +272,7 @@
     </section>
 
     <section class="brief-result-grid">
-
-        <!-- MAIN -->
         <div class="panel panel-main">
-
             <div class="panel-header-spread">
                 <div>
                     <h2>Content Brief</h2>
@@ -125,7 +283,6 @@
             </div>
 
             <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}">
-
                 <div class="form-field">
                     <label>Target Query</label>
                     <input name="target_query" value="{{ target_query }}">
@@ -156,13 +313,10 @@
 
                     <button class="btn btn-secondary">Save to Queue</button>
                 </div>
-
             </form>
         </div>
 
-        <!-- SIDE -->
         <aside class="side-stack">
-
             <div class="panel">
                 <h3>Next Actions</h3>
 
@@ -192,9 +346,7 @@
                     <li>Is it ready to publish after drafting?</li>
                 </ul>
             </div>
-
         </aside>
-
     </section>
 
 </section>
@@ -220,23 +372,279 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
-
 <style>
-.brief-result-shell { padding: 24px; display: grid; gap: 24px; }
+.brief-result-shell {
+    padding: 24px;
+    display: grid;
+    gap: 24px;
+}
+
+.brief-result-hero,
+.panel,
+.summary-card,
+.aeo-diagnostic-card,
+.content-gap-card {
+    background: #fff;
+    border: 1px solid #e7ebf3;
+    border-radius: 20px;
+}
 
 .brief-result-hero {
     display: flex;
     justify-content: space-between;
-    background: #fff;
+    gap: 20px;
     padding: 24px;
-    border-radius: 20px;
-    border: 1px solid #e7ebf3;
+}
+
+.hero-copy {
+    max-width: 720px;
 }
 
 .hero-card {
     background: #fff4ef;
+    border: 1px solid #f1ddd4;
     padding: 16px;
-    border-radius: 12px;
+    border-radius: 14px;
+    min-width: 220px;
+    align-self: flex-start;
+}
+
+.hero-card-label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.hero-card-value {
+    display: block;
+    font-size: 18px;
+    color: #111827;
+}
+
+.hero-card-copy {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.premium-aeo-card {
+    border-color: #f1ddd4;
+    padding: 28px;
+    box-shadow: 0 10px 30px rgba(20, 30, 50, 0.05);
+    display: grid;
+    gap: 20px;
+    background: linear-gradient(180deg, #fff9f6, #ffffff);
+}
+
+.score-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.score-main {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.score-value {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.score-value span {
+    font-size: 20px;
+    margin-left: 4px;
+    color: #6b7280;
+}
+
+.text-green { color: #1f8b58; }
+.text-amber { color: #b9811b; }
+.text-red { color: #e35b35; }
+
+.score-meta {
+    max-width: 520px;
+}
+
+.score-headline {
+    font-size: 18px;
+    color: #111827;
+    display: block;
+}
+
+.score-subtext,
+.score-context {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.score-badge {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.score-green {
+    background: #e6f7ee;
+    color: #1f8b58;
+}
+
+.score-amber {
+    background: #fff4da;
+    color: #b9811b;
+}
+
+.score-red {
+    background: #ffe9e3;
+    color: #e35b35;
+}
+
+.score-progress-bar {
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.score-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 999px;
+}
+
+.score-breakdown-grid {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.breakdown-item span {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.breakdown-item strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 18px;
+    color: #111827;
+}
+
+.aeo-diagnostic-card {
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(20, 30, 50, 0.05);
+    display: grid;
+    gap: 18px;
+}
+
+.diagnostic-header h3 {
+    margin: 8px 0 0;
+    font-size: 24px;
+    color: #111827;
+}
+
+.diagnostic-copy {
+    margin: 10px 0 0;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.diagnostic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.diagnostic-item {
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    padding: 18px;
+}
+
+.diagnostic-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.diagnostic-value {
+    display: block;
+    margin-top: 8px;
+    font-size: 20px;
+    color: #111827;
+}
+
+.diagnostic-item p {
+    margin: 10px 0 0;
+    color: #6b7280;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.content-gap-card {
+    padding: 24px;
+    display: grid;
+    gap: 16px;
+}
+
+.section-head h3 {
+    margin: 6px 0 0;
+    font-size: 24px;
+    color: #111827;
+}
+
+.section-head p {
+    margin: 8px 0 0;
+    color: #6b7280;
+}
+
+.gap-list {
+    display: grid;
+    gap: 12px;
+}
+
+.gap-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    background: #f8fafc;
+    border: 1px solid #e7ebf3;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.gap-main strong {
+    display: block;
+    font-size: 16px;
+    color: #111827;
+}
+
+.gap-main p {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.gap-actions {
+    display: flex;
+    align-items: center;
+}
+
+.empty-inline p {
+    margin: 0;
+    color: #6b7280;
 }
 
 .summary-strip {
@@ -246,14 +654,23 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 .summary-card {
-    background: #fff;
     padding: 16px;
-    border-radius: 16px;
-    border: 1px solid #e7ebf3;
+}
+
+.summary-card span {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.summary-card strong {
+    color: #111827;
 }
 
 .summary-card.highlight {
     background: #fff4ef;
+    border-color: #f1ddd4;
 }
 
 .brief-result-grid {
@@ -263,23 +680,41 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 .panel {
-    background: #fff;
     padding: 20px;
-    border-radius: 20px;
-    border: 1px solid #e7ebf3;
 }
 
-textarea {
+.panel-header-spread {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.panel-subtitle {
+    color: #6b7280;
+}
+
+.form-field {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+textarea,
+input {
     width: 100%;
     border-radius: 12px;
     padding: 12px;
     line-height: 1.6;
+    border: 1px solid #dbe2ee;
+    background: #fff;
 }
 
 .card-actions {
     display: flex;
     gap: 10px;
     margin-top: 16px;
+    flex-wrap: wrap;
 }
 
 .side-stack {
@@ -287,89 +722,48 @@ textarea {
     gap: 16px;
 }
 
-.aeo-score-card {
-    background: linear-gradient(180deg, #fff9f6, #ffffff);
-    border: 1px solid #f1ddd4;
-    border-radius: 20px;
-    padding: 24px;
-    display: grid;
-    gap: 20px;
+.action strong {
+    display: block;
+    color: #111827;
 }
 
-.score-context {
+.action p {
+    margin-top: 6px;
+    color: #6b7280;
+}
+
+.tips {
+    margin: 0;
+    padding-left: 18px;
+    color: #6b7280;
+}
+
+.tips li + li {
     margin-top: 8px;
-    font-size: 13px;
-    color: #6b7280;
 }
 
-.score-row {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.score-value {
-    font-size: 56px;
-    font-weight: 800;
-    color: #e35b35;
-    line-height: 1;
-}
-
-.score-meta strong {
-    display: block;
-    font-size: 20px;
-    color: #16243c;
-}
-
-.score-meta p {
-    margin: 6px 0 0;
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-.aeo-score-breakdown {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.score-item {
-    min-width: 140px;
-}
-
-.score-item span {
-    display: block;
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 700;
-    margin-bottom: 6px;
-}
-
-.score-item strong {
-    display: block;
-    font-size: 18px;
-    color: #16243c;
-    font-weight: 800;
-}
-
-@media (max-width: 768px) {
-    .brief-result-grid { grid-template-columns: 1fr; }
-    .summary-strip { grid-template-columns: 1fr; }
-
-    .aeo-score-breakdown {
+@media (max-width: 900px) {
+    .brief-result-hero,
+    .score-top-row,
+    .score-main,
+    .gap-item,
+    .brief-result-grid {
+        grid-template-columns: 1fr;
         flex-direction: column;
-        gap: 12px;
     }
 
-    .score-row {
-        flex-direction: column;
-        align-items: flex-start;
+    .summary-strip,
+    .diagnostic-grid {
+        grid-template-columns: 1fr;
     }
 
     .score-value {
         font-size: 44px;
     }
 
+    .score-breakdown-grid {
+        gap: 16px;
+    }
 }
 </style>
 

@@ -10,6 +10,8 @@ from flask import (
     session,
 )
 
+from action_engine import build_recommended_actions
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager,
@@ -825,73 +827,6 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
         },
     }
 
-
-
-def build_recommended_actions(client, latest_audit, query_comparison):
-    actions = []
-    if not latest_audit:
-        return actions
-
-    visibility_score = latest_audit.get("visibility_score", 0)
-    content_score = latest_audit.get("content_score", 0)
-    schema_score = latest_audit.get("schema_score", 0)
-
-    if visibility_score <= 5:
-        actions.append({
-            "priority": "high",
-            "title": "Improve brand visibility in AI answers",
-            "issue": "Brand visibility score is very low.",
-            "recommended_action": "Create brand-led and comparison-style pages targeting high-intent commercial queries.",
-            "support_signal": "Add stronger entity mentions, FAQ coverage, and external brand references.",
-        })
-
-    if content_score <= 3:
-        actions.append({
-            "priority": "high",
-            "title": "Expand content coverage",
-            "issue": "Content score is low.",
-            "recommended_action": "Publish service pages, FAQs, and educational content around target search intents.",
-            "support_signal": "Map each content piece to a key commercial or question-based query cluster.",
-        })
-
-    if schema_score <= 3:
-        actions.append({
-            "priority": "medium",
-            "title": "Strengthen structured data",
-            "issue": "Schema score is weak.",
-            "recommended_action": "Add Organization, FAQPage, LocalBusiness, and relevant service schema markup.",
-            "support_signal": "Validate schema and align page markup with the business entity.",
-        })
-
-    rows = query_comparison.get("rows", []) if query_comparison else []
-    weak_rows = [row for row in rows if not row.get("latest_brand_mentioned", False)]
-    weak_rows = sorted(weak_rows, key=lambda x: x.get("latest_score", 0))
-
-    for row in weak_rows[:5]:
-        query = row.get("query", "Unknown query")
-        competitors = row.get("latest_competitors", [])
-        competitor_text = ", ".join(competitors[:3]) if competitors else "competing providers"
-
-        actions.append({
-            "priority": "high",
-            "title": f"Target missed query: {query}",
-            "issue": "Brand is not mentioned for this tracked query.",
-            "recommended_action": f"Create or improve a landing page, FAQ section, or comparison article focused on '{query}'.",
-            "support_signal": f"Strengthen authority signals and competitor-differentiation against {competitor_text}.",
-        })
-
-    seen = set()
-    unique_actions = []
-    for action in actions:
-        if action["title"] not in seen:
-            unique_actions.append(action)
-            seen.add(action["title"])
-
-    priority_order = {"high": 0, "medium": 1, "low": 2}
-    unique_actions.sort(key=lambda x: priority_order.get(x["priority"], 99))
-    return unique_actions
-
-
 def build_client_views():
     clients = load_clients(user_id=current_user.id)
     audits = get_saved_audits(user_id=current_user.id)
@@ -918,8 +853,31 @@ def build_client_views():
         previous_audit = matched_audits[1] if len(matched_audits) > 1 else None
         comparison = compare_audits(latest_audit, previous_audit)
         query_comparison = build_query_level_comparison(latest_audit, previous_audit)
-        recommended_actions = build_recommended_actions(client, latest_audit, query_comparison)
+        query_rows = query_comparison.get("rows", []) if query_comparison else []
 
+        recommended_actions = build_recommended_actions(
+            client_name=client.get("name", ""),
+            website=client.get("website", ""),
+            scores=latest_audit.get("scores", {}) if latest_audit else {},
+            query_analysis=[
+                {
+                    "query": row.get("query"),
+                    "brand_mentioned": row.get("latest_brand_mentioned", False),
+                    "score": row.get("latest_score", 0),
+                    "score_delta": row.get("score_delta", 0),
+                    "competitors_mentioned": row.get("latest_competitors", []),
+                }
+                for row in query_rows
+            ],
+            competitor_analysis={
+                "top_competitors": [
+                    {"name": c, "mention_count": 1}
+                    for row in query_rows
+                    for c in (row.get("latest_competitors", []) or [])
+                ]
+            },
+            site_findings={},
+        )
         client_views.append({
             **client,
             "audit_count": len(matched_audits),
@@ -929,8 +887,9 @@ def build_client_views():
             "query_comparison": query_comparison,
             "recommended_actions": recommended_actions,
             "audits": matched_audits,
+            "benchmark_items": [],
+            "market_voice": None,
         })
-
     return client_views
 
 def get_client_by_id(client_id):
@@ -995,7 +954,7 @@ def get_view_mode(user):
     if user.role == "admin" or user.plan == "dev_unlimited":
         return "admin"
 
-    if user.is_white_label_enabled:
+    if user.plan in ["starter", "pro", "growth", "agency"]:
         return "multi"
 
     return "single"
@@ -1017,8 +976,14 @@ def dev_set_view_mode(mode):
     return redirect(request.referrer or url_for("index"))
 
 def require_internal_access():
-    return
-    
+    if not current_user.is_authenticated:
+        abort(403)
+
+    if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com":
+        return
+
+    abort(403)
+
 def spend_credits(user, amount, tx_type="usage", notes=""):
     wallet = user.wallet
 
@@ -1171,6 +1136,37 @@ def index():
     return redirect(url_for("login"))
 
 
+@app.route("/dev/set-plan/<plan>")
+@login_required
+def dev_set_plan(plan):
+    if current_user.email != "pypteltd@gmail.com" and current_user.role != "admin":
+        abort(403)
+
+    allowed_plans = ["free", "starter", "pro", "growth", "agency", "dev_unlimited"]
+    if plan not in allowed_plans:
+        abort(404)
+
+    current_user.plan = plan
+    db.session.commit()
+
+    flash(f"Plan changed to {plan}.", "success")
+    return redirect(request.referrer or url_for("index"))
+
+from flask import make_response
+
+@app.route("/client/<client_id>/export-pdf")
+@login_required
+def export_client_audit_pdf(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    html = render_template("client_audit_pdf.html", client=client)
+    response = make_response(html)
+    response.headers["Content-Type"] = "text/html"
+    response.headers["Content-Disposition"] = f'inline; filename="{client_id}-audit-report.html"'
+    return response
+
 @app.route("/clients")
 @login_required
 def clients_page():
@@ -1202,18 +1198,15 @@ def get_workspace_limit(user):
     if user.role == "admin" or user.plan == "dev_unlimited":
         return None
 
-    if user.is_white_label_enabled:
-        return 50
-
     limits = {
         "free": 1,
         "starter": 3,
+        "pro": 10,
         "growth": 10,
         "agency": 25,
     }
 
     return limits.get(user.plan, 1)
-
 
 def get_workspace_count(user_id):
     return Client.query.filter_by(user_id=user_id).count()
@@ -1257,15 +1250,11 @@ def create_checkout_session():
 @app.route("/payment-success")
 @login_required
 def payment_success():
-    # 🔥 Upgrade user
     current_user.plan = "pro"
     db.session.commit()
 
     flash("Upgrade successful! You now have full access 🚀", "success")
-
     return redirect(url_for("dashboard"))
-
-
 
 @app.route("/clients/new", methods=["GET", "POST"])
 @login_required
@@ -2251,11 +2240,13 @@ def api_clients():
 
 @app.route("/content/brief/new")
 @login_required
+
 def generate_content_brief_page():
     return redirect(url_for("content_queue_page"))
 
 @app.route("/api/client/<client_id>")
 @login_required
+
 def api_client_detail(client_id):
     client = get_client_by_id(client_id)
     if not client:
@@ -2281,16 +2272,6 @@ def client_presentation_page(client_id):
         client=client,
         can_use_presentation_mode=can_use_presentation_mode,
     )
-
-@app.route("/api/audit/<summary_filename>/summary")
-@login_required
-def api_audit_summary(summary_filename):
-    summary_path = get_summary_path(summary_filename)
-    if not summary_path:
-        return jsonify({"error": "Summary file not found"}), 404
-
-    summary_data = load_json_file(summary_path)
-    return jsonify({"filename": summary_filename, "data": summary_data})
 
 @app.route("/client/<client_id>/growth-plan")
 @login_required
@@ -2425,7 +2406,7 @@ def new_audit():
             )
 
             flash("Audit completed successfully.", "success")
-            return redirect(url_for("clients_page"))
+            return redirect(url_for("client_detail", client_id=client_id))
 
         except Exception as e:
             refund_credits(current_user, 1, notes="Refund for failed new audit")

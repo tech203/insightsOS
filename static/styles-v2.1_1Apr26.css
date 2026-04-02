@@ -329,7 +329,6 @@ body {
 }
 
 END COMMENTED OUT FOR CLEANUP TEST: legacy ui body block */
-/* COMMENTED OUT FOR CLEANUP TEST: old shared v2 wrapper system
 /* page wrappers */
 .dashboard-v2,
 .dash-v3,
@@ -549,8 +548,6 @@ END COMMENTED OUT FOR CLEANUP TEST: legacy ui body block */
         --ui-card-padding: 22px;
     }
 }
-
-END COMMENTED OUT FOR CLEANUP TEST: old shared v2 wrapper system */
 
 :root {
     --bg: #fff7fb;
@@ -3095,10 +3092,6 @@ a {
     gap: 12px;
 }
 
-.dev-view-switcher {
-    margin-top: 0;
-}
-
 .dev-view-buttons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3109,7 +3102,6 @@ a {
     transform: translateY(-1px);
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: old sidebar wallet block
 .sidebar-wallet {
     padding: 14px;
     border-radius: 16px;
@@ -3129,8 +3121,6 @@ a {
     line-height: 1;
     color: #ffffff;
 }
-
-END COMMENTED OUT FOR CLEANUP TEST: old sidebar wallet block */
 
 @media (min-width: 900px) {
     .app-shell {
@@ -3212,44 +3202,6 @@ END COMMENTED OUT FOR CLEANUP TEST: old sidebar wallet block */
 
 .app-content {
     padding: 16px;
-}
-
-/* ===== DESKTOP ===== */
-
-@media (min-width: 900px) {
-    .app-shell {
-        display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
-        min-height: 100vh;
-    }
-
-    .mobile-topbar {
-        display: none;
-    }
-
-    .sidebar-overlay {
-        display: none;
-    }
-
-    .app-sidebar {
-        position: sticky;
-        top: 0;
-        transform: none !important;
-        width: 280px;
-        max-width: none;
-        height: 100vh;
-        box-shadow: none;
-        z-index: 100;
-    }
-
-    .app-main {
-        min-width: 0;
-        min-height: 100vh;
-    }
-
-    .app-content {
-        padding: 28px;
-    }
 }
 
 /* ===== LARGE DESKTOP ===== */
@@ -5706,7 +5658,6 @@ END COMMENTED OUT FOR CLEANUP TEST: old client detail v2 block */
     }
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: visual consistency patch pass
 /* =================================
    VISUAL CONSISTENCY PATCH PASS
    Add near the bottom of styles-v2.1.css
@@ -6141,8 +6092,6 @@ table tbody td {
         padding: 22px !important;
     }
 }
-
-END COMMENTED OUT FOR CLEANUP TEST: visual consistency patch pass */
 
 /* COMMENTED OUT FOR CLEANUP TEST: duplicate lower flash block
 .flash-stack {
@@ -6627,7 +6576,6 @@ END COMMENTED OUT FOR CLEANUP TEST: first audit success system */
     color: var(--text-soft);
 }
 
-/* COMMENTED OUT FOR CLEANUP TEST: old client overview page block
 /* =========================
    CLIENT OVERVIEW PAGE
    ========================= */
@@ -6982,8 +6930,6 @@ END COMMENTED OUT FOR CLEANUP TEST: first audit success system */
     }
 
 }
-
-END COMMENTED OUT FOR CLEANUP TEST: old client overview page block */
 
 .btn-muted {
     background: #f8fafc;
@@ -8072,6 +8018,7 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     .dashboard-next-actions .btn {
         width: 100%;
     }
+}
 /* =========================
    CLIENTS PAGE UPGRADED
    ========================= */
@@ -8423,3 +8370,6 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
         width: 100%;
     }
 }
+
+}
+

@@ -16,21 +16,27 @@
         </p>
     </div>
 
-    <div class="page-header-actions">
-        {% if view_mode != "single" %}
-        <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
-        {% endif %}
+<div class="page-header-actions">
+    {% if view_mode != "single" %}
+    <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Back to Clients</a>
+    {% endif %}
 
-        {% if current_user.is_authenticated and current_user.plan != "free" %}
-        <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">
-            Run New Audit
-        </a>
-        {% else %}
-        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-            Upgrade to Continue
-        </a>
-        {% endif %}
-    </div>
+    {% if current_user.is_authenticated and current_user.plan != "free" %}
+    <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="btn btn-secondary">
+        View History
+    </a>
+    <a href="{{ url_for('export_client_audit_pdf', client_id=client.id) }}" class="btn btn-secondary" target="_blank">
+        Export Report
+    </a>
+    <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">
+        Run New Audit
+    </a>
+    {% else %}
+    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+        Upgrade to Continue
+    </a>
+    {% endif %}
+</div>
 </div>
 {% endblock %}
 
@@ -43,6 +49,10 @@
 {% set question_rows = client.query_comparison.rows if client.query_comparison is defined and client.query_comparison and client.query_comparison.rows else [] %}
 {% set missing_rows = question_rows | selectattr("latest_brand_mentioned", "equalto", false) | list if question_rows else [] %}
 {% set first_missing_query = missing_rows[0].query if missing_rows else "" %}
+{% set benchmark_items = client.benchmark_items if client.benchmark_items is defined else [] %}
+{% set market_voice = client.market_voice if client.market_voice is defined else none %}
+{% set has_external_signals = benchmark_items or market_voice %}
+{% set recent_audits = client.audits[:3] if client.audits is defined and client.audits else [] %}
 
 <div class="client-overview-shell">
 
@@ -73,23 +83,61 @@
                 </div>
             </div>
 
-            <div class="visual-placeholder visual-placeholder--soft client-workspace-visual">
-                <div class="visual-placeholder-content">
-                    <span class="visual-placeholder-kicker">Image Placeholder</span>
-                    <h2 class="visual-placeholder-title">
+            <div class="client-workspace-visual client-workspace-visual--vector" aria-hidden="true">
+                <svg viewBox="0 0 640 360" class="workspace-vector" role="img">
+                    <defs>
+                        <linearGradient id="panelGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#f7f3ff"></stop>
+                            <stop offset="100%" stop-color="#fff8f4"></stop>
+                        </linearGradient>
+                    </defs>
+
+                    <rect x="24" y="24" width="592" height="312" rx="28" fill="url(#panelGlow)" class="vector-panel"></rect>
+
+                    <rect x="64" y="78" width="212" height="148" rx="18" class="vector-card vector-card-main"></rect>
+                    <rect x="92" y="106" width="92" height="12" rx="6" class="vector-line vector-line-strong"></rect>
+                    <rect x="92" y="130" width="132" height="10" rx="5" class="vector-line"></rect>
+                    <rect x="92" y="154" width="108" height="10" rx="5" class="vector-line"></rect>
+                    <rect x="92" y="188" width="126" height="14" rx="7" class="vector-pill"></rect>
+
+                    <circle cx="380" cy="128" r="54" class="vector-ring"></circle>
+                    <circle cx="380" cy="128" r="30" class="vector-core"></circle>
+
+                    <path d="M380 74 L380 46" class="vector-stroke"></path>
+                    <path d="M426 92 L448 74" class="vector-stroke"></path>
+                    <path d="M434 128 L464 128" class="vector-stroke"></path>
+                    <path d="M426 164 L448 182" class="vector-stroke"></path>
+                    <path d="M380 182 L380 210" class="vector-stroke"></path>
+                    <path d="M334 164 L312 182" class="vector-stroke"></path>
+                    <path d="M326 128 L296 128" class="vector-stroke"></path>
+                    <path d="M334 92 L312 74" class="vector-stroke"></path>
+
+                    <rect x="454" y="88" width="108" height="74" rx="16" class="vector-card"></rect>
+                    <rect x="474" y="108" width="52" height="10" rx="5" class="vector-line vector-line-strong"></rect>
+                    <rect x="474" y="128" width="66" height="8" rx="4" class="vector-line"></rect>
+
+                    <rect x="312" y="232" width="250" height="52" rx="18" class="vector-card"></rect>
+                    <path d="M340 266 C366 242, 394 248, 418 228 C438 212, 464 214, 486 234 C500 246, 516 246, 536 230" class="vector-trend"></path>
+                    <circle cx="340" cy="266" r="5" class="vector-dot"></circle>
+                    <circle cx="418" cy="228" r="5" class="vector-dot"></circle>
+                    <circle cx="486" cy="234" r="5" class="vector-dot"></circle>
+                    <circle cx="536" cy="230" r="5" class="vector-dot"></circle>
+
+                    <rect x="76" y="248" width="160" height="18" rx="9" class="vector-chip-soft"></rect>
+                    <rect x="76" y="274" width="128" height="14" rx="7" class="vector-chip-light"></rect>
+                </svg>
+
+                <div class="workspace-visual-caption">
+                    <span class="workspace-visual-kicker">Visibility Map</span>
+                    <h2 class="workspace-visual-title">
                         {% if view_mode == "single" %}
-                            Workspace visual goes here
+                            A clear view of visibility, gaps, and next moves
                         {% else %}
-                            Client workspace visual goes here
+                            A clear view of client visibility, gaps, and next moves
                         {% endif %}
                     </h2>
-
-                    <p class="visual-placeholder-text">
-                        {% if view_mode == "single" %}
-                            Replace this later with a product-style workspace illustration or growth visual.
-                        {% else %}
-                            Replace this later with a branded workspace illustration or client insight visual.
-                        {% endif %}
+                    <p class="workspace-visual-text">
+                        A minimal workspace illustration that supports the audit view without overpowering the data.
                     </p>
                 </div>
             </div>
@@ -204,6 +252,72 @@
     <section class="client-section-card">
         <div class="section-head compact">
             <div>
+                <h3>Latest Audit Result</h3>
+                <p>Your latest audit outcome at a glance.</p>
+            </div>
+        </div>
+
+        <div class="overview-mini-grid">
+            <div class="overview-mini-card">
+                <span>Overall Score</span>
+                <strong>{% if latest %}{{ latest.normalized_score }}{% else %}—{% endif %}</strong>
+            </div>
+
+            <div class="overview-mini-card">
+                <span>Visibility</span>
+                <strong>{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
+            </div>
+
+            <div class="overview-mini-card">
+                <span>Missed Queries</span>
+                <strong>{{ missing_rows|length if missing_rows else 0 }}</strong>
+            </div>
+
+            <div class="overview-mini-card">
+                <span>Top Priority</span>
+                <strong class="small-copy">{% if top_action %}{{ top_action.title }}{% else %}Run first audit{% endif %}</strong>
+            </div>
+        </div>
+
+        <div class="finding-list top-space">
+            <div class="finding-item {% if comparison and comparison.overall_change == 'improved' %}success{% elif comparison and comparison.overall_change == 'declined' %}warning{% else %}neutral{% endif %}">
+                <div class="finding-icon">
+                    {% if comparison and comparison.overall_change == 'improved' %}↑{% elif comparison and comparison.overall_change == 'declined' %}!{% else %}i{% endif %}
+                </div>
+                <div class="finding-copy">
+                    <strong>
+                        {% if latest %}
+                            Audit completed successfully
+                        {% else %}
+                            No audit available yet
+                        {% endif %}
+                    </strong>
+                    <p>
+                        {% if latest and comparison %}
+                            Overall score has {{ comparison.overall_change }} since the previous audit.
+                        {% elif latest %}
+                            This is your current audit baseline for this workspace.
+                        {% else %}
+                            Run your first audit to unlock scores, findings, and action priorities.
+                        {% endif %}
+                    </p>
+                    <p>
+                        {% if missing_rows %}
+                            Your brand is currently missing from {{ missing_rows|length }} tracked quer{{ 'y' if missing_rows|length == 1 else 'ies' }}.
+                        {% elif latest %}
+                            Your latest audit is in and the next priority action is ready.
+                        {% else %}
+                            No query visibility data is available yet.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="client-section-card">
+        <div class="section-head compact">
+            <div>
                 <h3>Score Snapshot</h3>
                 <p>Simple view of what is strong and what needs work.</p>
             </div>
@@ -213,40 +327,40 @@
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>AI Visibility</span>
-                    <strong>{% if latest %}{{ latest.visibility_score }}{% else %}0{% endif %}</strong>
+                    <strong>{{ latest.visibility_score if latest and latest.visibility_score is not none else 0 }}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-blue" style="width: {% if latest %}{{ latest.visibility_score }}{% else %}0{% endif %}%;"></div>
+                    <div class="score-row-fill fill-blue" style="width: {{ latest.visibility_score if latest and latest.visibility_score is not none else 0 }}%;"></div>
                 </div>
             </div>
 
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>Content Coverage</span>
-                    <strong>{% if latest %}{{ latest.content_score }}{% else %}0{% endif %}</strong>
+                    <strong>{{ latest.content_score if latest and latest.content_score is not none else 0 }}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-orange" style="width: {% if latest %}{{ latest.content_score }}{% else %}0{% endif %}%;"></div>
+                    <div class="score-row-fill fill-orange" style="width: {{ latest.content_score if latest and latest.content_score is not none else 0 }}%;"></div>
                 </div>
             </div>
 
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>Schema Strength</span>
-                    <strong>{% if latest %}{{ latest.schema_score }}{% else %}0{% endif %}</strong>
+                    <strong>{{ latest.schema_score if latest and latest.schema_score is not none else 0 }}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-green" style="width: {% if latest %}{{ latest.schema_score }}{% else %}0{% endif %}%;"></div>
+                    <div class="score-row-fill fill-green" style="width: {{ latest.schema_score if latest and latest.schema_score is not none else 0 }}%;"></div>
                 </div>
             </div>
 
             <div class="score-row-card">
                 <div class="score-row-top">
                     <span>Overall Score</span>
-                    <strong>{% if latest %}{{ latest.normalized_score }}{% else %}0{% endif %}</strong>
+                    <strong>{{ latest.normalized_score if latest and latest.normalized_score is not none else 0 }}</strong>
                 </div>
                 <div class="score-row-track">
-                    <div class="score-row-fill fill-purple" style="width: {% if latest %}{{ latest.normalized_score }}{% else %}0{% endif %}%;"></div>
+                    <div class="score-row-fill fill-purple" style="width: {{ latest.normalized_score if latest and latest.normalized_score is not none else 0 }}%;"></div>
                 </div>
             </div>
         </div>
@@ -313,134 +427,112 @@
             </div>
         </div>
 
-        <div class="action-list-v4">
-            <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="action-step-card">
-                <div class="action-step-no">1</div>
-                <div class="action-step-copy">
-                    <strong>Review visibility gaps</strong>
-                    <p>See where your brand is missing and where competitors are appearing instead.</p>
+        <div class="finding-list">
+            {% if recommended_actions %}
+                {% for action in recommended_actions[:3] %}
+                <div class="finding-item {% if action.priority == 'high' %}warning{% elif action.priority == 'medium' %}neutral{% else %}success{% endif %}">
+                    <div class="finding-icon">
+                        {% if action.priority == 'high' %}!{% elif action.priority == 'medium' %}i{% else %}✓{% endif %}
+                    </div>
+                    <div class="finding-copy">
+                        <strong>{{ action.title }}</strong>
+                        <p>{{ action.issue }}</p>
+                        {% if action.recommended_fix %}
+                        <p><strong>Next move:</strong> {{ action.recommended_fix }}</p>
+                        {% elif action.recommended_action %}
+                        <p><strong>Next move:</strong> {{ action.recommended_action }}</p>
+                        {% endif %}
+                    </div>
                 </div>
-            </a>
-
-            <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="action-step-card">
-                <div class="action-step-no">2</div>
-                <div class="action-step-copy">
-                    <strong>Open action plan</strong>
-                    <p>Follow the clearest next steps from the latest audit.</p>
+                {% endfor %}
+            {% else %}
+                <div class="finding-item neutral">
+                    <div class="finding-icon">i</div>
+                    <div class="finding-copy">
+                        <strong>No recommended actions yet</strong>
+                        <p>Run an audit to generate a prioritized action plan for this workspace.</p>
+                    </div>
                 </div>
-            </a>
-
-            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="action-step-card">
-                <div class="action-step-no">3</div>
-                <div class="action-step-copy">
-                    <strong>Run the next audit</strong>
-                    <p>Measure whether visibility and coverage improve after updates.</p>
-                </div>
-            </a>
+            {% endif %}
         </div>
     </section>
+
+<section class="client-section-card">
+    <div class="section-head compact">
+        <div>
+            <h3>Recent Audit Runs</h3>
+            <p>Your latest saved audit runs with timestamps and quick links.</p>
+        </div>
+    </div>
+
+    {% if recent_audits %}
+    <div class="signal-table-wrap">
+        <table class="signal-table">
+            <thead>
+                <tr>
+                    <th>Date / Time</th>
+                    <th>Type</th>
+                    <th>Score</th>
+                    <th>Visibility</th>
+                    <th>Verdict</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for audit in recent_audits %}
+                <tr>
+                    <td>{{ audit.saved_at|pretty_datetime }}</td>
+                    <td>{{ audit.audit_type|capitalize }}</td>
+                    <td>{{ audit.normalized_score }}</td>
+                    <td>{{ audit.visibility_score }}</td>
+                    <td>{{ audit.verdict }}</td>
+<td>
+    <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}">Summary</a>
+    {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com" %}
+    &nbsp;·&nbsp;
+    <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}">Full</a>
+    {% endif %}
+</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-actions top-space">
+        <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="btn btn-secondary">
+            View Full History
+        </a>
+    </div>
+    {% else %}
+    <div class="finding-list">
+        <div class="finding-item neutral">
+            <div class="finding-icon">i</div>
+            <div class="finding-copy">
+                <strong>No audit history yet</strong>
+                <p>Run your first audit to start building a timestamped audit history for this workspace.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
 
     <section class="client-section-card">
         <div class="section-head compact">
             <div>
                 <h3>External Market Signals</h3>
-                <p>
-                    Third-party visibility benchmarks and open-web discussion signals that support the audit.
-                </p>
+                <p>Third-party visibility benchmarks and open-web discussion signals that support the audit.</p>
             </div>
         </div>
 
+        {% if has_external_signals %}
         <div class="external-signals-grid">
+            {% if benchmark_items %}
             <div class="signal-panel">
                 <div class="signal-panel-head">
                     <h4>Visibility Benchmark</h4>
-                    <p>Use Semrush and similar tools as supporting reference, not final score logic.</p>
+                    <p>Supporting benchmark signals based on available external tracking data.</p>
                 </div>
-
-                <div class="signal-summary-grid">
-                    <div class="signal-summary-card">
-                        <span class="signal-label">AI Share of Voice</span>
-                        <strong class="signal-value">0%</strong>
-                        <p class="signal-copy">Brand is not yet surfacing in tracked benchmark prompts.</p>
-                    </div>
-
-                    <div class="signal-summary-card">
-                        <span class="signal-label">Mention Quality</span>
-                        <strong class="signal-value">46% Fav.</strong>
-                        <p class="signal-copy">Perception is decent when mentioned, but recommendation presence is weak.</p>
-                    </div>
-
-                    <div class="signal-summary-card">
-                        <span class="signal-label">Prompt Coverage</span>
-                        <strong class="signal-value">0 / 3</strong>
-                        <p class="signal-copy">Tracked benchmark prompts currently show no brand visibility.</p>
-                    </div>
-
-                    <div class="signal-summary-card">
-                        <span class="signal-label">Competitor Gap</span>
-                        <strong class="signal-value">High</strong>
-                        <p class="signal-copy">Competitors are occupying the recommendation space first.</p>
-                    </div>
-                </div>
-
-                <div class="benchmark-visual">
-    <div class="benchmark-visual-head">
-        <span class="benchmark-visual-label">Visibility Gap View</span>
-        <strong>Who is surfacing first in tracked discovery prompts</strong>
-    </div>
-
-    <div class="benchmark-bars">
-        <div class="benchmark-bar-row">
-            <div class="benchmark-bar-meta">
-                <span>{{ client.name if client.name else "Your Brand" }}</span>
-                <strong>0%</strong>
-            </div>
-            <div class="benchmark-bar-track">
-                <div class="benchmark-bar-fill benchmark-fill-brand" style="width: 0%;"></div>
-            </div>
-        </div>
-
-        <div class="benchmark-bar-row">
-            <div class="benchmark-bar-meta">
-                <span>Intercom</span>
-                <strong>16%</strong>
-            </div>
-            <div class="benchmark-bar-track">
-                <div class="benchmark-bar-fill benchmark-fill-competitor" style="width: 16%;"></div>
-            </div>
-        </div>
-
-        <div class="benchmark-bar-row">
-            <div class="benchmark-bar-meta">
-                <span>Zendesk</span>
-                <strong>15%</strong>
-            </div>
-            <div class="benchmark-bar-track">
-                <div class="benchmark-bar-fill benchmark-fill-competitor" style="width: 15%;"></div>
-            </div>
-        </div>
-
-        <div class="benchmark-bar-row">
-            <div class="benchmark-bar-meta">
-                <span>HubSpot</span>
-                <strong>8%</strong>
-            </div>
-            <div class="benchmark-bar-track">
-                <div class="benchmark-bar-fill benchmark-fill-secondary" style="width: 8%;"></div>
-            </div>
-        </div>
-
-        <div class="benchmark-bar-row">
-            <div class="benchmark-bar-meta">
-                <span>Freshworks</span>
-                <strong>6%</strong>
-            </div>
-            <div class="benchmark-bar-track">
-                <div class="benchmark-bar-fill benchmark-fill-secondary" style="width: 6%;"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
                 <div class="signal-table-wrap">
                     <table class="signal-table">
@@ -452,84 +544,89 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {% for item in benchmark_items %}
                             <tr>
-                                <td>{{ client.website if client.website else client.name }}</td>
-                                <td>0%</td>
-                                <td>Positive perception, low visibility</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.visibility }}</td>
+                                <td>{{ item.signal }}</td>
                             </tr>
-                            <tr>
-                                <td>Intercom</td>
-                                <td>16%</td>
-                                <td>Leading benchmark competitor</td>
-                            </tr>
-                            <tr>
-                                <td>Zendesk</td>
-                                <td>15%</td>
-                                <td>Strong recommendation presence</td>
-                            </tr>
-                            <tr>
-                                <td>HubSpot</td>
-                                <td>8%</td>
-                                <td>Ecosystem visibility</td>
-                            </tr>
-                            <tr>
-                                <td>Freshworks</td>
-                                <td>6%</td>
-                                <td>Mid-tier benchmark presence</td>
-                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
+            {% endif %}
 
+            {% if market_voice %}
             <div class="signal-panel">
                 <div class="signal-panel-head">
                     <h4>Voice of Market</h4>
-                    <p>Use Reddit, Quora, forums, reviews, and discussion sites to surface buyer language and demand themes.</p>
+                    <p>Discussion themes and buyer language from external sources when available.</p>
                 </div>
 
-<div class="voice-market-card">
-    <div class="voice-icon">?</div>
-    <span class="voice-title">Top Questions</span>
-    <ul>
-        <li>How easy is setup?</li>
-        <li>Does it support no-code use cases?</li>
-        <li>Can it integrate with CRM or helpdesk tools?</li>
-    </ul>
-</div>
-
+                <div class="voice-market-grid">
+                    {% if market_voice.top_questions %}
                     <div class="voice-market-card">
-                            <div class="voice-icon">!</div>
+                        <div class="voice-icon">?</div>
+                        <span class="voice-title">Top Questions</span>
+                        <ul>
+                            {% for item in market_voice.top_questions %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if market_voice.pain_points %}
+                    <div class="voice-market-card">
+                        <div class="voice-icon">!</div>
                         <span class="voice-title">Pain Points</span>
                         <ul>
-                            <li>Complex onboarding</li>
-                            <li>Pricing confusion</li>
-                            <li>Weak or unclear integrations</li>
+                            {% for item in market_voice.pain_points %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
                         </ul>
                     </div>
+                    {% endif %}
 
+                    {% if market_voice.competitor_praise %}
                     <div class="voice-market-card">
-                            <div class="voice-icon">★</div>
+                        <div class="voice-icon">★</div>
                         <span class="voice-title">Competitor Praise</span>
                         <ul>
-                            <li>Trusted brand reputation</li>
-                            <li>Better support workflows</li>
-                            <li>Broader integration ecosystem</li>
+                            {% for item in market_voice.competitor_praise %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
                         </ul>
                     </div>
+                    {% endif %}
 
+                    {% if market_voice.content_opportunities %}
                     <div class="voice-market-card">
                         <div class="voice-icon">→</div>
                         <span class="voice-title">Content Opportunities</span>
                         <ul>
-                            <li>No-code setup page</li>
-                            <li>Onboarding comparison page</li>
-                            <li>Integration-specific landing pages</li>
+                            {% for item in market_voice.content_opportunities %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
                         </ul>
                     </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="finding-list">
+            <div class="finding-item neutral">
+                <div class="finding-icon">i</div>
+                <div class="finding-copy">
+                    <strong>No external market signals yet</strong>
+                    <p>This section will appear when benchmark or open-web discussion data is available for this workspace.</p>
                 </div>
             </div>
         </div>
+        {% endif %}
     </section>
 
     <section class="client-section-card">
@@ -586,110 +683,129 @@
     gap: 16px;
 }
 
-.benchmark-visual {
+.client-workspace-visual--vector {
     margin-top: 16px;
-    padding: 16px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    border: 1px solid #e8edf5;
-    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid #ece7f5;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #fcfbff 0%, #fffaf7 100%);
+    display: grid;
+    gap: 18px;
 }
 
-.benchmark-visual-head {
-    margin-bottom: 14px;
+.workspace-vector {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
-.benchmark-visual-label {
+.vector-panel {
+    stroke: #ebe4f5;
+    stroke-width: 2;
+}
+
+.vector-card {
+    fill: #ffffff;
+    stroke: #e9e2f3;
+    stroke-width: 2;
+}
+
+.vector-card-main {
+    fill: #fffdfd;
+}
+
+.vector-line {
+    fill: #d9dce8;
+}
+
+.vector-line-strong {
+    fill: #8b5cf6;
+    opacity: 0.9;
+}
+
+.vector-pill {
+    fill: #ffe6da;
+}
+
+.vector-ring {
+    fill: none;
+    stroke: #8b5cf6;
+    stroke-width: 10;
+    opacity: 0.18;
+}
+
+.vector-core {
+    fill: #8b5cf6;
+    opacity: 0.9;
+}
+
+.vector-stroke {
+    fill: none;
+    stroke: #8b5cf6;
+    stroke-width: 4;
+    stroke-linecap: round;
+    opacity: 0.45;
+}
+
+.vector-trend {
+    fill: none;
+    stroke: #ff8a4c;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.vector-dot {
+    fill: #ff8a4c;
+}
+
+.vector-chip-soft {
+    fill: #f1eaff;
+}
+
+.vector-chip-light {
+    fill: #e8eef9;
+}
+
+.workspace-visual-caption {
+    max-width: 520px;
+}
+
+.workspace-visual-kicker {
     display: inline-flex;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 6px 10px;
+    padding: 7px 11px;
     border-radius: 999px;
-    background: #eef4ff;
-    color: #315efb;
+    background: #f2ebff;
+    color: #7c3aed;
     font-size: 12px;
     font-weight: 800;
-    text-transform: uppercase;
     letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
-.benchmark-visual-head strong {
-    display: block;
-    font-size: 16px;
-    font-weight: 800;
+.workspace-visual-title {
+    margin: 12px 0 0;
+    font-size: 24px;
+    line-height: 1.15;
     color: #15233b;
 }
 
-.benchmark-bars {
-    display: grid;
-    gap: 12px;
-}
-
-.benchmark-bar-row {
-    display: grid;
-    gap: 8px;
-}
-
-.benchmark-bar-meta {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
+.workspace-visual-text {
+    margin: 10px 0 0;
     font-size: 14px;
-    font-weight: 700;
-    color: #15233b;
+    line-height: 1.7;
+    color: #627084;
 }
 
-.benchmark-bar-track {
-    width: 100%;
-    height: 10px;
-    border-radius: 999px;
-    background: #e9eef7;
-    overflow: hidden;
-}
-
-.benchmark-bar-fill {
-    height: 100%;
-    border-radius: 999px;
-}
-
-.benchmark-fill-brand {
-    background: linear-gradient(90deg, #8b5cf6, #a855f7);
-    min-width: 6px;
-}
-
-.benchmark-fill-competitor {
-    background: linear-gradient(90deg, #ff7a59, #ff9a3d);
-}
-
-.benchmark-fill-secondary {
-    background: linear-gradient(90deg, #60a5fa, #38bdf8);
-}
-
-.voice-market-card {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    border-radius: 16px;
-    padding: 16px;
-}
-
-.voice-icon {
-    width: 34px;
-    height: 34px;
-    margin-bottom: 12px;
-    border-radius: 12px;
-    background: #fff2ea;
-    color: #E83256;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 16px;
+.top-space {
+    margin-top: 14px;
 }
 
 .client-overview-hero,
 .client-section-card,
 .score-row-card,
 .finding-item,
-.action-step-card,
 .overview-score-card,
 .overview-mini-card,
 .execution-panel {
@@ -702,10 +818,6 @@
 .client-overview-hero,
 .client-section-card {
     padding: 16px;
-}
-
-.client-workspace-visual {
-    margin-top: 16px;
 }
 
 .client-overview-hero {
@@ -937,19 +1049,14 @@
 .fill-green { background: #10b981; }
 .fill-purple { background: #8b5cf6; }
 
-.finding-list,
-.action-list-v4 {
+.finding-list {
     display: grid;
     gap: 12px;
 }
 
-.finding-item,
-.action-step-card {
+.finding-item {
     padding: 16px;
     background: #fbfcfe;
-}
-
-.finding-item {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 12px;
@@ -982,39 +1089,17 @@
     flex-shrink: 0;
 }
 
-.finding-copy strong,
-.action-step-copy strong {
+.finding-copy strong {
     display: block;
     font-size: 18px;
     color: #15233b;
 }
 
-.finding-copy p,
-.action-step-copy p {
+.finding-copy p {
     margin: 8px 0 0;
     font-size: 14px;
     line-height: 1.6;
     color: #627084;
-}
-
-.action-step-card {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 14px;
-    text-decoration: none;
-}
-
-.action-step-no {
-    width: 34px;
-    height: 34px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #E83256;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    flex-shrink: 0;
 }
 
 .opportunity-list {
@@ -1069,44 +1154,6 @@
     font-size: 14px;
     line-height: 1.6;
     color: #6b7280;
-}
-
-.signal-summary-grid {
-    display: grid;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.signal-summary-card {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    border-radius: 16px;
-    padding: 14px;
-}
-
-.signal-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.signal-value {
-    display: block;
-    margin-top: 10px;
-    font-size: 28px;
-    line-height: 1;
-    font-weight: 800;
-    color: #15233b;
-}
-
-.signal-copy {
-    margin: 10px 0 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #627084;
 }
 
 .signal-table-wrap {
@@ -1175,11 +1222,16 @@
         gap: 18px;
     }
 
-    .external-signals-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .client-workspace-visual--vector {
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        align-items: center;
     }
 
-    .signal-summary-grid {
+    .workspace-visual-title {
+        font-size: 28px;
+    }
+
+    .external-signals-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -1225,7 +1277,6 @@
     .client-section-card,
     .score-row-card,
     .finding-item,
-    .action-step-card,
     .overview-score-card,
     .overview-mini-card,
     .execution-panel {
@@ -1243,16 +1294,6 @@
     }
 
     .client-overview-copy h1 {
-        font-size: 24px;
-    }
-
-    .visual-placeholder {
-        min-height: 190px;
-        padding: 20px;
-        border-radius: 18px;
-    }
-
-    .visual-placeholder-title {
         font-size: 24px;
     }
 }
