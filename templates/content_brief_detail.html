@@ -15,7 +15,7 @@
 </a>
 {% else %}
 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-    Upgrade to Generate
+    Unlock AI Generation
 </a>
 {% endif %}
     </div>
@@ -55,7 +55,15 @@
 
             <div class="brief-hero-actions">
                 <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
-                <a href="{{ url_for('generate_content_draft_page', item_id=brief.id) if brief is defined and brief.id else '#' }}" class="btn btn-secondary">Generate Draft</a>
+                {% if current_user.is_authenticated and current_user.plan != "free" %}
+<a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">
+    Generate Draft
+</a>
+{% else %}
+<a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+   Unlock AI Generation
+</a>
+{% endif %}
             </div>
         </div>
 
@@ -291,7 +299,15 @@
 
             <div class="brief-cta-actions">
                 <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
-                <a href="{{ url_for('generate_content_draft_page', item_id=brief.id) if brief is defined and brief.id else '#' }}" class="btn btn-secondary">Generate Draft</a>
+                {% if current_user.is_authenticated and current_user.plan != "free" %}
+<a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=row.query) }}" class="btn btn-primary">
+    Generate Draft
+</a>
+{% else %}
+<a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+    Unlock AI Generation
+</a>
+{% endif %}
             </div>
         </div>
 

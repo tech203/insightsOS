@@ -2,10 +2,14 @@
 {% block title %}Competitor Research | Insights OS{% endblock %}
 
 {% block page_header %}
-<div class="page-header-standard competitor-page-header-minimal">
+<div class="page-header-standard competitor-page-header-clean">
     <div class="page-header-copy">
         <h1>Competitor Research</h1>
-        <p>See where competitors appear in AI answers, uncover the topics you are missing, and move high-value prompts into tracking.</p>
+        <p>See where competitors appear in AI answers, uncover the topics you are missing, and move the best prompts into tracking.</p>
+    </div>
+
+    <div class="page-header-actions">
+        <button type="submit" form="competitorAnalysisForm" class="btn btn-primary">Run Competitor Analysis</button>
     </div>
 </div>
 {% endblock %}
@@ -83,67 +87,48 @@
     {"domain": "zoom.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 16, "urls": 9, "prompts": 18, "traffic": "949.7K"}
 ] %}
 
-<div class="competitor-shell">
+<div class="competitor-shell-clean">
 
-    <section class="competitor-hero-card">
-        <div class="competitor-hero-main">
+    <section class="competitor-setup-card">
+        <div class="competitor-setup-copy">
             <span class="section-kicker">Competitor Gap Analysis</span>
-            <h1>Find the gaps in your AI visibility</h1>
-            <p class="hero-text">
-                Compare your brand against competitors, uncover the topics where they are cited but you are not,
-                and move directly into prompt tracking for the opportunities that matter most.
-            </p>
+            <h2>Compare your visibility against competitors</h2>
+            <p>Start with your domain and a few competitors, then review the missing topics and move the best prompts into tracking.</p>
 
-            <form class="competitor-search-form" method="get" action="">
-                <div class="competitor-form-grid">
-                    <div class="form-field form-field-full">
-                        <label for="domain">Your domain</label>
-                        <input id="domain" name="domain" type="text" value="{{ project_domain }}" placeholder="yourdomain.com">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="competitor_1">Competitor 1</label>
-                        <input id="competitor_1" name="competitor_1" type="text" value="{{ competitor_list[0] if competitor_list|length > 0 else '' }}" placeholder="competitor.com">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="competitor_2">Competitor 2</label>
-                        <input id="competitor_2" name="competitor_2" type="text" value="{{ competitor_list[1] if competitor_list|length > 1 else '' }}" placeholder="competitor.com">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="competitor_3">Competitor 3</label>
-                        <input id="competitor_3" name="competitor_3" type="text" value="{{ competitor_list[2] if competitor_list|length > 2 else '' }}" placeholder="competitor.com">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="competitor_4">Competitor 4</label>
-                        <input id="competitor_4" name="competitor_4" type="text" value="{{ competitor_list[3] if competitor_list|length > 3 else '' }}" placeholder="competitor.com">
-                    </div>
-                </div>
-
-                <div class="competitor-toolbar">
-                    <div class="toolbar-meta">
-                        <span class="meta-pill">{{ selected_platform }}</span>
-                        <span class="meta-pill meta-pill-soft">{{ selected_market }}</span>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-large">Run Competitor Analysis</button>
-                </div>
-            </form>
+            <div class="competitor-meta-row">
+                <span class="meta-pill">{{ selected_platform }}</span>
+                <span class="meta-pill meta-pill-soft">{{ selected_market }}</span>
+            </div>
         </div>
 
-        <aside class="competitor-hero-side">
-            <div class="hero-side-card">
-                <span class="mini-kicker">What this module reveals</span>
-                <ul class="hero-check-list">
-                    <li>Topics competitors dominate but you miss</li>
-                    <li>High-intent prompts worth tracking</li>
-                    <li>Source domains influencing competitor visibility</li>
-                    <li>Immediate next steps for content and tracking</li>
-                </ul>
+        <form class="competitor-search-form" id="competitorAnalysisForm" method="get" action="">
+            <div class="competitor-form-grid">
+                <div class="form-field form-field-full">
+                    <label for="domain">Your domain</label>
+                    <input id="domain" name="domain" type="text" value="{{ project_domain }}" placeholder="yourdomain.com">
+                </div>
+
+                <div class="form-field">
+                    <label for="competitor_1">Competitor 1</label>
+                    <input id="competitor_1" name="competitor_1" type="text" value="{{ competitor_list[0] if competitor_list|length > 0 else '' }}" placeholder="competitor.com">
+                </div>
+
+                <div class="form-field">
+                    <label for="competitor_2">Competitor 2</label>
+                    <input id="competitor_2" name="competitor_2" type="text" value="{{ competitor_list[1] if competitor_list|length > 1 else '' }}" placeholder="competitor.com">
+                </div>
+
+                <div class="form-field">
+                    <label for="competitor_3">Competitor 3</label>
+                    <input id="competitor_3" name="competitor_3" type="text" value="{{ competitor_list[2] if competitor_list|length > 2 else '' }}" placeholder="competitor.com">
+                </div>
+
+                <div class="form-field">
+                    <label for="competitor_4">Competitor 4</label>
+                    <input id="competitor_4" name="competitor_4" type="text" value="{{ competitor_list[3] if competitor_list|length > 3 else '' }}" placeholder="competitor.com">
+                </div>
             </div>
-        </aside>
+        </form>
     </section>
 
     <section class="competitor-summary-grid">
@@ -156,22 +141,19 @@
         {% endfor %}
     </section>
 
-    <section class="competitor-insight-band">
-        <div class="insight-band-copy">
-            <span class="section-kicker">Competitor Insight</span>
-            <h2>Competitors are winning visibility in prompts your audience is likely asking</h2>
-            <p>
-                Start with missing commercial and transactional topics first. These usually create the fastest path
-                to improving discoverability, recommendation strength, and prompt-level presence.
-            </p>
+    <section class="competitor-insight-strip">
+        <div class="insight-strip-copy">
+            <span class="section-kicker">Main Insight</span>
+            <h3>Competitors are winning visibility in prompts your audience is likely asking</h3>
+            <p>Start with missing commercial and transactional topics first. These usually create the fastest path to stronger AI discoverability.</p>
         </div>
 
-        <div class="insight-band-side">
-            <div class="insight-side-card">
+        <div class="insight-strip-side">
+            <div class="insight-mini-card">
                 <span>Highest priority cluster</span>
                 <strong>Messaging, chatbot, and scheduling prompts</strong>
             </div>
-            <div class="insight-side-card">
+            <div class="insight-mini-card">
                 <span>Best next move</span>
                 <strong>Track the prompts, then build content for the missing intent</strong>
             </div>
@@ -234,9 +216,7 @@
                                 <small>{{ row.sample_prompts|length }} example prompts available</small>
                             </div>
                         </td>
-                        <td>
-                            <span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span>
-                        </td>
+                        <td><span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span></td>
                         <td>
                             <div class="competitor-cell">
                                 <strong>{{ row.best_competitor }}</strong>
@@ -245,31 +225,29 @@
                         </td>
                         <td>{{ row.ai_volume }}</td>
                         <td><span class="intent-badge">{{ row.intent }}</span></td>
-                        <td>
-                            <span class="priority-pill priority-{{ row.priority|lower }}">{{ row.priority }}</span>
+                        <td><span class="priority-pill priority-{{ row.priority|lower }}">{{ row.priority }}</span></td>
+                        <td class="table-action-col action-stack-cell">
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-sm view-prompts-btn"
+                                data-topic="{{ row.topic }}"
+                                data-prompts="{{ row.sample_prompts|join('||') }}"
+                            >
+                                View Prompts
+                            </button>
+
+                            <form method="POST" action="{{ url_for('save_prompts') }}" class="inline-track-form">
+                                <input type="hidden" name="domain" value="{{ project_domain }}">
+                                <input type="hidden" name="platform" value="{{ selected_platform }}">
+                                <input type="hidden" name="market" value="{{ selected_market }}">
+                                <input type="hidden" name="topic" value="{{ row.topic }}">
+                                <textarea name="prompts" class="hidden-prompt-field">{{- row.sample_prompts|join('\n') -}}</textarea>
+
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    Track
+                                </button>
+                            </form>
                         </td>
-<td class="table-action-col action-stack-cell">
-    <button
-        type="button"
-        class="btn btn-secondary btn-sm view-prompts-btn"
-        data-topic="{{ row.topic }}"
-        data-prompts="{{ row.sample_prompts|join('||') }}"
-    >
-        View Prompts
-    </button>
-
-    <form method="POST" action="{{ url_for('save_prompts') }}" class="inline-track-form">
-        <input type="hidden" name="domain" value="{{ project_domain }}">
-        <input type="hidden" name="platform" value="{{ selected_platform }}">
-        <input type="hidden" name="market" value="{{ selected_market }}">
-        <input type="hidden" name="topic" value="{{ row.topic }}">
-        <textarea name="prompts" class="hidden-prompt-field">{{- row.sample_prompts|join('\n') -}}</textarea>
-
-        <button type="submit" class="btn btn-primary btn-sm">
-            Track
-        </button>
-    </form>
-</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -380,707 +358,22 @@
         </div>
 
         <div class="app-modal-footer">
-            <button type="button" class="btn btn-secondary" id="cancelTrackingModal">
-                Cancel
-            </button>
+            <button type="button" class="btn btn-secondary" id="cancelTrackingModal">Cancel</button>
 
-<form method="POST" action="{{ url_for('save_prompts') }}" id="trackingForm">
-    <input type="hidden" name="domain" value="{{ project_domain }}">
-    <input type="hidden" name="platform" value="{{ selected_platform }}">
-    <input type="hidden" name="market" value="{{ selected_market }}">
-    <input type="hidden" name="topic" id="trackingTopicHidden">
+            <form method="POST" action="{{ url_for('save_prompts') }}" id="trackingForm">
+                <input type="hidden" name="domain" value="{{ project_domain }}">
+                <input type="hidden" name="platform" value="{{ selected_platform }}">
+                <input type="hidden" name="market" value="{{ selected_market }}">
+                <input type="hidden" name="topic" id="trackingTopicHidden">
+                <textarea name="prompts" id="trackingPromptsHidden" class="hidden-prompt-field"></textarea>
 
-    <textarea name="prompts" id="trackingPromptsHidden" class="hidden-prompt-field"></textarea>
-
-    <button type="submit" class="btn btn-primary">
-        Start Tracking
-    </button>
-</form>
-        </div>    
+                <button type="submit" class="btn btn-primary">
+                    Start Tracking
+                </button>
+            </form>
+        </div>
     </div>
 </div>
-
-<style>
-.competitor-page-header-minimal {
-    margin-bottom: 8px;
-}
-
-.competitor-shell {
-    display: grid;
-    gap: 28px;
-}
-
-.competitor-hero-card,
-.summary-card,
-.competitor-insight-band,
-.results-section-card,
-.hero-side-card,
-.app-modal-card {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.competitor-hero-card {
-    padding: 32px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) 320px;
-    gap: 24px;
-    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
-    border-color: #ece8ff;
-}
-
-.section-kicker,
-.mini-kicker {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #f4ebff;
-    color: #6d4aff;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.competitor-hero-main h1 {
-    margin: 14px 0 0;
-    font-size: clamp(36px, 5vw, 58px);
-    line-height: 1.02;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: #16243c;
-    max-width: 820px;
-}
-
-.hero-text {
-    margin: 16px 0 0;
-    max-width: 820px;
-    font-size: 17px;
-    line-height: 1.72;
-    color: #627084;
-}
-
-.competitor-search-form {
-    margin-top: 24px;
-    display: grid;
-    gap: 18px;
-}
-
-.competitor-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.form-field {
-    display: grid;
-    gap: 8px;
-}
-
-.form-field-full {
-    grid-column: 1 / -1;
-}
-
-.form-field label {
-    font-size: 13px;
-    font-weight: 800;
-    color: #4f5d73;
-}
-
-.form-field input,
-.form-field textarea,
-.toolbar-filters input,
-.toolbar-filters select {
-    width: 100%;
-    border: 1px solid #dbe2ee;
-    background: #ffffff;
-    color: #16243c;
-    border-radius: 14px;
-    padding: 13px 14px;
-    font-size: 15px;
-    line-height: 1.4;
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.form-field input:focus,
-.form-field textarea:focus,
-.toolbar-filters input:focus,
-.toolbar-filters select:focus {
-    border-color: #8f73ff;
-    box-shadow: 0 0 0 4px rgba(109, 74, 255, 0.10);
-}
-
-.field-hint {
-    color: #6b7280;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.competitor-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-}
-
-.toolbar-meta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.meta-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #efe8ff;
-    color: #6d4aff;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.meta-pill-soft {
-    background: #f6f8fc;
-    color: #5e6b7c;
-}
-
-.btn-large {
-    padding: 14px 22px;
-    font-size: 16px;
-}
-
-.hero-side-card {
-    padding: 20px;
-    background: linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
-}
-
-.hero-check-list {
-    list-style: none;
-    padding: 0;
-    margin: 14px 0 0;
-    display: grid;
-    gap: 12px;
-}
-
-.hero-check-list li {
-    position: relative;
-    padding-left: 22px;
-    color: #405066;
-    line-height: 1.55;
-    font-size: 14px;
-}
-
-.hero-check-list li::before {
-    content: "•";
-    position: absolute;
-    left: 6px;
-    top: 0;
-    color: #6d4aff;
-    font-weight: 800;
-}
-
-.competitor-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.summary-card {
-    padding: 20px;
-}
-
-.summary-label {
-    display: block;
-    color: #6b7280;
-    font-size: 13px;
-    font-weight: 800;
-    margin-bottom: 10px;
-}
-
-.summary-value {
-    display: block;
-    color: #16243c;
-    font-size: 34px;
-    line-height: 1;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-}
-
-.summary-copy {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-.competitor-insight-band {
-    padding: 24px 26px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: 20px;
-    align-items: center;
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border-color: #ffe1d5;
-}
-
-.insight-band-copy h2 {
-    margin: 10px 0 0;
-    color: #16243c;
-    font-size: 30px;
-    line-height: 1.1;
-}
-
-.insight-band-copy p {
-    margin: 14px 0 0;
-    color: #627084;
-    font-size: 15px;
-    line-height: 1.7;
-    max-width: 760px;
-}
-
-.insight-band-side {
-    display: grid;
-    gap: 14px;
-}
-
-.insight-side-card {
-    border: 1px solid #f1e0d9;
-    background: #ffffff;
-    border-radius: 18px;
-    padding: 16px;
-}
-
-.insight-side-card span {
-    display: block;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 8px;
-}
-
-.insight-side-card strong {
-    color: #16243c;
-    font-size: 16px;
-    line-height: 1.45;
-}
-
-.results-section-card {
-    padding: 24px;
-}
-
-.results-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 18px;
-    margin-bottom: 18px;
-}
-
-.section-title {
-    margin: 10px 0 0;
-    color: #16243c;
-    font-size: 28px;
-    line-height: 1.1;
-}
-
-.section-copy {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 15px;
-    line-height: 1.7;
-    max-width: 780px;
-}
-
-.table-toolbar {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-}
-
-.toolbar-tabs {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.table-tab {
-    border: 1px solid #dce4ef;
-    background: #ffffff;
-    color: #516077;
-    border-radius: 12px;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.table-tab.active {
-    border-color: #8f73ff;
-    background: #f3edff;
-    color: #6d4aff;
-}
-
-.toolbar-filters {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.toolbar-filters input {
-    min-width: 220px;
-}
-
-.table-wrap {
-    overflow-x: auto;
-}
-
-.insights-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    min-width: 980px;
-}
-
-.insights-table th,
-.insights-table td {
-    padding: 16px 14px;
-    border-bottom: 1px solid #e9edf5;
-    vertical-align: top;
-    text-align: left;
-}
-
-.insights-table th {
-    color: #5c6a7d;
-    font-size: 13px;
-    font-weight: 800;
-    background: #fafbfe;
-}
-
-.topic-cell,
-.competitor-cell {
-    display: grid;
-    gap: 4px;
-}
-
-.topic-cell strong,
-.competitor-cell strong,
-.insights-table td strong {
-    color: #16243c;
-    font-size: 15px;
-}
-
-.topic-cell small,
-.competitor-cell small {
-    color: #6b7280;
-    font-size: 13px;
-}
-
-.presence-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.presence-pill-empty {
-    background: #fff1ea;
-    color: #e35b35;
-}
-
-.intent-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #eff4ff;
-    color: #4266d6;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.inline-track-form {
-    margin: 0;
-}
-
-.hidden-prompt-field {
-    display: none;
-}
-
-.priority-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.priority-high {
-    background: #ffe7df;
-    color: #d95b39;
-}
-
-.priority-medium {
-    background: #fff4da;
-    color: #b9811b;
-}
-
-.priority-low {
-    background: #e8f3ff;
-    color: #2c78d1;
-}
-
-.table-action-col {
-    white-space: nowrap;
-}
-
-.action-stack-cell {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.compact-table {
-    min-width: 860px;
-}
-
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.48);
-    z-index: 1000;
-    display: none;
-}
-
-.modal-backdrop.is-open {
-    display: block;
-}
-
-.app-modal {
-    position: fixed;
-    inset: 0;
-    display: none;
-    place-items: center;
-    z-index: 1001;
-    padding: 20px;
-}
-
-.app-modal {
-    pointer-events: none;
-}
-
-.app-modal.is-open {
-    pointer-events: auto;
-}
-
-.app-modal-card {
-    pointer-events: auto;
-}
-
-.app-modal.is-open {
-    display: grid;
-}
-
-.app-modal-card {
-    width: min(560px, 100%);
-    max-height: 78vh;
-    overflow: auto;
-    padding: 20px;
-}
-
-.app-modal-md {
-    width: min(640px, 100%);
-}
-
-.app-modal-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: flex-start;
-    margin-bottom: 18px;
-}
-
-.app-modal-header h3 {
-    margin: 10px 0 0;
-    font-size: 28px;
-    line-height: 1.1;
-    color: #16243c;
-}
-
-.app-modal-header p {
-    margin: 10px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-    max-width: 520px;
-}
-
-.modal-close-btn {
-    border: 0;
-    background: transparent;
-    font-size: 34px;
-    line-height: 1;
-    color: #6b7280;
-    cursor: pointer;
-    padding: 0;
-}
-
-.app-modal-body {
-    display: grid;
-    gap: 18px;
-}
-
-.prompt-preview-list {
-    display: grid;
-    gap: 12px;
-}
-
-.prompt-preview-item {
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e8edf5;
-    color: #405066;
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.modal-meta-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-}
-
-.modal-meta-card {
-    border: 1px solid #e7ebf3;
-    background: #f8fafc;
-    border-radius: 16px;
-    padding: 14px;
-}
-
-.modal-meta-card span {
-    display: block;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
-.modal-meta-card strong {
-    color: #16243c;
-    font-size: 15px;
-}
-
-.app-modal-footer {
-    margin-top: 18px;
-    padding-top: 18px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    border-top: 1px solid #eef2f7;
-}
-
-.btn-sm {
-    padding: 10px 14px;
-    font-size: 14px;
-}
-
-#trackingPrompts {
-    min-height: 120px;
-    max-height: 180px;
-    resize: vertical;
-}
-
-@media (max-width: 1280px) {
-    .competitor-summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 1100px) {
-    .competitor-hero-card,
-    .competitor-insight-band {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 900px) {
-    .competitor-form-grid,
-    .modal-meta-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .results-section-header,
-    .competitor-toolbar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-}
-
-@media (max-width: 768px) {
-    .competitor-hero-card,
-    .summary-card,
-    .competitor-insight-band,
-    .results-section-card,
-    .hero-side-card {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .app-modal-card {
-        padding: 16px;
-        border-radius: 20px;
-    }
-
-    #trackingPrompts {
-        min-height: 140px;
-    }
-
-    .competitor-summary-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .toolbar-filters {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .toolbar-filters input,
-    .toolbar-filters select,
-    .competitor-toolbar .btn,
-    .results-header-actions .btn,
-    .app-modal-footer .btn {
-        width: 100%;
-    }
-
-    .app-modal {
-        padding: 14px;
-    }
-
-    .app-modal-footer {
-        flex-direction: column-reverse;
-    }
-
-    .action-stack-cell {
-        flex-direction: column;
-    }
-}
-</style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -1113,14 +406,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderPromptPreview(topic, prompts) {
-        if (previewTitle) {
-            previewTitle.textContent = topic || "Topic prompts";
-        }
-
+        if (previewTitle) previewTitle.textContent = topic || "Topic prompts";
         if (!previewList) return;
 
         previewList.innerHTML = "";
-
         if (!prompts.length) {
             previewList.innerHTML = '<div class="prompt-preview-item">No prompts available.</div>';
             return;
@@ -1149,23 +438,23 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-const openTrackAll = document.getElementById("open-track-all");
-if (openTrackAll) {
-    openTrackAll.addEventListener("click", function () {
-        const allPrompts = [];
+    const openTrackAll = document.getElementById("open-track-all");
+    if (openTrackAll) {
+        openTrackAll.addEventListener("click", function () {
+            const allPrompts = [];
 
-        document.querySelectorAll(".view-prompts-btn").forEach((btn) => {
-            const promptSet = (btn.dataset.prompts || "").split("||").filter(Boolean);
-            promptSet.forEach((prompt) => {
-                if (!allPrompts.includes(prompt)) {
-                    allPrompts.push(prompt);
-                }
+            document.querySelectorAll(".view-prompts-btn").forEach((btn) => {
+                const promptSet = (btn.dataset.prompts || "").split("||").filter(Boolean);
+                promptSet.forEach((prompt) => {
+                    if (!allPrompts.includes(prompt)) {
+                        allPrompts.push(prompt);
+                    }
+                });
             });
-        });
 
-        openTracking("Priority competitor gap topics", allPrompts);
-    });
-}
+            openTracking("Priority competitor gap topics", allPrompts);
+        });
+    }
 
     if (trackingForm) {
         trackingForm.addEventListener("submit", function () {
@@ -1174,12 +463,12 @@ if (openTrackAll) {
         });
     }
 
-document.addEventListener("click", function (e) {
-    if (e.target.closest("[data-close-competitor-modal]")) {
-        e.preventDefault();
-        closeAllModals();
-    }
-});
+    document.addEventListener("click", function (e) {
+        if (e.target.closest("[data-close-competitor-modal]")) {
+            e.preventDefault();
+            closeAllModals();
+        }
+    });
 
     if (cancelTrackingModal) {
         cancelTrackingModal.addEventListener("click", function (event) {

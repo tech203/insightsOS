@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 
 {% block title %}{{ client.name }} | Brief Result{% endblock %}
-{% block page_title %}{{ client.name }} · Brief Result{% endblock %}
-{% block page_subtitle %}Refine the brief, then move it into drafting or production.{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary">New Brief</a>
-<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Open Draft Generator</a>
+{% block page_header %}
+<div class="page-header-standard brief-result-header-clean">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Brief Result</h1>
+        <p>Refine the brief, confirm the opportunity, and move it into drafting when it is ready.</p>
+    </div>
+
+    <div class="page-header-actions">
+        <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">
+            Open Draft Generator
+        </a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -15,24 +23,22 @@
 {% set content_type = result.content_type if result and result.content_type is defined else '' %}
 {% set brief_text = result.brief if result and result.brief is defined else result | tojson(indent=2) %}
 
-<section class="brief-result-shell">
+<section class="brief-result-shell-clean">
 
-    <section class="brief-result-hero">
-        <div class="hero-copy">
+    <section class="brief-top-strip">
+        <div class="brief-top-copy">
             <span class="section-kicker">Brief Ready</span>
-            <h1>Refine this brief before execution</h1>
+            <h2>Refine this brief before drafting</h2>
             <p>
-                Tighten the angle, confirm intent, and make this brief clear enough
-                to move directly into drafting.
+                Tighten the angle, confirm the intent, and make this brief clear enough to move directly into drafting.
             </p>
         </div>
 
-        <div class="hero-card">
-            <span class="hero-card-label">Recommended</span>
-            <strong class="hero-card-value">Refine → Draft → Publish</strong>
-            <p class="hero-card-copy">
-                Use the score and diagnostics below to decide whether to move straight into drafting
-                or sharpen the brief first.
+        <div class="brief-top-card">
+            <span class="brief-top-label">Recommended flow</span>
+            <strong class="brief-top-value">Refine → Draft → Publish</strong>
+            <p class="brief-top-note">
+                Use the score and diagnostics below to decide whether to move straight into drafting or sharpen the brief first.
             </p>
         </div>
     </section>
@@ -108,8 +114,8 @@
     <section class="aeo-diagnostic-card">
         <div class="diagnostic-header">
             <div>
-                <span class="section-kicker">Why this score looks like this</span>
-                <h3>Diagnostic summary</h3>
+                <span class="section-kicker">Diagnostic</span>
+                <h3>Why this score looks like this</h3>
                 <p class="diagnostic-copy">
                     These signals explain what is limiting visibility and what to improve next.
                 </p>
@@ -185,24 +191,21 @@
         <div class="section-head">
             <div>
                 <span class="section-kicker">Opportunity</span>
-                <h3>Content Gap Opportunities</h3>
+                <h3>Content gap opportunities</h3>
                 <p>These are the highest-impact content moves to improve visibility for this topic.</p>
             </div>
         </div>
 
         {% if tracked_prompt_count > 0 %}
         <div class="gap-list">
-
             <div class="gap-item">
                 <div class="gap-main">
                     <strong>Create content for "{{ target_query or 'this query' }}"</strong>
-                    <p>
-                        Your brand is not consistently appearing for this query. Creating a focused page can improve coverage and visibility.
-                    </p>
+                    <p>Your brand is not consistently appearing for this query. Creating a focused page can improve coverage and visibility.</p>
                 </div>
 
                 <div class="gap-actions">
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
                         Generate Brief
                     </a>
                 </div>
@@ -212,14 +215,12 @@
             <div class="gap-item">
                 <div class="gap-main">
                     <strong>Compete with {{ top_competitors[0] }}</strong>
-                    <p>
-                        This competitor is appearing in AI answers for similar intent. Build a stronger alternative page targeting the same topic.
-                    </p>
+                    <p>This competitor is appearing in AI answers for similar intent. Build a stronger alternative page targeting the same topic.</p>
                 </div>
 
                 <div class="gap-actions">
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
-                        Build Competing Page
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="brief-inline-link">
+                        Build competing page
                     </a>
                 </div>
             </div>
@@ -228,18 +229,15 @@
             <div class="gap-item">
                 <div class="gap-main">
                     <strong>Expand supporting topic coverage</strong>
-                    <p>
-                        Create supporting content around this topic cluster to increase authority and improve presence across related prompts.
-                    </p>
+                    <p>Create supporting content around this topic cluster to increase authority and improve presence across related prompts.</p>
                 </div>
 
                 <div class="gap-actions">
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="btn btn-secondary btn-sm">
-                        Explore Topics
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="brief-inline-link">
+                        Explore topics
                     </a>
                 </div>
             </div>
-
         </div>
         {% else %}
         <div class="empty-inline">
@@ -279,7 +277,7 @@
                     <p class="panel-subtitle">Edit before saving or drafting.</p>
                 </div>
 
-                <button id="copyBtn" class="btn btn-ghost">Copy</button>
+                <button id="copyBtn" class="btn btn-ghost" type="button">Copy</button>
             </div>
 
             <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}">
@@ -311,7 +309,7 @@
                         Generate Draft
                     </a>
 
-                    <button class="btn btn-secondary">Save to Queue</button>
+                    <button class="btn btn-secondary" type="submit">Save to Queue</button>
                 </div>
             </form>
         </div>
@@ -327,7 +325,7 @@
 
                 <div class="action">
                     <strong>Queue</strong>
-                    <p>Store for team execution.</p>
+                    <p>Store it for team execution.</p>
                 </div>
 
                 <div class="action">
@@ -371,400 +369,5 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 </script>
-
-<style>
-.brief-result-shell {
-    padding: 24px;
-    display: grid;
-    gap: 24px;
-}
-
-.brief-result-hero,
-.panel,
-.summary-card,
-.aeo-diagnostic-card,
-.content-gap-card {
-    background: #fff;
-    border: 1px solid #e7ebf3;
-    border-radius: 20px;
-}
-
-.brief-result-hero {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 24px;
-}
-
-.hero-copy {
-    max-width: 720px;
-}
-
-.hero-card {
-    background: #fff4ef;
-    border: 1px solid #f1ddd4;
-    padding: 16px;
-    border-radius: 14px;
-    min-width: 220px;
-    align-self: flex-start;
-}
-
-.hero-card-label {
-    display: block;
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 6px;
-}
-
-.hero-card-value {
-    display: block;
-    font-size: 18px;
-    color: #111827;
-}
-
-.hero-card-copy {
-    margin-top: 8px;
-    font-size: 13px;
-    color: #6b7280;
-}
-
-.premium-aeo-card {
-    border-color: #f1ddd4;
-    padding: 28px;
-    box-shadow: 0 10px 30px rgba(20, 30, 50, 0.05);
-    display: grid;
-    gap: 20px;
-    background: linear-gradient(180deg, #fff9f6, #ffffff);
-}
-
-.score-top-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-}
-
-.score-main {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-}
-
-.score-value {
-    font-size: 64px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.score-value span {
-    font-size: 20px;
-    margin-left: 4px;
-    color: #6b7280;
-}
-
-.text-green { color: #1f8b58; }
-.text-amber { color: #b9811b; }
-.text-red { color: #e35b35; }
-
-.score-meta {
-    max-width: 520px;
-}
-
-.score-headline {
-    font-size: 18px;
-    color: #111827;
-    display: block;
-}
-
-.score-subtext,
-.score-context {
-    margin-top: 6px;
-    font-size: 13px;
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-.score-badge {
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.score-green {
-    background: #e6f7ee;
-    color: #1f8b58;
-}
-
-.score-amber {
-    background: #fff4da;
-    color: #b9811b;
-}
-
-.score-red {
-    background: #ffe9e3;
-    color: #e35b35;
-}
-
-.score-progress-bar {
-    height: 8px;
-    background: #f1f5f9;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.score-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #6366f1, #8b5cf6);
-    border-radius: 999px;
-}
-
-.score-breakdown-grid {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-}
-
-.breakdown-item span {
-    font-size: 12px;
-    color: #6b7280;
-}
-
-.breakdown-item strong {
-    display: block;
-    margin-top: 4px;
-    font-size: 18px;
-    color: #111827;
-}
-
-.aeo-diagnostic-card {
-    padding: 24px;
-    box-shadow: 0 10px 30px rgba(20, 30, 50, 0.05);
-    display: grid;
-    gap: 18px;
-}
-
-.diagnostic-header h3 {
-    margin: 8px 0 0;
-    font-size: 24px;
-    color: #111827;
-}
-
-.diagnostic-copy {
-    margin: 10px 0 0;
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-.diagnostic-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.diagnostic-item {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    border-radius: 18px;
-    padding: 18px;
-}
-
-.diagnostic-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.diagnostic-value {
-    display: block;
-    margin-top: 8px;
-    font-size: 20px;
-    color: #111827;
-}
-
-.diagnostic-item p {
-    margin: 10px 0 0;
-    color: #6b7280;
-    line-height: 1.6;
-    font-size: 14px;
-}
-
-.content-gap-card {
-    padding: 24px;
-    display: grid;
-    gap: 16px;
-}
-
-.section-head h3 {
-    margin: 6px 0 0;
-    font-size: 24px;
-    color: #111827;
-}
-
-.section-head p {
-    margin: 8px 0 0;
-    color: #6b7280;
-}
-
-.gap-list {
-    display: grid;
-    gap: 12px;
-}
-
-.gap-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    border-radius: 16px;
-    padding: 16px;
-}
-
-.gap-main strong {
-    display: block;
-    font-size: 16px;
-    color: #111827;
-}
-
-.gap-main p {
-    margin-top: 6px;
-    font-size: 14px;
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-.gap-actions {
-    display: flex;
-    align-items: center;
-}
-
-.empty-inline p {
-    margin: 0;
-    color: #6b7280;
-}
-
-.summary-strip {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-}
-
-.summary-card {
-    padding: 16px;
-}
-
-.summary-card span {
-    display: block;
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 6px;
-}
-
-.summary-card strong {
-    color: #111827;
-}
-
-.summary-card.highlight {
-    background: #fff4ef;
-    border-color: #f1ddd4;
-}
-
-.brief-result-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 24px;
-}
-
-.panel {
-    padding: 20px;
-}
-
-.panel-header-spread {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-}
-
-.panel-subtitle {
-    color: #6b7280;
-}
-
-.form-field {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
-textarea,
-input {
-    width: 100%;
-    border-radius: 12px;
-    padding: 12px;
-    line-height: 1.6;
-    border: 1px solid #dbe2ee;
-    background: #fff;
-}
-
-.card-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-}
-
-.side-stack {
-    display: grid;
-    gap: 16px;
-}
-
-.action strong {
-    display: block;
-    color: #111827;
-}
-
-.action p {
-    margin-top: 6px;
-    color: #6b7280;
-}
-
-.tips {
-    margin: 0;
-    padding-left: 18px;
-    color: #6b7280;
-}
-
-.tips li + li {
-    margin-top: 8px;
-}
-
-@media (max-width: 900px) {
-    .brief-result-hero,
-    .score-top-row,
-    .score-main,
-    .gap-item,
-    .brief-result-grid {
-        grid-template-columns: 1fr;
-        flex-direction: column;
-    }
-
-    .summary-strip,
-    .diagnostic-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .score-value {
-        font-size: 44px;
-    }
-
-    .score-breakdown-grid {
-        gap: 16px;
-    }
-}
-</style>
 
 {% endblock %}

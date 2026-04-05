@@ -1,19 +1,77 @@
 <div class="nav-group">
-    <div class="nav-label">Workspace</div>
+    <div class="nav-label">Main</div>
 
     <a href="{{ url_for('index') }}" class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}">
         <span class="nav-icon">⌂</span>
         <span class="nav-text">Dashboard</span>
     </a>
 
-<a href="{{ url_for('clients_page') }}" class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'run_client_audit'] %}active{% endif %}">
-    <span class="nav-icon">◫</span>
-    <span class="nav-text">Clients</span>
-</a>
+    <a href="{{ url_for('new_audit') }}" class="nav-item {% if current_endpoint in ['new_audit', 'start_audit', 'run_client_audit'] %}active{% endif %}">
+        <span class="nav-icon">⌕</span>
+        <span class="nav-text">Create Audit</span>
+    </a>
 
-    <a href="{{ url_for('content_queue_page') }}" class="nav-item {% if current_endpoint == 'content_queue_page' %}active{% endif %}">
+    <a href="{{ url_for('clients_page') }}" class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'create_client'] %}active{% endif %}">
+        <span class="nav-icon">◫</span>
+        <span class="nav-text">My Workspace</span>
+    </a>
+
+    <a href="{{ url_for('client_visibility_page', client_id=focused_client.id) if focused_client else url_for('clients_page') }}"
+       class="nav-item {% if current_endpoint == 'client_visibility_page' %}active{% endif %}">
+        <span class="nav-icon">◔</span>
+        <span class="nav-text">Visibility</span>
+    </a>
+
+    <a href="{{ url_for('client_competitors_page', client_id=focused_client.id) if focused_client else url_for('clients_page') }}"
+       class="nav-item {% if current_endpoint == 'client_competitors_page' %}active{% endif %}">
+        <span class="nav-icon">◎</span>
+        <span class="nav-text">Competitors</span>
+    </a>
+
+    <a href="{{ url_for('position_tracking_page') }}"
+       class="nav-item {% if current_endpoint in ['position_tracking_page', 'prompt_detail_page'] %}active{% endif %}">
+        <span class="nav-icon">⌁</span>
+        <span class="nav-text">Prompt Tracking</span>
+    </a>
+
+    <a href="{{ url_for('content_queue_page') }}"
+       class="nav-item {% if current_endpoint in ['content_queue_page', 'generate_client_content_brief', 'generate_client_content_draft'] %}active{% endif %}">
         <span class="nav-icon">≣</span>
         <span class="nav-text">Content Queue</span>
+    </a>
+
+    <a href="{{ url_for('client_actions_page', client_id=focused_client.id) if focused_client else url_for('clients_page') }}"
+       class="nav-item {% if current_endpoint == 'client_actions_page' %}active{% endif %}">
+        <span class="nav-icon">↗</span>
+        <span class="nav-text">Actions</span>
+    </a>
+
+    <a href="{{ url_for('client_history_page', client_id=focused_client.id) if focused_client else url_for('clients_page') }}"
+       class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}">
+        <span class="nav-icon">⟲</span>
+        <span class="nav-text">History</span>
+    </a>
+
+    <a href="{{ url_for('report_page', client_id=focused_client.id) if focused_client else url_for('clients_page') }}"
+       class="nav-item {% if current_endpoint in ['report_page', 'client_presentation_page', 'client_growth_plan'] %}active{% endif %}">
+        <span class="nav-icon">▣</span>
+        <span class="nav-text">Report</span>
+    </a>
+</div>
+
+<div class="nav-group">
+    <div class="nav-label">Content</div>
+
+    <a href="{{ url_for('generate_client_content_brief', client_id=focused_client.id) if focused_client else url_for('content_queue_page') }}"
+       class="nav-item {% if current_endpoint == 'generate_client_content_brief' %}active{% endif %}">
+        <span class="nav-icon">✎</span>
+        <span class="nav-text">Generate Brief</span>
+    </a>
+
+    <a href="{{ url_for('generate_client_content_draft', client_id=focused_client.id) if focused_client else url_for('content_queue_page') }}"
+       class="nav-item {% if current_endpoint == 'generate_client_content_draft' %}active{% endif %}">
+        <span class="nav-icon">☰</span>
+        <span class="nav-text">Generate Draft</span>
     </a>
 </div>
 
@@ -25,13 +83,14 @@
         <span class="nav-text">Glossary & Guides</span>
     </a>
 
-    <a href="{{ url_for('settings_page') }}" class="nav-item {% if current_endpoint == 'settings_page' %}active{% endif %}">
+    <a href="{{ url_for('settings_page') }}"
+       class="nav-item {% if current_endpoint in ['settings_page', 'settings_account', 'settings_billing', 'settings_credits', 'settings_referrals', 'settings_preferences', 'settings_team'] %}active{% endif %}">
         <span class="nav-icon">⚙</span>
         <span class="nav-text">Settings</span>
     </a>
 
     <a href="{{ url_for('pricing_page') }}" class="nav-item {% if current_endpoint == 'pricing_page' %}active{% endif %}">
-        <span class="nav-icon">◧</span>
+        <span class="nav-icon">💳</span>
         <span class="nav-text">Pricing</span>
     </a>
 </div>

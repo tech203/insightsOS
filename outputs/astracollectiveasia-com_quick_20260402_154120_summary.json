@@ -1,0 +1,149 @@
+{
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "tech-astra-collective",
+  "client_name": "Tech | Astra Collective",
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-04-02T15:41:20",
+  "scores": {
+    "normalized_score": 23.2,
+    "visibility_score": 0.0,
+    "content_score": 2.0,
+    "schema_score": 0.0,
+    "entity_score": 2.0,
+    "technical_score": 8.0,
+    "avg_query_score": 2.99,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "Tech | Astra Collective is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Chatbot Singapore'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Expand content coverage around target intent",
+      "Target missed query: best Chatbot Singapore"
+    ]
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "content_gap",
+      "priority": "high",
+      "title": "Expand content coverage around target intent",
+      "issue": "Content score is weak.",
+      "why_it_matters": "Thin or incomplete topic coverage makes it harder for answer engines to understand when your brand should be included.",
+      "recommended_fix": "Build or expand service pages, FAQ pages, and educational content mapped to the top missed query clusters.",
+      "linked_query": null,
+      "suggested_content_type": "service_page",
+      "support_signal": "Low content score in latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Chatbot Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a location page focused on 'best Chatbot Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Chatbot Singapore",
+      "suggested_content_type": "location_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Chatbot Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a location page focused on 'top Chatbot Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Chatbot Singapore",
+      "suggested_content_type": "location_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot services Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a location page focused on 'Chatbot services Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot services Singapore",
+      "suggested_content_type": "location_page",
+      "support_signal": "Competitors seen: none recorded"
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Chatbot Singapore",
+      "target_query": "best Chatbot Singapore",
+      "content_type": "location_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Chatbot Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Chatbot Singapore",
+      "target_query": "top Chatbot Singapore",
+      "content_type": "location_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Chatbot Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot services Singapore",
+      "target_query": "Chatbot services Singapore",
+      "content_type": "location_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot services Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Chatbot Singapore",
+      "target_query": "recommended Chatbot Singapore",
+      "content_type": "location_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Chatbot Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot company Singapore",
+      "target_query": "Chatbot company Singapore",
+      "content_type": "location_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot company Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "meta": {
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
+    "industry": "Chatbot",
+    "location": "Singapore",
+    "audit_type": "quick",
+    "topic": "Chatbot",
+    "client_id": "tech-astra-collective",
+    "client_name": "Tech | Astra Collective",
+    "user_id": 1,
+    "saved_at": "2026-04-02T15:41:20",
+    "schema_version": "2.0"
+  },
+  "schema_version": "2.0"
+}

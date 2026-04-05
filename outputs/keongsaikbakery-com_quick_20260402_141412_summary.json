@@ -1,0 +1,149 @@
+{
+  "website": "https://www.keongsaikbakery.com/",
+  "client_id": "test",
+  "client_name": null,
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-04-02T14:14:12",
+  "scores": {
+    "normalized_score": 46.8,
+    "visibility_score": 0.0,
+    "content_score": 8.0,
+    "schema_score": 5.0,
+    "entity_score": 2.0,
+    "technical_score": 10.0,
+    "avg_query_score": 3.83,
+    "brand_mention_rate": 0.0,
+    "total_queries": 6,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "https://www.keongsaikbakery.com/ is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'Bakery alternatives'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Target missed query: Bakery alternatives",
+      "Target missed query: Bakery pricing"
+    ]
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Bakery alternatives",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Bakery alternatives' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Bakery alternatives",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Bakery pricing",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a service page focused on 'Bakery pricing' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Bakery pricing",
+      "suggested_content_type": "service_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Bakery",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a service page focused on 'best Bakery' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Bakery",
+      "suggested_content_type": "service_page",
+      "support_signal": "Competitors seen: none recorded"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Bakery for small business",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a service page focused on 'Bakery for small business' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Bakery for small business",
+      "suggested_content_type": "service_page",
+      "support_signal": "Competitors seen: none recorded"
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "Bakery alternatives",
+      "target_query": "Bakery alternatives",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery alternatives",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Bakery pricing",
+      "target_query": "Bakery pricing",
+      "content_type": "service_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery pricing",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "best Bakery",
+      "target_query": "best Bakery",
+      "content_type": "service_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Bakery",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Bakery for small business",
+      "target_query": "Bakery for small business",
+      "content_type": "service_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery for small business",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "what is Bakery",
+      "target_query": "what is Bakery",
+      "content_type": "guide",
+      "priority": "high",
+      "source_action_title": "Target missed query: what is Bakery",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "meta": {
+    "website": "https://www.keongsaikbakery.com/",
+    "website_normalized": "keongsaikbakery.com",
+    "industry": "Bakery",
+    "location": "Singapore",
+    "audit_type": "quick",
+    "topic": null,
+    "client_id": "test",
+    "client_name": null,
+    "user_id": 1,
+    "saved_at": "2026-04-02T14:14:12",
+    "schema_version": "2.0"
+  },
+  "schema_version": "2.0"
+}

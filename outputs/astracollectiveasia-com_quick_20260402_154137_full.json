@@ -1,0 +1,694 @@
+{
+  "meta": {
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
+    "industry": "Chatbot",
+    "location": "Singapore",
+    "audit_type": "quick",
+    "topic": "Chatbot",
+    "client_id": "tech-astra-collective",
+    "client_name": "Tech | Astra Collective",
+    "user_id": 1,
+    "saved_at": "2026-04-02T15:41:37",
+    "schema_version": "2.0"
+  },
+  "scores": {
+    "normalized_score": 23.2,
+    "visibility_score": 0.0,
+    "content_score": 2.0,
+    "schema_score": 0.0,
+    "entity_score": 2.0,
+    "technical_score": 8.0,
+    "avg_query_score": 2.99,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "Tech | Astra Collective is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Chatbot Singapore'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Expand content coverage around target intent",
+      "Target missed query: best Chatbot Singapore"
+    ]
+  },
+  "query_analysis": [
+    {
+      "query": "best Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "top Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "Chatbot services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "recommended Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "Chatbot company Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "who are the top Chatbot companies Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "affordable Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "Chatbot companies in Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "compare Chatbot services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "how much does Chatbot cost Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 3.13,
+      "previous_score": 0.0,
+      "score_delta": 3.13,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "how to choose Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 3.13,
+      "previous_score": 0.0,
+      "score_delta": 3.13,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "what is the best Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 3.13,
+      "previous_score": 0.0,
+      "score_delta": 3.13,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    }
+  ],
+  "competitor_analysis": {
+    "top_competitors": [
+      {
+        "name": "clutch.co",
+        "mention_count": 12
+      },
+      {
+        "name": "voltade.com",
+        "mention_count": 12
+      }
+    ],
+    "total_distinct_competitors": 2
+  },
+  "site_findings": {
+    "content_depth_score": 2.0,
+    "schema_score": 0.0,
+    "entity_score": 2.0,
+    "technical_score": 8.0,
+    "technical_issues": [],
+    "content_gaps": [],
+    "entity_gaps": [],
+    "schema_gaps": [],
+    "notes": []
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "content_gap",
+      "priority": "high",
+      "title": "Expand content coverage around target intent",
+      "issue": "Content score is weak.",
+      "why_it_matters": "Thin or incomplete topic coverage makes it harder for answer engines to understand when your brand should be included.",
+      "recommended_fix": "Build or expand service pages, FAQ pages, and educational content mapped to the top missed query clusters.",
+      "linked_query": null,
+      "suggested_content_type": "service_page",
+      "support_signal": "Low content score in latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Chatbot Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'best Chatbot Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Chatbot Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: clutch.co, voltade.com"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Chatbot Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'top Chatbot Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Chatbot Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: clutch.co, voltade.com"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot services Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Chatbot services Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot services Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: clutch.co, voltade.com"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: recommended Chatbot Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'recommended Chatbot Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "recommended Chatbot Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: clutch.co, voltade.com"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot company Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Chatbot company Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot company Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: clutch.co, voltade.com"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: who are the top Chatbot companies Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'who are the top Chatbot companies Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "who are the top Chatbot companies Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: clutch.co, voltade.com"
+    },
+    {
+      "category": "schema_fix",
+      "priority": "medium",
+      "title": "Strengthen structured data support",
+      "issue": "Schema score is weak.",
+      "why_it_matters": "Structured data helps clarify business identity, page purpose, and reusable question-answer content.",
+      "recommended_fix": "Add or improve Organization, FAQPage, Service, and LocalBusiness schema where relevant.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low schema score in latest audit."
+    },
+    {
+      "category": "entity_fix",
+      "priority": "medium",
+      "title": "Clarify brand and entity signals",
+      "issue": "Entity clarity is weak.",
+      "why_it_matters": "If your site does not clearly explain who you are, what you offer, and how you differ, answer engines may prefer more explicit competitors.",
+      "recommended_fix": "Strengthen homepage, about page, and core service pages with clearer positioning, repeated brand signals, proof, and differentiators.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low entity score in latest audit."
+    },
+    {
+      "category": "competitor_counter",
+      "priority": "medium",
+      "title": "Build counter-positioning against clutch.co",
+      "issue": "clutch.co appears repeatedly in tracked answer comparisons.",
+      "why_it_matters": "Repeated competitor presence suggests stronger topic ownership or clearer entity positioning.",
+      "recommended_fix": "Create competitor-aware comparison pages, differentiation content, and FAQ content showing when Tech | Astra Collective is a better fit.",
+      "linked_query": null,
+      "suggested_content_type": "comparison_page",
+      "support_signal": "clutch.co appeared in 12 tracked queries."
+    },
+    {
+      "category": "competitor_counter",
+      "priority": "medium",
+      "title": "Build counter-positioning against voltade.com",
+      "issue": "voltade.com appears repeatedly in tracked answer comparisons.",
+      "why_it_matters": "Repeated competitor presence suggests stronger topic ownership or clearer entity positioning.",
+      "recommended_fix": "Create competitor-aware comparison pages, differentiation content, and FAQ content showing when Tech | Astra Collective is a better fit.",
+      "linked_query": null,
+      "suggested_content_type": "comparison_page",
+      "support_signal": "voltade.com appeared in 12 tracked queries."
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Chatbot Singapore",
+      "target_query": "best Chatbot Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Chatbot Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Chatbot Singapore",
+      "target_query": "top Chatbot Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Chatbot Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot services Singapore",
+      "target_query": "Chatbot services Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot services Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Chatbot Singapore",
+      "target_query": "recommended Chatbot Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Chatbot Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot company Singapore",
+      "target_query": "Chatbot company Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot company Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "who are the top Chatbot companies Singapore",
+      "target_query": "who are the top Chatbot companies Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: who are the top Chatbot companies Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "ai_answer_results": [
+    {
+      "query": "best Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "top Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "Chatbot services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "recommended Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "Chatbot company Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "who are the top Chatbot companies Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "affordable Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "Chatbot companies in Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "compare Chatbot services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 2.95,
+      "previous_score": 0.0,
+      "score_delta": 2.95,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "how much does Chatbot cost Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 3.13,
+      "previous_score": 0.0,
+      "score_delta": 3.13,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "how to choose Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 3.13,
+      "previous_score": 0.0,
+      "score_delta": 3.13,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    },
+    {
+      "query": "what is the best Chatbot Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 3.13,
+      "previous_score": 0.0,
+      "score_delta": 3.13,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "clutch.co",
+        "voltade.com"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": "The answer surface is dominated by alternative providers instead of Tech | Astra Collective."
+    }
+  ],
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "tech-astra-collective",
+  "client_name": "Tech | Astra Collective",
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-04-02T15:41:37"
+}

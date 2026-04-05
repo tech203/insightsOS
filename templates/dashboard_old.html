@@ -12,10 +12,10 @@
 
 {% block content %}
 {% set aeo_score = overall_score if overall_score is defined else 0 %}
-{% set vis_score = visibility_score if visibility_score is defined else 72 %}
-{% set cont_score = content_score if content_score is defined else 61 %}
-{% set ent_score = entity_score if entity_score is defined else 57 %}
-{% set tr_score = trust_score if trust_score is defined else 66 %}
+{% set vis_score = visibility_score if visibility_score is defined else 0 %}
+{% set cont_score = content_score if content_score is defined else 0 %}
+{% set ent_score = entity_score if entity_score is defined else 0 %}
+{% set tr_score = trust_score if trust_score is defined else 0 %}
 {% set credit_balance = wallet_balance if wallet_balance is defined else 14 %}
 {% set has_clients = clients is defined and clients %}
 

@@ -1,35 +1,37 @@
 {% extends "base.html" %}
 
 {% block title %}{{ client.name }} | Draft Result{% endblock %}
-{% block page_title %}{{ client.name }} · Draft Result{% endblock %}
-{% block page_subtitle %}Review the generated draft, refine it if needed, then save it into the content queue for production or publishing.{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">New Draft</a>
-<a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-secondary">Open Queue</a>
+{% block page_header %}
+<div class="page-header-standard draft-result-header-clean">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Draft Result</h1>
+        <p>Review the generated draft, refine it if needed, then save it into the queue for production or publishing.</p>
+    </div>
+
+    <div class="page-header-actions">
+        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">
+            Open Queue
+        </a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
 
-<section class="draft-result-shell">
+<section class="draft-result-shell-clean">
 
-    <section class="draft-result-hero">
-        <div class="draft-result-hero-copy">
-            <div class="hero-badge-row">
-                <span class="hero-badge hero-badge-primary">Draft Ready</span>
-                <span class="hero-badge">Editable</span>
-                <span class="hero-badge">Queue Ready</span>
-                <span class="hero-badge">Production Step</span>
-            </div>
-
-            <h1>Your generated draft is ready for review.</h1>
+    <section class="draft-top-strip">
+        <div class="draft-top-copy">
+            <span class="section-kicker">Draft Ready</span>
+            <h2>Your generated draft is ready for review</h2>
             <p>
-                Refine the wording, add client-specific detail, and clean up any claims or examples before saving this draft into the queue for production or publishing.
+                Refine the wording, add client-specific detail, and clean up any claims or examples before saving this draft into the queue.
             </p>
         </div>
 
-        <div class="draft-result-hero-card">
-            <span class="hero-card-label">Recommended Flow</span>
+        <div class="draft-top-card">
+            <span class="hero-card-label">Recommended flow</span>
             <strong class="hero-card-value">Review → Save → Publish</strong>
             <p class="hero-card-text">
                 Edit the draft first, save it to the queue, then move it through production and re-audit after publishing.
@@ -86,14 +88,13 @@
                 </div>
 
                 <div class="card-actions">
-                    <button type="submit" class="btn btn-secondary">Save to Queue</button>
+                    <button type="submit" class="btn btn-primary">Save to Queue</button>
                     <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Another</a>
                 </div>
             </form>
         </div>
 
         <aside class="side-stack">
-
             <div class="panel">
                 <div class="panel-header">
                     <div>
@@ -149,301 +150,5 @@
     </section>
 
 </section>
-
-<style>
-.draft-result-shell {
-    padding: 28px;
-    display: grid;
-    gap: 24px;
-}
-
-.draft-result-hero,
-.panel,
-.draft-result-hero-card,
-.action-card,
-.tip-item {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.draft-result-hero {
-    padding: 30px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.72fr);
-    gap: 24px;
-    align-items: stretch;
-}
-
-.hero-badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.hero-badge-primary {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
-}
-
-.draft-result-hero-copy h1 {
-    margin: 0;
-    font-size: 38px;
-    line-height: 1.08;
-    font-weight: 800;
-    color: #15233b;
-    max-width: 760px;
-}
-
-.draft-result-hero-copy p {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
-    color: #617084;
-    max-width: 760px;
-}
-
-.draft-result-hero-card {
-    padding: 22px;
-    border-color: #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-}
-
-.hero-card-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 800;
-    color: #6b7280;
-    margin-bottom: 10px;
-}
-
-.hero-card-value {
-    display: block;
-    font-size: 30px;
-    line-height: 1.15;
-    font-weight: 800;
-    color: #E83256;
-}
-
-.hero-card-text {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.draft-result-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-    gap: 24px;
-    align-items: start;
-}
-
-.side-stack {
-    display: grid;
-    gap: 24px;
-}
-
-.panel {
-    padding: 24px;
-}
-
-.panel-header {
-    margin-bottom: 18px;
-}
-
-.panel-header h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.panel-subtitle {
-    margin: 0;
-    color: #6b7280;
-    font-size: 15px;
-    line-height: 1.55;
-}
-
-.form-stack {
-    display: grid;
-    gap: 20px;
-}
-
-.form-grid-2 {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.form-field {
-    display: grid;
-    gap: 8px;
-}
-
-.form-field-full {
-    grid-column: 1 / -1;
-}
-
-.form-field label {
-    font-size: 14px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.field-help {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #6b7280;
-}
-
-.form-field input,
-.form-field textarea {
-    width: 100%;
-    border: 1px solid #d9e2ef;
-    border-radius: 16px;
-    background: #ffffff;
-    padding: 14px 16px;
-    font: inherit;
-    color: #16243c;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.form-field input:focus,
-.form-field textarea:focus {
-    outline: none;
-    border-color: #E83256;
-    box-shadow: 0 0 0 4px rgba(255, 106, 43, 0.12);
-}
-
-.form-field textarea {
-    min-height: 320px;
-    resize: vertical;
-}
-
-.card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.action-list,
-.tips-list {
-    display: grid;
-    gap: 14px;
-}
-
-.action-card {
-    padding: 18px;
-}
-
-.action-card-top {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.action-card h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.action-card p,
-.tip-item {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.priority-badge {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.priority-badge.low {
-    background: #dff4e6;
-    color: #15803d;
-}
-
-.priority-badge.medium {
-    background: #ffefc7;
-    color: #a16207;
-}
-
-.priority-badge.high {
-    background: #ffe2dd;
-    color: #c2412d;
-}
-
-.tip-item {
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-}
-
-@media (max-width: 1200px) {
-    .draft-result-hero,
-    .draft-result-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .draft-result-shell {
-        padding: 18px;
-    }
-
-    .draft-result-hero,
-    .panel,
-    .draft-result-hero-card,
-    .action-card,
-    .tip-item {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .draft-result-hero-copy h1 {
-        font-size: 30px;
-    }
-
-    .form-grid-2 {
-        grid-template-columns: 1fr;
-    }
-
-    .card-actions {
-        flex-direction: column;
-    }
-
-    .card-actions .btn {
-        width: 100%;
-    }
-}
-</style>
 
 {% endblock %}

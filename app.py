@@ -1,3 +1,4 @@
+from PIL.Image import item
 from flask import (
     Flask,
     render_template,
@@ -9,6 +10,7 @@ from flask import (
     flash,
     session,
 )
+from stripe import client_id
 
 from action_engine import build_recommended_actions
 
@@ -39,6 +41,7 @@ from content_queue import (
     get_client_progress,
     get_next_action,
     create_queue_item_from_audit_opportunity,
+    delete_queue_item,
 )
 
 from flask_migrate import Migrate
@@ -49,6 +52,8 @@ print("Flask app initialized")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "change-this-to-a-random-secret-key")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads", "workspace_logos")
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -146,6 +151,7 @@ class Client(db.Model):
     location = db.Column(db.String(255), nullable=True)
     owner_type = db.Column(db.String(100), nullable=False, default="company")
     notes = db.Column(db.Text, nullable=True)
+    logo_filename = db.Column(db.String(255), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -187,7 +193,7 @@ class PromptTracking(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 # =========================
@@ -266,6 +272,61 @@ def calculate_aeo_score(visibility=None, competitors=None, content_score=None):
         "competitor_strength": "High" if competitors > 60 else "Low",
         "visibility": visibility
     }
+
+def create_content_opportunities_from_latest_audit(client_id, user_id):
+    audits = get_saved_audits(user_id=user_id)
+
+    matched = [
+        audit for audit in audits
+        if str(audit.get("client_id")) == str(client_id)
+    ]
+
+    matched = sort_audits(matched, sort_by="saved_at", order="desc")
+    latest = matched[0] if matched else None
+
+    if not latest:
+        return 0
+
+    full_data = read_full_audit_data(latest.get("filename"))
+    if not full_data:
+        return 0
+
+    created_count = 0
+
+    ai_rows = full_data.get("ai_answer_results", []) or []
+
+    for row in ai_rows[:5]:
+        query = (row.get("query") or "").strip()
+        brand_mentioned = row.get("brand_mentioned", False)
+
+        if not query or brand_mentioned:
+            continue
+
+        existing_items = get_queue_items(client_id=client_id, user_id=user_id)
+        already_exists = any(
+            (item.get("target_query") or "").strip().lower() == query.lower()
+            for item in existing_items
+        )
+
+        if already_exists:
+            continue
+
+        add_queue_item(
+            client_id=client_id,
+            client_name=latest.get("client_name") or latest.get("website") or "Workspace",
+            target_query=query,
+            content_type="service_page",
+            item_type="brief",
+            title=f"Brief: {query}",
+            content="",
+            status="queued",
+            priority="high",
+            source="audit",
+            user_id=user_id,
+        )
+        created_count += 1
+
+    return created_count
 
 def score_to_opportunity_label(score: float) -> str:
     if score >= 80:
@@ -390,6 +451,7 @@ def apply_prompt_score(row: PromptTracking) -> None:
 def ensure_data_dirs():
     os.makedirs(DATA_FOLDER, exist_ok=True)
     os.makedirs(OUTPUTS_FOLDER, exist_ok=True)
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)    
 
 
 def load_json_file(filepath):
@@ -466,6 +528,8 @@ def serialize_client_row(client):
         "location": client.location or "N/A",
         "owner_type": client.owner_type or "company",
         "notes": client.notes or "",
+        "logo_filename": client.logo_filename,
+        "logo_url": url_for("static", filename=f"uploads/workspace_logos/{client.logo_filename}") if client.logo_filename else None,
         "created_at": client.created_at.isoformat() if client.created_at else None,
         "updated_at": client.updated_at.isoformat() if client.updated_at else None,
     }
@@ -893,11 +957,29 @@ def build_client_views():
     return client_views
 
 def get_client_by_id(client_id):
-    for client in build_client_views():
-        if client.get("id") == client_id:
-            return client
-    return None
+    print("LOOKUP client_id:", client_id)
 
+    row = Client.query.filter_by(
+        slug=str(client_id),
+        user_id=current_user.id
+    ).first()
+
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_id),
+            user_id=current_user.id
+        ).first()
+
+    if not row:
+        return None
+
+    all_clients = build_client_views()
+    full_client = next((c for c in all_clients if c.get("id") == row.slug), None)
+
+    if full_client:
+        return full_client
+
+    return serialize_client_row(row)
 
 # =========================
 # Credits
@@ -1099,42 +1181,70 @@ def pricing_page():
     return render_template("pricing.html")
 
 @app.route("/")
+@login_required
 def index():
-    if current_user.is_authenticated:
-        all_audits = get_saved_audits(user_id=current_user.id)
-        clients = build_client_views()
+    all_audits = get_saved_audits(user_id=current_user.id)
+    clients = build_client_views()
 
-        search_term = request.args.get("q", "").strip()
-        audit_type = request.args.get("type", "all").strip().lower()
-        sort_by = request.args.get("sort", "saved_at").strip()
-        order = request.args.get("order", "desc").strip().lower()
+    search_term = request.args.get("q", "").strip()
+    audit_type = request.args.get("type", "all").strip().lower()
+    sort_by = request.args.get("sort", "saved_at").strip()
+    order = request.args.get("order", "desc").strip().lower()
 
-        audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
-        audits = sort_audits(audits, sort_by=sort_by, order=order)
+    audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
+    audits = sort_audits(audits, sort_by=sort_by, order=order)
 
-        # ✅ FIX: use real audit scores
-        scores = [
-            c.get("latest_audit", {}).get("normalized_score")
-            for c in clients
-            if c.get("latest_audit")
-        ]
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
 
-        overall_score = round(sum(scores) / len(scores), 1) if scores else 0
+    overall_score = 0
+    visibility_score = 0
+    content_score = 0
+    entity_score = 0
+    trust_score = 0
 
-        return render_template(
-            "dashboard.html",
-            audits=audits,
-            clients=clients,
-            overall_score=overall_score,  # ✅ NEW
-            total_audits=len(all_audits),
-            search_term=search_term,
-            selected_type=audit_type,
-            selected_sort=sort_by,
-            selected_order=order,
-        )
+    if view_mode == "single" and focused_client:
+        latest_audit = focused_client.get("latest_audit") or {}
 
-    return redirect(url_for("login"))
+        overall_score = latest_audit.get("normalized_score", 0) or 0
+        visibility_score = latest_audit.get("visibility_score", 0) or 0
+        content_score = latest_audit.get("content_score", 0) or 0
+        entity_score = latest_audit.get("entity_score", 0) or 0
+        trust_score = latest_audit.get("trust_score", 0) or 0
 
+    elif view_mode == "multi":
+        client_scores = []
+        for client in clients:
+            latest_audit = client.get("latest_audit") or {}
+            score = latest_audit.get("normalized_score")
+            if score is not None:
+                client_scores.append(score)
+
+        overall_score = round(sum(client_scores) / len(client_scores), 1) if client_scores else 0
+
+    total_prompts = sum(len(client.get("tracked_prompts", []) or []) for client in clients)
+    mentioned_count = sum(client.get("mentioned_count", 0) or 0 for client in clients)
+
+    return render_template(
+        "dashboard.html",
+        audits=audits,
+        clients=clients,
+        view_mode=view_mode,
+        focused_client=focused_client,
+        overall_score=overall_score,
+        visibility_score=visibility_score,
+        content_score=content_score,
+        entity_score=entity_score,
+        trust_score=trust_score,
+        total_clients=len(clients),
+        total_audits=len(all_audits),
+        total_prompts=total_prompts,
+        mentioned_count=mentioned_count,
+        search_term=search_term,
+        selected_type=audit_type,
+        selected_sort=sort_by,
+        selected_order=order,
+    )
 
 @app.route("/dev/set-plan/<plan>")
 @login_required
@@ -1154,6 +1264,9 @@ def dev_set_plan(plan):
 
 from flask import make_response
 
+from datetime import datetime
+from flask import render_template, make_response
+
 @app.route("/client/<client_id>/export-pdf")
 @login_required
 def export_client_audit_pdf(client_id):
@@ -1161,10 +1274,46 @@ def export_client_audit_pdf(client_id):
     if not client:
         abort(404)
 
-    html = render_template("client_audit_pdf.html", client=client)
+    # 🔹 Get latest audit data
+    latest = client.get("latest_audit", {})
+
+    # 🔹 Safe fallbacks
+    recommended_actions = client.get("recommended_actions", [])
+    question_rows = client.get("question_rows", [])
+    missing_rows = client.get("missing_rows", [])
+
+    top_action = recommended_actions[0] if recommended_actions else None
+
+    # 🔹 Agency (white-label support)
+    agency = {
+        "name": getattr(current_user, "agency_name", None) or "Your Agency",
+        "logo_url": getattr(current_user, "agency_logo_url", None),
+        "website": getattr(current_user, "agency_website", None),
+        "tagline": getattr(current_user, "agency_tagline", None) or "AI Visibility & Content Strategy",
+        "footer_text": getattr(current_user, "agency_footer", None),
+        "disclaimer": getattr(current_user, "agency_disclaimer", None),
+    }
+
+    # 🔹 Render HTML
+    html = render_template(
+        "client_audit_pdf.html",
+        client=client,
+        latest=latest,
+        recommended_actions=recommended_actions,
+        top_action=top_action,
+        question_rows=question_rows,
+        missing_rows=missing_rows,
+        report_date=datetime.utcnow().strftime("%d %b %Y"),
+        agency=agency,
+        executive_summary=client.get("executive_summary"),
+        competitor_notes=client.get("competitor_notes"),
+    )
+
+    # 🔹 SIMPLE VERSION (download HTML first)
     response = make_response(html)
     response.headers["Content-Type"] = "text/html"
-    response.headers["Content-Disposition"] = f'inline; filename="{client_id}-audit-report.html"'
+    response.headers["Content-Disposition"] = f"attachment; filename={client.get('name','report')}_audit.html"
+
     return response
 
 @app.route("/clients")
@@ -1496,12 +1645,34 @@ def run_client_audit(client_id):
     if not client:
         abort(404)
 
+    view_mode = get_view_mode(current_user)
+    clients = build_client_views()
+
     if request.method == "POST":
-        website = request.form.get("website")
-        industry = request.form.get("industry")
-        location = request.form.get("location")
-        topic = request.form.get("topic")
-        audit_type = request.form.get("audit_type", "quick")
+        website = request.form.get("website", "").strip()
+        industry = request.form.get("industry", "").strip()
+        location = request.form.get("location", "").strip()
+        topic = request.form.get("topic", "").strip()
+        audit_type = request.form.get("audit_type", "quick").strip()
+
+        if not website or not industry or not location:
+            return render_template(
+                "new_audit.html",
+                client=client,
+                clients=clients,
+                preselected_client_id=str(client["id"]),
+                form_data={
+                    "client_id": str(client["id"]),
+                    "client_name": client.get("name", ""),
+                    "website": website,
+                    "industry": industry,
+                    "location": location,
+                    "topic": topic,
+                    "audit_type": audit_type,
+                },
+                error="Website, industry, and location are required.",
+                view_mode=view_mode,
+            )
 
         if not has_enough_credits(current_user, 1):
             flash("You don’t have enough credits to run another audit.", "warning")
@@ -1516,20 +1687,48 @@ def run_client_audit(client_id):
                 website=website,
                 industry=industry,
                 location=location,
-                topic=topic,
+                topic=topic or industry or None,
                 audit_type=audit_type,
+                client_id=client_id,
+                client_name=client.get("name"),
+                user_id=current_user.id,
+            )
+
+            created_count = create_content_opportunities_from_latest_audit(
                 client_id=client_id,
                 user_id=current_user.id,
             )
-            flash("Audit completed successfully.", "success")
-            return redirect(url_for("client_detail", client_id=client_id))
 
+            if created_count > 0:
+                flash(f"Audit completed successfully. {created_count} content opportunities added to the queue.", "success")
+            else:
+                flash("Audit completed successfully. No new content opportunities were added.", "success")
+
+            return redirect(url_for("client_detail", client_id=client_id))
         except Exception as e:
             refund_credits(current_user, 1, notes="Refund for failed client audit")
             flash(f"Audit failed: {str(e)}", "error")
             return redirect(url_for("client_detail", client_id=client_id))
-                
-    return render_template("new_audit.html", client=client)
+
+    form_data = {
+        "client_id": str(client["id"]),
+        "client_name": client.get("name", ""),
+        "website": client.get("website", ""),
+        "industry": client.get("industry", ""),
+        "location": client.get("location", ""),
+        "topic": client.get("industry", ""),
+        "audit_type": "quick",
+    }
+
+    return render_template(
+        "new_audit.html",
+        client=client,
+        clients=clients,
+        preselected_client_id=str(client["id"]),
+        form_data=form_data,
+        error=None,
+        view_mode=view_mode,
+    )
 
 @app.route("/generate-content/<int:prompt_id>")
 @login_required
@@ -1677,45 +1876,79 @@ def generate_brief_from_queue(item_id):
         flash("Queue item not found.", "error")
         return redirect(url_for("content_queue_page"))
 
-    if not has_enough_credits(current_user, 1):
-        flash("You don’t have enough credits to generate another brief.", "warning")
-        return redirect(url_for("pricing_page"))
+    client_slug = str(item.get("client_id", "")).strip()
 
-    if not spend_credits(current_user, 1, notes="Queue content brief generation"):
-        flash("Unable to deduct credits for brief generation.", "warning")
-        return redirect(url_for("pricing_page"))
+    row = None
+    if client_slug:
+        row = Client.query.filter_by(
+            slug=client_slug,
+            user_id=current_user.id
+        ).first()
 
-    try:
-        brief = generate_content_brief(
-            client_name=item.get("client_name", ""),
-            website=item.get("website", ""),
-            industry=item.get("industry", ""),
-            location=item.get("location", ""),
-            target_query=item.get("target_query", ""),
-            content_type=item.get("content_type", "service_page"),
-            brand_context=item.get("brand_context", ""),
-        )
+    if not row:
+        flash("This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.", "warning")
+        return redirect(url_for("content_queue_page"))
 
-        updated_item = update_queue_item_content(
-            item_id,
-            content=brief,
-            status="brief_generated",
-            user_id=current_user.id,
-        )
+    target_query = safe_str(item.get("target_query"))
+    content_type = safe_str(item.get("content_type") or "service_page")
+    brand_context = safe_str(item.get("brand_context") or item.get("brief") or item.get("content") or "")
 
-        if not updated_item:
-            refund_credits(current_user, 1, notes="Refund for unsaved queue brief")
-            flash("Brief was generated but could not be saved to the queue item.", "error")
-            return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
+    return redirect(url_for(
+        "generate_client_content_brief",
+        client_id=row.slug,
+        target_query=target_query,
+        content_type=content_type,
+        brand_context=brand_context,
+    ))
 
-        flash("Brief generated successfully.", "success")
-        return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
+@app.route("/generate-draft/<item_id>")
+@login_required
+def generate_draft_from_queue(item_id):
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
 
-    except Exception as e:
-        refund_credits(current_user, 1, notes="Refund for failed queue brief generation")
-        flash(f"Failed to generate brief: {str(e)}", "error")
-        return redirect(url_for("content_queue_page", client_id=item.get("client_id")))
-    
+    if not item:
+        flash("Queue item not found.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    client_slug = str(item.get("client_id", "")).strip()
+
+    row = None
+    if client_slug:
+        row = Client.query.filter_by(
+            slug=client_slug,
+            user_id=current_user.id
+        ).first()
+
+    if not row:
+        flash("This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.", "warning")
+        return redirect(url_for("content_queue_page"))
+
+    target_query = safe_str(item.get("target_query"))
+    content_type = safe_str(item.get("content_type") or "service_page")
+    brief_context = safe_str(item.get("content") or item.get("brief") or "")
+    brand_context = safe_str(item.get("brand_context") or "")
+
+    return redirect(url_for(
+        "generate_client_content_draft",
+        client_id=row.slug,
+        target_query=target_query,
+        content_type=content_type,
+        brief_context=brief_context,
+        brand_context=brand_context,
+    ))
+        
+@app.route("/content-queue/<item_id>/delete", methods=["POST"])
+@login_required
+def delete_content_queue_item(item_id):
+    deleted = delete_queue_item(item_id, user_id=current_user.id)
+
+    if not deleted:
+        flash("Queue item not found.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    flash("Queue item deleted.", "success")
+    return redirect(url_for("content_queue_page"))
+
 @app.route("/client/<client_id>/content-draft", methods=["GET", "POST"])
 @login_required
 def generate_client_content_draft(client_id):
@@ -1798,8 +2031,6 @@ def generate_client_content_draft(client_id):
 @app.route("/audit/<summary_filename>")
 @login_required
 def audit_summary(summary_filename):
-    require_internal_access()   # 👈 ADD THIS LINE
-
     summary_path = get_summary_path(summary_filename)
     if not summary_path:
         abort(404)
@@ -2113,6 +2344,19 @@ def content_queue_page():
 
     for item in items:
         item["next_action"] = get_next_action(item)
+
+        if item.get("id"):
+            item["generate_brief_url"] = url_for(
+                "generate_brief_from_queue",
+                item_id=item["id"]
+            )
+            item["generate_draft_url"] = url_for(
+                "generate_draft_from_queue",
+                item_id=item["id"]
+            )
+        else:
+            item["generate_brief_url"] = None
+            item["generate_draft_url"] = None
 
     stats = {
         "queued": len([i for i in items if (i.get("status") or "").lower() in ["queued", "pending"]]),
@@ -2457,6 +2701,8 @@ def new_audit():
 @app.route("/api/audit/<summary_filename>/full")
 @login_required
 def api_audit_full(summary_filename):
+    require_internal_access()
+
     full_path = get_full_path(summary_filename)
     if not full_path:
         return jsonify({"error": "Full file not found"}), 404

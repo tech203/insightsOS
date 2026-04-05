@@ -1,190 +1,233 @@
 {% extends "base.html" %}
 
 {% block title %}{{ client.name }} | Actions{% endblock %}
-{% block page_title %}{{ client.name }} · Actions{% endblock %}
-{% block page_subtitle %}Recommended next steps based on the latest audit and visibility gaps{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard actions-page-header-clean">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Actions</h1>
+        <p>Focus on the most important changes first, then move directly into execution.</p>
+    </div>
+</div>
+{% endblock %}
 
 {% block content %}
 
 {% set actions = client.recommended_actions or [] %}
 {% set high_actions = actions | selectattr("priority", "equalto", "high") | list %}
 {% set medium_actions = actions | selectattr("priority", "equalto", "medium") | list %}
-{% set top_action = high_actions[0] if high_actions else (medium_actions[0] if medium_actions else None) %}
+{% set low_actions = actions | selectattr("priority", "equalto", "low") | list %}
+{% set top_action = high_actions[0] if high_actions else (medium_actions[0] if medium_actions else (low_actions[0] if low_actions else None)) %}
 
-<div class="page-shell">
+{% set top_action_title = top_action.title if top_action and top_action.title else "" %}
+{% set top_is_query_action = top_action_title.startswith("Target missed query:") %}
+{% set top_target_query = top_action_title.replace("Target missed query:", "", 1).strip() if top_is_query_action else "" %}
 
-    <!-- UPGRADE BANNER -->
+<div class="actions-shell-clean">
+
     {% if current_user.is_authenticated and current_user.plan == "free" %}
-    <div class="upgrade-banner">
-        <div class="upgrade-banner-copy">
-            <strong>Unlock more growth</strong>
-            <p>You’ve reached the free layer. Upgrade to continue improving visibility and execution.</p>
+    <section class="actions-upgrade-strip">
+        <div class="actions-upgrade-copy">
+            <strong>Unlock more execution</strong>
+            <p>You’ve reached the free layer. Upgrade to continue action planning and content execution.</p>
         </div>
 
         <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
             Upgrade to Pro
         </a>
-    </div>
+    </section>
     {% endif %}
 
-    <!-- HERO -->
-    <div class="ui-card ui-section">
-        <span class="badge badge-primary">Actions</span>
-        <h1 class="hero-title" style="margin-top:10px;">What to do next</h1>
-        <p class="muted">
-            Focus on the highest-impact changes that improve your AI visibility.
-            Start with priority gaps, then move into execution.
-        </p>
-    </div>
+    <section class="actions-top-card">
+        <div class="actions-top-copy">
+            <span class="section-kicker">Top Priority</span>
 
-    <!-- TOP ACTION -->
-    <div class="ui-card ui-section" style="border:1px solid var(--accent-border); background:var(--accent-soft);">
-        <div class="badge badge-primary">Do this first</div>
+            {% if top_action %}
+                <h2>{{ top_action.title }}</h2>
+                <p>
+                    {{ top_action.recommended_action or "This is the clearest next move based on your latest audit." }}
+                </p>
+            {% else %}
+                <h2>No action plan yet</h2>
+                <p>Run an audit first to generate recommended actions and prioritised next steps.</p>
+            {% endif %}
+        </div>
 
-        {% if top_action %}
-            <h2 class="section-title" style="margin-top:10px;">{{ top_action.title }}</h2>
-
-            <p class="muted">
-                {{ top_action.recommended_action or "This is the fastest way to improve visibility based on your latest audit." }}
-            </p>
-
-            <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-
+        <div class="actions-top-actions">
+            {% if top_action %}
                 {% if current_user.plan == "free" %}
-                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                    Unlock Execution
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
+                    Upgrade to Continue
                 </a>
-                {% else %}
-                <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">
-                    Start Execution
-                </a>
-                {% endif %}
 
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary">
+                {% elif top_is_query_action and top_target_query %}
+                <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=top_target_query) }}" class="btn btn-primary btn-block">
+                    Generate Brief
+                </a>
+                <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=top_target_query) }}" class="btn btn-secondary btn-block">
+                    Generate Draft
+                </a>
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                    Check Competitors
+                </a>
+
+                {% else %}
+                <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-block">
+                    Open Content Queue
+                </a>
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
                     View Competitors
                 </a>
-            </div>
-
-        {% else %}
-            <h2>No actions yet</h2>
-            <p class="muted">Run an audit to generate your first action plan.</p>
-
-            {% if current_user.plan == "free" %}
-            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Upgrade to Continue</a>
+                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                    Review Visibility
+                </a>
+                {% endif %}
             {% else %}
-            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run New Audit</a>
+                {% if current_user.plan == "free" %}
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
+                    Upgrade to Continue
+                </a>
+                {% else %}
+                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
+                    Run New Audit
+                </a>
+                {% endif %}
             {% endif %}
-        {% endif %}
-    </div>
+        </div>
+    </section>
 
-    <!-- HIGH PRIORITY -->
-    <div class="ui-card ui-section">
-        <h2 class="section-title">Priority actions</h2>
-        <p class="muted">Fix these first for the biggest impact.</p>
+    <section class="actions-summary-strip">
+        <div class="actions-summary-mini">
+            <span>High Priority</span>
+            <strong>{{ high_actions|length }}</strong>
+        </div>
+
+        <div class="actions-summary-mini">
+            <span>Medium Priority</span>
+            <strong>{{ medium_actions|length }}</strong>
+        </div>
+
+        <div class="actions-summary-mini">
+            <span>Total Actions</span>
+            <strong>{{ actions|length }}</strong>
+        </div>
+    </section>
+
+    <section class="actions-section-card">
+        <div class="section-head compact">
+            <div>
+                <h3>Priority Actions</h3>
+                <p>Handle these first for the biggest visibility impact.</p>
+            </div>
+        </div>
 
         {% if high_actions %}
-        <div class="grid-2" style="margin-top:16px;">
+        <div class="actions-list-stack">
+            {% for action in high_actions[:4] %}
+            {% set action_title = action.title if action.title else "" %}
+            {% set is_query_action = action_title.startswith("Target missed query:") %}
+            {% set target_query = action_title.replace("Target missed query:", "", 1).strip() if is_query_action else "" %}
 
-            {% for action in high_actions[:3] %}
-            <div class="ui-card ui-section" style="background:var(--accent-soft); border:1px solid var(--accent-border);">
+            <article class="action-item-card action-item-card-priority">
+                <div class="action-item-top">
+                    <span class="action-item-badge">High priority</span>
+                </div>
 
-                <div class="badge badge-warning">High priority</div>
+                <h4>{{ action.title }}</h4>
 
-                <h3 style="margin-top:10px;">{{ action.title }}</h3>
-
-                <p class="muted"><strong>Issue:</strong> {{ action.issue }}</p>
-                <p class="muted"><strong>What to do:</strong> {{ action.recommended_action }}</p>
+                <p><strong>Issue:</strong> {{ action.issue }}</p>
+                <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
 
                 {% if action.support_signal %}
-                <p class="muted"><strong>Why it matters:</strong> {{ action.support_signal }}</p>
+                <p><strong>Why it matters:</strong> {{ action.support_signal }}</p>
                 {% endif %}
 
-                <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-
+                <div class="action-item-links">
                     {% if current_user.plan == "free" %}
                     <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-sm">
                         Unlock
                     </a>
-                    {% else %}
-                    <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
-                        Generate Content
-                    </a>
-                    {% endif %}
 
+                    {% elif is_query_action and target_query %}
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
+                        Generate Brief
+                    </a>
+                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
+                        Generate Draft
+                    </a>
                     <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
                         Check Competitors
                     </a>
 
-                </div>
-
-            </div>
-            {% endfor %}
-
-            <!-- LOCKED SECTION -->
-            {% if current_user.plan == "free" and high_actions|length > 3 %}
-            <div class="ui-card ui-section" style="border:1px solid #ffd8c6; background:#fff7f3;">
-                <div class="badge badge-primary">More available</div>
-
-                <h3 style="margin-top:10px;">More high-impact actions are ready</h3>
-
-                <p class="muted">
-                    Upgrade to unlock the full action plan and continue execution.
-                </p>
-
-                <div style="margin-top:14px;">
-                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                        Unlock Full Growth Plan
+                    {% else %}
+                    <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
+                        Open Queue
                     </a>
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+                        Check Competitors
+                    </a>
+                    {% endif %}
                 </div>
-            </div>
-            {% endif %}
-
-        </div>
-        {% else %}
-        <p class="muted" style="margin-top:16px;">No high-priority actions detected.</p>
-        {% endif %}
-    </div>
-
-    <!-- MEDIUM -->
-    <div class="ui-card ui-section">
-        <h2 class="section-title">Next improvements</h2>
-
-        {% if medium_actions %}
-        <div class="grid-2" style="margin-top:16px;">
-            {% for action in medium_actions %}
-            <div class="ui-card ui-section">
-                <div class="badge badge-purple">Medium priority</div>
-
-                <h3 style="margin-top:10px;">{{ action.title }}</h3>
-
-                <p class="muted"><strong>Issue:</strong> {{ action.issue }}</p>
-                <p class="muted"><strong>What to do:</strong> {{ action.recommended_action }}</p>
-            </div>
+            </article>
             {% endfor %}
         </div>
         {% else %}
-        <p class="muted" style="margin-top:16px;">No additional actions.</p>
-        {% endif %}
-    </div>
-
-    <!-- CTA -->
-    <div class="ui-card ui-section">
-        <h2 class="section-title">Continue execution</h2>
-
-        <div class="grid-2" style="margin-top:16px;">
-
-            <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="ui-card ui-section">
-                <strong>Content Queue</strong>
-                <p class="muted">Turn missed queries into briefs and drafts.</p>
-            </a>
-
-            <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="ui-card ui-section">
-                <strong>Competitor Gaps</strong>
-                <p class="muted">See where competitors are winning visibility.</p>
-            </a>
-
+        <div class="actions-empty-card">
+            <h4>No high-priority actions detected</h4>
+            <p>Your latest action set does not currently show a critical blocker here.</p>
         </div>
-    </div>
+        {% endif %}
+    </section>
+
+    {% if medium_actions %}
+    <section class="actions-section-card actions-section-card-soft">
+        <div class="section-head compact">
+            <div>
+                <h3>Next Improvements</h3>
+                <p>Move into these after the top priority items are handled.</p>
+            </div>
+        </div>
+
+        <div class="actions-list-stack">
+            {% for action in medium_actions %}
+            {% set action_title = action.title if action.title else "" %}
+            {% set is_query_action = action_title.startswith("Target missed query:") %}
+            {% set target_query = action_title.replace("Target missed query:", "", 1).strip() if is_query_action else "" %}
+
+            <article class="action-item-card">
+                <div class="action-item-top">
+                    <span class="action-item-badge action-item-badge-medium">Medium priority</span>
+                </div>
+
+                <h4>{{ action.title }}</h4>
+                <p><strong>Issue:</strong> {{ action.issue }}</p>
+                <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
+
+                <div class="action-item-links">
+                    {% if current_user.plan == "free" %}
+                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-sm">
+                        Unlock
+                    </a>
+
+                    {% elif is_query_action and target_query %}
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
+                        Generate Brief
+                    </a>
+                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
+                        Generate Draft
+                    </a>
+
+                    {% else %}
+                    <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
+                        Open Queue
+                    </a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
 </div>
 

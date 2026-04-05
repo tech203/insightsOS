@@ -1,16 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Content Queue | Insights OS{% endblock %}
 
-{% block page_title %}Content Queue{% endblock %}
-{% block page_subtitle %}Turn missed-query opportunities into briefs, drafts, and published content that improves AI visibility.{% endblock %}
-
-{% block topbar_actions %}
-<a href="{{ url_for('start_audit') }}" class="btn btn-primary">Run Audit</a>
-{% if view_mode != "single" %}
-<a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspaces</a>
-{% endif %}
-{% endblock %}
-
 {% block content %}
 
 {% set queued_count = stats.queued if stats is defined and stats.queued is defined else 0 %}
@@ -19,44 +9,58 @@
 {% set published_count = stats.published if stats is defined and stats.published is defined else 0 %}
 {% set total_items = queue_items|length if queue_items else 0 %}
 
-<div class="content-queue-shell premium-content-queue-shell">
+<div class="content-queue-shell-clean">
+
+    <section class="queue-page-head">
+        <div class="queue-page-copy">
+            <h1>Content Queue</h1>
+            <p>Turn missed-query opportunities into briefs, drafts, and published content that improves AI visibility.</p>
+        </div>
+
+        {% if total_items > 0 %}
+        <div class="queue-page-actions">
+            {% if can_run_audit %}
+            <a href="{{ url_for('start_audit') }}" class="btn btn-secondary">Run Audit</a>
+            {% else %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">Upgrade to Run Audit</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
 
     {% if current_user.is_authenticated and current_user.plan == "free" %}
-    <div class="upgrade-banner">
-        <div class="upgrade-banner-copy">
-            <strong>Unlock more growth</strong>
-            <p>You’ve reached the free layer. Upgrade to continue improving visibility and execution.</p>
+    <section class="queue-upgrade-strip">
+        <div class="queue-upgrade-copy">
+            <strong>Unlock more execution</strong>
+            <p>You’ve reached the free layer. Upgrade to continue content production and queue execution.</p>
         </div>
 
         <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
             Upgrade to Pro
         </a>
-    </div>
+    </section>
     {% endif %}
 
     {% set credits = credit_balance_numeric if credit_balance_numeric is defined else 0 %}
-{% if credits <= 1 and current_user.plan != "free" %}
-    <div class="upgrade-banner">
-        <div class="upgrade-banner-copy">
-            <strong>You're running low on credits</strong>
+    {% if credits <= 1 and current_user.plan != "free" %}
+    <section class="queue-upgrade-strip">
+        <div class="queue-upgrade-copy">
+            <strong>You’re running low on credits</strong>
             <p>Continue generating briefs, drafts, and audits without interruption.</p>
         </div>
 
         <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
             Top Up Credits
         </a>
-    </div>
+    </section>
     {% endif %}
 
     {% if incoming_query %}
-        <section class="tracked-prompt-action-card">
+    <section class="tracked-prompt-action-card">
         <div class="tracked-prompt-copy">
             <span class="section-kicker">From Prompt Tracking</span>
-            <h2>Turn this tracked prompt into a content brief</h2>
-            <p>
-                Use this missed or weak prompt as the basis for a structured content brief,
-                then move it into drafting and publishing.
-            </p>
+            <h2>Turn this tracked prompt into content</h2>
+            <p>Use this missed or weak prompt as the basis for a content brief, then move it into drafting and publishing.</p>
 
             <div class="tracked-prompt-meta">
                 <div class="tracked-meta-item">
@@ -82,27 +86,27 @@
 
         <div class="tracked-prompt-actions">
             {% if selected_client_id %}
-{% if can_generate_brief %}
-<a href="{{ url_for('generate_client_content_brief', client_id=selected_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="btn btn-primary btn-large">
-    Generate Brief
-</a>
-{% else %}
-<a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-large">
-    Upgrade to Generate Brief
-</a>
-{% endif %}
+                {% if can_generate_brief %}
+                <a href="{{ url_for('generate_client_content_brief', client_id=selected_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="btn btn-primary btn-block">
+                    Generate Brief
+                </a>
+                {% else %}
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
+                    Upgrade to Generate Brief
+                </a>
+                {% endif %}
 
-{% if can_generate_draft %}
-<a href="{{ url_for('generate_client_content_draft', client_id=selected_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="btn btn-secondary">
-    Generate Draft
-</a>
-{% else %}
-<a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">
-    Upgrade to Generate Draft
-</a>
-{% endif %}
+                {% if can_generate_draft %}
+                <a href="{{ url_for('generate_client_content_draft', client_id=selected_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="queue-inline-link">
+                    Generate Draft
+                </a>
+                {% else %}
+                <a href="{{ url_for('pricing_page') }}" class="queue-inline-link">
+                    Upgrade to Generate Draft
+                </a>
+                {% endif %}
             {% else %}
-            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">
+            <a href="{{ url_for('clients_page') }}" class="btn btn-primary btn-block">
                 Choose Workspace First
             </a>
             {% endif %}
@@ -110,100 +114,103 @@
     </section>
     {% endif %}
 
-    <section class="queue-hero">
-        <div class="queue-hero-main">
-            <span class="section-kicker">Execution Layer</span>
-            <h1>Turn visibility gaps into content actions</h1>
-                <p class="hero-copy">
-                    Start with the highest-impact opportunities first. Turn missed queries into briefs, drafts, and publishable work without losing momentum.
-                </p>
+    {% if total_items == 0 %}
+    <section class="queue-empty-main-card">
+        <span class="section-kicker">Queue Empty</span>
+        <h2>No content opportunities yet</h2>
+        <p>
+            Run an audit to uncover missed-query opportunities and automatically create briefs and drafts for this workspace.
+        </p>
 
-            <div class="hero-primary-action">
-                                {% if can_run_audit %}
-                <a href="{{ url_for('start_audit') }}" class="btn btn-primary btn-large">
-                    Run New Audit
-                </a>
-                {% else %}
-                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-large">
-                    Upgrade to Run Audit
-                </a>
-                {% endif %}
-            </div>
+        <div class="empty-actions centered">
+            {% if can_run_audit %}
+            <a href="{{ url_for('start_audit') }}" class="btn btn-primary">Run Audit</a>
+            {% else %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Upgrade to Run Audit</a>
+            {% endif %}
+
+            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspaces</a>
+        </div>
+    </section>
+
+    {% else %}
+
+    <section class="queue-top-strip">
+        <div class="queue-top-main">
+            <span class="section-kicker">Execution Layer</span>
+            <h2>Start with the highest-impact items first</h2>
+            <p class="queue-top-copy">
+                Move queued opportunities into briefs, drafts, and publishing without losing momentum.
+            </p>
 
             <div class="queue-guidance-card">
                 <span class="guidance-label">What to do next</span>
-                    <strong>
-                        {% if queued_count > 0 %}
-                            Start with queued items first
-                        {% elif in_progress_count > 0 %}
-                            Finish what is already in progress
-                        {% elif ready_count > 0 %}
-                            Review and publish ready items
-                        {% else %}
-                            Run a new audit to create opportunities
-                        {% endif %}
-                    </strong>
+                <strong>
+                    {% if queued_count > 0 %}
+                        Start with queued items first
+                    {% elif in_progress_count > 0 %}
+                        Finish what is already in progress
+                    {% elif ready_count > 0 %}
+                        Review and publish ready items
+                    {% else %}
+                        Keep the pipeline moving
+                    {% endif %}
+                </strong>
                 <p>
                     {% if queued_count > 0 %}
-                        There are still opportunities waiting to move. The fastest gains usually come from starting the highest-priority queued items.
+                        There are opportunities waiting to move. The fastest gains usually come from starting the highest-priority queued items.
                     {% elif in_progress_count > 0 %}
-                        Your next best move is to complete the items already being worked on so they do not stall.
+                        Your next best move is to complete items already being worked on so they do not stall.
                     {% elif ready_count > 0 %}
                         You already have items ready for review or publishing. Shipping them may be your fastest win.
                     {% else %}
-                        Your queue is currently clear. Run another audit to find new missed-query opportunities and refill the pipeline.
+                        Review the current queue and continue execution.
                     {% endif %}
                 </p>
             </div>
         </div>
 
-        <div class="queue-hero-side">
-            <div class="queue-focus-card">
-                <div class="focus-top">
-                    <span class="focus-label">Queue focus</span>
-                    <span class="focus-pill">
-                        {% if queued_count > 0 %}
-                            Active
-                        {% elif in_progress_count > 0 or ready_count > 0 %}
-                            Moving
-                        {% else %}
-                            Clear
-                        {% endif %}
-                    </span>
-                </div>
-
-                <div class="focus-value">
+        <div class="queue-focus-card">
+            <div class="focus-top">
+                <span class="focus-label">Queue focus</span>
+                <span class="focus-pill">
                     {% if queued_count > 0 %}
-                        {{ queued_count }}
-                    {% elif in_progress_count > 0 %}
-                        {{ in_progress_count }}
-                    {% elif ready_count > 0 %}
-                        {{ ready_count }}
+                        Active
+                    {% elif in_progress_count > 0 or ready_count > 0 %}
+                        Moving
                     {% else %}
-                        0
+                        Clear
                     {% endif %}
-                </div>
-
-                <div class="focus-title">
-                    {% if queued_count > 0 %}
-                        queued item{{ "" if queued_count == 1 else "s" }}
-                    {% elif in_progress_count > 0 %}
-                        item{{ "" if in_progress_count == 1 else "s" }} in progress
-                    {% elif ready_count > 0 %}
-                        ready to publish
-                    {% else %}
-                        blocked items
-                    {% endif %}
-                </div>
-
-                <p class="focus-copy">
-                    {% if total_items > 0 %}
-                        {{ total_items }} total item{{ "" if total_items == 1 else "s" }} in the content pipeline.
-                    {% else %}
-                        No items are currently in the queue.
-                    {% endif %}
-                </p>
+                </span>
             </div>
+
+            <div class="focus-value">
+                {% if queued_count > 0 %}
+                    {{ queued_count }}
+                {% elif in_progress_count > 0 %}
+                    {{ in_progress_count }}
+                {% elif ready_count > 0 %}
+                    {{ ready_count }}
+                {% else %}
+                    0
+                {% endif %}
+            </div>
+
+            <div class="focus-title">
+                {% if queued_count > 0 %}
+                    queued item{{ "" if queued_count == 1 else "s" }}
+                {% elif in_progress_count > 0 %}
+                    item{{ "" if in_progress_count == 1 else "s" }} in progress
+                {% elif ready_count > 0 %}
+                    ready to publish
+                {% else %}
+                    queue items
+                {% endif %}
+            </div>
+
+            <p class="focus-copy">
+                {{ total_items }} total item{{ "" if total_items == 1 else "s" }} in the content pipeline.
+            </p>
         </div>
     </section>
 
@@ -237,22 +244,21 @@
         <div class="section-head">
             <div>
                 <span class="section-kicker">Queue Overview</span>
-                <h2>Start with the most important items</h2>
+                <h2>Work the queue</h2>
             </div>
-            <p>
-                Review each item, understand the next action, and push work forward without losing momentum.
-            </p>
+            <p>Review each item, understand the next action, and push work forward without clutter.</p>
         </div>
 
-        {% if queue_items %}
-        <div class="queue-list premium-queue-list">
+        <div class="premium-queue-list">
             {% for item in queue_items[:5] %}
             {% set item_status = (item.status or "queued")|lower %}
             {% set item_priority = (item.priority or "medium")|lower %}
             {% set item_type = item.item_type or "content" %}
-            {% set next_action = item.next_action or "Review item" %}
+            {% set next_action_obj = item.next_action if item.next_action is mapping else {} %}
+            {% set next_action_label = next_action_obj.get('label', 'Review item') %}
+            {% set next_action_type = next_action_obj.get('action', '') %}
 
-            <article class="queue-item-card premium-queue-item-card {% if loop.index == 1 %}queue-item-priority{% endif %}">
+            <article class="premium-queue-item-card {% if loop.index == 1 %}queue-item-priority{% endif %}">
                 <div class="queue-item-top">
                     <div class="queue-item-badges">
                         <span class="status-pill
@@ -283,9 +289,7 @@
                     <h3>{{ item.title or item.target_query or "Untitled item" }}</h3>
 
                     {% if item.target_query %}
-                    <p class="query-line">
-                        <strong>Target query:</strong> {{ item.target_query }}
-                    </p>
+                    <p class="query-line"><strong>Target query:</strong> {{ item.target_query }}</p>
                     {% endif %}
 
                     <p class="queue-item-copy">
@@ -302,7 +306,10 @@
                 <div class="queue-item-middle">
                     <div class="meta-block">
                         <span>Next Action</span>
-                        <strong>{{ next_action }}</strong>
+                        <strong>{{ next_action_label }}</strong>
+                        {% if next_action_type %}
+                        <p class="meta-note">{{ next_action_type|replace("_", " ")|title }}</p>
+                        {% endif %}
                     </div>
 
                     {% if item.source %}
@@ -313,38 +320,35 @@
                     {% endif %}
                 </div>
 
-<div class="queue-item-actions">
+                <div class="queue-item-actions">
+                    {% if item.client_id %}
+                        {% if current_user.plan == "free" %}
+                        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Unlock</a>
+                        {% else %}
+                            {% if item_status in ['queued', 'pending', 'brief_generated', 'ready'] %}
+                                {% if item.generate_brief_url %}
+                                <a href="{{ item.generate_brief_url }}" class="btn btn-primary">Generate Brief</a>
+                                {% else %}
+                                <button type="button" class="btn btn-primary" disabled>Generate Brief</button>
+                                {% endif %}
+                            {% endif %}
 
-    {% if item.client_id %}
+                            {% if item.generate_draft_url %}
+                            <a href="{{ item.generate_draft_url }}" class="queue-inline-link">Generate Draft</a>
+                            {% else %}
+                            <span class="queue-inline-link queue-inline-link-muted">Generate Draft unavailable</span>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
 
-        {% if current_user.plan == "free" %}
-            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                Unlock
-            </a>
-        {% else %}
+                    {% if item_status in ['draft_generated', 'ready'] and current_user.plan != "free" %}
+                    <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
+                        <input type="hidden" name="status" value="published">
+                        <button type="submit" class="btn btn-secondary">Publish</button>
+                    </form>
+                    {% endif %}
+                </div>
 
-            {% if item_status in ['queued', 'pending', 'brief_generated', 'ready'] %}
-            <a href="{{ url_for('generate_client_content_brief', client_id=item.client_id, target_query=item.target_query or '') }}" class="btn btn-primary">
-                Generate Brief
-            </a>
-            {% endif %}
-
-            <a href="{{ url_for('generate_client_content_draft', client_id=item.client_id, target_query=item.target_query or '') }}" class="btn btn-secondary">
-                Generate Draft
-            </a>
-
-        {% endif %}
-
-    {% endif %}
-
-    {% if item_status in ['draft_generated', 'ready'] and current_user.plan != "free" %}
-    <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
-        <input type="hidden" name="status" value="published">
-        <button type="submit" class="btn btn-primary">Publish</button>
-    </form>
-    {% endif %}
-
-</div>
                 <div class="queue-item-status-form">
                     <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}">
                         {% if selected_client_id %}
@@ -369,704 +373,20 @@
             {% endfor %}
 
             {% if current_user.plan == "free" and total_items > 5 %}
-<div class="ui-card ui-section" style="border:1px solid #ffd8c6; background:#fff7f3; margin-top:16px;">
-    <div class="badge badge-primary">More available</div>
-
-    <h3 style="margin-top:10px;">More content opportunities are ready</h3>
-
-    <p class="muted">
-        Upgrade to unlock the full content pipeline and continue execution.
-    </p>
-
-    <div style="margin-top:14px;">
-        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-            Unlock Full Queue
-        </a>
-    </div>
-</div>
-{% endif %}
-
+            <div class="queue-upgrade-card">
+                <span class="section-kicker">More available</span>
+                <h3>More content opportunities are ready</h3>
+                <p>Upgrade to unlock the full content pipeline and continue execution.</p>
+                <div class="queue-upgrade-actions">
+                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Unlock Full Queue</a>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="empty-state-card">
-            <span class="section-kicker">Queue Empty</span>
-            <h3>No content opportunities yet</h3>
-            <p>
-                Run an audit to uncover missed-query opportunities, then generate briefs and drafts to build a real publishing workflow.
-            </p>
-
-            <div class="empty-actions">
-                <a href="{{ url_for('start_audit') }}" class="btn btn-primary">Run Audit</a>
-                {% if view_mode != "single" %}
-                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspaces</a>
-                {% endif %}
-            </div>        
-        </div>
-        {% endif %}
     </section>
 
+    {% endif %}
+
 </div>
-
-<style>
-.premium-content-queue-shell {
-    padding: 24px;
-    display: grid;
-    gap: 24px;
-}
-
-.tracked-prompt-action-card,
-.queue-hero,
-.queue-workspace-card,
-.queue-focus-card,
-.summary-card,
-.premium-queue-item-card,
-.empty-state-card,
-.queue-guidance-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.tracked-prompt-action-card {
-    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
-    border-color: #e8edf5;
-    padding: 24px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 20px;
-    align-items: center;
-}
-
-.tracked-prompt-copy h2 {
-    margin: 12px 0 0;
-    font-size: 28px;
-    line-height: 1.1;
-    color: #16243c;
-}
-
-.tracked-prompt-copy p {
-    margin: 14px 0 0;
-    color: #627084;
-    font-size: 15px;
-    line-height: 1.7;
-    max-width: 760px;
-}
-
-.tracked-prompt-meta {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 18px;
-}
-
-.tracked-meta-item {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    border-radius: 16px;
-    padding: 14px 16px;
-}
-
-.tracked-meta-item span {
-    display: block;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 8px;
-}
-
-.tracked-meta-item strong {
-    color: #16243c;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: break-word;
-}
-
-.tracked-prompt-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 220px;
-}
-
-.publish-inline-form {
-    display: inline-flex;
-}
-
-.publish-inline-form .btn {
-    width: 100%;
-}
-
-.queue-item-priority {
-    border: 1px solid #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
-}
-
-.queue-hero {
-    padding: 30px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-    gap: 24px;
-    align-items: start;
-    background:
-        radial-gradient(circle at top left, rgba(244, 235, 255, 0.8), transparent 34%),
-        radial-gradient(circle at bottom right, rgba(255, 243, 234, 0.75), transparent 34%),
-        #ffffff;
-}
-
-.section-kicker {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #f4ebff;
-    color: #6d4aff;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.queue-hero-main h1 {
-    margin: 14px 0 0;
-    font-size: clamp(34px, 5vw, 54px);
-    line-height: 1.03;
-    font-weight: 800;
-    color: #16243c;
-    letter-spacing: -0.03em;
-    max-width: 780px;
-}
-
-.hero-copy {
-    margin: 16px 0 0;
-    font-size: 16px;
-    line-height: 1.72;
-    color: #627084;
-    max-width: 760px;
-}
-
-.hero-primary-action {
-    margin-top: 22px;
-}
-
-.queue-item-actions .btn.btn-primary {
-    box-shadow: 0 8px 20px rgba(232, 50, 86, 0.12);
-}
-
-.btn-large {
-    padding: 14px 22px;
-    font-size: 16px;
-}
-
-.queue-guidance-card {
-    margin-top: 18px;
-    padding: 18px;
-    background: #f8fafc;
-    border-color: #e7ebf3;
-    box-shadow: none;
-}
-
-.guidance-label {
-    display: block;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 8px;
-}
-
-.queue-guidance-card strong {
-    display: block;
-    color: #16243c;
-    font-size: 18px;
-    line-height: 1.25;
-}
-
-.queue-guidance-card p {
-    margin: 10px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.62;
-}
-
-.queue-focus-card {
-    padding: 22px;
-    border-color: #f1ddd4;
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-}
-
-.focus-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.focus-label {
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.focus-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #e35b35;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.focus-value {
-    margin-top: 18px;
-    color: #e35b35;
-    font-size: 54px;
-    line-height: 0.95;
-    font-weight: 800;
-    letter-spacing: -0.05em;
-}
-
-.focus-title {
-    margin-top: 10px;
-    color: #16243c;
-    font-size: 20px;
-    line-height: 1.2;
-    font-weight: 800;
-}
-
-.focus-copy {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.65;
-}
-
-.queue-summary-strip {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.summary-card {
-    padding: 20px;
-}
-
-.summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
-}
-
-.summary-label {
-    display: block;
-    color: #6b7280;
-    font-size: 13px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
-
-.summary-value {
-    display: block;
-    color: #16243c;
-    font-size: 34px;
-    line-height: 1;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-}
-
-.summary-copy {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.queue-workspace-card {
-    padding: 26px;
-}
-
-.section-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-    gap: 18px;
-    margin-bottom: 18px;
-}
-
-.section-head h2 {
-    margin: 10px 0 0;
-    font-size: 30px;
-    line-height: 1.1;
-    color: #16243c;
-    font-weight: 800;
-}
-
-.section-head p {
-    margin: 0;
-    max-width: 460px;
-    color: #6b7280;
-    font-size: 14px;
-    line-height: 1.65;
-}
-
-.premium-queue-list {
-    display: grid;
-    gap: 16px;
-}
-
-.premium-queue-item-card {
-    padding: 22px;
-    background: #fbfcfe;
-}
-
-.queue-item-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: start;
-    margin-bottom: 16px;
-}
-
-.queue-item-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.status-pill,
-.priority-pill,
-.type-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.status-queued {
-    background: #fff7ed;
-    color: #c2410c;
-}
-
-.status-progress {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.status-ready {
-    background: #ecfdf3;
-    color: #15803d;
-}
-
-.status-published {
-    background: #f3f4f6;
-    color: #374151;
-}
-
-.status-neutral {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
-.priority-high {
-    background: #ffe2dd;
-    color: #c2412d;
-}
-
-.priority-medium {
-    background: #f4ebff;
-    color: #6d4aff;
-}
-
-.priority-low {
-    background: #eef2ff;
-    color: #4f46e5;
-}
-
-.type-pill {
-    background: #f8fafc;
-    color: #445366;
-    border: 1px solid #e7ebf3;
-}
-
-.queue-item-client {
-    color: #6b7280;
-    font-size: 13px;
-    font-weight: 700;
-    text-align: right;
-}
-
-.queue-item-main h3 {
-    margin: 0;
-    color: #16243c;
-    font-size: 22px;
-    line-height: 1.3;
-}
-
-.query-line {
-    margin: 12px 0 0;
-    color: #445366;
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.queue-item-copy {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.7;
-    max-width: 900px;
-}
-
-.queue-item-middle {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 18px;
-}
-
-.meta-block {
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-}
-
-.meta-block span {
-    display: block;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.meta-block strong {
-    display: block;
-    margin-top: 8px;
-    color: #16243c;
-    font-size: 15px;
-    line-height: 1.5;
-}
-
-.queue-item-actions,
-.empty-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 18px;
-}
-
-.queue-item-status-form {
-    margin-top: 18px;
-    padding-top: 18px;
-    border-top: 1px solid #e7ebf3;
-}
-
-.queue-item-status-form label {
-    display: block;
-    margin-bottom: 10px;
-    color: #6b7280;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.status-form-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.status-form-row select {
-    flex: 1;
-    min-height: 46px;
-    padding: 0 14px;
-    border: 1px solid #d6dde8;
-    border-radius: 14px;
-    background: #ffffff;
-    color: #16243c;
-    font-size: 14px;
-    outline: none;
-}
-
-.empty-state-card {
-    padding: 30px;
-    border-style: dashed;
-    background: #fafcff;
-    text-align: left;
-}
-
-.empty-state-card h3 {
-    margin: 14px 0 0;
-    color: #16243c;
-    font-size: 28px;
-    line-height: 1.15;
-}
-
-.empty-state-card p {
-    margin: 14px 0 0;
-    color: #627084;
-    font-size: 15px;
-    line-height: 1.7;
-    max-width: 700px;
-}
-
-.btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 42px;
-    padding: 0 14px;
-    border-radius: 12px;
-    border: 1px solid #e7ebf3;
-    background: #ffffff;
-    color: #445366;
-    text-decoration: none;
-    font-weight: 700;
-}
-
-@media (max-width: 1200px) {
-    .queue-summary-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 980px) {
-    .tracked-prompt-action-card,
-    .queue-hero,
-    .queue-item-middle {
-        grid-template-columns: 1fr;
-    }
-
-    .tracked-prompt-meta {
-        grid-template-columns: 1fr;
-    }
-
-    .tracked-prompt-actions {
-        min-width: 0;
-    }
-
-    .section-head {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .section-head p {
-        max-width: none;
-    }
-}
-
-@media (max-width: 768px) {
-    .premium-content-queue-shell {
-        padding: 18px;
-        gap: 18px;
-    }
-
-  .publish-inline-form {
-        width: 100%;
-    }
-
-    .publish-inline-form .btn {
-        width: 100%;
-    }
-
-    .tracked-prompt-action-card,
-    .queue-hero,
-    .queue-workspace-card,
-    .queue-focus-card,
-    .summary-card,
-    .premium-queue-item-card,
-    .empty-state-card,
-    .queue-guidance-card {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .tracked-prompt-copy h2,
-    .section-head h2 {
-        font-size: 24px;
-    }
-
-    .queue-summary-strip {
-        grid-template-columns: 1fr;
-    }
-
-    .queue-item-top {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .queue-item-client {
-        text-align: left;
-    }
-
-    .queue-item-actions,
-    .empty-actions,
-    .status-form-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .upgrade-banner {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        padding: 18px 20px;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #fff7f3 0%, #ffffff 100%);
-        border: 1px solid #ffd8c6;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-    }
-
-    .upgrade-banner-copy strong {
-        display: block;
-        color: #15233b;
-        font-size: 16px;
-        font-weight: 800;
-    }
-
-    .upgrade-banner-copy p {
-        margin: 6px 0 0;
-        color: #627084;
-        font-size: 14px;
-        line-height: 1.6;
-    }
-
-    .queue-item-actions .btn,
-    .tracked-prompt-actions .btn,
-    .btn-ghost,
-    .status-form-row .btn,
-    .hero-primary-action .btn {
-        width: 100%;
-    }
-
-    .upgrade-banner {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .upgrade-banner .btn {
-        width: 100%;
-    }
-
-    .queue-item-main h3 {
-        font-size: 20px;
-    }
-
-    .focus-value {
-        font-size: 44px;
-    }
-}
-</style>
 
 {% endblock %}

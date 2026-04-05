@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Insights OS{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v=120">
 </head>
 <body>
-    {% set globals = {} %}
     {% set current_endpoint = request.endpoint if request and request.endpoint else '' %}
     {% set is_admin_user = current_user.is_authenticated and (current_user.email == "pypteltd@gmail.com" or current_user.role == "admin") %}
+    {% set desktop_sidebar_breakpoint = 1200 %}
 
     <div class="app-shell">
 
@@ -42,7 +42,7 @@
                     <a href="{{ url_for('index') }}" class="brand-link">
                         <div class="brand-mark">A</div>
                         <div class="brand-copy">
-                            <strong> Insights OS</strong>
+                            <strong>Insights OS</strong>
                             <span>AI Visibility Workspace</span>
                         </div>
                     </a>
@@ -60,93 +60,94 @@
                     {% endif %}
                 </nav>
 
-<div class="sidebar-footer">
+                <div class="sidebar-footer">
 
-    {% if is_admin_user %}
-    <div class="sidebar-footer-panel sidebar-dev-panel">
-        <div class="sidebar-footer-head">
-            <span class="sidebar-footer-kicker">Dev View Mode</span>
-        </div>
+                    {% if is_admin_user %}
+                    <div class="sidebar-footer-panel sidebar-dev-panel">
+                        <div class="sidebar-footer-head">
+                            <span class="sidebar-footer-kicker">Dev View Mode</span>
+                        </div>
 
-        <div class="dev-view-buttons">
-            <a
-                href="{{ url_for('dev_set_view_mode', mode='single') }}"
-                class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}"
-            >
-                Single
-            </a>
+                        <div class="dev-view-buttons">
+                            <a
+                                href="{{ url_for('dev_set_view_mode', mode='single') }}"
+                                class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}"
+                            >
+                                Single
+                            </a>
 
-            <a
-                href="{{ url_for('dev_set_view_mode', mode='multi') }}"
-                class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}"
-            >
-                Multi
-            </a>
+                            <a
+                                href="{{ url_for('dev_set_view_mode', mode='multi') }}"
+                                class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}"
+                            >
+                                Multi
+                            </a>
 
-            <a
-                href="{{ url_for('dev_set_view_mode', mode='admin') }}"
-                class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}"
-            >
-                Admin
-            </a>
+                            <a
+                                href="{{ url_for('dev_set_view_mode', mode='admin') }}"
+                                class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}"
+                            >
+                                Admin
+                            </a>
 
-            <a
-                href="{{ url_for('dev_set_view_mode', mode='auto') }}"
-                class="dev-view-btn {% if not session.get('dev_view_mode') %}active{% endif %}"
-            >
-                Auto
-            </a>
-        </div>
-    </div>
-    {% endif %}
+                            <a
+                                href="{{ url_for('dev_set_view_mode', mode='auto') }}"
+                                class="dev-view-btn {% if not session.get('dev_view_mode') %}active{% endif %}"
+                            >
+                                Auto
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
 
-    <div class="sidebar-footer-panel sidebar-credits-panel">
-        <div class="sidebar-footer-head">
-            <span class="sidebar-footer-kicker">Credits</span>
-        </div>
+                    <div class="sidebar-footer-panel sidebar-credits-panel">
+                        <div class="sidebar-footer-head">
+                            <span class="sidebar-footer-kicker">Credits</span>
+                        </div>
 
-        <div class="sidebar-credits-value">
-            {{ wallet_balance if wallet_balance is defined else 14 }}
-        </div>
+                        <div class="sidebar-credits-value">
+                            {{ wallet_balance if wallet_balance is defined else 14 }}
+                        </div>
 
-        <div class="sidebar-credits-meta">
-            Available for audits and workspace actions
-        </div>
+                        <div class="sidebar-credits-meta">
+                            Available for audits and workspace actions
+                        </div>
 
-        <a href="{{ url_for('pricing_page') }}" class="sidebar-buy-btn">
-            Buy Credits
-        </a>
-    </div>
+                        <a href="{{ url_for('pricing_page') }}" class="sidebar-buy-btn">
+                            Buy Credits
+                        </a>
+                    </div>
 
-    <div class="sidebar-footer-panel sidebar-account-panel">
-        <div class="sidebar-footer-head">
-            <span class="sidebar-footer-kicker">Account</span>
-        </div>
+                    <div class="sidebar-footer-panel sidebar-account-panel">
+                        <div class="sidebar-footer-head">
+                            <span class="sidebar-footer-kicker">Account</span>
+                        </div>
 
-        <div class="sidebar-account-email" title="{{ current_user.email }}">
-            {{ current_user.email }}
-        </div>
+                        <div class="sidebar-account-email" title="{{ current_user.email }}">
+                            {{ current_user.email }}
+                        </div>
 
-        <a href="{{ url_for('logout') }}" class="sidebar-logout-btn">
-            Logout
-        </a>
-    </div>
+                        <a href="{{ url_for('logout') }}" class="sidebar-logout-btn">
+                            Logout
+                        </a>
+                    </div>
 
-</div>
+                </div>
+            </div>
         </aside>
 
         <main class="app-main">
             <div class="app-content">
 
-            {% set page_header_content %}
-                {% block page_header %}{% endblock %}
-            {% endset %}
+                {% set page_header_content %}
+                    {% block page_header %}{% endblock %}
+                {% endset %}
 
-            {% if page_header_content|trim %}
-                <section class="page-header">
-                    {{ page_header_content }}
-                </section>
-            {% endif %}
+                {% if page_header_content|trim %}
+                    <section class="page-header">
+                        {{ page_header_content }}
+                    </section>
+                {% endif %}
 
                 <section class="page-body-shell">
                     <div class="page-shell">
@@ -159,6 +160,7 @@
 
     <script>
         (function () {
+            const DESKTOP_BREAKPOINT = {{ desktop_sidebar_breakpoint }};
             const body = document.body;
             const sidebar = document.getElementById("appSidebar");
             const overlay = document.getElementById("sidebarOverlay");
@@ -166,7 +168,12 @@
 
             if (!sidebar || !overlay || !menuBtn) return;
 
+            function isDesktop() {
+                return window.innerWidth >= DESKTOP_BREAKPOINT;
+            }
+
             function openSidebar() {
+                if (isDesktop()) return;
                 sidebar.classList.add("open");
                 overlay.classList.add("show");
                 body.classList.add("sidebar-open");
@@ -191,14 +198,14 @@
             overlay.addEventListener("click", closeSidebar);
 
             window.addEventListener("resize", function () {
-                if (window.innerWidth >= 900) {
+                if (isDesktop()) {
                     closeSidebar();
                 }
             });
 
             document.querySelectorAll(".app-sidebar a").forEach(function (item) {
                 item.addEventListener("click", function () {
-                    if (window.innerWidth < 900) {
+                    if (!isDesktop()) {
                         closeSidebar();
                     }
                 });

@@ -1,16 +1,43 @@
 {% extends "base.html" %}
 
 {% block title %}{{ client.name }} | Content Draft{% endblock %}
-{% block page_title %}{{ client.name }} · Content Draft{% endblock %}
-{% block page_subtitle %}Generate a first draft from a target query with optional brief and brand context.{% endblock %}
 
-{% block topbar_actions %}
-<a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+{% block page_header %}
+<div class="page-header-standard draft-generator-header-clean">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Content Draft</h1>
+        <p>Generate a first draft from a target query, then refine and save it into the queue for production.</p>
+    </div>
+
+    <div class="page-header-actions">
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
+            Back to Workspace
+        </a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
 
-<section class="draft-generator-shell">
+<section class="draft-generator-shell-clean">
+
+    <section class="draft-generator-top-strip">
+        <div class="draft-generator-top-copy">
+            <span class="section-kicker">Draft Generator</span>
+            <h2>Generate a first draft from a target query</h2>
+            <p>
+                Start with the target query, then add optional brief and brand context to produce a more usable first draft.
+            </p>
+        </div>
+
+        <div class="draft-generator-top-card">
+            <span class="hero-card-label">Recommended flow</span>
+            <strong class="hero-card-value">Query → Draft → Queue</strong>
+            <p class="hero-card-text">
+                Add enough context so the output is closer to the real brand, then refine before saving.
+            </p>
+        </div>
+    </section>
 
     <section class="draft-generator-grid">
         <div class="panel panel-main">
@@ -78,7 +105,7 @@
                 </div>
 
                 <div class="card-actions">
-                    <button type="submit" class="btn btn-secondary">Generate Draft</button>
+                    <button type="submit" class="btn btn-primary">Generate Draft</button>
                     <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
@@ -111,6 +138,22 @@
                     {% endif %}
                 </div>
             </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Good draft inputs</h2>
+                        <p class="panel-subtitle">A few things that improve output quality.</p>
+                    </div>
+                </div>
+
+                <div class="tips-list">
+                    <div class="tip-item">Start with a clear target query that reflects real intent.</div>
+                    <div class="tip-item">Use brief context when you already know the angle or structure.</div>
+                    <div class="tip-item">Add brand context so the draft sounds closer to the real client.</div>
+                    <div class="tip-item">Plan to edit the first draft before saving it into the queue.</div>
+                </div>
+            </div>
         </aside>
     </section>
 
@@ -125,176 +168,5 @@ function fillDraftQuery(value) {
     }
 }
 </script>
-
-<style>
-.draft-generator-shell {
-    padding: 28px;
-    display: grid;
-    gap: 24px;
-}
-
-.panel,
-.comparison-banner {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.draft-generator-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-    gap: 24px;
-    align-items: start;
-}
-
-.side-stack {
-    display: grid;
-    gap: 24px;
-}
-
-.panel {
-    padding: 24px;
-}
-
-.panel-header {
-    margin-bottom: 18px;
-}
-
-.panel-header h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.panel-subtitle {
-    margin: 0;
-    color: #6b7280;
-    font-size: 15px;
-    line-height: 1.55;
-}
-
-.form-stack {
-    display: grid;
-    gap: 20px;
-}
-
-.form-grid-2 {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.form-field {
-    display: grid;
-    gap: 8px;
-}
-
-.form-field-full {
-    grid-column: 1 / -1;
-}
-
-.form-field label {
-    font-size: 14px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.optional-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #94a3b8;
-    margin-left: 6px;
-}
-
-.form-field input,
-.form-field select,
-.form-field textarea {
-    width: 100%;
-    border: 1px solid #d9e2ef;
-    border-radius: 16px;
-    background: #ffffff;
-    padding: 14px 16px;
-    font: inherit;
-    color: #16243c;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.form-field input:focus,
-.form-field select:focus,
-.form-field textarea:focus {
-    outline: none;
-    border-color: #E83256;
-    box-shadow: 0 0 0 4px rgba(255, 106, 43, 0.12);
-}
-
-.form-field textarea {
-    min-height: 140px;
-    resize: vertical;
-}
-
-.card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.chip-cluster {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.meta-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #445366;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.chip-button {
-    cursor: pointer;
-}
-
-.chip-button:hover {
-    border-color: #cbd5e1;
-    background: #f1f5f9;
-}
-
-@media (max-width: 1200px) {
-    .draft-generator-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .draft-generator-shell {
-        padding: 18px;
-    }
-
-    .panel {
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .form-grid-2 {
-        grid-template-columns: 1fr;
-    }
-
-    .card-actions {
-        flex-direction: column;
-    }
-
-    .card-actions .btn {
-        width: 100%;
-    }
-}
-</style>
 
 {% endblock %}

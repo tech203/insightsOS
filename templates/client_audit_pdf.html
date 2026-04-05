@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ client.name if client and client.name else "Client" }} Audit Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 14mm 18mm 14mm;
+        }
+
+        :root {
+            --text: #172033;
+            --muted: #667085;
+            --line: #e6eaf2;
+            --panel: #f8fafc;
+            --panel-strong: #ffffff;
+            --brand: #7c3aed;
+            --brand-soft: #f3e8ff;
+            --accent: #ea580c;
+            --accent-soft: #fff7ed;
+            --success: #15803d;
+            --success-soft: #ecfdf3;
+            --warn: #b45309;
+            --warn-soft: #fffbeb;
+            --danger: #b42318;
+            --danger-soft: #fef3f2;
+            --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            background: #f3f4f6;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1.5;
+            background: #f3f4f6;
+        }
+
+        .report {
+            width: 100%;
+            max-width: 1080px;
+            margin: 24px auto;
+            background: #ffffff;
+            padding: 28px 32px 36px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .topbar,
+        .hero,
+        .section,
+        .metric-card,
+        .panel,
+        .recommendation,
+        .finding {
+            page-break-inside: avoid;
+        }
+
+        .topbar {
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 14px;
+            margin-bottom: 24px;
+        }
+
+        .topbar-grid {
+            display: table;
+            width: 100%;
+        }
+
+        .topbar-left,
+        .topbar-right {
+            display: table-cell;
+            vertical-align: middle;
+        }
+
+        .topbar-right {
+            text-align: right;
+        }
+
+        .agency-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .agency-tagline {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .agency-logo,
+        .client-logo {
+            max-height: 42px;
+            max-width: 160px;
+            object-fit: contain;
+        }
+
+        .hero {
+            display: table;
+            width: calc(100% + 16px);
+            margin-left: -16px;
+            border-spacing: 16px 0;
+            margin-bottom: 28px;
+        }
+
+        .hero-main,
+        .hero-side {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        .hero-main {
+            width: 66%;
+        }
+
+        .hero-side {
+            width: 34%;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--brand-soft);
+            color: var(--brand);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .report-title {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.12;
+            font-weight: 800;
+        }
+
+        .report-subtitle {
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            max-width: 92%;
+        }
+
+        .client-meta {
+            margin-top: 18px;
+            display: table;
+            width: 100%;
+        }
+
+        .client-meta-row {
+            display: table-row;
+        }
+
+        .client-meta-label,
+        .client-meta-value {
+            display: table-cell;
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .client-meta-label {
+            width: 88px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .hero-card {
+            border: 1px solid #ddd6fe;
+            background: linear-gradient(180deg, #fcfbff 0%, #f5f3ff 100%);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+
+        .hero-card-label {
+            color: var(--muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 700;
+        }
+
+        .hero-score {
+            margin-top: 10px;
+            font-size: 46px;
+            line-height: 1;
+            font-weight: 800;
+            color: var(--brand);
+        }
+
+        .hero-score small {
+            font-size: 16px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .hero-opportunity {
+            margin-top: 10px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .hero-copy {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .section {
+            margin-top: 24px;
+        }
+
+        .section-title {
+            margin: 0 0 12px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .section-copy {
+            margin: -4px 0 12px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .grid-4 {
+            display: table;
+            width: calc(100% + 12px);
+            margin-left: -12px;
+            table-layout: fixed;
+            border-spacing: 12px 0;
+        }
+
+        .grid-4 .cell {
+            display: table-cell;
+            width: 25%;
+            vertical-align: top;
+        }
+
+        .metric-card {
+            border: 1px solid var(--line);
+            background: var(--panel-strong);
+            border-radius: 18px;
+            padding: 16px;
+            min-height: 112px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+        }
+
+        .metric-label {
+            color: var(--muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 700;
+        }
+
+        .metric-value {
+            margin-top: 8px;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .metric-copy {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.55;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            background: var(--panel);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .summary-box {
+            border-left: 4px solid var(--brand);
+            background: #fcfbff;
+            padding: 14px 14px 14px 16px;
+            border-radius: 12px;
+        }
+
+        .summary-box p {
+            margin: 0;
+            line-height: 1.65;
+        }
+
+        .finding {
+            margin-bottom: 10px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: #fff;
+        }
+
+        .finding:last-child {
+            margin-bottom: 0;
+        }
+
+        .finding-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .finding.warning {
+            background: var(--warn-soft);
+            border-color: #f5e3b3;
+        }
+
+        .finding.success {
+            background: var(--success-soft);
+            border-color: #ccefdc;
+        }
+
+        .finding.danger {
+            background: var(--danger-soft);
+            border-color: #f3c7c4;
+        }
+
+        .two-col {
+            display: table;
+            width: calc(100% + 14px);
+            margin-left: -14px;
+            table-layout: fixed;
+            border-spacing: 14px 0;
+        }
+
+        .two-col .col {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+
+        table.data {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table.data th,
+        table.data td {
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            line-height: 1.45;
+        }
+
+        table.data th {
+            background: #f8fafc;
+            color: var(--muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        table.data tr:last-child td {
+            border-bottom: none;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .pill.high {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        .pill.medium {
+            background: var(--warn-soft);
+            color: var(--warn);
+        }
+
+        .pill.low {
+            background: var(--success-soft);
+            color: var(--success);
+        }
+
+        .recommendation {
+            margin-bottom: 10px;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 14px;
+        }
+
+        .recommendation:last-child {
+            margin-bottom: 0;
+        }
+
+        .recommendation-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .footer {
+            margin-top: 28px;
+            padding-top: 12px;
+            border-top: 1px solid var(--line);
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .footer-grid {
+            display: table;
+            width: 100%;
+        }
+
+        .footer-left,
+        .footer-right {
+            display: table-cell;
+            vertical-align: middle;
+        }
+
+        .footer-right {
+            text-align: right;
+        }
+
+        .small {
+            font-size: 10px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="report">
+
+        <div class="topbar">
+            <div class="topbar-grid">
+                <div class="topbar-left">
+                    {% if agency and agency.logo_url %}
+                        <img src="{{ agency.logo_url }}" alt="Agency logo" class="agency-logo">
+                    {% elif agency and agency.name %}
+                        <p class="agency-name">{{ agency.name }}</p>
+                    {% else %}
+                        <p class="agency-name">Insights OS Report</p>
+                    {% endif %}
+
+                    {% if agency and agency.tagline %}
+                        <p class="agency-tagline">{{ agency.tagline }}</p>
+                    {% elif agency and agency.website %}
+                        <p class="agency-tagline">{{ agency.website }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="topbar-right">
+                    {% if client and client.logo_url %}
+                        <img src="{{ client.logo_url }}" alt="Client logo" class="client-logo">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="hero">
+            <div class="hero-main">
+                <span class="eyebrow">AI Visibility Audit Report</span>
+                <h1 class="report-title">{{ client.name if client and client.name else "Client" }}</h1>
+                <p class="report-subtitle">
+                    Premium audit report covering visibility, content coverage, competitor pressure,
+                    and the highest-priority actions to improve discoverability across AI answers.
+                </p>
+
+                <div class="client-meta">
+                    <div class="client-meta-row">
+                        <div class="client-meta-label">Website</div>
+                        <div class="client-meta-value">{{ client.website if client and client.website else "—" }}</div>
+                    </div>
+                    <div class="client-meta-row">
+                        <div class="client-meta-label">Industry</div>
+                        <div class="client-meta-value">{{ client.industry if client and client.industry else "—" }}</div>
+                    </div>
+                    <div class="client-meta-row">
+                        <div class="client-meta-label">Location</div>
+                        <div class="client-meta-value">{{ client.location if client and client.location else "—" }}</div>
+                    </div>
+                    <div class="client-meta-row">
+                        <div class="client-meta-label">Report Date</div>
+                        <div class="client-meta-value">{{ report_date if report_date else "—" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-side">
+                <div class="hero-card">
+                    <div class="hero-card-label">Overall AEO Score</div>
+                    <div class="hero-score">
+                        {{ latest.normalized_score if latest and latest.normalized_score is defined else 0 }}<small>/100</small>
+                    </div>
+                    <div class="hero-opportunity">
+                        {{ latest.opportunity_level if latest and latest.opportunity_level else "Opportunity available" }}
+                    </div>
+                    <div class="hero-copy">
+                        {% if latest and latest.normalized_score is defined %}
+                            {% if latest.normalized_score >= 80 %}
+                                Strong visibility. Focus on maintaining lead and expanding coverage.
+                            {% elif latest.normalized_score >= 60 %}
+                                Moderate visibility. Improve consistency and targeted coverage.
+                            {% else %}
+                                Low visibility. There is clear opportunity to improve discoverability.
+                            {% endif %}
+                        {% else %}
+                            No latest audit score available yet.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Score Snapshot</h2>
+            <div class="grid-4">
+                <div class="cell">
+                    <div class="metric-card">
+                        <div class="metric-label">Overall Score</div>
+                        <div class="metric-value">{{ latest.normalized_score if latest and latest.normalized_score is defined else 0 }}</div>
+                        <div class="metric-copy">Combined AEO performance score.</div>
+                    </div>
+                </div>
+                <div class="cell">
+                    <div class="metric-card">
+                        <div class="metric-label">Visibility</div>
+                        <div class="metric-value">{{ latest.visibility_score if latest and latest.visibility_score is defined else 0 }}</div>
+                        <div class="metric-copy">Presence across tracked AI answers.</div>
+                    </div>
+                </div>
+                <div class="cell">
+                    <div class="metric-card">
+                        <div class="metric-label">Content</div>
+                        <div class="metric-value">{{ latest.content_score if latest and latest.content_score is defined else 0 }}</div>
+                        <div class="metric-copy">How well your content covers demand.</div>
+                    </div>
+                </div>
+                <div class="cell">
+                    <div class="metric-card">
+                        <div class="metric-label">Schema</div>
+                        <div class="metric-value">{{ latest.schema_score if latest and latest.schema_score is defined else 0 }}</div>
+                        <div class="metric-copy">Structured data support for clarity.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Executive Summary</h2>
+            <div class="summary-box">
+                <p>
+                    {% if executive_summary %}
+                        {{ executive_summary }}
+                    {% else %}
+                        This report highlights the current state of the client’s AI visibility, the main coverage gaps,
+                        and the most important actions to improve discoverability, recommendation strength, and prompt-level presence.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="two-col">
+                <div class="col">
+                    <h2 class="section-title">Key Findings</h2>
+                    <div class="panel">
+                        <div class="finding warning">
+                            <div class="finding-title">Coverage gaps remain</div>
+                            <div>
+                                {% if missing_rows %}
+                                    Brand is still missing from {{ missing_rows|length }} important tracked quer{{ "y" if missing_rows|length == 1 else "ies" }}.
+                                {% else %}
+                                    Important customer questions are not yet fully covered across the site.
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="finding danger">
+                            <div class="finding-title">AI visibility is inconsistent</div>
+                            <div>
+                                {% if latest and latest.visibility_score %}
+                                    Current visibility score suggests uneven presence across tracked answer scenarios.
+                                {% else %}
+                                    Visibility data is limited; a fresh audit is recommended.
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="finding success">
+                            <div class="finding-title">Strongest next move is clear</div>
+                            <div>
+                                {% if top_action %}
+                                    Prioritise "{{ top_action.title }}" first for the strongest immediate improvement path.
+                                {% else %}
+                                    Structured content and clearer coverage are the best next moves.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <h2 class="section-title">Recommended Actions</h2>
+                    <div class="panel">
+                        {% if recommended_actions %}
+                            {% for action in recommended_actions[:5] %}
+                                <div class="recommendation">
+                                    <div class="recommendation-title">
+                                        {{ action.title if action.title else "Recommended action" }}
+                                    </div>
+                                    <div>
+                                        {{ action.description if action.description else action.summary if action.summary else "Follow this action to improve visibility and content coverage." }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="recommendation">
+                                <div class="recommendation-title">Create content for missing query coverage</div>
+                                <div>Build content for the prompts and questions where competitors are appearing and the brand is absent.</div>
+                            </div>
+                            <div class="recommendation">
+                                <div class="recommendation-title">Strengthen entity clarity</div>
+                                <div>Improve the consistency of brand signals, value proposition, and structured information across key pages.</div>
+                            </div>
+                            <div class="recommendation">
+                                <div class="recommendation-title">Refresh priority pages</div>
+                                <div>Update top pages to better answer customer questions and improve discoverability in AI responses.</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section page-break">
+            <h2 class="section-title">Question Opportunities</h2>
+            <p class="section-copy">
+                These are the topics and prompts where stronger content coverage can create the biggest visibility gains.
+            </p>
+
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Query / Topic</th>
+                        <th>Brand Mentioned</th>
+                        <th>Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if missing_rows %}
+                        {% for row in missing_rows[:12] %}
+                        <tr>
+                            <td>{{ row.query if row.query else "Opportunity" }}</td>
+                            <td>No</td>
+                            <td><span class="pill high">High</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% elif question_rows %}
+                        {% for row in question_rows[:12] %}
+                        <tr>
+                            <td>{{ row.query if row.query else "Opportunity" }}</td>
+                            <td>
+                                {% if row.latest_brand_mentioned %}
+                                    Yes
+                                {% else %}
+                                    No
+                                {% endif %}
+                            </td>
+                            <td><span class="pill medium">Medium</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td>How much does the service cost?</td>
+                            <td>No</td>
+                            <td><span class="pill high">High</span></td>
+                        </tr>
+                        <tr>
+                            <td>What makes this business different?</td>
+                            <td>No</td>
+                            <td><span class="pill high">High</span></td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Competitor / Market Notes</h2>
+            <div class="panel">
+                {% if competitor_notes %}
+                    <p>{{ competitor_notes }}</p>
+                {% else %}
+                    <p>
+                        Competitors are occupying recommendation space for a number of important prompts.
+                        The clearest path forward is to create targeted content that answers high-intent questions
+                        better and more explicitly, while reinforcing brand/entity signals.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-grid">
+                <div class="footer-left">
+                    {% if agency and agency.footer_text %}
+                        {{ agency.footer_text }}
+                    {% elif agency and agency.name %}
+                        Prepared by {{ agency.name }}
+                    {% else %}
+                        Prepared with Insights OS
+                    {% endif %}
+                </div>
+                <div class="footer-right">
+                    {% if agency and agency.website %}
+                        {{ agency.website }}
+                    {% elif agency and agency.email %}
+                        {{ agency.email }}
+                    {% endif %}
+                </div>
+            </div>
+            {% if agency and agency.disclaimer %}
+                <div class="small" style="margin-top: 8px;">{{ agency.disclaimer }}</div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>

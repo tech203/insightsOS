@@ -1,0 +1,149 @@
+{
+  "website": "https://www.tawk.to/",
+  "client_id": "test",
+  "client_name": null,
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-04-02T14:37:12",
+  "scores": {
+    "normalized_score": 67.1,
+    "visibility_score": 0.0,
+    "content_score": 18.0,
+    "schema_score": 0.0,
+    "entity_score": 6.0,
+    "technical_score": 10.0,
+    "avg_query_score": 4.17,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Moderate AEO foundation with clear opportunities to improve visibility.",
+    "opportunity_level": "Moderate",
+    "biggest_problem": "https://www.tawk.to/ is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Chatbot US'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Target missed query: best Chatbot US",
+      "Target missed query: top Chatbot US"
+    ]
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Chatbot US",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'best Chatbot US' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Chatbot US",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: consumersadvocate.org, clutch.co"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Chatbot US",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'top Chatbot US' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Chatbot US",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: consumersadvocate.org, clutch.co"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Chatbot services US",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Chatbot services US' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Chatbot services US",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: consumersadvocate.org, clutch.co"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: recommended Chatbot US",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'recommended Chatbot US' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "recommended Chatbot US",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: consumersadvocate.org, clutch.co"
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Chatbot US",
+      "target_query": "best Chatbot US",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Chatbot US",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Chatbot US",
+      "target_query": "top Chatbot US",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Chatbot US",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot services US",
+      "target_query": "Chatbot services US",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot services US",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Chatbot US",
+      "target_query": "recommended Chatbot US",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Chatbot US",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Chatbot company US",
+      "target_query": "Chatbot company US",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Chatbot company US",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "meta": {
+    "website": "https://www.tawk.to/",
+    "website_normalized": "tawk.to",
+    "industry": "Chatbot",
+    "location": "US",
+    "audit_type": "quick",
+    "topic": null,
+    "client_id": "test",
+    "client_name": null,
+    "user_id": 1,
+    "saved_at": "2026-04-02T14:37:12",
+    "schema_version": "2.0"
+  },
+  "schema_version": "2.0"
+}

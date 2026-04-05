@@ -98,7 +98,7 @@ def compute_scores(
                 + schema_score_10 * 1.5
                 + entity_score_10 * 1.8
                 + technical_score_10 * 1.2
-                + avg_query_score * 1.2
+                + avg_query_score * 2.0
             ),
         ),
         1,

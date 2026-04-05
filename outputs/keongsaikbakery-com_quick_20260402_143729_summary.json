@@ -1,0 +1,149 @@
+{
+  "website": "https://www.keongsaikbakery.com/",
+  "client_id": "test",
+  "client_name": null,
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-04-02T14:37:29",
+  "scores": {
+    "normalized_score": 47.0,
+    "visibility_score": 0.0,
+    "content_score": 8.0,
+    "schema_score": 5.0,
+    "entity_score": 2.0,
+    "technical_score": 10.0,
+    "avg_query_score": 3.96,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "https://www.keongsaikbakery.com/ is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Bakery Singapore'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Target missed query: best Bakery Singapore",
+      "Target missed query: top Bakery Singapore"
+    ]
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Bakery Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'best Bakery Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Bakery Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: eatbook.sg, secretsingapore.co"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Bakery Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'top Bakery Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Bakery Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: eatbook.sg, secretsingapore.co"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Bakery services Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Bakery services Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Bakery services Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: eatbook.sg, secretsingapore.co"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: recommended Bakery Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'recommended Bakery Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "recommended Bakery Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: eatbook.sg, secretsingapore.co"
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Bakery Singapore",
+      "target_query": "best Bakery Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Bakery Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Bakery Singapore",
+      "target_query": "top Bakery Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Bakery Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Bakery services Singapore",
+      "target_query": "Bakery services Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery services Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Bakery Singapore",
+      "target_query": "recommended Bakery Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Bakery Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Bakery company Singapore",
+      "target_query": "Bakery company Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery company Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "meta": {
+    "website": "https://www.keongsaikbakery.com/",
+    "website_normalized": "keongsaikbakery.com",
+    "industry": "Bakery",
+    "location": "Singapore",
+    "audit_type": "quick",
+    "topic": null,
+    "client_id": "test",
+    "client_name": null,
+    "user_id": 1,
+    "saved_at": "2026-04-02T14:37:29",
+    "schema_version": "2.0"
+  },
+  "schema_version": "2.0"
+}

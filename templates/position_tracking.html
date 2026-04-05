@@ -1,62 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Prompt Tracking | Insights OS{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Prompt Tracking</h1>
+        <p>Monitor AI visibility across tracked prompts and see where competitors are appearing first.</p>
+    </div>
+
+    {% if total_prompts > 0 %}
+    <div class="page-header-actions">
+        {% if focused_client %}
+            <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-primary">
+                Add Prompts
+            </a>
+        {% else %}
+            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">
+                Open Workspaces
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
 {% block content %}
 
-<div class="tracking-shell">
+<div class="tracking-shell tracking-shell-clean">
 
-    <section class="tracking-hero-card">
-        <div class="tracking-hero-main">
-            <span class="section-kicker">AI Visibility Tracking</span>
-            <h1>Track your AI visibility</h1>
-            <p class="tracking-hero-text">
-                Monitor how your brand appears across AI prompts, see where competitors are winning,
-                and decide what to improve next.
-            </p>
-
-            <div class="tracking-hero-guidance">
-                <span class="guidance-label">Current tracking focus</span>
-                <strong>{{ tracked_topic }}</strong>
-                <p>
-                    {% if tracking_ready %}
-                        Focus on the lowest-scoring prompts first to improve visibility fastest.
-                    {% else %}
-                        Your tracking workspace is being prepared.
-                    {% endif %}
-                </p>
-            </div>
+    <section class="tracking-meta-grid">
+        <div class="tracking-meta-card">
+            <span>Project</span>
+            <strong>{{ project_domain }}</strong>
         </div>
-
-        <div class="tracking-meta-grid">
-            <div class="tracking-meta-card">
-                <span>Project</span>
-                <strong>{{ project_domain }}</strong>
-            </div>
-            <div class="tracking-meta-card">
-                <span>Platform</span>
-                <strong>{{ selected_platform }}</strong>
-            </div>
-            <div class="tracking-meta-card">
-                <span>Market</span>
-                <strong>{{ selected_market }}</strong>
-            </div>
-            <div class="tracking-meta-card">
-                <span>Tracked Prompts</span>
-                <strong>{{ total_prompts }}</strong>
-            </div>
+        <div class="tracking-meta-card">
+            <span>Platform</span>
+            <strong>{{ selected_platform }}</strong>
+        </div>
+        <div class="tracking-meta-card">
+            <span>Market</span>
+            <strong>{{ selected_market }}</strong>
+        </div>
+        <div class="tracking-meta-card">
+            <span>Tracked Prompts</span>
+            <strong>{{ total_prompts }}</strong>
         </div>
     </section>
 
     {% if total_prompts == 0 %}
     <section class="tracking-empty">
+        <span class="section-kicker">No Data Yet</span>
         <h2>No prompts tracked yet</h2>
-        <p>Start tracking prompts from competitor research to begin measuring AI visibility.</p>
+        <p>
+            Start by adding prompts you want to monitor across AI answers. This helps you spot visibility gaps and competitor wins earlier.
+        </p>
 
         <div class="tracking-empty-actions">
-            {% if client %}
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-primary">
-                    Go to Competitor Research
+            {% if focused_client %}
+                <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-primary">
+                    Add Prompts
                 </a>
             {% else %}
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
-                    Back to Dashboard
+                <a href="{{ url_for('clients_page') }}" class="btn btn-primary">
+                    Open Workspaces
                 </a>
             {% endif %}
         </div>
@@ -64,27 +71,43 @@
 
     {% else %}
 
-    <!-- INSIGHT -->
-    <section class="tracking-insight-banner">
-        {% if lcont_score_count > 0 %}
-            <strong>{{ cont_score_count }} prompts need attention.</strong>
-            Focus here first to improve AI visibility.
-        {% else %}
-            Your visibility is improving. Expand to new prompts.
-        {% endif %}
+    <section class="tracking-summary-grid">
+        <article class="summary-stat-card">
+            <span class="summary-label">Prompts Tracked</span>
+            <strong class="summary-value">{{ total_prompts }}</strong>
+            <p class="summary-copy">Queries currently being monitored for AI visibility.</p>
+        </article>
+
+        <article class="summary-stat-card">
+            <span class="summary-label">Brand Mentioned</span>
+            <strong class="summary-value">{{ mentioned_count }}</strong>
+            <p class="summary-copy">Prompts where your brand appears clearly in the tracked result set.</p>
+        </article>
+
+        <article class="summary-stat-card">
+            <span class="summary-label">Partial Presence</span>
+            <strong class="summary-value">{{ partial_count }}</strong>
+            <p class="summary-copy">Prompts where your brand appears inconsistently or weakly.</p>
+        </article>
+
+        <article class="summary-stat-card">
+            <span class="summary-label">Next Move</span>
+            <strong class="summary-value summary-value-text">{{ best_next_move }}</strong>
+            <p class="summary-copy">Use this as the next workflow focus.</p>
+        </article>
     </section>
 
     <section class="tracking-status-band">
         <div class="tracking-status-copy">
             <span class="section-kicker">Tracking Status</span>
-
-            {% if tracking_ready %}
-                <h2>Tracking active</h2>
-                <p>Review low-scoring prompts and competitor gaps below.</p>
-            {% else %}
-                <h2>Collecting data</h2>
-                <p>Analyzing AI responses for your prompts.</p>
-            {% endif %}
+            <h2>{% if tracking_ready %}Tracking active{% else %}Collecting data{% endif %}</h2>
+            <p>
+                {% if tracking_ready %}
+                    Review the weakest prompts first and identify which competitor is appearing where your brand is missing.
+                {% else %}
+                    Your tracking set is being prepared.
+                {% endif %}
+            </p>
         </div>
 
         <div class="tracking-progress-card">
@@ -99,116 +122,87 @@
         </div>
     </section>
 
-<section class="tracking-summary-grid">
-    <article class="summary-stat-card">
-        <span class="summary-label">Prompts Tracked</span>
-        <strong class="summary-value">{{ total_prompts }}</strong>
-        <p class="summary-copy">Queries being monitored for AI visibility.</p>
-    </article>
-
-    <article class="summary-stat-card">
-        <span class="summary-label">Brand Mentioned</span>
-        <strong class="summary-value">{{ mentioned_count }}</strong>
-        <p class="summary-copy">Prompts where your brand is currently appearing clearly.</p>
-    </article>
-
-    <article class="summary-stat-card">
-        <span class="summary-label">Partial Presence</span>
-        <strong class="summary-value">{{ partial_count }}</strong>
-        <p class="summary-copy">Prompts where your brand appears inconsistently.</p>
-    </article>
-
-    <article class="summary-stat-card">
-        <span class="summary-label">Next Move</span>
-        <strong class="summary-value summary-value-text">{{ best_next_move }}</strong>
-        <p class="summary-copy">Use this as your next workflow action.</p>
-    </article>
-</section>
-
     <section class="tracking-table-card">
         <div class="table-card-header">
             <div>
                 <span class="section-kicker">Tracked Prompts</span>
                 <h2 class="section-title">Prompt visibility overview</h2>
+                <p class="section-copy">Review score, visibility, competitor presence, and opportunity level for each prompt.</p>
             </div>
         </div>
 
         <div class="table-responsive">
             <table class="tracking-table">
-<thead>
-    <tr>
-        <th>Prompt</th>
-        <th>Score</th>
-        <th>Band</th>
-        <th>Visibility</th>
-        <th>Your Brand</th>
-        <th>Brand Position</th>
-        <th>Top Competitor</th>
-        <th>Competitors</th>
-        <th>Source Support</th>
-        <th>Opportunity</th>
-        <th>Last Checked</th>
-        <th>Change</th>
-    </tr>
-</thead>
+                <thead>
+                    <tr>
+                        <th>Prompt</th>
+                        <th>Score</th>
+                        <th>Visibility</th>
+                        <th>Your Brand</th>
+                        <th>Brand Position</th>
+                        <th>Top Competitor</th>
+                        <th>Competitors</th>
+                        <th>Source Support</th>
+                        <th>Opportunity</th>
+                        <th>Last Checked</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
 
                 <tbody>
-                    {% if tracked_prompts %}
-                        {% for row in tracked_prompts | sort(attribute='prompt_score') %}
-                        <tr class="{% if row.prompt_score < 50 %}row-critical{% elif row.prompt_score < 70 %}row-warning{% endif %}">
+                    {% for row in tracked_prompts | sort(attribute='prompt_score') %}
+                    <tr class="{% if row.prompt_score < 50 %}row-critical{% elif row.prompt_score < 70 %}row-warning{% endif %}">
+                        <td>
+                            <a href="{{ url_for(
+                                'prompt_detail_page',
+                                prompt=row.prompt,
+                                domain=project_domain,
+                                platform=selected_platform,
+                                market=selected_market,
+                                topic=tracked_topic
+                            ) }}" class="prompt-detail-link">
+                                {{ row.prompt }}
+                            </a>
+                        </td>
 
-                            <td>
-                                <a href="{{ url_for('prompt_detail_page',
-                                    prompt=row.prompt,
-                                    domain=project_domain,
-                                    platform=selected_platform,
-                                    market=selected_market,
-                                    topic=tracked_topic
-                                ) }}" class="prompt-detail-link">
-                                    {{ row.prompt }}
-                                </a>
-                            </td>
-
-                            <td>
-                                <div class="score-cell">
-                                    <span class="score-pill score-{{ row.score_band|lower }}">
-                                        {{ row.prompt_score }}
-                                    </span>
-                                    <small>
-                                        {% if row.prompt_score < 50 %}
-                                            High opportunity — create content
-                                        {% elif row.prompt_score < 70 %}
-                                            Improve positioning
-                                        {% else %}
-                                            Maintain visibility
-                                        {% endif %}
-                                    </small>
-                                </div>
-                            </td>
-
-                            <td>
-                                <span class="visibility-pill visibility-{{ row.visibility|lower }}">
-                                    {{ row.visibility }}
+                        <td>
+                            <div class="score-cell">
+                                <span class="score-pill score-{{ row.score_band|lower }}">
+                                    {{ row.prompt_score }}
                                 </span>
-                            </td>
+                                <small>
+                                    {% if row.prompt_score < 50 %}
+                                        High opportunity
+                                    {% elif row.prompt_score < 70 %}
+                                        Needs improvement
+                                    {% else %}
+                                        Strong coverage
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </td>
 
-                            <td>
-                                <span class="mention-pill mention-{{ row.mentioned|lower|replace(' ', '-') }}">
-                                    {{ row.mentioned }}
-                                </span>
-                            </td>
+                        <td>
+                            <span class="visibility-pill visibility-{{ row.visibility|lower }}">
+                                {{ row.visibility }}
+                            </span>
+                        </td>
 
-                            <td>{{ row.top_competitor or "—" }}</td>
-                            <td>{{ row.last_checked }}</td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding:30px;">
-                                No prompt data available yet.
-                            </td>
-                        </tr>
-                    {% endif %}
+                        <td>
+                            <span class="mention-pill mention-{{ row.mentioned|lower|replace(' ', '-') }}">
+                                {{ row.mentioned }}
+                            </span>
+                        </td>
+
+                        <td>{{ row.brand_position or "—" }}</td>
+                        <td>{{ row.top_competitor or "—" }}</td>
+                        <td>{{ row.competitor_count if row.competitor_count is not none else "—" }}</td>
+                        <td>{{ row.source_support or "—" }}</td>
+                        <td>{{ row.opportunity_label or "—" }}</td>
+                        <td>{{ row.last_checked or "—" }}</td>
+                        <td>{{ row.change or "—" }}</td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -219,29 +213,20 @@
 </div>
 
 <style>
-.tracking-shell {
+.tracking-shell-clean {
     display: grid;
-    gap: 28px;
+    gap: 20px;
 }
 
-.tracking-hero-card,
 .tracking-status-band,
 .summary-stat-card,
-.tracking-action-card,
 .tracking-table-card,
-.tracking-empty {
+.tracking-empty,
+.tracking-meta-card {
     background: #ffffff;
     border: 1px solid #e8edf5;
-    border-radius: 24px;
+    border-radius: 22px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.tracking-hero-card {
-    padding: 32px;
-    display: grid;
-    gap: 24px;
-    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
-    border-color: #ece8ff;
 }
 
 .section-kicker {
@@ -257,56 +242,6 @@
     line-height: 1;
 }
 
-.tracking-hero-main h1 {
-    margin: 14px 0 0;
-    font-size: clamp(36px, 5vw, 58px);
-    line-height: 1.02;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: #16243c;
-    max-width: 840px;
-}
-
-.tracking-hero-text {
-    margin: 16px 0 0;
-    max-width: 820px;
-    font-size: 17px;
-    line-height: 1.72;
-    color: #627084;
-}
-
-.tracking-hero-guidance {
-    margin-top: 22px;
-    padding: 18px 20px;
-    border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    display: grid;
-    gap: 8px;
-    max-width: 760px;
-}
-
-.guidance-label {
-    font-size: 12px;
-    font-weight: 800;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.tracking-hero-guidance strong {
-    color: #16243c;
-    font-size: 18px;
-    line-height: 1.25;
-}
-
-.tracking-hero-guidance p {
-    margin: 0;
-    color: #627084;
-    line-height: 1.6;
-    font-size: 14px;
-}
-
 .tracking-meta-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -314,10 +249,8 @@
 }
 
 .tracking-meta-card {
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    border-radius: 18px;
     padding: 16px;
+    background: #f8fafc;
 }
 
 .tracking-meta-card span {
@@ -335,48 +268,35 @@
 }
 
 .tracking-empty {
-    padding: 32px;
+    padding: 30px;
     text-align: center;
 }
 
 .tracking-empty h2 {
-    margin: 0 0 10px;
+    margin: 14px 0 10px;
     color: #16243c;
     font-size: 28px;
 }
 
 .tracking-empty p {
-    margin: 0;
+    margin: 0 auto;
+    max-width: 700px;
     color: #627084;
     font-size: 15px;
     line-height: 1.7;
 }
 
-.tracking-insight-banner {
-    padding: 16px 18px;
-    border-radius: 16px;
-    background: #f4f7ff;
-    border: 1px solid #dbe3ff;
-    font-size: 14px;
-}
-
-.row-critical {
-    background: #fff6f3;
-}
-
-.row-warning {
-    background: #fffaf0;
-}
-
 .tracking-empty-actions {
-    margin-top: 20px;
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
 }
 
 .tracking-status-band {
-    padding: 24px;
+    padding: 22px;
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-    gap: 24px;
+    gap: 20px;
     align-items: center;
     background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
     border-color: #ece8ff;
@@ -385,21 +305,20 @@
 .tracking-status-copy h2 {
     margin: 10px 0 0;
     color: #16243c;
-    font-size: 30px;
+    font-size: 28px;
     line-height: 1.12;
 }
 
 .tracking-status-copy p {
-    margin: 14px 0 0;
+    margin: 12px 0 0;
     color: #627084;
     font-size: 15px;
     line-height: 1.7;
-    max-width: 760px;
 }
 
 .tracking-progress-card {
     padding: 20px;
-    border-radius: 20px;
+    border-radius: 18px;
     background: #f8fafc;
     border: 1px solid #e7ebf3;
 }
@@ -435,14 +354,6 @@
     height: 100%;
     border-radius: 999px;
     background: linear-gradient(90deg, #6d4aff, #2e9cff);
-    transition: width 0.25s ease;
-}
-
-.tracking-progress-note {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
 }
 
 .tracking-summary-grid {
@@ -452,7 +363,7 @@
 }
 
 .summary-stat-card {
-    padding: 22px;
+    padding: 20px;
 }
 
 .summary-label {
@@ -474,7 +385,7 @@
 }
 
 .summary-value-text {
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1.2;
 }
 
@@ -483,38 +394,6 @@
     color: #627084;
     font-size: 14px;
     line-height: 1.6;
-}
-
-.tracking-action-card {
-    padding: 24px 26px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 20px;
-    align-items: center;
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border-color: #ffe1d5;
-}
-
-.action-card-copy h2 {
-    margin: 10px 0 0;
-    color: #16243c;
-    font-size: 30px;
-    line-height: 1.1;
-}
-
-.action-card-copy p {
-    margin: 14px 0 0;
-    color: #627084;
-    font-size: 15px;
-    line-height: 1.7;
-    max-width: 760px;
-}
-
-.action-card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: flex-end;
 }
 
 .tracking-table-card {
@@ -552,7 +431,7 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 980px;
+    min-width: 1200px;
 }
 
 .tracking-table th,
@@ -582,9 +461,7 @@
     text-decoration: underline;
 }
 
-.status-pill,
 .visibility-pill,
-.change-pill,
 .mention-pill,
 .score-pill {
     display: inline-flex;
@@ -652,6 +529,14 @@
     color: #e35b35;
 }
 
+.row-critical {
+    background: #fff6f3;
+}
+
+.row-warning {
+    background: #fffaf0;
+}
+
 @media (max-width: 1200px) {
     .tracking-meta-grid,
     .tracking-summary-grid {
@@ -663,28 +548,14 @@
     }
 }
 
-@media (max-width: 900px) {
-    .tracking-action-card,
-    .table-card-header {
-        grid-template-columns: 1fr;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .action-card-actions {
-        justify-content: flex-start;
-    }
-}
-
 @media (max-width: 768px) {
-    .tracking-hero-card,
     .tracking-status-band,
     .summary-stat-card,
-    .tracking-action-card,
     .tracking-table-card,
-    .tracking-empty {
+    .tracking-empty,
+    .tracking-meta-card {
         padding: 18px;
-        border-radius: 20px;
+        border-radius: 18px;
     }
 
     .tracking-meta-grid,
@@ -692,15 +563,9 @@
         grid-template-columns: 1fr;
     }
 
-    .table-responsive,
-    .action-card-actions,
-    .action-card-actions .btn {
+    .tracking-empty-actions .btn,
+    .page-header-actions .btn {
         width: 100%;
-    }
-
-    .tracking-hero-main h1,
-    .action-card-copy h2 {
-        font-size: 32px;
     }
 
     .section-title {

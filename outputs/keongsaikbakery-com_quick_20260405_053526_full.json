@@ -1,0 +1,765 @@
+{
+  "meta": {
+    "website": "https://www.keongsaikbakery.com/",
+    "website_normalized": "keongsaikbakery.com",
+    "industry": "Bakery",
+    "location": "Singapore",
+    "audit_type": "quick",
+    "topic": null,
+    "client_id": "test",
+    "client_name": null,
+    "user_id": 1,
+    "saved_at": "2026-04-05T05:35:26",
+    "schema_version": "2.0"
+  },
+  "scores": {
+    "normalized_score": 41.1,
+    "visibility_score": 0.0,
+    "content_score": 5.0,
+    "schema_score": 5.0,
+    "entity_score": 2.0,
+    "technical_score": 10.0,
+    "avg_query_score": 4.0,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "https://www.keongsaikbakery.com/ is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Bakery Singapore'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Target missed query: best Bakery Singapore",
+      "Target missed query: top Bakery Singapore"
+    ]
+  },
+  "query_analysis": [
+    {
+      "query": "best Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "BreadTalk** – Popular local chain with a wide range of pastries and breads.",
+        "Cedele** – Known for healthier options and wholegrain breads.",
+        "Baker & Cook** – Offers rustic breads and creative pastries.",
+        "Plain Vanilla Bakery** – Great for cupcakes and cakes with a cozy vibe."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "top Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "BreadTalk** – Popular local chain with a wide range of breads and pastries.",
+        "Baker & Cook** – Known for rustic breads and creative pastries.",
+        "Cedele** – Offers wholesome, natural ingredients with a variety of baked goods.",
+        "The Fabulous Baker Boy** – Renowned for cakes and desserts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Bakery services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – popular for a wide variety of breads and cakes.",
+        "Cedele** – known for healthy, artisanal baked goods.",
+        "Awfully Chocolate** – specializes in rich chocolate cakes.",
+        "Tiong Bahru Bakery** – offers French-style pastries and breads.",
+        "Baker & Cook** – artisanal bakery with fresh breads and cakes."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "recommended Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – famous for its croissants and artisanal breads.",
+        "BreadTalk** – popular local chain with a wide variety of pastries and breads.",
+        "Cedele** – known for healthier options and wholegrain breads.",
+        "Baker & Cook** – offers rustic breads and creative pastries.",
+        "Plain Vanilla Bakery** – loved for cupcakes and cookies."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Bakery company Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – Popular for a wide range of breads, cakes, and pastries.",
+        "Awfully Chocolate** – Famous for rich chocolate cakes and desserts.",
+        "Tiong Bahru Bakery** – Known for artisanal breads and French pastries.",
+        "Cedele** – Offers healthier bakery options with natural ingredients.",
+        "Four Leaves** – Established brand with classic cakes and breads."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how much does Bakery cost Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Rental:** SGD 3,000 to SGD 15,000+ per month for commercial space, depending on area.",
+        "Equipment:** SGD 20,000 to SGD 100,000+ for ovens, mixers, display cases.",
+        "Licenses & Permits:** SGD 200 to SGD 1,000 for food shop licenses from the Singapore Food Agency.",
+        "Ingredients & Supplies:** Ongoing costs vary based on product range.",
+        "Staff:** Salaries depend on number and skill level."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how to choose Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**Quality & Freshness** – Look for bakeries known for fresh, high-quality ingredients and well-reviewed products.",
+        "**Variety** – Choose a bakery offering a range of items that suit your taste, whether traditional breads, pastries, or cakes.",
+        "**Specialty** – Some bakeries specialize in certain styles (e.g., French, Japanese, artisanal sourdough).",
+        "**Customer Reviews** – Check online reviews on platforms like Google, Facebook, or food blogs for honest feedback.",
+        "**Location & Convenience** – Pick a bakery near you or one that offers delivery."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "what is the best Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "Baker & Cook** – Offers a wide range of pastries, breads, and cakes with a focus on natural ingredients.",
+        "Cedele** – Known for wholesome, healthy baked goods and sandwiches.",
+        "Plain Vanilla Bakery** – Popular for cupcakes and rustic cakes.",
+        "Twenty Grammes** – Renowned for its sourdough and creative pastries."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "who are the top Bakery companies Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk Group** – Famous for innovative bread and pastries, with a strong local and international presence.",
+        "Four Leaves** – Well-known for cakes, pastries, and traditional Asian bakery items.",
+        "Cedele** – Offers artisanal breads, cakes, and healthy baked goods.",
+        "Polar Puffs & Cakes** – Popular for cakes, puffs, and local favorites.",
+        "Awfully Chocolate** – Renowned for chocolate cakes and desserts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "affordable Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – popular for budget-friendly breads and cakes.",
+        "Four Leaves** – offers good value pastries and cakes.",
+        "Polar Puffs & Cakes** – known for affordable cakes and puffs.",
+        "Bakerzin** – mid-range prices with quality baked goods.",
+        "Local neighborhood bakeries in HDB areas often have great deals too."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Bakery companies in Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – Famous for its wide range of breads and pastries.",
+        "Four Leaves** – Popular for cakes, breads, and local delights.",
+        "Cedele** – Known for healthier bakery options and artisanal breads.",
+        "Tiong Bahru Bakery** – Renowned for French-style pastries and breads.",
+        "Awfully Chocolate** – Specializes in chocolate cakes and desserts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "compare Bakery services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**BreadTalk**",
+        "Wide variety of breads, cakes, and pastries",
+        "Known for innovative flavors and affordable prices",
+        "Multiple outlets islandwide",
+        "**Cedele**"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    }
+  ],
+  "competitor_analysis": {
+    "top_competitors": [
+      {
+        "name": "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "mention_count": 3
+      },
+      {
+        "name": "BreadTalk** – Popular local chain with a wide range of pastries and breads.",
+        "mention_count": 1
+      },
+      {
+        "name": "Cedele** – Known for healthier options and wholegrain breads.",
+        "mention_count": 1
+      },
+      {
+        "name": "Baker & Cook** – Offers rustic breads and creative pastries.",
+        "mention_count": 1
+      },
+      {
+        "name": "Plain Vanilla Bakery** – Great for cupcakes and cakes with a cozy vibe.",
+        "mention_count": 1
+      },
+      {
+        "name": "BreadTalk** – Popular local chain with a wide range of breads and pastries.",
+        "mention_count": 1
+      },
+      {
+        "name": "Baker & Cook** – Known for rustic breads and creative pastries.",
+        "mention_count": 1
+      },
+      {
+        "name": "Cedele** – Offers wholesome, natural ingredients with a variety of baked goods.",
+        "mention_count": 1
+      },
+      {
+        "name": "The Fabulous Baker Boy** – Renowned for cakes and desserts.",
+        "mention_count": 1
+      },
+      {
+        "name": "BreadTalk** – popular for a wide variety of breads and cakes.",
+        "mention_count": 1
+      }
+    ],
+    "total_distinct_competitors": 58
+  },
+  "site_findings": {
+    "content_depth_score": 5.0,
+    "schema_score": 5.0,
+    "entity_score": 2.0,
+    "technical_score": 10.0,
+    "technical_issues": [],
+    "content_gaps": [],
+    "entity_gaps": [],
+    "schema_gaps": [],
+    "notes": []
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Bakery Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'best Bakery Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Bakery Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Tiong Bahru Bakery** – Famous for its croissants and artisanal breads., BreadTalk** – Popular local chain with a wide range of pastries and breads., Cedele** – Known for healthier options and wholegrain breads."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Bakery Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'top Bakery Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Bakery Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Tiong Bahru Bakery** – Famous for its croissants and artisanal breads., BreadTalk** – Popular local chain with a wide range of breads and pastries., Baker & Cook** – Known for rustic breads and creative pastries."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Bakery services Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Bakery services Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Bakery services Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: BreadTalk** – popular for a wide variety of breads and cakes., Cedele** – known for healthy, artisanal baked goods., Awfully Chocolate** – specializes in rich chocolate cakes."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: recommended Bakery Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'recommended Bakery Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "recommended Bakery Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Tiong Bahru Bakery** – famous for its croissants and artisanal breads., BreadTalk** – popular local chain with a wide variety of pastries and breads., Cedele** – known for healthier options and wholegrain breads."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Bakery company Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Bakery company Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Bakery company Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: BreadTalk** – Popular for a wide range of breads, cakes, and pastries., Awfully Chocolate** – Famous for rich chocolate cakes and desserts., Tiong Bahru Bakery** – Known for artisanal breads and French pastries."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: how much does Bakery cost Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'how much does Bakery cost Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "how much does Bakery cost Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Rental:** SGD 3,000 to SGD 15,000+ per month for commercial space, depending on area., Equipment:** SGD 20,000 to SGD 100,000+ for ovens, mixers, display cases., Licenses & Permits:** SGD 200 to SGD 1,000 for food shop licenses from the Singapore Food Agency."
+    },
+    {
+      "category": "entity_fix",
+      "priority": "medium",
+      "title": "Clarify brand and entity signals",
+      "issue": "Entity clarity is weak.",
+      "why_it_matters": "If your site does not clearly explain who you are, what you offer, and how you differ, answer engines may prefer more explicit competitors.",
+      "recommended_fix": "Strengthen homepage, about page, and core service pages with clearer positioning, repeated brand signals, proof, and differentiators.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low entity score in latest audit."
+    },
+    {
+      "category": "competitor_counter",
+      "priority": "medium",
+      "title": "Build counter-positioning against Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+      "issue": "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads. appears repeatedly in tracked answer comparisons.",
+      "why_it_matters": "Repeated competitor presence suggests stronger topic ownership or clearer entity positioning.",
+      "recommended_fix": "Create competitor-aware comparison pages, differentiation content, and FAQ content showing when  is a better fit.",
+      "linked_query": null,
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads. appeared in 3 tracked queries."
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Bakery Singapore",
+      "target_query": "best Bakery Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Bakery Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Bakery Singapore",
+      "target_query": "top Bakery Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Bakery Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Bakery services Singapore",
+      "target_query": "Bakery services Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery services Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Bakery Singapore",
+      "target_query": "recommended Bakery Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Bakery Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Bakery company Singapore",
+      "target_query": "Bakery company Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Bakery company Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "how much does Bakery cost Singapore",
+      "target_query": "how much does Bakery cost Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: how much does Bakery cost Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "ai_answer_results": [
+    {
+      "query": "best Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "BreadTalk** – Popular local chain with a wide range of pastries and breads.",
+        "Cedele** – Known for healthier options and wholegrain breads.",
+        "Baker & Cook** – Offers rustic breads and creative pastries.",
+        "Plain Vanilla Bakery** – Great for cupcakes and cakes with a cozy vibe."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "top Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "BreadTalk** – Popular local chain with a wide range of breads and pastries.",
+        "Baker & Cook** – Known for rustic breads and creative pastries.",
+        "Cedele** – Offers wholesome, natural ingredients with a variety of baked goods.",
+        "The Fabulous Baker Boy** – Renowned for cakes and desserts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Bakery services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – popular for a wide variety of breads and cakes.",
+        "Cedele** – known for healthy, artisanal baked goods.",
+        "Awfully Chocolate** – specializes in rich chocolate cakes.",
+        "Tiong Bahru Bakery** – offers French-style pastries and breads.",
+        "Baker & Cook** – artisanal bakery with fresh breads and cakes."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "recommended Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – famous for its croissants and artisanal breads.",
+        "BreadTalk** – popular local chain with a wide variety of pastries and breads.",
+        "Cedele** – known for healthier options and wholegrain breads.",
+        "Baker & Cook** – offers rustic breads and creative pastries.",
+        "Plain Vanilla Bakery** – loved for cupcakes and cookies."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Bakery company Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – Popular for a wide range of breads, cakes, and pastries.",
+        "Awfully Chocolate** – Famous for rich chocolate cakes and desserts.",
+        "Tiong Bahru Bakery** – Known for artisanal breads and French pastries.",
+        "Cedele** – Offers healthier bakery options with natural ingredients.",
+        "Four Leaves** – Established brand with classic cakes and breads."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how much does Bakery cost Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Rental:** SGD 3,000 to SGD 15,000+ per month for commercial space, depending on area.",
+        "Equipment:** SGD 20,000 to SGD 100,000+ for ovens, mixers, display cases.",
+        "Licenses & Permits:** SGD 200 to SGD 1,000 for food shop licenses from the Singapore Food Agency.",
+        "Ingredients & Supplies:** Ongoing costs vary based on product range.",
+        "Staff:** Salaries depend on number and skill level."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how to choose Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**Quality & Freshness** – Look for bakeries known for fresh, high-quality ingredients and well-reviewed products.",
+        "**Variety** – Choose a bakery offering a range of items that suit your taste, whether traditional breads, pastries, or cakes.",
+        "**Specialty** – Some bakeries specialize in certain styles (e.g., French, Japanese, artisanal sourdough).",
+        "**Customer Reviews** – Check online reviews on platforms like Google, Facebook, or food blogs for honest feedback.",
+        "**Location & Convenience** – Pick a bakery near you or one that offers delivery."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "what is the best Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Tiong Bahru Bakery** – Famous for its croissants and artisanal breads.",
+        "Baker & Cook** – Offers a wide range of pastries, breads, and cakes with a focus on natural ingredients.",
+        "Cedele** – Known for wholesome, healthy baked goods and sandwiches.",
+        "Plain Vanilla Bakery** – Popular for cupcakes and rustic cakes.",
+        "Twenty Grammes** – Renowned for its sourdough and creative pastries."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "who are the top Bakery companies Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk Group** – Famous for innovative bread and pastries, with a strong local and international presence.",
+        "Four Leaves** – Well-known for cakes, pastries, and traditional Asian bakery items.",
+        "Cedele** – Offers artisanal breads, cakes, and healthy baked goods.",
+        "Polar Puffs & Cakes** – Popular for cakes, puffs, and local favorites.",
+        "Awfully Chocolate** – Renowned for chocolate cakes and desserts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "affordable Bakery Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – popular for budget-friendly breads and cakes.",
+        "Four Leaves** – offers good value pastries and cakes.",
+        "Polar Puffs & Cakes** – known for affordable cakes and puffs.",
+        "Bakerzin** – mid-range prices with quality baked goods.",
+        "Local neighborhood bakeries in HDB areas often have great deals too."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Bakery companies in Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "BreadTalk** – Famous for its wide range of breads and pastries.",
+        "Four Leaves** – Popular for cakes, breads, and local delights.",
+        "Cedele** – Known for healthier bakery options and artisanal breads.",
+        "Tiong Bahru Bakery** – Renowned for French-style pastries and breads.",
+        "Awfully Chocolate** – Specializes in chocolate cakes and desserts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "compare Bakery services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**BreadTalk**",
+        "Wide variety of breads, cakes, and pastries",
+        "Known for innovative flavors and affordable prices",
+        "Multiple outlets islandwide",
+        "**Cedele**"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    }
+  ],
+  "website": "https://www.keongsaikbakery.com/",
+  "client_id": "test",
+  "client_name": null,
+  "user_id": 1,
+  "audit_type": "quick",
+  "saved_at": "2026-04-05T05:35:26"
+}

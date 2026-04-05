@@ -20,16 +20,17 @@ discover_competitors = _safe_import("competitor_agent", "discover_competitors")
 audit_website = _safe_import("audit_agent", "audit_website")
 calculate_visibility_score = _safe_import("visibility_agent", "calculate_visibility_score")
 build_report = _safe_import("report_agent", "build_report")
-
+run_ai_answer_test = _safe_import("ai_answer_agent", "run_ai_answer_test")
 
 def _safe_call(func, *args, **kwargs):
     if not callable(func):
+        print("SAFE CALL FAILED: function not callable")
         return None
     try:
         return func(*args, **kwargs)
-    except Exception:
+    except Exception as e:
+        print(f"SAFE CALL ERROR in {getattr(func, '__name__', 'unknown')}: {e}")
         return None
-
 
 def _normalize_query_list(raw_queries: Any, industry: str, website: str, topic: Optional[str]) -> List[str]:
     if isinstance(raw_queries, list):
@@ -52,6 +53,22 @@ def _normalize_query_list(raw_queries: Any, industry: str, website: str, topic: 
 
 
 def _normalize_competitors(raw_competitors: Any) -> List[str]:
+    if isinstance(raw_competitors, dict):
+        direct = raw_competitors.get("direct_competitors", []) or []
+        cleaned = []
+
+        for item in direct:
+            if isinstance(item, (list, tuple)) and len(item) >= 1:
+                cleaned.append(str(item[0]).strip())
+            elif isinstance(item, dict):
+                name = item.get("name") or item.get("domain") or item.get("website")
+                if name:
+                    cleaned.append(str(name).strip())
+            elif item:
+                cleaned.append(str(item).strip())
+
+        return cleaned[:10]
+
     if isinstance(raw_competitors, list):
         cleaned = []
         for item in raw_competitors:
@@ -62,8 +79,8 @@ def _normalize_competitors(raw_competitors: Any) -> List[str]:
             elif item:
                 cleaned.append(str(item).strip())
         return cleaned[:10]
-    return []
 
+    return []
 
 def _simulate_ai_answer_results(
     *,
@@ -73,36 +90,47 @@ def _simulate_ai_answer_results(
     competitors: List[str],
     audit_data: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
-    """
-    Temporary deterministic heuristic layer.
-    Replace this later with your real AI-answer testing agent.
-    """
     results: List[Dict[str, Any]] = []
 
-    base_visibility = 0.35
-    if audit_data.get("content_score", 0) >= 6:
-        base_visibility += 0.12
-    if audit_data.get("schema_score", 0) >= 6:
-        base_visibility += 0.08
-    if audit_data.get("entity_score", 0) >= 6:
-        base_visibility += 0.10
+    content_score = min(float(audit_data.get("content_score", 0) or 0), 10)
+    schema_score = min(float(audit_data.get("schema_score", 0) or 0), 10)
+    entity_score = min(float(audit_data.get("entity_score", 0) or 0), 10)
+    technical_score = min(float(audit_data.get("technical_score", 0) or 0), 10)
+
+    # Much stricter baseline
+    base_visibility = 0.02
+    base_visibility += content_score * 0.015
+    base_visibility += schema_score * 0.010
+    base_visibility += entity_score * 0.014
+    base_visibility += technical_score * 0.010
 
     for idx, query in enumerate(queries):
         q = query.lower()
-
         query_bonus = 0.0
-        if "vs" in q or "alternative" in q:
-            query_bonus -= 0.08
+
+        if "vs" in q or "alternative" in q or "alternatives" in q:
+            query_bonus -= 0.10
+
         if q.startswith("what ") or q.startswith("how "):
-            query_bonus += 0.05
+            query_bonus += 0.03
+
         if "pricing" in q:
-            query_bonus -= 0.02
+            query_bonus -= 0.04
 
-        visibility_probability = max(0.05, min(0.95, base_visibility + query_bonus))
-        score = round(3 + (visibility_probability * 7), 2)
+        visibility_probability = max(0.01, min(0.85, base_visibility + query_bonus))
+        score = round(2 + (visibility_probability * 6), 2)
 
-        brand_mentioned = visibility_probability >= 0.5
-        brand_position = 2 if brand_mentioned else None
+        # Harder to get brand mentioned
+        brand_mentioned = score >= 4.8 and entity_score >= 4.0 and content_score >= 4.0
+
+        if not brand_mentioned:
+            brand_position = None
+        elif score >= 6.8:
+            brand_position = 1
+        elif score >= 5.8:
+            brand_position = 2
+        else:
+            brand_position = 3
 
         competitors_mentioned = []
         if competitors:
@@ -130,7 +158,6 @@ def _simulate_ai_answer_results(
 
     return results
 
-
 def _extract_site_scores(raw_audit: Any) -> Dict[str, Any]:
     if not isinstance(raw_audit, dict):
         return {
@@ -156,13 +183,13 @@ def _extract_site_scores(raw_audit: Any) -> Dict[str, Any]:
         technical_score = raw_audit.get("scores", {}).get("technical_score", 4.0)
 
     return {
-        "content_score": float(content_score or 0),
-        "schema_score": float(schema_score or 0),
-        "entity_score": float(entity_score or 0),
-        "technical_score": float(technical_score or 0),
+        "content_score": float(content_score if content_score is not None else 0),
+        "schema_score": float(schema_score if schema_score is not None else 0),
+        "entity_score": float(entity_score if entity_score is not None else 0),
+        "technical_score": float(technical_score if technical_score is not None else 0),
         "site_findings": raw_audit.get("site_findings", raw_audit),
+        "used_fallback_scores": any(v is None for v in [content_score, schema_score, entity_score, technical_score]),
     }
-
 
 def run_audit_for_input(
     *,
@@ -194,10 +221,8 @@ def run_audit_for_input(
 
     raw_queries = _safe_call(
         generate_queries,
-        website=website,
-        industry=industry,
+        topic=topic or industry,
         location=location,
-        topic=topic,
     )
     print("raw_queries:", raw_queries)
 
@@ -208,26 +233,17 @@ def run_audit_for_input(
         topic=topic,
     )
     print("queries:", queries)
-
+    
     raw_competitors = _safe_call(
         discover_competitors,
-        website=website,
-        industry=industry,
-        location=location,
+        queries=queries,
     )
     print("raw_competitors:", raw_competitors)
 
     competitors = _normalize_competitors(raw_competitors)
     print("competitors:", competitors)
 
-    raw_audit = _safe_call(
-        audit_website,
-        website=website,
-        industry=industry,
-        location=location,
-        audit_type=audit_type,
-        topic=topic,
-    ) or {}
+    raw_audit = _safe_call(audit_website, website) or {}
     print("raw_audit:", raw_audit)
 
     extracted_scores = _extract_site_scores(raw_audit)
@@ -235,13 +251,33 @@ def run_audit_for_input(
 
     raw_audit.update(extracted_scores)
 
-    ai_answer_results = _simulate_ai_answer_results(
-        queries=queries,
-        client_name=client_name or website,
-        website=website,
-        competitors=competitors,
-        audit_data=raw_audit,
-    )
+    brand_name = client_name or website.replace("https://", "").replace("http://", "").replace("www.", "").split(".")[0].replace("-", " ").title()
+
+    business_profile = {
+        "title": brand_name
+    }
+
+    try:
+        ai_answer_results = run_ai_answer_test(
+            queries_to_test=queries,
+            business_profile=business_profile,
+        ) or []
+        print("REAL AI ANSWER TEST USED")
+        print("ai_answer_results sample:", ai_answer_results[:2])
+    except Exception as e:
+        print("REAL AI ANSWER TEST FAILED:", str(e))
+        ai_answer_results = []
+
+    if not ai_answer_results:
+        print("FALLING BACK TO SIMULATED AI ANSWERS")
+        ai_answer_results = _simulate_ai_answer_results(
+            queries=queries,
+            client_name=client_name or website,
+            website=website,
+            competitors=competitors,
+            audit_data=raw_audit,
+        )
+
     print("ai_answer_results count:", len(ai_answer_results))
 
     payload = build_audit_payload(

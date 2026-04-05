@@ -303,16 +303,47 @@ def audit_website(website, debug=False):
         "faq_pages": faq_pages,
         "question_headings": question_headings,
         "schema_types": sorted(all_schema),
-        "content_score": content_score,
-        "schema_score": schema_score,
-        "content_score_breakdown": {
-            "service_score": service_score,
-            "blog_score": blog_score,
-            "faq_score": faq_score,
-            "question_score": question_score
-        }
-    }
 
+        "content_score": float(content_score),
+        "schema_score": float(schema_score),
+
+        # new fields expected by audit_runner
+        "entity_score": float(min(
+            10,
+            (2 if "Organization" in all_schema else 0) +
+            (2 if "LocalBusiness" in all_schema else 0) +
+            (2 if service_pages > 0 else 0) +
+            (2 if faq_pages > 0 else 0) +
+            (2 if question_headings >= 3 else 0)
+        )),
+        "technical_score": float(min(
+            10,
+            4 +
+            (2 if pages_to_check else 0) +
+            (2 if homepage_html else 0) +
+            (2 if len(links) >= 3 else 0)
+        )),
+
+        "site_findings": {
+            "pages_checked": len(pages_to_check),
+            "service_pages": service_pages,
+            "blog_pages": blog_pages,
+            "faq_pages": faq_pages,
+            "question_headings": question_headings,
+            "schema_types": sorted(all_schema),
+            "content_score_breakdown": {
+                "service_score": service_score,
+                "blog_score": blog_score,
+                "faq_score": faq_score,
+                "question_score": question_score,
+            },
+            "technical_issues": [],
+            "content_gaps": [],
+            "entity_gaps": [],
+            "schema_gaps": [],
+            "notes": [],
+        },
+    }
 
 if __name__ == "__main__":
     print("\n=== TEST 1: Keong Saik Bakery FAQ page ===")

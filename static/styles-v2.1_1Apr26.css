@@ -7600,9 +7600,20 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .dashboard-hero-v3 {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
-    gap: 18px;
+    grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.95fr);
+    gap: 20px;
     align-items: stretch;
+}
+
+.dashboard-hero-copy-card,
+.dashboard-score-panel {
+    min-height: 100%;
+}
+
+.dashboard-hero-copy-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .dashboard-hero-copy-card,
@@ -7978,15 +7989,91 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     font-size: 14px;
 }
 
-@media (max-width: 1100px) {
-    .dashboard-hero-v3,
-    .dashboard-insights-v3,
-    .dashboard-clients-grid {
+.dashboard-v3 {
+    display: grid;
+    gap: 20px;
+}
+
+.dashboard-hero-copy-card,
+.dashboard-score-panel {
+    min-height: 100%;
+}
+
+.dashboard-hero-copy-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.dashboard-score-panel {
+    padding: 22px;
+    background: linear-gradient(180deg, #fff8f2 0%, #ffffff 100%);
+    border: 1px solid #f2dfd2;
+    border-radius: 20px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.dashboard-insights-v3 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.dashboard-clients-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-hero-v3 {
         grid-template-columns: 1fr;
     }
 
-    .dashboard-hero-mini-grid {
+    .dashboard-insights-v3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-clients-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-v3 {
+        gap: 18px;
+    }
+
+    .dashboard-hero-copy-card,
+    .dashboard-score-panel,
+    .dashboard-metric-card,
+    .dashboard-next-card,
+    .dashboard-client-card,
+    .dashboard-empty-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .dashboard-hero-mini-grid,
+    .dashboard-insights-v3 {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-next-card h3,
+    .dashboard-section-head h2 {
+        font-size: 22px;
+    }
+
+    .dashboard-score-value {
+        font-size: 52px;
+    }
+
+    .dashboard-hero-actions .btn,
+    .dashboard-next-actions .btn {
+        width: 100%;
     }
 }
 

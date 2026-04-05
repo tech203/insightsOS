@@ -5,54 +5,107 @@
 <div class="page-header-standard dashboard-page-header-minimal">
     <div class="page-header-copy">
         <h1>Dashboard</h1>
-        <p>Understand your AI visibility, spot the biggest gaps, and move into the next best action.</p>
+        <p>Review what needs attention, check current visibility signals, and move straight into the next task.</p>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
 {% set aeo_score = overall_score if overall_score is defined else 0 %}
-{% set vis_score = visibility_score if visibility_score is defined else 72 %}
-{% set cont_score = content_score if content_score is defined else 61 %}
-{% set ent_score = entity_score if entity_score is defined else 57 %}
-{% set tr_score = trust_score if trust_score is defined else 66 %}
+{% set vis_score = visibility_score if visibility_score is defined else 0 %}
+{% set cont_score = content_score if content_score is defined else 0 %}
+{% set ent_score = entity_score if entity_score is defined else 0 %}
+{% set tr_score = trust_score if trust_score is defined else 0 %}
 {% set credit_balance = wallet_balance if wallet_balance is defined else 14 %}
 {% set has_clients = clients is defined and clients %}
+{% set primary_client = clients[0] if has_clients else None %}
 
 <div class="dashboard-v3">
 
-    <section class="dashboard-hero-v3">
-        <div class="dashboard-hero-copy-card">
-            <span class="hero-badge">AI Visibility Overview</span>
-            <h1>Grow your AI visibility with clearer next steps</h1>
-            <p>
-                Understand how your brand appears in AI answers, identify where visibility is weak,
-                and move directly into the highest-impact action.
-            </p>
-
-            <div class="dashboard-hero-actions">
-                <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run New Audit</a>
-                <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">View Clients</a>
+    <section class="dashboard-priority-v3">
+        <div class="dashboard-priority-main-card">
+            <div class="dashboard-section-head">
+                <h2>What needs attention now</h2>
+                <p>Start with the highest-value task instead of browsing through the workspace.</p>
             </div>
 
-            <div class="dashboard-hero-mini-grid">
-                <div class="hero-mini-card">
-                    <span>Tracked Prompts</span>
-                    <strong>{{ total_prompts or 0 }}</strong>
-                </div>
-                <div class="hero-mini-card">
-                    <span>Brand Mentioned</span>
-                    <strong>{{ mentioned_count or 0 }}</strong>
-                </div>
-                <div class="hero-mini-card">
-                    <span>Credits</span>
-                    <strong>{{ credit_balance }}</strong>
-                </div>
+            <div class="dashboard-priority-grid">
+                <article class="dashboard-priority-item dashboard-priority-item-featured">
+                    <span class="dashboard-priority-kicker">Latest Audit</span>
+
+                    {% if total_audits and total_audits > 0 %}
+                        <h3>Review your latest audit</h3>
+                        <p>
+                            Open the latest audit findings, check the score breakdown, and see what should be fixed first.
+                        </p>
+                        <div class="dashboard-priority-actions">
+                            {% if primary_client %}
+                                <a href="{{ url_for('client_detail', client_id=primary_client.id) }}" class="btn btn-primary">
+                                    View Audit
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('new_audit') }}" class="btn btn-primary">
+                                    Run Audit
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <h3>Run your first audit</h3>
+                        <p>
+                            Start with an audit to generate visibility findings, opportunity areas, and next action recommendations.
+                        </p>
+                        <div class="dashboard-priority-actions">
+                            <a href="{{ url_for('new_audit') }}" class="btn btn-primary">
+                                Run Audit
+                            </a>
+                        </div>
+                    {% endif %}
+                </article>
+
+                <article class="dashboard-priority-item">
+                    <span class="dashboard-priority-kicker">Content Queue</span>
+                    <h3>Check queued work</h3>
+                    <p>
+                        Review what is waiting, in progress, ready for publishing, or blocked in the content workflow.
+                    </p>
+                    <div class="dashboard-priority-actions">
+                        <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
+                            Open Queue
+                        </a>
+                    </div>
+                </article>
+
+                <article class="dashboard-priority-item">
+                    <span class="dashboard-priority-kicker">Workspaces</span>
+                    {% if has_clients %}
+                        <h3>{{ total_clients or clients|length }} active workspace{% if (total_clients or clients|length) != 1 %}s{% endif %}</h3>
+                        <p>
+                            Open a workspace to review visibility, tracked prompts, competitors, and content actions.
+                        </p>
+                    {% else %}
+                        <h3>No workspace yet</h3>
+                        <p>
+                            Create your first workspace to organise audits, tracking, content opportunities, and reports.
+                        </p>
+                    {% endif %}
+                    <div class="dashboard-priority-actions">
+                        {% if has_clients %}
+                            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">
+                                View Workspaces
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('create_client') }}" class="btn btn-secondary">
+                                Add Workspace
+                            </a>
+                        {% endif %}
+                    </div>
+                </article>
             </div>
         </div>
 
-        <div class="dashboard-score-panel">
-            <span class="dashboard-score-label">AI Visibility Score</span>
+        {% if view_mode == "single" %}
+        <div class="dashboard-ops-card">
+            <span class="dashboard-score-label">Workspace Snapshot</span>
             <strong class="dashboard-score-value">{{ aeo_score }}</strong>
 
             <div class="dashboard-score-pill-row">
@@ -67,11 +120,11 @@
 
             <p class="dashboard-score-text">
                 {% if aeo_score >= 80 %}
-                    Your brand is showing strong visibility across tracked AI answers.
+                    Your workspace is showing strong visibility across tracked AI answers.
                 {% elif aeo_score >= 55 %}
-                    You have some visibility, but there are still meaningful gaps to improve.
+                    Visibility is developing, but there are still meaningful gaps to improve.
                 {% else %}
-                    Your brand has low visibility right now, which means there is strong upside.
+                    Visibility is still low, so there is strong upside if you act on the findings.
                 {% endif %}
             </p>
 
@@ -117,79 +170,135 @@
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="dashboard-ops-card">
+            <span class="dashboard-score-label">Portfolio Snapshot</span>
+            <strong class="dashboard-score-value">{{ total_clients or 0 }}</strong>
+
+            <div class="dashboard-score-pill-row">
+                <span class="score-pill score-pill-warning">Multi-workspace view</span>
+            </div>
+
+            <p class="dashboard-score-text">
+                Use this view to see the account-wide picture, then open a workspace to review its detailed audit score and findings.
+            </p>
+
+            <div class="dashboard-score-breakdown">
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Total Clients</span>
+                        <strong>{{ total_clients or 0 }}</strong>
+                    </div>
+                </div>
+
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Total Audits</span>
+                        <strong>{{ total_audits or 0 }}</strong>
+                    </div>
+                </div>
+
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Average Score</span>
+                        <strong>{{ overall_score or 0 }}</strong>
+                    </div>
+                    <div class="score-row-track">
+                        <div class="score-row-fill fill-blue" style="width: {{ overall_score or 0 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="score-row">
+                    <div class="score-row-top">
+                        <span>Tracked Prompts</span>
+                        <strong>{{ total_prompts or 0 }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </section>
 
     <section class="dashboard-insights-v3">
         <div class="dashboard-metric-card">
             <span class="dashboard-metric-label">Tracked Prompts</span>
             <strong class="dashboard-metric-value">{{ total_prompts or 0 }}</strong>
-            <p class="dashboard-metric-note">Active prompts being monitored across your workspace.</p>
+            <p class="dashboard-metric-note">Prompt coverage currently being monitored across the account.</p>
         </div>
 
         <div class="dashboard-metric-card">
             <span class="dashboard-metric-label">Brand Mentioned</span>
             <strong class="dashboard-metric-value">{{ mentioned_count or 0 }}</strong>
-            <p class="dashboard-metric-note">Prompts where your brand currently appears in AI answers.</p>
+            <p class="dashboard-metric-note">Prompts where your brand is currently visible in AI answers.</p>
         </div>
 
         <div class="dashboard-metric-card">
-            <span class="dashboard-metric-label">Low Visibility</span>
-            <strong class="dashboard-metric-value">{{ cont_score_count or 0 }}</strong>
-            <p class="dashboard-metric-note">Prompts that likely need content or entity improvements.</p>
+            <span class="dashboard-metric-label">Total Audits</span>
+            <strong class="dashboard-metric-value">{{ total_audits or 0 }}</strong>
+            <p class="dashboard-metric-note">Audit runs available for review and comparison.</p>
         </div>
 
         <div class="dashboard-metric-card dashboard-metric-card-highlight">
-            <span class="dashboard-metric-label">Top Opportunity</span>
+            <span class="dashboard-metric-label">Primary Focus</span>
             <strong class="dashboard-metric-value dashboard-metric-value-small">
-                {{ high_priority_action or "Start tracking prompts" }}
+                {% if total_audits and total_audits > 0 %}
+                    Review audit + queue
+                {% else %}
+                    Run first audit
+                {% endif %}
             </strong>
-            <p class="dashboard-metric-note">The clearest next move based on current visibility signals.</p>
+            <p class="dashboard-metric-note">The most useful next workflow based on current account state.</p>
         </div>
     </section>
 
     <section class="dashboard-next-v3">
         <div class="dashboard-section-head">
-            <h2>Next Best Action</h2>
-            <p>Move directly into the highest-value workflow from your current state.</p>
+            <h2>Recommended next step</h2>
+            <p>Keep the main task visible so users know where to go next.</p>
         </div>
 
         <div class="dashboard-next-card">
-            {% if total_prompts == 0 %}
-                <span class="dashboard-next-kicker">Getting Started</span>
-                <h3>Start tracking your first prompts</h3>
+            {% if total_audits == 0 %}
+                <span class="dashboard-next-kicker">Start Here</span>
+                <h3>Run an audit to generate your first visibility report</h3>
                 <p>
-                    Build your initial prompt set to understand how your brand appears in AI answers
-                    and where competitors are getting recommended first.
+                    Once the first audit is completed, this dashboard will become more useful with actual findings,
+                    priorities, prompt coverage, and workspace recommendations.
                 </p>
                 <div class="dashboard-next-actions">
-                    <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Go to Clients</a>
-                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Audit</a>
+                    <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
                 </div>
 
-            {% elif cont_score < vis_score %}
-                <span class="dashboard-next-kicker">Content Opportunity</span>
-                <h3>Improve low-visibility prompts first</h3>
+            {% elif total_prompts == 0 %}
+                <span class="dashboard-next-kicker">Coverage Gap</span>
+                <h3>Expand prompt tracking after reviewing the audit</h3>
                 <p>
-                    Focus on prompts where your brand is weak or missing. These are often the fastest
-                    wins for growing AI visibility.
+                    You already have audit data. The next step is to build tracked prompts so you can monitor how AI
+                    answers change over time and where competitors appear.
                 </p>
                 <div class="dashboard-next-actions">
-                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-primary">Open Content Queue</a>
-                    <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">View Clients</a>
+                    <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Open Workspaces</a>
+                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Queue</a>
                 </div>
 
             {% else %}
-                <span class="dashboard-next-kicker">Coverage Expansion</span>
-                <h3>Expand your prompt coverage</h3>
+                <span class="dashboard-next-kicker">Operations Focus</span>
+                <h3>Review the latest audit, then check the content queue</h3>
                 <p>
-                    Your current visibility is improving. Add more prompts to capture new demand,
-                    strengthen brand presence, and widen answer coverage.
+                    Users usually need to confirm what the audit found, then move directly into content and execution.
+                    Keep both workflows close together.
                 </p>
                 <div class="dashboard-next-actions">
-                    <a href="{{ url_for('client_competitors_page', client_id=clients[0].id if clients else '') }}" class="btn btn-primary">
-                        Find More Prompts
-                    </a>
-                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Another Audit</a>
+                    {% if primary_client %}
+                        <a href="{{ url_for('client_detail', client_id=primary_client.id) }}" class="btn btn-primary">
+                            View Audit
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('new_audit') }}" class="btn btn-primary">
+                            Run Audit
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Queue</a>
                 </div>
             {% endif %}
         </div>
@@ -197,8 +306,8 @@
 
     <section class="dashboard-clients-v3">
         <div class="dashboard-section-head">
-            <h2>Your Clients</h2>
-            <p>Jump into a workspace, review tracked research, or continue an audit workflow.</p>
+            <h2>Your workspaces</h2>
+            <p>Open a workspace to continue the audit, visibility, competitors, or tracking workflow.</p>
         </div>
 
         {% if clients %}
@@ -232,10 +341,10 @@
             </div>
         {% else %}
             <div class="dashboard-empty-card">
-                <h3>No clients yet</h3>
-                <p>Add your first client workspace to start audits, prompt tracking, and visibility analysis.</p>
+                <h3>No workspaces yet</h3>
+                <p>Add your first workspace to start audits, prompt tracking, content planning, and visibility analysis.</p>
                 <div class="dashboard-next-actions">
-                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
+                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Workspace</a>
                     <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Audit</a>
                 </div>
             </div>
@@ -244,432 +353,4 @@
 
 </div>
 
-<style>
-.dashboard-v3 {
-    display: grid;
-    gap: 20px;
-}
-
-.dashboard-hero-v3 {
-    display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
-    gap: 18px;
-    align-items: stretch;
-}
-
-.dashboard-hero-copy-card,
-.dashboard-score-panel,
-.dashboard-metric-card,
-.dashboard-next-card,
-.dashboard-client-card,
-.dashboard-empty-card {
-    background: #ffffff;
-    border: 1px solid #e6ebf2;
-    border-radius: 20px;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-}
-
-.dashboard-hero-copy-card {
-    padding: 24px;
-    background:
-        radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 26%),
-        linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-}
-
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 10px;
-    border-radius: 999px;
-    background: #f4ebff;
-    border: 1px solid #e7dcff;
-    color: #6d4aff;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.dashboard-hero-copy-card h1 {
-    margin: 14px 0 10px;
-    font-size: clamp(2rem, 4vw, 3.1rem);
-    line-height: 1.04;
-    color: #16243c;
-}
-
-.dashboard-hero-copy-card p {
-    margin: 0;
-    max-width: 720px;
-    color: #627084;
-    line-height: 1.7;
-    font-size: 15px;
-}
-
-.dashboard-hero-actions,
-.dashboard-next-actions {
-    margin-top: 18px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.dashboard-hero-mini-grid {
-    margin-top: 20px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.hero-mini-card {
-    padding: 14px;
-    border-radius: 16px;
-    background: #ffffff;
-    border: 1px solid #e6ebf2;
-}
-
-.hero-mini-card span {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #64748b;
-}
-
-.hero-mini-card strong {
-    display: block;
-    font-size: 24px;
-    line-height: 1;
-    color: #16243c;
-}
-
-.dashboard-score-panel {
-    padding: 22px;
-    background: linear-gradient(180deg, #fff8f2 0%, #ffffff 100%);
-    border-color: #f2dfd2;
-}
-
-.dashboard-score-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-.dashboard-score-value {
-    display: block;
-    margin-top: 10px;
-    font-size: 62px;
-    line-height: 0.95;
-    font-weight: 800;
-    color: #f97316;
-    letter-spacing: -0.04em;
-}
-
-.dashboard-score-pill-row {
-    margin-top: 12px;
-}
-
-.score-pill {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.score-pill-success {
-    background: #ecfdf3;
-    color: #15803d;
-}
-
-.score-pill-warning {
-    background: #fff7ed;
-    color: #c2410c;
-}
-
-.score-pill-danger {
-    background: #fff1f2;
-    color: #e11d48;
-}
-
-.dashboard-score-text {
-    margin: 12px 0 0;
-    color: #627084;
-    line-height: 1.65;
-    font-size: 14px;
-}
-
-.dashboard-score-breakdown {
-    margin-top: 18px;
-    display: grid;
-    gap: 12px;
-}
-
-.score-row {
-    display: grid;
-    gap: 8px;
-}
-
-.score-row-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-}
-
-.score-row-top span {
-    font-size: 14px;
-    font-weight: 700;
-    color: #243247;
-}
-
-.score-row-top strong {
-    font-size: 15px;
-    color: #16243c;
-}
-
-.score-row-track {
-    height: 10px;
-    border-radius: 999px;
-    overflow: hidden;
-    background: #edf1f7;
-}
-
-.score-row-fill {
-    height: 100%;
-    border-radius: 999px;
-}
-
-.fill-blue {
-    background: linear-gradient(90deg, #60a5fa, #2563eb);
-}
-
-.fill-orange {
-    background: linear-gradient(90deg, #fb923c, #f97316);
-}
-
-.fill-purple {
-    background: linear-gradient(90deg, #a78bfa, #7c3aed);
-}
-
-.fill-green {
-    background: linear-gradient(90deg, #4ade80, #16a34a);
-}
-
-.dashboard-insights-v3 {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.dashboard-metric-card {
-    padding: 18px;
-}
-
-.dashboard-metric-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f0e2d8;
-}
-
-.dashboard-metric-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #64748b;
-    margin-bottom: 8px;
-}
-
-.dashboard-metric-value {
-    display: block;
-    font-size: 28px;
-    line-height: 1.1;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.dashboard-metric-value-small {
-    font-size: 20px;
-    line-height: 1.35;
-}
-
-.dashboard-metric-note {
-    margin: 10px 0 0;
-    color: #627084;
-    line-height: 1.6;
-    font-size: 13px;
-}
-
-.dashboard-section-head {
-    margin-bottom: 14px;
-}
-
-.dashboard-section-head h2 {
-    margin: 0 0 6px;
-    font-size: 24px;
-    color: #16243c;
-}
-
-.dashboard-section-head p {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.dashboard-next-card {
-    padding: 22px;
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border-color: #f5dfd1;
-}
-
-.dashboard-next-kicker {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 10px;
-    border-radius: 999px;
-    background: #fff2ea;
-    color: #e83256;
-    font-size: 12px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
-
-.dashboard-next-card h3 {
-    margin: 0;
-    font-size: 28px;
-    line-height: 1.15;
-    color: #16243c;
-}
-
-.dashboard-next-card p {
-    margin: 12px 0 0;
-    max-width: 760px;
-    color: #627084;
-    line-height: 1.7;
-    font-size: 15px;
-}
-
-.dashboard-clients-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.dashboard-client-card {
-    padding: 18px;
-    display: grid;
-    gap: 16px;
-}
-
-.dashboard-client-top {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-}
-
-.dashboard-client-mark {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 18px;
-    flex-shrink: 0;
-}
-
-.dashboard-client-copy {
-    min-width: 0;
-}
-
-.dashboard-client-copy h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #16243c;
-    word-break: break-word;
-}
-
-.dashboard-client-copy p {
-    margin: 6px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: break-word;
-}
-
-.dashboard-client-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-}
-
-.dashboard-empty-card {
-    padding: 24px;
-    text-align: center;
-}
-
-.dashboard-empty-card h3 {
-    margin: 0;
-    font-size: 24px;
-    color: #16243c;
-}
-
-.dashboard-empty-card p {
-    margin: 10px auto 0;
-    max-width: 640px;
-    color: #627084;
-    line-height: 1.65;
-    font-size: 14px;
-}
-
-@media (max-width: 1100px) {
-    .dashboard-hero-v3,
-    .dashboard-insights-v3,
-    .dashboard-clients-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .dashboard-hero-mini-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .dashboard-v3 {
-        gap: 18px;
-    }
-
-    .dashboard-hero-copy-card,
-    .dashboard-score-panel,
-    .dashboard-metric-card,
-    .dashboard-next-card,
-    .dashboard-client-card,
-    .dashboard-empty-card {
-        padding: 18px;
-        border-radius: 18px;
-    }
-
-    .dashboard-next-card h3,
-    .dashboard-section-head h2 {
-        font-size: 22px;
-    }
-
-    .dashboard-score-value {
-        font-size: 52px;
-    }
-
-    .dashboard-hero-actions .btn,
-    .dashboard-next-actions .btn {
-        width: 100%;
-    }
-}
-</style>
 {% endblock %}

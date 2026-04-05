@@ -1,232 +1,166 @@
 {% extends "base.html" %}
 
-{% block title %}Clients | Insights OS{% endblock %}
+{% block title %}Workspaces | Insights OS{% endblock %}
 
 {% block page_header %}
-<div class="page-header-standard">
+<div class="page-header-standard workspace-page-header-clean">
     <div class="page-header-copy">
-        <h1>
-            {% if view_mode == "single" %}
-                Workspace
-            {% else %}
-                Clients
-            {% endif %}
-        </h1>
-        <p>
-            {% if view_mode == "single" %}
-                Review your workspace, run audits, and move into the next best action.
-            {% else %}
-                Manage client workspaces, review recent scores, and move into the next best action quickly.
-            {% endif %}
-        </p>
+        <h1>Workspaces</h1>
+        <p>Manage each client or brand in its own workspace so audits, tracking, reports, and content stay organised.</p>
     </div>
 
     <div class="page-actions">
-        {% if view_mode == "single" %}
-            <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
-            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Content Queue</a>
-        {% else %}
-            <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add Client</a>
-            <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
-        {% endif %}
+        <a href="{{ url_for('create_client') }}" class="btn btn-primary">New Workspace</a>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="clients-page-shell">
-
-    <section class="clients-page-hero">
-        <div class="clients-page-copy">
-            <span class="clients-page-kicker">
-                {% if view_mode == "single" %}
-                    Your Workspace
-                {% else %}
-                    Client Workspaces
-                {% endif %}
-            </span>
-
-            <h1>
-                {% if view_mode == "single" %}
-                    Stay focused on the next best action
-                {% else %}
-                    Manage client workspaces with clearer next actions
-                {% endif %}
-            </h1>
-
-            <p>
-                {% if view_mode == "single" %}
-                    Open your workspace and continue from the next best action.
-                {% else %}
-                    Open a workspace and continue from the next best action.
-                {% endif %}
-            </p>
-        </div>
-
-        <div class="visual-placeholder visual-placeholder--soft clients-page-hero-visual">
-            <div class="visual-placeholder-content">
-                <span class="visual-placeholder-kicker">
-                    {% if view_mode == "single" %}
-                        Workspace Preview
-                    {% else %}
-                        Portfolio Preview
-                    {% endif %}
-                </span>
-
-                <h2 class="visual-placeholder-title">
-                    {% if view_mode == "single" %}
-                        Workspace visual goes here
-                    {% else %}
-                        Client portfolio visual goes here
-                    {% endif %}
-                </h2>
-
-                <p class="visual-placeholder-text">
-                    {% if view_mode == "single" %}
-                        Replace this later with a workspace illustration or a branded product preview.
-                    {% else %}
-                        Replace this later with a workspace portfolio illustration or branded product visual.
-                    {% endif %}
-                </p>
-            </div>
-        </div>
-    </section>
+<div class="workspaces-page-shell workspaces-page-shell-tight">
 
     {% if clients %}
-        <section class="clients-grid-upgraded">
+    <section class="workspace-list-section">
+        <div class="workspace-list-head">
+            <div>
+                <h2>Your Workspaces</h2>
+                <p>{{ clients|length }} workspace{{ "" if clients|length == 1 else "s" }}</p>
+            </div>
+        </div>
+
+        <div class="workspace-list">
             {% for client in clients %}
             {% set latest = client.latest_audit if client.latest_audit is defined else none %}
             {% set recommended_actions = client.recommended_actions if client.recommended_actions is defined else [] %}
             {% set top_action = recommended_actions[0] if recommended_actions else none %}
+            {% set score = latest.normalized_score if latest and latest.normalized_score is not none else none %}
+            {% set last_audit_time = latest.saved_at if latest and latest.saved_at else None %}
 
-            <article class="client-card-upgraded">
-                <div class="client-card-top">
-                    <div class="client-card-identity">
-                        <div class="client-card-mark">
-                            {{ (client.name[0] if client.name else "C")|upper }}
+            <article class="workspace-row-card workspace-row-card-tight">
+                <div class="workspace-row-main">
+                    <div class="workspace-logo-block">
+                        {% if client.logo_url %}
+                            <img src="{{ client.logo_url }}" alt="{{ client.name }} logo" class="workspace-logo-image">
+                        {% else %}
+                            <div class="workspace-logo-mark">
+                                {{ (client.name[0] if client.name else "W")|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="workspace-info-block">
+                        <div class="workspace-name-row">
+                            <h3>{{ client.name or "Untitled Workspace" }}</h3>
+
+                            {% if latest %}
+                            <span class="workspace-status-pill workspace-status-pill--active">Audit Ready</span>
+                            {% else %}
+                            <span class="workspace-status-pill workspace-status-pill--new">Needs First Audit</span>
+                            {% endif %}
                         </div>
 
-                        <div class="client-card-copy">
-                            <h3>{{ client.name or "Untitled Client" }}</h3>
+                        <p class="workspace-domain">
+                            {{ client.website if client.website else "No website added yet" }}
+                        </p>
 
-                            <div class="client-card-meta">
-                                {% if client.industry %}<span>{{ client.industry }}</span>{% endif %}
-                                {% if client.location %}<span>{{ client.location }}</span>{% endif %}
-                                {% if client.owner_type %}<span>{{ client.owner_type|capitalize }}</span>{% endif %}
+                        <div class="workspace-meta-row">
+                            {% if client.industry and client.industry != "N/A" %}
+                            <span class="workspace-meta-chip">{{ client.industry }}</span>
+                            {% endif %}
+                            {% if client.location and client.location != "N/A" %}
+                            <span class="workspace-meta-chip">{{ client.location }}</span>
+                            {% endif %}
+                            {% if client.owner_type %}
+                            <span class="workspace-meta-chip">{{ client.owner_type|capitalize }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="workspace-inline-stats">
+                            <div class="workspace-inline-stat">
+                                <span>Score</span>
+                                <strong>{{ score if score is not none else "—" }}</strong>
+                            </div>
+
+                            <div class="workspace-inline-stat">
+                                <span>Last audit</span>
+                                <strong>{{ last_audit_time|pretty_datetime if last_audit_time else "No audit yet" }}</strong>
+                            </div>
+
+                            <div class="workspace-inline-stat">
+                                <span>Priority</span>
+                                <strong>
+                                    {% if top_action %}
+                                        Visibility gap
+                                    {% elif latest %}
+                                        Review findings
+                                    {% else %}
+                                        Run first audit
+                                    {% endif %}
+                                </strong>
                             </div>
                         </div>
                     </div>
-
-                    <div class="client-card-score-block">
-                        <span>Latest Score</span>
-                        <strong>{{ latest.normalized_score if latest else "—" }}</strong>
-                        <small>
-                            {% if latest %}
-                                {{ latest.saved_at|pretty_datetime if latest.saved_at else "Latest audit available" }}
-                            {% else %}
-                                No audit yet
-                            {% endif %}
-                        </small>
-                    </div>
                 </div>
 
-                <div class="client-card-body">
-                    <p class="client-card-site">
-                        {{ client.website if client.website else "Website not added yet" }}
-                    </p>
+                <div class="workspace-row-actions">
+                    <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">Open</a>
 
-                    <div class="client-card-mini-placeholder">
-                        <div class="client-card-mini-placeholder-inner">
-                            <span class="mini-placeholder-badge">Visual Placeholder</span>
-                            <strong>Workspace preview goes here</strong>
-                            <p>Use this area for a future workspace thumbnail, brand panel, or simple illustration.</p>
+                    <div class="workspace-secondary-menu">
+                        <button type="button" class="workspace-more-btn" onclick="toggleWorkspaceMenu('{{ client.id }}')">
+                            More
+                        </button>
+
+                        <div class="workspace-more-dropdown" id="workspace-menu-{{ client.id }}">
+                            <a href="{{ url_for('edit_client', client_id=client.id) }}">Edit Workspace</a>
+                            <a href="{{ url_for('run_client_audit', client_id=client.id) }}">Run Audit</a>
+                            <a href="{{ url_for('settings_team') }}">Team</a>
                         </div>
-                    </div>
-                </div>
-
-                <div class="client-card-footer">
-                    <div class="client-card-status">
-                        {% if latest and top_action %}
-                            <span class="client-status-pill client-status-pill--warm">Top Priority</span>
-                            <p>{{ top_action.title }}</p>
-                        {% elif latest %}
-                            <span class="client-status-pill client-status-pill--neutral">Audit Ready</span>
-                            <p>Review visibility, actions, and content opportunities.</p>
-                        {% else %}
-                            <span class="client-status-pill client-status-pill--soft">Needs First Audit</span>
-                            <p>Create the first audit to unlock scores and recommendations.</p>
-                        {% endif %}
-                    </div>
-
-                    <div class="client-card-actions">
-                        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
-                            Open Workspace
-                        </a>
-
-                        {% if current_user.is_authenticated and current_user.plan != "free" %}
-                            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-secondary">
-                                Run New Audit
-                            </a>
-                        {% else %}
-                            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">
-                                Upgrade
-                            </a>
-                        {% endif %}
                     </div>
                 </div>
             </article>
             {% endfor %}
-        </section>
+        </div>
+    </section>
     {% else %}
-        <div class="empty-state upgraded-empty-state">
-            <div class="visual-placeholder visual-placeholder--soft visual-placeholder--compact empty-state-illustration">
-                <div class="visual-placeholder-content">
-                    <span class="visual-placeholder-kicker">Empty State Placeholder</span>
-                    <h2 class="visual-placeholder-title">
-                        {% if view_mode == "single" %}
-                            First workspace visual goes here
-                        {% else %}
-                            First client workspace visual goes here
-                        {% endif %}
-                    </h2>
-                    <p class="visual-placeholder-text">
-                        {% if view_mode == "single" %}
-                            Replace this later with an onboarding illustration for first-time workspace setup.
-                        {% else %}
-                            Replace this later with an onboarding illustration for first-time client setup.
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
+    <section class="workspace-empty-state">
+        <div class="workspace-empty-card">
+            <span class="workspace-guidance-kicker">No Workspaces Yet</span>
+            <h2>Create your first workspace</h2>
+            <p>Start with one workspace for one client or brand. Then run audits, track visibility, and manage content from one place.</p>
 
-            <h3>
-                {% if view_mode == "single" %}
-                    No workspace yet
-                {% else %}
-                    No clients yet
-                {% endif %}
-            </h3>
-
-            <p>
-                {% if view_mode == "single" %}
-                    Create your workspace to start audits, actions, and content workflows.
-                {% else %}
-                    Create your first client workspace to start audits, actions, and content workflows.
-                {% endif %}
-            </p>
-
-            <div class="empty-state-actions">
-                {% if view_mode == "single" %}
-                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Create Workspace</a>
-                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Run Audit</a>
-                {% else %}
-                    <a href="{{ url_for('create_client') }}" class="btn btn-primary">Add First Client</a>
-                    <a href="{{ url_for('new_audit') }}" class="btn btn-secondary">Create Audit</a>
-                {% endif %}
+            <div class="workspace-empty-actions">
+                <a href="{{ url_for('create_client') }}" class="btn btn-primary">Create Workspace</a>
             </div>
         </div>
+    </section>
     {% endif %}
 
 </div>
 
+<script>
+function toggleWorkspaceMenu(clientId) {
+    const currentMenu = document.getElementById(`workspace-menu-${clientId}`);
+    const allMenus = document.querySelectorAll(".workspace-more-dropdown");
+
+    allMenus.forEach(menu => {
+        if (menu !== currentMenu) {
+            menu.classList.remove("show");
+        }
+    });
+
+    if (currentMenu) {
+        currentMenu.classList.toggle("show");
+    }
+}
+
+document.addEventListener("click", function (event) {
+    const isMenuButton = event.target.closest(".workspace-more-btn");
+    const isMenuPanel = event.target.closest(".workspace-more-dropdown");
+
+    if (!isMenuButton && !isMenuPanel) {
+        document.querySelectorAll(".workspace-more-dropdown").forEach(menu => {
+            menu.classList.remove("show");
+        });
+    }
+});
+</script>
 {% endblock %}

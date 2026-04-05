@@ -235,8 +235,9 @@
 
                 <div class="action-stack">
                     {% if data.client_id %}
-                    <a href="{{ url_for('client_actions_page', client_id=client.id) }}"
-   class="{% if current_endpoint == 'client_actions_page' %}active{% endif %}">
+                    <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+    View All Actions
+</a>
                     <a href="{{ url_for('client_visibility_page', client_id=data.client_id) }}" class="btn btn-secondary">Open Visibility</a>
                     <a href="{{ url_for('client_competitors_page', client_id=data.client_id) }}" class="btn btn-secondary">Review Competitors</a>
                     {% endif %}
