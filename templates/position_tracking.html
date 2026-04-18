@@ -1,27 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Prompt Tracking | Insights OS{% endblock %}
+{% block title %}Prompt Tracking | DarInsights{% endblock %}
 
 {% block page_header %}
-<div class="page-header-standard">
+<div class="page-header-standard tracking-page-header-clean">
     <div class="page-header-copy">
         <h1>Prompt Tracking</h1>
         <p>Monitor AI visibility across tracked prompts and see where competitors are appearing first.</p>
     </div>
 
-    {% if total_prompts > 0 %}
     <div class="page-header-actions">
+        <button type="button" class="btn btn-primary" onclick="scrollToPromptForm()">
+            Add Prompts
+        </button>
+
         {% if focused_client %}
-            <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-primary">
-                Add Prompts
-            </a>
-        {% else %}
-            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">
-                Open Workspaces
-            </a>
+        <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-secondary">
+            Explore Competitor Prompts
+        </a>
         {% endif %}
     </div>
-    {% endif %}
 </div>
 {% endblock %}
 
@@ -31,8 +29,11 @@
 
     <section class="tracking-meta-grid">
         <div class="tracking-meta-card">
-            <span>Project</span>
-            <strong>{{ project_domain }}</strong>
+            <span>Workspace</span>
+            <strong>{{ selected_client.name if selected_client else project_domain }}</strong>
+            {% if selected_client and project_domain %}
+            <small class="tracking-meta-subline">{{ project_domain }}</small>
+            {% endif %}
         </div>
         <div class="tracking-meta-card">
             <span>Platform</span>
@@ -48,6 +49,68 @@
         </div>
     </section>
 
+    <section id="prompt-entry-form" class="tracking-entry-card">
+        <div class="tracking-entry-copy">
+            <span class="section-kicker">Add Prompts</span>
+            <h2>Track the prompts that matter most</h2>
+            <p>
+                Add one prompt per line to monitor AI visibility, competitor presence, and brand mention changes over time.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('save_prompts') }}" class="tracking-entry-form">
+    {% if client_id %}
+    <input type="hidden" name="client_id" value="{{ client_id }}">
+    {% endif %}
+
+            <div class="tracking-form-grid">
+                <div class="form-field">
+                    <label for="domain">Project</label>
+                    <input type="text" id="domain" name="domain" value="{{ project_domain }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="platform">Platform</label>
+                    <input type="text" id="platform" name="platform" value="{{ selected_platform }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="market">Market</label>
+                    <input type="text" id="market" name="market" value="{{ selected_market }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="topic">Topic Group</label>
+                    <input type="text" id="topic" name="topic" value="{{ tracked_topic or 'Tracked prompts' }}">
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="prompts">Prompts</label>
+                    <textarea
+                        id="prompts"
+                        name="prompts"
+                        rows="8"
+                        placeholder="Enter one prompt per line, for example:
+best bakery singapore
+bakery companies in singapore
+custom cakes singapore"
+                        required
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="tracking-entry-actions">
+                <button type="submit" class="btn btn-primary">Save Prompts</button>
+
+                {% if focused_client %}
+                <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-secondary">
+                    Find Prompt Ideas
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
     {% if total_prompts == 0 %}
     <section class="tracking-empty">
         <span class="section-kicker">No Data Yet</span>
@@ -57,14 +120,14 @@
         </p>
 
         <div class="tracking-empty-actions">
+            <button type="button" class="btn btn-primary" onclick="scrollToPromptForm()">
+                Add Prompts
+            </button>
+
             {% if focused_client %}
-                <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-primary">
-                    Add Prompts
-                </a>
-            {% else %}
-                <a href="{{ url_for('clients_page') }}" class="btn btn-primary">
-                    Open Workspaces
-                </a>
+            <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-secondary">
+                Explore Competitor Prompts
+            </a>
             {% endif %}
         </div>
     </section>
@@ -128,6 +191,12 @@
                 <span class="section-kicker">Tracked Prompts</span>
                 <h2 class="section-title">Prompt visibility overview</h2>
                 <p class="section-copy">Review score, visibility, competitor presence, and opportunity level for each prompt.</p>
+            </div>
+
+            <div class="table-card-actions">
+                <button type="button" class="btn btn-secondary" onclick="scrollToPromptForm()">
+                    Add More Prompts
+                </button>
             </div>
         </div>
 
@@ -212,6 +281,15 @@
 
 </div>
 
+<script>
+function scrollToPromptForm() {
+    const el = document.getElementById("prompt-entry-form");
+    if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+}
+</script>
+
 <style>
 .tracking-shell-clean {
     display: grid;
@@ -222,7 +300,8 @@
 .summary-stat-card,
 .tracking-table-card,
 .tracking-empty,
-.tracking-meta-card {
+.tracking-meta-card,
+.tracking-entry-card {
     background: #ffffff;
     border: 1px solid #e8edf5;
     border-radius: 22px;
@@ -240,6 +319,15 @@
     font-size: 12px;
     font-weight: 800;
     line-height: 1;
+}
+
+.tracking-meta-subline {
+    display: block;
+    margin-top: 6px;
+    color: #627084;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
 .tracking-meta-grid {
@@ -267,6 +355,85 @@
     line-height: 1.35;
 }
 
+.tracking-entry-card {
+    padding: 24px;
+    display: grid;
+    gap: 20px;
+    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
+    border-color: #ece8ff;
+}
+
+.tracking-entry-copy h2 {
+    margin: 10px 0 0;
+    color: #16243c;
+    font-size: 28px;
+    line-height: 1.12;
+}
+
+.tracking-entry-copy p {
+    margin: 12px 0 0;
+    color: #627084;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 760px;
+}
+
+.tracking-entry-form {
+    display: grid;
+    gap: 18px;
+}
+
+.tracking-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-field {
+    display: grid;
+    gap: 8px;
+}
+
+.form-field label {
+    color: #5c6a7d;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.form-field input,
+.form-field textarea {
+    width: 100%;
+    border: 1px solid #dbe2ee;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #16243c;
+    padding: 14px 16px;
+    font: inherit;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: #6d4aff;
+    box-shadow: 0 0 0 4px rgba(109, 74, 255, 0.10);
+}
+
+.form-field textarea {
+    resize: vertical;
+    min-height: 170px;
+}
+
+.form-field-full {
+    grid-column: 1 / -1;
+}
+
+.tracking-entry-actions,
+.tracking-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
 .tracking-empty {
     padding: 30px;
     text-align: center;
@@ -288,7 +455,6 @@
 
 .tracking-empty-actions {
     margin-top: 18px;
-    display: flex;
     justify-content: center;
 }
 
@@ -539,7 +705,8 @@
 
 @media (max-width: 1200px) {
     .tracking-meta-grid,
-    .tracking-summary-grid {
+    .tracking-summary-grid,
+    .tracking-form-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -553,16 +720,19 @@
     .summary-stat-card,
     .tracking-table-card,
     .tracking-empty,
-    .tracking-meta-card {
+    .tracking-meta-card,
+    .tracking-entry-card {
         padding: 18px;
         border-radius: 18px;
     }
 
     .tracking-meta-grid,
-    .tracking-summary-grid {
+    .tracking-summary-grid,
+    .tracking-form-grid {
         grid-template-columns: 1fr;
     }
 
+    .tracking-entry-actions .btn,
     .tracking-empty-actions .btn,
     .page-header-actions .btn {
         width: 100%;

@@ -54,58 +54,43 @@
             </div>
             {% endif %}
 
-            <form method="POST" class="form-stack">
-                <div class="form-grid-2">
+<form method="POST" action="{{ url_for('generate_client_content_brief', client_id=client.id) }}">
+    <div class="form-field">
+        <label for="target_query">Target Query</label>
+        <input
+            id="target_query"
+            type="text"
+            name="target_query"
+            value="{{ form_data.target_query if form_data else '' }}"
+            required
+        >
+    </div>
 
-                    <div class="form-field form-field-full">
-                        <label for="target_query">Target Query</label>
-                        <p class="field-help">
-                            This is the main question, phrase, or intent you want the content to target.
-                        </p>
-                        <input
-                            type="text"
-                            id="target_query"
-                            name="target_query"
-                            value="{{ form_data.get('target_query', '') if form_data else '' }}"
-                            placeholder="e.g. aeo vs seo"
-                            required
-                        >
-                    </div>
+    <div class="form-field">
+        <label for="content_type">Content Type</label>
+        <select id="content_type" name="content_type">
+            <option value="service_page" {% if form_data and form_data.content_type == "service_page" %}selected{% endif %}>Service Page</option>
+            <option value="article" {% if form_data and form_data.content_type == "article" %}selected{% endif %}>Article</option>
+            <option value="comparison_page" {% if form_data and form_data.content_type == "comparison_page" %}selected{% endif %}>Comparison Page</option>
+            <option value="landing_page" {% if form_data and form_data.content_type == "landing_page" %}selected{% endif %}>Landing Page</option>
+            <option value="faq_page" {% if form_data and form_data.content_type == "faq_page" %}selected{% endif %}>FAQ Page</option>
+        </select>
+    </div>
 
-                    <div class="form-field">
-                        <label for="content_type">Content Type</label>
-                        <p class="field-help">
-                            Choose the content format that best matches the search intent.
-                        </p>
-                        <select id="content_type" name="content_type">
-                            <option value="service_page" {% if form_data and form_data.get('content_type') == 'service_page' %}selected{% endif %}>Service Page</option>
-                            <option value="blog_post" {% if form_data and form_data.get('content_type') == 'blog_post' %}selected{% endif %}>Blog Post</option>
-                            <option value="comparison_page" {% if form_data and form_data.get('content_type') == 'comparison_page' %}selected{% endif %}>Comparison Page</option>
-                            <option value="faq_page" {% if form_data and form_data.get('content_type') == 'faq_page' %}selected{% endif %}>FAQ Page</option>
-                            <option value="location_page" {% if form_data and form_data.get('content_type') == 'location_page' %}selected{% endif %}>Location Page</option>
-                            <option value="guide" {% if form_data and form_data.get('content_type') == 'guide' %}selected{% endif %}>Guide</option>
-                        </select>
-                    </div>
+    <div class="form-field">
+        <label for="brand_context">Brand Context</label>
+        <textarea
+            id="brand_context"
+            name="brand_context"
+            rows="8"
+        >{{ form_data.brand_context if form_data else '' }}</textarea>
+    </div>
 
-                    <div class="form-field form-field-full">
-                        <label for="brand_context">Brand Context <span class="optional-label">Optional</span></label>
-                        <p class="field-help">
-                            Add offer details, audience fit, differentiators, tone, proof points, pricing context, or location angle.
-                        </p>
-                        <textarea
-                            id="brand_context"
-                            name="brand_context"
-                            rows="8"
-                            placeholder="Describe the business, offer, target audience, differentiators, and any context the brief should reflect."
-                        >{{ form_data.get('brand_context', '') if form_data else '' }}</textarea>
-                    </div>
-                </div>
-
-                <div class="card-actions">
-                    <button type="submit" class="btn btn-primary">Generate Brief</button>
-                    <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
-                </div>
-            </form>
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Generate Brief</button>
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
         </div>
 
         <aside class="side-stack">

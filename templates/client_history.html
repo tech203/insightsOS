@@ -6,7 +6,7 @@
 <div class="page-header-standard history-page-header-clean">
     <div class="page-header-copy">
         <h1>{{ client.name }} · History</h1>
-        <p>Review saved audits, check recent movement, and open the latest summary quickly.</p>
+        <p>Review saved audits, compare recent movement, and open the latest summary quickly.</p>
     </div>
 
     <div class="page-header-actions">
@@ -23,54 +23,70 @@
 
 <div class="history-shell-clean">
 
-    <section class="history-summary-grid">
-        <article class="history-stat-card history-stat-card-featured">
-            <span class="history-stat-label">Latest Score</span>
-            <strong class="history-stat-value">
-                {% if latest %}{{ latest.normalized_score }}{% else %}—{% endif %}
-            </strong>
-            <p class="history-stat-note">
-                {% if comparison and comparison.overall_change %}
-                    {{ comparison.overall_change|capitalize }} from previous audit
-                {% elif latest %}
-                    Baseline recorded
+    <section class="history-top-strip">
+        <div class="history-top-main">
+            <span class="section-kicker">History Overview</span>
+            <h2>
+                {% if latest %}
+                    Latest score: {{ latest.normalized_score }}
                 {% else %}
                     No saved audits yet
                 {% endif %}
+            </h2>
+            <p>
+                {% if comparison and comparison.overall_change %}
+                    {{ comparison.overall_change|capitalize }} from the previous audit. Use the timeline below to review what changed.
+                {% elif latest %}
+                    This is your current saved benchmark for the workspace.
+                {% else %}
+                    Run your first audit to create a baseline and start building history.
+                {% endif %}
             </p>
-        </article>
+        </div>
 
-        <article class="history-stat-card">
-            <span class="history-stat-label">Total Audits</span>
-            <strong class="history-stat-value">{{ total_audits }}</strong>
-            <p class="history-stat-note">Saved audit runs for this workspace.</p>
-        </article>
+        <div class="history-top-actions">
+            {% if latest %}
+            <a href="{{ url_for('audit_summary', summary_filename=latest.filename) }}" class="btn btn-primary btn-block">
+                Open Latest Summary
+            </a>
+            {% else %}
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
+                Run First Audit
+            </a>
+            {% endif %}
 
-        <article class="history-stat-card">
-            <span class="history-stat-label">Latest Visibility</span>
-            <strong class="history-stat-value">
-                {% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}
-            </strong>
-            <p class="history-stat-note">Most recent visibility score.</p>
-        </article>
+            {% if comparison %}
+            <div class="history-trend-badge {{ comparison.overall_change }}">
+                {{ comparison.overall_change|capitalize }}
+            </div>
+            {% endif %}
+        </div>
+    </section>
 
-        <article class="history-stat-card">
-            <span class="history-stat-label">Previous Score</span>
-            <strong class="history-stat-value">
-                {% if previous %}{{ previous.normalized_score }}{% else %}—{% endif %}
-            </strong>
-            <p class="history-stat-note">Previous saved benchmark.</p>
-        </article>
+    <section class="history-summary-strip">
+        <div class="history-summary-mini">
+            <span>Total Audits</span>
+            <strong>{{ total_audits }}</strong>
+        </div>
+
+        <div class="history-summary-mini">
+            <span>Latest Visibility</span>
+            <strong>{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
+        </div>
+
+        <div class="history-summary-mini">
+            <span>Previous Score</span>
+            <strong>{% if previous %}{{ previous.normalized_score }}{% else %}—{% endif %}</strong>
+        </div>
     </section>
 
     {% if total_audits >= 2 and comparison %}
     <section class="history-movement-card">
-        <div class="history-section-head">
+        <div class="history-section-head compact">
             <div>
-                <span class="section-kicker">Recent Movement</span>
-                <h2>Latest audit vs previous audit</h2>
+                <h3>Recent Movement</h3>
+                <p>Compare the latest saved audit against the previous one.</p>
             </div>
-            <p>Use this to see whether the latest changes are improving visibility.</p>
         </div>
 
         <div class="history-movement-grid">
@@ -102,17 +118,6 @@
                 </strong>
             </div>
         </div>
-
-        <div class="history-trend-banner {{ comparison.overall_change }}">
-            <strong>{{ comparison.overall_change|capitalize }}</strong>
-            {% if comparison.overall_change == "improved" %}
-                — the latest audit shows positive movement overall.
-            {% elif comparison.overall_change == "declined" %}
-                — the latest audit slipped and should be reviewed.
-            {% else %}
-                — movement is limited, so stronger action changes may be needed next.
-            {% endif %}
-        </div>
     </section>
     {% endif %}
 
@@ -122,12 +127,15 @@
                 <span class="section-kicker">Audit Timeline</span>
                 <h2>Saved audit history</h2>
             </div>
-            <p>Open the summary first, then drill into the full report only when needed.</p>
+            <p>Open the summary first, then use the full report only when you need to inspect the details.</p>
         </div>
 
         {% if client.audits %}
-        <div class="history-compact-list">
-            {% for audit in client.audits %}
+        {% set visible_audits = client.audits[:8] %}
+        {% set remaining_audits = client.audits[8:] %}
+
+        <div class="history-compact-list history-hidden-list" id="history-hidden-list">
+            {% for audit in remaining_audits %}
             <article class="history-compact-row">
                 <div class="history-compact-main">
                     <div class="history-compact-top">
@@ -150,14 +158,63 @@
                 </div>
 
                 <div class="history-compact-actions">
-                    <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-primary btn-sm">Open Summary</a>
-                    {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com" %}
-                    <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="history-inline-link">Full report</a>
+                    <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-primary btn-sm">
+                        Open Summary
+                    </a>
+                    {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" %}
+                    <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="history-inline-link">
+                        Full report
+                    </a>
                     {% endif %}
                 </div>
             </article>
             {% endfor %}
         </div>
+                {% if remaining_audits %}
+                <div class="history-more-wrap">
+                    <button type="button" class="btn btn-secondary" onclick="toggleAuditHistory()" id="history-toggle-btn">
+                        Show More History
+                    </button>
+                </div>
+
+                <div class="history-compact-list history-hidden-list" id="history-hidden-list">
+                    {% for audit in remaining_audits %}
+                    <article class="history-compact-row">
+                        <div class="history-compact-main">
+                            <div class="history-compact-top">
+                                <strong class="history-compact-date">{{ audit.saved_at|pretty_datetime }}</strong>
+
+                                <div class="history-compact-pills">
+                                    <span class="history-type-pill">{{ audit.audit_type|capitalize }}</span>
+                                    {% if audit.opportunity_level %}
+                                    <span class="history-meta-pill">{{ audit.opportunity_level }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="history-compact-metrics">
+                                <span>N <strong>{{ audit.normalized_score }}</strong></span>
+                            <span>V <strong>{{ audit.visibility_score }}</strong></span>
+                            <span>C <strong>{{ audit.content_score }}</strong></span>
+                            <span>S <strong>{{ audit.schema_score }}</strong></span>
+                            </div>
+                        </div>
+
+                            <div class="history-compact-actions">
+                                <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-primary btn-sm">
+                                    Open Summary
+                                </a>
+                                {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" %}
+                                <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="history-inline-link">
+                                    Full report
+                                </a>
+                                {% endif %}
+                            </div>
+                    </article>
+                    {% endfor %}
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="history-empty-state">
             <h3>No audits yet</h3>
@@ -167,21 +224,23 @@
         {% endif %}
     </section>
 
-    <section class="history-next-panel">
-        <div class="history-next-box">
-            <strong>Next step:</strong>
-            {% if comparison and comparison.overall_change == "declined" %}
-                investigate the drop and run another audit after fixes.
-            {% elif comparison and comparison.overall_change == "improved" %}
-                continue building on what is working.
-            {% elif latest %}
-                run another audit later to measure progress.
-            {% else %}
-                run the first audit to establish a baseline.
-            {% endif %}
-        </div>
-    </section>
-
 </div>
+
+<script>
+function toggleAuditHistory() {
+    const hiddenList = document.getElementById("history-hidden-list");
+    const toggleBtn = document.getElementById("history-toggle-btn");
+
+    if (!hiddenList || !toggleBtn) return;
+
+    hiddenList.classList.toggle("is-open");
+
+    if (hiddenList.classList.contains("is-open")) {
+        toggleBtn.textContent = "Show Less History";
+    } else {
+        toggleBtn.textContent = "Show More History";
+    }
+}
+</script>
 
 {% endblock %}

@@ -14,9 +14,24 @@
 {% block content %}
 
 {% set actions = client.recommended_actions or [] %}
-{% set high_actions = actions | selectattr("priority", "equalto", "high") | list %}
+
+{% set high_actions_raw = actions | selectattr("priority", "equalto", "high") | list %}
 {% set medium_actions = actions | selectattr("priority", "equalto", "medium") | list %}
 {% set low_actions = actions | selectattr("priority", "equalto", "low") | list %}
+
+{% set high_query_actions = [] %}
+{% set high_general_actions = [] %}
+
+{% for action in high_actions_raw %}
+    {% set action_title = action.title if action.title else "" %}
+    {% if action_title.startswith("Target missed query:") %}
+        {% set _ = high_query_actions.append(action) %}
+    {% else %}
+        {% set _ = high_general_actions.append(action) %}
+    {% endif %}
+{% endfor %}
+
+{% set high_actions = high_query_actions + high_general_actions %}
 {% set top_action = high_actions[0] if high_actions else (medium_actions[0] if medium_actions else (low_actions[0] if low_actions else None)) %}
 
 {% set top_action_title = top_action.title if top_action and top_action.title else "" %}
@@ -43,10 +58,13 @@
             <span class="section-kicker">Top Priority</span>
 
             {% if top_action %}
+                {% if top_is_query_action and top_target_query %}
+                <h2>{{ top_target_query }}</h2>
+                <p>Create a content brief for this missed query and move it into drafting.</p>
+                {% else %}
                 <h2>{{ top_action.title }}</h2>
-                <p>
-                    {{ top_action.recommended_action or "This is the clearest next move based on your latest audit." }}
-                </p>
+                <p>{{ top_action.recommended_action or "This is the clearest next move based on your latest audit." }}</p>
+                {% endif %}
             {% else %}
                 <h2>No action plan yet</h2>
                 <p>Run an audit first to generate recommended actions and prioritised next steps.</p>
@@ -67,7 +85,7 @@
                 <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=top_target_query) }}" class="btn btn-secondary btn-block">
                     Generate Draft
                 </a>
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
                     Check Competitors
                 </a>
 
@@ -75,11 +93,11 @@
                 <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-block">
                     Open Content Queue
                 </a>
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    View Competitors
-                </a>
                 <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
                     Review Visibility
+                </a>
+                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
+                    View Competitors
                 </a>
                 {% endif %}
             {% else %}
@@ -123,7 +141,7 @@
 
         {% if high_actions %}
         <div class="actions-list-stack">
-            {% for action in high_actions[:4] %}
+            {% for action in high_actions[:3] %}
             {% set action_title = action.title if action.title else "" %}
             {% set is_query_action = action_title.startswith("Target missed query:") %}
             {% set target_query = action_title.replace("Target missed query:", "", 1).strip() if is_query_action else "" %}
@@ -133,10 +151,21 @@
                     <span class="action-item-badge">High priority</span>
                 </div>
 
-                <h4>{{ action.title }}</h4>
+                <h4>
+                    {% if is_query_action and target_query %}
+                        {{ target_query }}
+                    {% else %}
+                        {{ action.title }}
+                    {% endif %}
+                </h4>
 
+                {% if action.issue %}
                 <p><strong>Issue:</strong> {{ action.issue }}</p>
+                {% endif %}
+
+                {% if action.recommended_action %}
                 <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
+                {% endif %}
 
                 {% if action.support_signal %}
                 <p><strong>Why it matters:</strong> {{ action.support_signal }}</p>
@@ -155,7 +184,7 @@
                     <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
                         Generate Draft
                     </a>
-                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
                         Check Competitors
                     </a>
 
@@ -163,7 +192,7 @@
                     <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
                         Open Queue
                     </a>
-                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
                         Check Competitors
                     </a>
                     {% endif %}
@@ -188,20 +217,32 @@
             </div>
         </div>
 
-        <div class="actions-list-stack">
+        <div class="actions-list-stack actions-list-stack-compact">
             {% for action in medium_actions %}
             {% set action_title = action.title if action.title else "" %}
             {% set is_query_action = action_title.startswith("Target missed query:") %}
             {% set target_query = action_title.replace("Target missed query:", "", 1).strip() if is_query_action else "" %}
 
-            <article class="action-item-card">
+            <article class="action-item-card action-item-card-compact">
                 <div class="action-item-top">
                     <span class="action-item-badge action-item-badge-medium">Medium priority</span>
                 </div>
 
-                <h4>{{ action.title }}</h4>
+                <h4>
+                    {% if is_query_action and target_query %}
+                        {{ target_query }}
+                    {% else %}
+                        {{ action.title }}
+                    {% endif %}
+                </h4>
+
+                {% if action.issue %}
                 <p><strong>Issue:</strong> {{ action.issue }}</p>
+                {% endif %}
+
+                {% if action.recommended_action %}
                 <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
+                {% endif %}
 
                 <div class="action-item-links">
                     {% if current_user.plan == "free" %}
@@ -212,9 +253,6 @@
                     {% elif is_query_action and target_query %}
                     <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
                         Generate Brief
-                    </a>
-                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
-                        Generate Draft
                     </a>
 
                     {% else %}

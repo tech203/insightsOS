@@ -3,220 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Insights OS{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v=120">
+    <title>{% block title %}DarInsights{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    {% block head %}{% endblock %}
 </head>
-<body>
-    {% set current_endpoint = request.endpoint if request and request.endpoint else '' %}
-    {% set is_admin_user = current_user.is_authenticated and (current_user.email == "pypteltd@gmail.com" or current_user.role == "admin") %}
-    {% set desktop_sidebar_breakpoint = 1200 %}
+<body class="{% block body_class %}{% endblock %}">
+    {% set current_endpoint = request.endpoint or '' %}
+    {% set sidebar_client = focused_client if focused_client is defined and focused_client else none %}
+
+    <div class="mobile-topbar">
+        <button class="mobile-menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <a href="{{ url_for('index') }}" class="mobile-brand">
+            <div class="mobile-brand-mark">
+                {% if current_user.is_authenticated %}
+                    {{ (current_user.name or current_user.email or "D")[0]|upper }}
+                {% else %}
+                    D
+                {% endif %}
+            </div>
+            <div class="mobile-brand-text">
+                {% if sidebar_client %}
+                    {{ sidebar_client.name or "Workspace" }}
+                {% else %}
+                    DarInsights
+                {% endif %}
+            </div>
+        </a>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="app-shell">
-
-        <header class="mobile-topbar">
-            <button
-                class="mobile-menu-btn"
-                id="mobileMenuBtn"
-                aria-label="Open menu"
-                aria-expanded="false"
-                aria-controls="appSidebar"
-                type="button"
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-
-            <a href="{{ url_for('index') }}" class="mobile-brand" aria-label="Go to dashboard">
-                <span class="mobile-brand-mark">A</span>
-                <span class="mobile-brand-text">Insights OS</span>
-            </a>
-        </header>
-
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-        <aside class="app-sidebar" id="appSidebar" aria-label="Sidebar navigation">
+        <aside class="app-sidebar" id="appSidebar" aria-hidden="true">
             <div class="sidebar-inner">
 
                 <div class="sidebar-brand">
                     <a href="{{ url_for('index') }}" class="brand-link">
-                        <div class="brand-mark">A</div>
+                        <div class="brand-mark">
+                            {% if current_user.is_authenticated %}
+                                {{ (current_user.name or current_user.email or "D")[0]|upper }}
+                            {% else %}
+                                D
+                            {% endif %}
+                        </div>
                         <div class="brand-copy">
-                            <strong>Insights OS</strong>
+                            <strong>DarInsights</strong>
                             <span>AI Visibility Workspace</span>
                         </div>
                     </a>
                 </div>
 
                 <nav class="sidebar-nav">
-                    {% if view_mode == "single" %}
-                        {% include "sidebar_single.html" %}
-                    {% elif view_mode == "multi" %}
-                        {% include "sidebar_multi.html" %}
-                    {% elif view_mode == "admin" %}
-                        {% include "sidebar_admin.html" %}
-                    {% else %}
-                        {% include "sidebar_single.html" %}
+                    <div class="nav-group">
+                        <div class="nav-label">Workspace</div>
+
+                        <a href="{{ url_for('index') }}"
+                           class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}">
+                            <span class="nav-icon">⌂</span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+
+                        <a href="{{ url_for('clients_page') }}"
+                           class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'create_client'] %}active{% endif %}">
+                            <span class="nav-icon">◫</span>
+                            <span class="nav-text">All Workspaces</span>
+                        </a>
+
+                        <a href="{{ url_for('content_queue_page') }}"
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue'] %}active{% endif %}">
+                            <span class="nav-icon">☰</span>
+                            <span class="nav-text">Content Queue</span>
+                        </a>
+
+                        <a href="{{ url_for('position_tracking_page') }}"
+                           class="nav-item {% if current_endpoint == 'position_tracking_page' %}active{% endif %}">
+                            <span class="nav-icon">◎</span>
+                            <span class="nav-text">Tracked Prompts</span>
+                        </a>
+                    </div>
+
+                    {% if sidebar_client %}
+                    <div class="nav-group">
+                        <div class="nav-label">Current Workspace</div>
+
+                        <a href="{{ url_for('client_detail', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}">
+                            <span class="nav-icon">◌</span>
+                            <span class="nav-text">Overview</span>
+                        </a>
+
+                        <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}">
+                            <span class="nav-icon">⌕</span>
+                            <span class="nav-text">Run Audit</span>
+                        </a>
+
+                        <a href="{{ url_for('client_visibility_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_visibility_page' %}active{% endif %}">
+                            <span class="nav-icon">◔</span>
+                            <span class="nav-text">Visibility</span>
+                        </a>
+
+                        <a href="{{ url_for('client_competitors_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['client_competitors_page', 'competitor_page'] %}active{% endif %}">
+                            <span class="nav-icon">△</span>
+                            <span class="nav-text">Competitors</span>
+                        </a>
+
+                        <a href="{{ url_for('generate_client_content_brief', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['generate_client_content_brief', 'content_brief_form'] %}active{% endif %}">
+                            <span class="nav-icon">✎</span>
+                            <span class="nav-text">Content Brief</span>
+                        </a>
+
+                        <a href="{{ url_for('generate_client_content_draft', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['generate_client_content_draft', 'content_draft_form'] %}active{% endif %}">
+                            <span class="nav-icon">▤</span>
+                            <span class="nav-text">Content Draft</span>
+                        </a>
+
+                        <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}">
+                            <span class="nav-icon">◷</span>
+                            <span class="nav-text">History</span>
+                        </a>
+                    </div>
                     {% endif %}
                 </nav>
 
                 <div class="sidebar-footer">
-
-                    {% if is_admin_user %}
-                    <div class="sidebar-footer-panel sidebar-dev-panel">
-                        <div class="sidebar-footer-head">
-                            <span class="sidebar-footer-kicker">Dev View Mode</span>
-                        </div>
-
-                        <div class="dev-view-buttons">
-                            <a
-                                href="{{ url_for('dev_set_view_mode', mode='single') }}"
-                                class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}"
-                            >
-                                Single
-                            </a>
-
-                            <a
-                                href="{{ url_for('dev_set_view_mode', mode='multi') }}"
-                                class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}"
-                            >
-                                Multi
-                            </a>
-
-                            <a
-                                href="{{ url_for('dev_set_view_mode', mode='admin') }}"
-                                class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}"
-                            >
-                                Admin
-                            </a>
-
-                            <a
-                                href="{{ url_for('dev_set_view_mode', mode='auto') }}"
-                                class="dev-view-btn {% if not session.get('dev_view_mode') %}active{% endif %}"
-                            >
-                                Auto
-                            </a>
-                        </div>
-                    </div>
-                    {% endif %}
-
                     <div class="sidebar-footer-panel sidebar-credits-panel">
                         <div class="sidebar-footer-head">
                             <span class="sidebar-footer-kicker">Credits</span>
                         </div>
 
                         <div class="sidebar-credits-value">
-                            {{ wallet_balance if wallet_balance is defined else 14 }}
+                            {% if current_user.is_authenticated and current_user.plan == 'dev_unlimited' %}
+                                Unlimited
+                            {% elif current_user.is_authenticated and current_user.wallet %}
+                                {{ current_user.wallet.balance }}
+                            {% else %}
+                                0
+                            {% endif %}
                         </div>
 
                         <div class="sidebar-credits-meta">
-                            Available for audits and workspace actions
+                            For audits and actions
                         </div>
-
-                        <a href="{{ url_for('pricing_page') }}" class="sidebar-buy-btn">
-                            Buy Credits
-                        </a>
                     </div>
 
-                    <div class="sidebar-footer-panel sidebar-account-panel">
+                    <div class="sidebar-footer-panel">
                         <div class="sidebar-footer-head">
                             <span class="sidebar-footer-kicker">Account</span>
                         </div>
 
-                        <div class="sidebar-account-email" title="{{ current_user.email }}">
-                            {{ current_user.email }}
+                        <div class="sidebar-account-email">
+                            {{ current_user.email if current_user.is_authenticated else 'Guest' }}
                         </div>
 
-                        <a href="{{ url_for('logout') }}" class="sidebar-logout-btn">
-                            Logout
-                        </a>
+                        {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('logout') }}" class="sidebar-logout-btn">Logout</a>
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="sidebar-logout-btn">Login</a>
+                        {% endif %}
                     </div>
-
                 </div>
             </div>
         </aside>
 
-        <main class="app-main">
-            <div class="app-content">
+        <div class="app-main">
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
+                        ☰
+                    </button>
 
-                {% set page_header_content %}
-                    {% block page_header %}{% endblock %}
-                {% endset %}
-
-                {% if page_header_content|trim %}
-                    <section class="page-header">
-                        {{ page_header_content }}
-                    </section>
-                {% endif %}
-
-                <section class="page-body-shell">
-                    <div class="page-shell">
-                        {% block content %}{% endblock %}
+                    <div class="topbar-heading">
+                        {% block page_header %}
+                            <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                            <p>{% block page_subtitle %}{% endblock %}</p>
+                        {% endblock %}
                     </div>
-                </section>
-            </div>
-        </main>
+                </div>
+
+                <div class="topbar-actions">
+                    {% if is_internal_user %}
+                        <a href="{{ url_for('settings_preferences') }}" class="topbar-link-pill">Dev Controls</a>
+                    {% endif %}
+
+                    {% block topbar_actions %}{% endblock %}
+                </div>
+            </header>
+
+            <main class="app-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
     </div>
 
     <script>
-        (function () {
-            const DESKTOP_BREAKPOINT = {{ desktop_sidebar_breakpoint }};
+        document.addEventListener("DOMContentLoaded", function () {
             const body = document.body;
             const sidebar = document.getElementById("appSidebar");
             const overlay = document.getElementById("sidebarOverlay");
-            const menuBtn = document.getElementById("mobileMenuBtn");
+            const toggleButtons = document.querySelectorAll(".sidebar-toggle, .mobile-menu-btn");
+            const desktopBreakpoint = 1200;
 
-            if (!sidebar || !overlay || !menuBtn) return;
-
-            function isDesktop() {
-                return window.innerWidth >= DESKTOP_BREAKPOINT;
+            function setExpanded(expanded) {
+                toggleButtons.forEach((btn) => {
+                    btn.setAttribute("aria-expanded", expanded ? "true" : "false");
+                });
             }
 
             function openSidebar() {
-                if (isDesktop()) return;
+                if (!sidebar || window.innerWidth >= desktopBreakpoint) return;
                 sidebar.classList.add("open");
-                overlay.classList.add("show");
+                sidebar.setAttribute("aria-hidden", "false");
+                if (overlay) overlay.classList.add("show");
                 body.classList.add("sidebar-open");
-                menuBtn.setAttribute("aria-expanded", "true");
+                setExpanded(true);
             }
 
             function closeSidebar() {
+                if (!sidebar) return;
                 sidebar.classList.remove("open");
-                overlay.classList.remove("show");
+                sidebar.setAttribute("aria-hidden", window.innerWidth >= desktopBreakpoint ? "false" : "true");
+                if (overlay) overlay.classList.remove("show");
                 body.classList.remove("sidebar-open");
-                menuBtn.setAttribute("aria-expanded", "false");
+                setExpanded(false);
             }
 
-            menuBtn.addEventListener("click", function () {
+            function toggleSidebar(event) {
+                if (event) event.preventDefault();
+                if (!sidebar || window.innerWidth >= desktopBreakpoint) return;
+
                 if (sidebar.classList.contains("open")) {
                     closeSidebar();
                 } else {
                     openSidebar();
                 }
+            }
+
+            toggleButtons.forEach((btn) => {
+                btn.addEventListener("click", toggleSidebar);
             });
 
-            overlay.addEventListener("click", closeSidebar);
-
-            window.addEventListener("resize", function () {
-                if (isDesktop()) {
-                    closeSidebar();
-                }
-            });
-
-            document.querySelectorAll(".app-sidebar a").forEach(function (item) {
-                item.addEventListener("click", function () {
-                    if (!isDesktop()) {
-                        closeSidebar();
-                    }
-                });
-            });
+            if (overlay) {
+                overlay.addEventListener("click", closeSidebar);
+            }
 
             document.addEventListener("keydown", function (event) {
-                if (event.key === "Escape" && sidebar.classList.contains("open")) {
+                if (event.key === "Escape") {
                     closeSidebar();
                 }
             });
-        })();
+
+            document.addEventListener("click", function (event) {
+                if (!sidebar || window.innerWidth >= desktopBreakpoint) return;
+                if (!sidebar.classList.contains("open")) return;
+
+                const clickedInsideSidebar = sidebar.contains(event.target);
+                const clickedToggle = Array.from(toggleButtons).some((btn) => btn.contains(event.target));
+
+                if (!clickedInsideSidebar && !clickedToggle) {
+                    closeSidebar();
+                }
+            });
+
+            window.addEventListener("resize", function () {
+                if (!sidebar) return;
+
+                if (window.innerWidth >= desktopBreakpoint) {
+                    sidebar.classList.remove("open");
+                    sidebar.setAttribute("aria-hidden", "false");
+                    if (overlay) overlay.classList.remove("show");
+                    body.classList.remove("sidebar-open");
+                    setExpanded(false);
+                } else {
+                    sidebar.setAttribute("aria-hidden", sidebar.classList.contains("open") ? "false" : "true");
+                }
+            });
+
+            if (window.innerWidth >= desktopBreakpoint) {
+                if (sidebar) sidebar.setAttribute("aria-hidden", "false");
+            } else {
+                if (sidebar) sidebar.setAttribute("aria-hidden", "true");
+            }
+        });
     </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

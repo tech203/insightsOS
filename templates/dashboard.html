@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard | Insights OS{% endblock %}
+{% block title %}Dashboard | DarInsights{% endblock %}
 
 {% block page_header %}
 <div class="page-header-standard dashboard-page-header-minimal">
@@ -21,6 +21,21 @@
 {% set primary_client = clients[0] if has_clients else None %}
 
 <div class="dashboard-v3">
+
+    {% if is_internal_user %}
+    <div class="panel" style="max-width: 420px;">
+        <div class="sidebar-footer-head">
+            <span class="sidebar-footer-kicker">Dev View Mode</span>
+        </div>
+
+        <div class="dev-view-buttons">
+            <a href="{{ url_for('dev_set_view_mode', mode='single') }}" class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}">Single</a>
+            <a href="{{ url_for('dev_set_view_mode', mode='multi') }}" class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}">Multi</a>
+            <a href="{{ url_for('dev_set_view_mode', mode='admin') }}" class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}">Admin</a>
+            <a href="{{ url_for('dev_set_view_mode', mode='auto') }}" class="dev-view-btn {% if view_mode == 'auto' %}active{% endif %}">Auto</a>
+        </div>
+    </div>
+    {% endif %}
 
     <section class="dashboard-priority-v3">
         <div class="dashboard-priority-main-card">
@@ -277,16 +292,23 @@
                     answers change over time and where competitors appear.
                 </p>
                 <div class="dashboard-next-actions">
-                    <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Open Workspaces</a>
-                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Queue</a>
+                    {% if view_mode == "single" and primary_client %}
+                        <a href="{{ url_for('position_tracking_page', client_id=primary_client.id) }}" class="btn btn-primary">
+                            Open Prompt Tracking
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('clients_page') }}" class="btn btn-primary">
+                            Open Workspaces
+                        </a>
+                    {% endif %}
                 </div>
 
             {% else %}
                 <span class="dashboard-next-kicker">Operations Focus</span>
-                <h3>Review the latest audit, then check the content queue</h3>
+                <h3>Review the latest audit</h3>
                 <p>
-                    Users usually need to confirm what the audit found, then move directly into content and execution.
-                    Keep both workflows close together.
+                    Start by reviewing the latest audit findings, then use the sidebar to move into queue, competitors,
+                    tracking, or workspace actions.
                 </p>
                 <div class="dashboard-next-actions">
                     {% if primary_client %}
@@ -298,7 +320,6 @@
                             Run Audit
                         </a>
                     {% endif %}
-                    <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Queue</a>
                 </div>
             {% endif %}
         </div>
@@ -326,14 +347,8 @@
                     </div>
 
                     <div class="dashboard-client-actions">
-                        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">
+                        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
                             Open Workspace
-                        </a>
-                        <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="text-link">
-                            Competitors
-                        </a>
-                        <a href="{{ url_for('position_tracking_page', client_id=client.id) }}" class="text-link">
-                            Tracking
                         </a>
                     </div>
                 </article>

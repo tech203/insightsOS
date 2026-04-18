@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Settings · Insights OS{% endblock %}
+{% block title %}Settings · DarInsights{% endblock %}
 
 {% block page_title %}Settings{% endblock %}
 {% block page_subtitle %}Manage your workspace, account, credits, billing, referrals, and future controls in one cleaner account centre.{% endblock %}
@@ -113,7 +113,7 @@
                 </div>
                 <div class="settings-v3-info-row">
                     <span>Workspace</span>
-                    <strong>Insights OS</strong>
+                    <strong>DarInsights</strong>
                 </div>
                 <div class="settings-v3-info-row">
                     <span>Role</span>
@@ -353,44 +353,77 @@
     </section>
     {% endif %}
 
-    {% if active_settings_section == "preferences" %}
-    <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
-            <div class="settings-v3-panel-head">
-                <h2>Workspace Preferences</h2>
-                <p>Control defaults and behaviour across your workspace.</p>
-            </div>
-
-            <div class="settings-v3-card-list">
-                <div class="settings-v3-mini-card">
-                    <h3>Report Defaults</h3>
-                    <p>Set default report views, output modes, and presentation preferences here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Notifications</h3>
-                    <p>Control system alerts, audit completion notices, and email preferences here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Brand & Interface</h3>
-                    <p>Add interface preferences, white-label defaults, and workspace branding rules here later.</p>
-                </div>
-            </div>
+{% if active_settings_section == "preferences" %}
+<section class="settings-v3-grid">
+    <div class="settings-v3-panel">
+        <div class="settings-v3-panel-head">
+            <h2>Workspace Preferences</h2>
+            <p>Control defaults and behaviour across your workspace.</p>
         </div>
 
-        <div class="settings-v3-panel">
-            <div class="settings-v3-panel-head">
-                <h2>Current State</h2>
-                <p>This section is ready to become the future control centre for workspace preferences.</p>
+        <div class="settings-v3-card-list">
+            <div class="settings-v3-mini-card">
+                <h3>Report Defaults</h3>
+                <p>Set default report views, output modes, and presentation preferences here later.</p>
             </div>
 
-            <div class="settings-v3-note-box">
-                Preference persistence is not connected yet.
+            <div class="settings-v3-mini-card">
+                <h3>Notifications</h3>
+                <p>Control system alerts, audit completion notices, and email preferences here later.</p>
+            </div>
+
+            <div class="settings-v3-mini-card">
+                <h3>Brand & Interface</h3>
+                <p>Add interface preferences, white-label defaults, and workspace branding rules here later.</p>
             </div>
         </div>
-    </section>
-    {% endif %}
+    </div>
+
+    <div class="settings-v3-panel">
+        <div class="settings-v3-panel-head">
+            <h2>Current State</h2>
+            <p>This section is ready to become the future control centre for workspace preferences.</p>
+        </div>
+
+        <div class="settings-v3-note-box">
+            Preference persistence is not connected yet.
+        </div>
+    </div>
+
+{% if is_internal_user %}
+<div class="settings-v3-panel">
+    <div class="settings-v3-panel-head">
+        <h2>Developer Controls</h2>
+        <p>Internal testing controls for switching interface modes.</p>
+    </div>
+
+    <div class="settings-v3-card-list">
+        <div class="settings-v3-mini-card">
+            <h3>Dev View Mode</h3>
+            <p>Switch between interface modes for internal testing only.</p>
+
+            <div class="dev-view-buttons">
+                <a href="{{ url_for('dev_set_view_mode', mode='single') }}"
+                   class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}">
+                    Single
+                </a>
+                <a href="{{ url_for('dev_set_view_mode', mode='multi') }}"
+                   class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}">
+                    Multi
+                </a>
+                <a href="{{ url_for('dev_set_view_mode', mode='admin') }}"
+                   class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}">
+                    Admin
+                </a>
+                <a href="{{ url_for('dev_set_view_mode', mode='auto') }}"
+                   class="dev-view-btn {% if view_mode == 'auto' %}active{% endif %}">
+                    Auto
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
     {% if active_settings_section == "team" %}
     <section class="settings-v3-grid">
@@ -746,5 +779,40 @@
         text-align: left;
     }
 }
+
+.dev-view-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.dev-view-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #e7ebf3;
+    background: #ffffff;
+    color: #4a586c;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.dev-view-btn:hover {
+    border-color: #ffd8c6;
+    color: #E83256;
+    background: #fff8f4;
+}
+
+.dev-view-btn.active {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #E83256;
+}
+
 </style>
 {% endblock %}

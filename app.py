@@ -200,6 +200,51 @@ def load_user(user_id):
 # General helpers
 # =========================
 
+def build_ai_brief_context(client, target_query, latest_audit=None):
+    client_name = safe_str(client.get("name"))
+    industry = safe_str(client.get("industry"))
+    location = safe_str(client.get("location"))
+    website = safe_str(client.get("website"))
+    notes = safe_str(client.get("notes"))
+
+    competitor_names = []
+    content_gaps = []
+
+    if latest_audit:
+        for c in (latest_audit.get("top_competitors") or [])[:3]:
+            if isinstance(c, dict):
+                name = safe_str(c.get("name"))
+                if name:
+                    competitor_names.append(name)
+            else:
+                name = safe_str(c)
+                if name:
+                    competitor_names.append(name)
+
+        for gap in (latest_audit.get("top_content_gaps") or [])[:3]:
+            if isinstance(gap, dict):
+                label = safe_str(gap.get("title") or gap.get("query") or gap.get("label"))
+                if label:
+                    content_gaps.append(label)
+            else:
+                label = safe_str(gap)
+                if label:
+                    content_gaps.append(label)
+
+    competitor_text = ", ".join(competitor_names) if competitor_names else "relevant competitors in the market"
+    gaps_text = ", ".join(content_gaps) if content_gaps else "clear buying questions, trust signals, and local relevance"
+
+    return (
+        f"Users searching '{target_query}' are likely looking for a clear and trustworthy answer before deciding what to choose. "
+        f"This brief should position {client_name or 'the brand'} as a credible option in {industry or 'its category'}"
+        f"{' in ' + location if location else ''}. "
+        f"Emphasise decision-making factors, practical buying guidance, and what makes the brand different. "
+        f"Competitors currently visible include {competitor_text}. "
+        f"The content should close gaps around {gaps_text}. "
+        f"Brand website: {website}. "
+        f"{'Additional brand notes: ' + notes if notes else ''}"
+    ).strip()
+
 def get_prompt_visibility(client_id, target_query):
     rows = PromptTracking.query.filter_by(
         user_id=current_user.id
@@ -292,10 +337,9 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
         return 0
 
     created_count = 0
-
     ai_rows = full_data.get("ai_answer_results", []) or []
 
-    for row in ai_rows[:5]:
+    for row in ai_rows[:12]:
         query = (row.get("query") or "").strip()
         brand_mentioned = row.get("brand_mentioned", False)
 
@@ -311,6 +355,13 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
         if already_exists:
             continue
 
+        client = get_client_by_id(client_id)
+        ai_brief_context = build_ai_brief_context(
+            client=client or {},
+            target_query=query,
+            latest_audit=latest,
+        )
+
         add_queue_item(
             client_id=client_id,
             client_name=latest.get("client_name") or latest.get("website") or "Workspace",
@@ -318,12 +369,12 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
             content_type="service_page",
             item_type="brief",
             title=f"Brief: {query}",
-            content="",
-            status="queued",
+            content=ai_brief_context,
+            status="pending",
             priority="high",
             source="audit",
             user_id=user_id,
-        )
+        )        
         created_count += 1
 
     return created_count
@@ -1044,10 +1095,18 @@ def get_view_mode(user):
 @app.route("/dev/view-mode/<mode>")
 @login_required
 def dev_set_view_mode(mode):
-    if current_user.email != "pypteltd@gmail.com" and current_user.role != "admin":
+    is_internal_user = (
+        current_user.is_authenticated and (
+            current_user.email == "pypteltd@gmail.com"
+            or getattr(current_user, "role", "") == "admin"
+            or getattr(current_user, "plan", "") == "dev_unlimited"
+        )
+    )
+
+    if not is_internal_user:
         abort(403)
 
-    if mode not in ["single", "multi", "admin", "auto"]:
+    if mode not in {"single", "multi", "admin", "auto"}:
         abort(404)
 
     if mode == "auto":
@@ -1055,7 +1114,7 @@ def dev_set_view_mode(mode):
     else:
         session["dev_view_mode"] = mode
 
-    return redirect(request.referrer or url_for("index"))
+    return redirect(request.referrer or url_for("settings_preferences"))
 
 def require_internal_access():
     if not current_user.is_authenticated:
@@ -1381,7 +1440,7 @@ def create_checkout_session():
                 "price_data": {
                     "currency": "usd",
                     "product_data": {
-                        "name": "Insights OS Pro Upgrade",
+                        "name": "DarInsights Pro Upgrade",
                     },
                     "unit_amount": 2900,  # $29.00
                 },
@@ -1852,11 +1911,12 @@ def generate_client_content_brief(client_id):
             )
 
     prefill_query = safe_str(request.args.get("target_query"))
+    prefill_content_type = safe_str(request.args.get("content_type")) or "service_page"
     prefill_context = safe_str(request.args.get("brand_context"))
 
     form_data = {
         "target_query": prefill_query if prefill_query else default_query,
-        "content_type": "service_page",
+        "content_type": prefill_content_type,
         "brand_context": prefill_context if prefill_context else client.get("notes", ""),
     }
 
@@ -1889,9 +1949,28 @@ def generate_brief_from_queue(item_id):
         flash("This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.", "warning")
         return redirect(url_for("content_queue_page"))
 
+    client = get_client_by_id(row.slug)
+    latest_audit = client.get("latest_audit") if client else None
+
     target_query = safe_str(item.get("target_query"))
     content_type = safe_str(item.get("content_type") or "service_page")
-    brand_context = safe_str(item.get("brand_context") or item.get("brief") or item.get("content") or "")
+
+    # Prefer saved AI context from the queue item.
+    brand_context = safe_str(item.get("content"))
+
+    # Fallback: generate fresh AI-style context if queue item is empty.
+    if not brand_context:
+        brand_context = build_ai_brief_context(
+            client=client or {},
+            target_query=target_query,
+            latest_audit=latest_audit,
+        )
+
+        update_queue_item_content(
+            item_id=item_id,
+            content=brand_context,
+            user_id=current_user.id,
+        )
 
     return redirect(url_for(
         "generate_client_content_brief",
@@ -2152,16 +2231,29 @@ def prompt_detail_page():
 @app.route("/save-prompts", methods=["POST"])
 @login_required
 def save_prompts():
+    client_id = request.form.get("client_id", "").strip()
     prompts = request.form.get("prompts", "").strip()
-    domain = request.form.get("domain", "supportfast.ai").strip()
+    domain = request.form.get("domain", "").strip()
     platform = request.form.get("platform", "ChatGPT").strip()
     market = request.form.get("market", "United States (English)").strip()
     topic = request.form.get("topic", "Tracked prompts").strip()
+
+    selected_client = None
+    if client_id:
+        selected_client = get_client_by_id(client_id)
+
+    if selected_client and not domain:
+        domain = normalize_website(selected_client.get("website", ""))
+
+    if not domain:
+        domain = "supportfast.ai"
 
     prompt_list = [p.strip() for p in prompts.splitlines() if p.strip()]
 
     if not prompt_list:
         flash("No prompts entered.", "warning")
+        if client_id:
+            return redirect(url_for("position_tracking_page", client_id=client_id))
         return redirect(url_for("position_tracking_page"))
 
     def guess_competitor(prompt: str) -> str:
@@ -2219,21 +2311,68 @@ def save_prompts():
     else:
         flash("These prompts were already being tracked.", "info")
 
-    return redirect(url_for(
-        "position_tracking_page",
-        domain=domain,
-        platform=platform,
-        market=market,
-        topic=topic,
-    ))
+    redirect_args = {
+        "domain": domain,
+        "platform": platform,
+        "market": market,
+        "topic": topic,
+    }
+    if client_id:
+        redirect_args["client_id"] = client_id
+
+    return redirect(url_for("position_tracking_page", **redirect_args))
+
+@app.route("/client/<client_id>/competitors")
+@login_required
+def client_competitors_page(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+    return render_template("client_competitors.html", client=client)
+
+
+@app.route("/client/<client_id>/actions")
+@login_required
+def client_actions_page(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+    return render_template("client_actions.html", client=client)
+
+
+@app.route("/client/<client_id>/history")
+@login_required
+def client_history_page(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+    return render_template("client_history.html", client=client)
 
 @app.route("/position-tracking")
 @login_required
 def position_tracking_page():
+    client_id = request.args.get("client_id", "").strip()
     domain = request.args.get("domain", "").strip()
     platform = request.args.get("platform", "ChatGPT").strip()
     market = request.args.get("market", "United States (English)").strip()
     topic = request.args.get("topic", "").strip()
+
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
+
+    selected_client = None
+    if client_id:
+        selected_client = get_client_by_id(client_id)
+
+    if not selected_client and view_mode == "single" and focused_client:
+        selected_client = focused_client
+        client_id = str(focused_client.get("id", "")).strip()
+
+    if selected_client and not domain:
+        domain = normalize_website(selected_client.get("website", ""))
+
+    if not domain:
+        domain = "supportfast.ai"
 
     query = PromptTracking.query.filter_by(user_id=current_user.id)
 
@@ -2275,7 +2414,10 @@ def position_tracking_page():
 
     return render_template(
         "position_tracking.html",
-        project_domain=domain or "supportfast.ai",
+        client_id=client_id,
+        focused_client=focused_client,
+        selected_client=selected_client,
+        project_domain=domain,
         selected_platform=platform,
         selected_market=market,
         tracked_topic=topic or "Tracked prompts",
@@ -2289,34 +2431,6 @@ def position_tracking_page():
         highest_competitor=highest_competitor,
         best_next_move=best_next_move,
     )
-
-
-@app.route("/client/<client_id>/competitors")
-@login_required
-def client_competitors_page(client_id):
-    client = get_client_by_id(client_id)
-    if not client:
-        abort(404)
-    return render_template("client_competitors.html", client=client)
-
-
-@app.route("/client/<client_id>/actions")
-@login_required
-def client_actions_page(client_id):
-    client = get_client_by_id(client_id)
-    if not client:
-        abort(404)
-    return render_template("client_actions.html", client=client)
-
-
-@app.route("/client/<client_id>/history")
-@login_required
-def client_history_page(client_id):
-    client = get_client_by_id(client_id)
-    if not client:
-        abort(404)
-    return render_template("client_history.html", client=client)
-
 
 @app.route("/content")
 @app.route("/content-queue")
@@ -2649,9 +2763,24 @@ def new_audit():
                 user_id=current_user.id,
             )
 
-            flash("Audit completed successfully.", "success")
-            return redirect(url_for("client_detail", client_id=client_id))
+            created_count = create_content_opportunities_from_latest_audit(
+                client_id=client_id,
+                user_id=current_user.id,
+            )
 
+            if created_count > 0:
+                flash(
+                    f"Audit completed successfully. {created_count} content opportunities added to the queue.",
+                    "success",
+                )
+            else:
+                flash(
+                    "Audit completed successfully. No new content opportunities were added.",
+                    "success",
+                )
+
+            return redirect(url_for("client_detail", client_id=client_id))
+                
         except Exception as e:
             refund_credits(current_user, 1, notes="Refund for failed new audit")
             return render_template(
@@ -2789,11 +2918,39 @@ def inject_template_globals():
 def aeo_agency_page():
     return render_template("landing_aeo.html")
 
-def render_settings_section(section_name: str):
-    return render_template(
-        "settings.html",
-        active_settings_section=section_name
+def render_settings_section(section, **extra_context):
+    is_internal_user = (
+        current_user.is_authenticated and (
+            current_user.email == "pypteltd@gmail.com"
+            or getattr(current_user, "role", "") == "admin"
+            or getattr(current_user, "plan", "") == "dev_unlimited"
+        )
     )
+
+    context = {
+        "active_settings_section": section,
+        "is_internal_user": is_internal_user,
+        "view_mode": session.get("dev_view_mode", "auto"),
+    }
+    context.update(extra_context)
+
+def render_settings_section(section, **extra_context):
+    is_internal_user = (
+        current_user.is_authenticated and (
+            current_user.email == "pypteltd@gmail.com"
+            or getattr(current_user, "role", "") == "admin"
+            or getattr(current_user, "plan", "") == "dev_unlimited"
+        )
+    )
+
+    context = {
+        "active_settings_section": section,
+        "is_internal_user": is_internal_user,
+        "view_mode": session.get("dev_view_mode", "auto"),
+    }
+    context.update(extra_context)
+
+    return render_template("settings.html", **context)
 
 @app.route("/settings")
 @login_required

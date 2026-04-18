@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Content Queue | Insights OS{% endblock %}
+{% block title %}Content Queue | DarInsights{% endblock %}
 
 {% block content %}
 
@@ -250,7 +250,7 @@
         </div>
 
         <div class="premium-queue-list">
-            {% for item in queue_items[:5] %}
+            {% for item in queue_items %}
             {% set item_status = (item.status or "queued")|lower %}
             {% set item_priority = (item.priority or "medium")|lower %}
             {% set item_type = item.item_type or "content" %}
@@ -334,9 +334,9 @@
                             {% endif %}
 
                             {% if item.generate_draft_url %}
-                            <a href="{{ item.generate_draft_url }}" class="queue-inline-link">Generate Draft</a>
+                            <a href="{{ item.generate_draft_url }}" class="btn btn-secondary">Generate Draft</a>
                             {% else %}
-                            <span class="queue-inline-link queue-inline-link-muted">Generate Draft unavailable</span>
+                            <button type="button" class="btn btn-secondary" disabled>Generate Draft</button>
                             {% endif %}
                         {% endif %}
                     {% endif %}
