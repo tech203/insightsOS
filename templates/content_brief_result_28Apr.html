@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} | Brief Result{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard brief-result-header-clean">
+    <div class="page-header-copy">
+        <h1>{{ client.name }} · Brief Result</h1>
+        <p>Refine the brief, confirm the opportunity, and move it into drafting when it is ready.</p>
+    </div>
+
+    <div class="page-header-actions">
+        <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-primary">
+            Open Draft Generator
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% set target_query = result.target_query if result and result.target_query is defined else '' %}
+{% set content_type = result.content_type if result and result.content_type is defined else '' %}
+{% set brief_text = result.brief if result and result.brief is defined else result | tojson(indent=2) %}
+
+<section class="brief-result-shell-clean">
+
+    <section class="brief-top-strip">
+        <div class="brief-top-copy">
+            <span class="section-kicker">Brief Ready</span>
+            <h2>Refine this brief before drafting</h2>
+            <p>
+                Tighten the angle, confirm the intent, and make this brief clear enough to move directly into drafting.
+            </p>
+        </div>
+
+        <div class="brief-top-card">
+            <span class="brief-top-label">Recommended flow</span>
+            <strong class="brief-top-value">Refine → Draft → Publish</strong>
+            <p class="brief-top-note">
+                Use the score and diagnostics below to decide whether to move straight into drafting or sharpen the brief first.
+            </p>
+        </div>
+    </section>
+
+    <section class="aeo-score-card premium-aeo-card">
+        <div class="score-top-row">
+            <div class="score-main">
+                <div class="score-value
+                    {% if aeo and aeo.score >= 70 %}text-green
+                    {% elif aeo and aeo.score >= 40 %}text-amber
+                    {% else %}text-red{% endif %}">
+                    {{ aeo.score if aeo else 0 }}<span>%</span>
+                </div>
+
+                <div class="score-meta">
+                    <strong class="score-headline">
+                        {% if aeo and aeo.opportunity == "High" %}
+                            High opportunity to capture visibility
+                        {% elif aeo and aeo.opportunity == "Moderate" %}
+                            Moderate opportunity — refine positioning
+                        {% else %}
+                            Low opportunity — consider a different angle
+                        {% endif %}
+                    </strong>
+
+                    <p class="score-subtext">
+                        Visibility is {{ aeo.visibility if aeo else 0 }}%.
+                        Competitor strength is {{ aeo.competitor_strength if aeo else "N/A" }}.
+                    </p>
+
+                    <p class="score-context">
+                        Based on {{ tracked_prompt_count }} tracked prompts related to this query
+                    </p>
+
+                    {% if top_competitors %}
+                    <p class="score-context">
+                        Competing with: {{ top_competitors | join(", ") }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="score-badge
+                {% if aeo and aeo.score >= 70 %}score-green
+                {% elif aeo and aeo.score >= 40 %}score-amber
+                {% else %}score-red{% endif %}">
+                {{ aeo.opportunity if aeo else "Unknown" }}
+            </div>
+        </div>
+
+        <div class="score-progress-bar">
+            <div class="score-progress-fill" style="width: {{ aeo.score if aeo else 0 }}%;"></div>
+        </div>
+
+        <div class="score-breakdown-grid">
+            <div class="breakdown-item">
+                <span>Visibility</span>
+                <strong>{{ aeo.visibility if aeo else 0 }}%</strong>
+            </div>
+
+            <div class="breakdown-item">
+                <span>Competitor Pressure</span>
+                <strong>{{ aeo.competitor_strength if aeo else "N/A" }}</strong>
+            </div>
+
+            <div class="breakdown-item">
+                <span>Opportunity</span>
+                <strong>{{ aeo.opportunity if aeo else "Unknown" }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="aeo-diagnostic-card">
+        <div class="diagnostic-header">
+            <div>
+                <span class="section-kicker">Diagnostic</span>
+                <h3>Why this score looks like this</h3>
+                <p class="diagnostic-copy">
+                    These signals explain what is limiting visibility and what to improve next.
+                </p>
+            </div>
+        </div>
+
+        <div class="diagnostic-grid">
+            <article class="diagnostic-item">
+                <span class="diagnostic-label">Visibility coverage</span>
+                <strong class="diagnostic-value">
+                    {% if aeo and aeo.visibility >= 60 %}
+                        Strong
+                    {% elif aeo and aeo.visibility >= 35 %}
+                        Partial
+                    {% else %}
+                        Weak
+                    {% endif %}
+                </strong>
+                <p>
+                    {% if aeo and aeo.visibility >= 60 %}
+                        Your brand is already appearing in a meaningful share of tracked prompts.
+                    {% elif aeo and aeo.visibility >= 35 %}
+                        Your brand appears sometimes, but coverage is still inconsistent.
+                    {% else %}
+                        Your brand is missing from most tracked prompts related to this topic.
+                    {% endif %}
+                </p>
+            </article>
+
+            <article class="diagnostic-item">
+                <span class="diagnostic-label">Competitor pressure</span>
+                <strong class="diagnostic-value">
+                    {% if aeo and aeo.competitor_strength == "High" %}
+                        High
+                    {% else %}
+                        Manageable
+                    {% endif %}
+                </strong>
+                <p>
+                    {% if aeo and aeo.competitor_strength == "High" %}
+                        Competitors are appearing frequently, so you need stronger topic coverage and clearer positioning.
+                    {% else %}
+                        Competitor pressure is present but still beatable with better targeted content.
+                    {% endif %}
+                </p>
+            </article>
+
+            <article class="diagnostic-item">
+                <span class="diagnostic-label">Recommended move</span>
+                <strong class="diagnostic-value">
+                    {% if aeo and aeo.opportunity == "High" %}
+                        Publish targeted content now
+                    {% elif aeo and aeo.opportunity == "Moderate" %}
+                        Refine angle and structure
+                    {% else %}
+                        Rework targeting
+                    {% endif %}
+                </strong>
+                <p>
+                    {% if aeo and aeo.opportunity == "High" %}
+                        This is a strong opportunity gap. Move quickly into draft generation and publishing.
+                    {% elif aeo and aeo.opportunity == "Moderate" %}
+                        Improve the brief so the draft is more specific, more useful, and more competitive.
+                    {% else %}
+                        The signal is weaker. Adjust the topic, query, or intent before investing further.
+                    {% endif %}
+                </p>
+            </article>
+        </div>
+    </section>
+
+    <section class="content-gap-card">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Opportunity</span>
+                <h3>Content gap opportunities</h3>
+                <p>These are the highest-impact content moves to improve visibility for this topic.</p>
+            </div>
+        </div>
+
+        {% if tracked_prompt_count > 0 %}
+        <div class="gap-list">
+            <div class="gap-item">
+                <div class="gap-main">
+                    <strong>Create content for "{{ target_query or 'this query' }}"</strong>
+                    <p>Your brand is not consistently appearing for this query. Creating a focused page can improve coverage and visibility.</p>
+                </div>
+
+                <div class="gap-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
+                        Generate Brief
+                    </a>
+                </div>
+            </div>
+
+            {% if top_competitors %}
+            <div class="gap-item">
+                <div class="gap-main">
+                    <strong>Compete with {{ top_competitors[0] }}</strong>
+                    <p>This competitor is appearing in AI answers for similar intent. Build a stronger alternative page targeting the same topic.</p>
+                </div>
+
+                <div class="gap-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="brief-inline-link">
+                        Build competing page
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="gap-item">
+                <div class="gap-main">
+                    <strong>Expand supporting topic coverage</strong>
+                    <p>Create supporting content around this topic cluster to increase authority and improve presence across related prompts.</p>
+                </div>
+
+                <div class="gap-actions">
+                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="brief-inline-link">
+                        Explore topics
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-inline">
+            <p>No tracked data yet. Start tracking prompts to unlock content opportunities.</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="summary-strip">
+        <div class="summary-card">
+            <span>Target Query</span>
+            <strong>{{ target_query or "Not set" }}</strong>
+        </div>
+
+        <div class="summary-card">
+            <span>Content Type</span>
+            <strong>{{ content_type or "Not set" }}</strong>
+        </div>
+
+        <div class="summary-card highlight">
+            <span>Next Step</span>
+            <strong>
+                {% if brief_text and brief_text|length > 120 %}
+                    Move to Draft
+                {% else %}
+                    Refine First
+                {% endif %}
+            </strong>
+        </div>
+    </section>
+
+    <section class="brief-result-grid">
+        <div class="panel panel-main">
+            <div class="panel-header-spread">
+                <div>
+                    <h2>Content Brief</h2>
+                    <p class="panel-subtitle">Edit before saving or drafting.</p>
+                </div>
+
+                <button id="copyBtn" class="btn btn-ghost" type="button">Copy</button>
+            </div>
+
+            <form method="POST" action="{{ url_for('save_generated_brief', client_id=client.id) }}">
+                <div class="form-field">
+                    <label>Target Query</label>
+                    <input name="target_query" value="{{ target_query }}">
+                </div>
+
+                <div class="form-field">
+                    <label>Content Type</label>
+                    <input name="content_type" value="{{ content_type }}">
+                </div>
+
+                <div class="form-field">
+                    <label>Brief</label>
+                    <textarea id="brief_text" name="brief_text" rows="18">{{ brief_text }}</textarea>
+                </div>
+
+                <div class="card-actions">
+                    <a
+                        href="{{ url_for('generate_client_content_draft',
+                            client_id=client.id,
+                            target_query=target_query,
+                            brief_context=brief_text,
+                            brand_context=client.notes
+                        ) }}"
+                        class="btn btn-primary"
+                    >
+                        Generate Draft
+                    </a>
+
+                    <button class="btn btn-secondary" type="submit">Save to Queue</button>
+                </div>
+            </form>
+        </div>
+
+        <aside class="side-stack">
+            <div class="panel">
+                <h3>Next Actions</h3>
+
+                <div class="action">
+                    <strong>Draft</strong>
+                    <p>Turn this into full content immediately.</p>
+                </div>
+
+                <div class="action">
+                    <strong>Queue</strong>
+                    <p>Store it for team execution.</p>
+                </div>
+
+                <div class="action">
+                    <strong>Refine</strong>
+                    <p>Improve clarity before moving forward.</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Quick Checks</h3>
+
+                <ul class="tips">
+                    <li>Does the query match real search intent?</li>
+                    <li>Is the angle specific enough?</li>
+                    <li>Does this sound like the client?</li>
+                    <li>Is it ready to publish after drafting?</li>
+                </ul>
+            </div>
+        </aside>
+    </section>
+
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const btn = document.getElementById("copyBtn");
+    const textarea = document.getElementById("brief_text");
+
+    if (btn && textarea) {
+        btn.onclick = async () => {
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+                btn.textContent = "Copied";
+                setTimeout(() => {
+                    btn.textContent = "Copy";
+                }, 1200);
+            } catch (err) {
+                btn.textContent = "Failed";
+            }
+        };
+    }
+});
+</script>
+
+{% endblock %}

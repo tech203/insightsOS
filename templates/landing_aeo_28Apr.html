@@ -1,0 +1,1047 @@
+{% extends "marketing_base.html" %}
+
+{% block title %}DarInsights | Improve AI Visibility and Know What to Fix Next{% endblock %}
+
+{% block content %}
+
+<div class="aeo-landing-page">
+
+    <header class="aeo-topbar">
+        <div class="aeo-container aeo-topbar-inner">
+            <a href="{{ url_for('index') }}" class="aeo-brand">
+                <div class="aeo-brand-title">DarInsights</div>
+                <div class="aeo-brand-subtitle">AI Visibility Operating System</div>
+            </a>
+
+            <nav class="aeo-nav">
+                <a href="#how-it-works">How It Works</a>
+                <a href="{{ url_for('pricing_page') }}">Pricing</a>
+                <a href="#faq">FAQ</a>
+            </nav>
+
+            <div class="aeo-topbar-actions">
+                <a href="{{ url_for('login') }}" class="aeo-btn aeo-btn-ghost">Log In</a>
+                <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="aeo-hero">
+        <div class="aeo-container aeo-hero-grid">
+            <div class="aeo-hero-left">
+                <div class="aeo-pill">
+                    <span class="aeo-pill-dot"></span>
+                    For agencies, B2B brands, local businesses, and service companies
+                </div>
+
+                <h1 class="aeo-hero-title">
+                    <span class="block">Get found in</span>
+                    <span class="block aeo-typed-line">
+                        <span id="heroTypedWord">Google AI</span>
+                        <span id="heroCursor">|</span>
+                    </span>
+                    <span class="block">and know exactly what to fix next.</span>
+                </h1>
+
+                <p class="aeo-hero-copy">
+                    DarInsights helps you see where your brand is being missed in AI answers,
+                    which competitors are being recommended instead, and what pages, signals,
+                    or content you should improve next.
+                </p>
+
+                <div class="aeo-note">
+                    Built for teams that want more than a one-time report. Move from audit
+                    to priority to execution with a workflow your team can actually use.
+                </div>
+
+                <div class="aeo-hero-actions">
+                    <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+                    <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-primary">Book Strategy Call</a>
+                    <a href="#how-it-works" class="aeo-btn aeo-btn-outline">See How It Works</a>
+                </div>
+
+                <div class="aeo-feature-grid">
+                    <div class="aeo-feature-card">
+                        <div class="aeo-feature-title">Audit AI visibility</div>
+                        <div class="aeo-feature-text">See where your brand is present, where it is missing, and where competitors are winning.</div>
+                    </div>
+                    <div class="aeo-feature-card">
+                        <div class="aeo-feature-title">Get clear priorities</div>
+                        <div class="aeo-feature-text">Surface missed queries, weak coverage, and the next best actions to improve visibility.</div>
+                    </div>
+                    <div class="aeo-feature-card">
+                        <div class="aeo-feature-title">Execute faster</div>
+                        <div class="aeo-feature-text">Turn opportunities into briefs, drafts, and a content queue that supports real production.</div>
+                    </div>
+                </div>
+
+                <div class="aeo-tag-row">
+                    <span>Start free</span>
+                    <span>Credits-based usage</span>
+                    <span>Agency-ready workflow</span>
+                </div>
+            </div>
+
+            <div class="aeo-hero-right">
+                <div class="aeo-scorecard">
+                    <div class="aeo-scorecard-head">
+                        <div>
+                            <div class="aeo-kicker">Live Snapshot</div>
+                            <div class="aeo-scorecard-title">AI Visibility Scorecard</div>
+                        </div>
+                        <div class="aeo-badge">Sample</div>
+                    </div>
+
+                    <div class="aeo-score-grid">
+                        <div class="aeo-stat-card">
+                            <div class="aeo-stat-label">Normalized Score</div>
+                            <div class="aeo-stat-value">58 / 100</div>
+                        </div>
+                        <div class="aeo-stat-card">
+                            <div class="aeo-stat-label">Visibility Score</div>
+                            <div class="aeo-stat-value">9.4 / 20</div>
+                        </div>
+                        <div class="aeo-stat-card">
+                            <div class="aeo-stat-label">Opportunity Level</div>
+                            <div class="aeo-stat-value aeo-stat-small">Moderate Opportunity</div>
+                        </div>
+                        <div class="aeo-stat-card">
+                            <div class="aeo-stat-label">Missed Brand Mentions</div>
+                            <div class="aeo-stat-value">7</div>
+                        </div>
+                    </div>
+
+                    <div class="aeo-highlight">
+                        Clear takeaway: this brand has room to grow through stronger service-page coverage,
+                        FAQ structure, comparison content, and better AI-readable authority signals.
+                    </div>
+
+                    <div class="aeo-insight-list">
+                        <div class="aeo-insight-card">
+                            <div class="aeo-insight-title">Missed query detected</div>
+                            <div class="aeo-insight-text">Brand not mentioned for “best live chat software for small business”.</div>
+                        </div>
+                        <div class="aeo-insight-card">
+                            <div class="aeo-insight-title">Recommended next action</div>
+                            <div class="aeo-insight-text">Create a comparison page, FAQ cluster, and trust-supporting content.</div>
+                        </div>
+                        <div class="aeo-insight-card">
+                            <div class="aeo-insight-title">Workflow output</div>
+                            <div class="aeo-insight-text">Generate brief → generate draft → save to content queue.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="aeo-strip">
+        <div class="aeo-container aeo-strip-grid">
+            <div class="aeo-strip-card">
+                <div class="aeo-strip-title">Audit</div>
+                <div class="aeo-strip-text">Measure how visible your brand is in AI-generated answers.</div>
+            </div>
+            <div class="aeo-strip-card">
+                <div class="aeo-strip-title">Prioritize</div>
+                <div class="aeo-strip-text">Turn weak queries and missing mentions into focused next steps.</div>
+            </div>
+            <div class="aeo-strip-card">
+                <div class="aeo-strip-title">Execute</div>
+                <div class="aeo-strip-text">Generate briefs and drafts, then manage output in one queue.</div>
+            </div>
+            <div class="aeo-strip-card">
+                <div class="aeo-strip-title">Scale</div>
+                <div class="aeo-strip-text">Use it for your own brand, multiple clients, or an agency workflow.</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="aeo-section aeo-section-dark">
+        <div class="aeo-container">
+            <div class="aeo-section-intro center">
+                <div class="aeo-section-kicker">How It Works</div>
+                <h2>A simpler workflow for AI visibility</h2>
+                <p>
+                    Run an audit, identify what is holding your brand back, and move directly into action.
+                </p>
+            </div>
+
+            <div class="aeo-card-grid three">
+                <div class="aeo-step-card">
+                    <div class="aeo-step-number">1</div>
+                    <h3>Audit</h3>
+                    <p>Check visibility, content coverage, and machine-readable signals.</p>
+                </div>
+                <div class="aeo-step-card">
+                    <div class="aeo-step-number">2</div>
+                    <h3>Prioritize</h3>
+                    <p>See the most important gaps, missed queries, and next best actions.</p>
+                </div>
+                <div class="aeo-step-card">
+                    <div class="aeo-step-number">3</div>
+                    <h3>Execute</h3>
+                    <p>Generate briefs and drafts, then move work through your content queue.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="aeo-section">
+        <div class="aeo-container">
+            <div class="aeo-split-grid">
+                <div class="aeo-side-stack">
+                    <div class="aeo-section-intro">
+                        <div class="aeo-section-kicker">What You Get</div>
+                        <h2>A clearer view of what to improve</h2>
+                        <p>
+                            Instead of guessing, you get a clearer operating view of your AI visibility,
+                            what is missing, and what your team should work on next.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="aeo-side-stack">
+                    <div class="aeo-content-card">
+                        <h3>Visibility snapshot</h3>
+                        <p>See whether your brand is present in the answer scenarios that matter.</p>
+                    </div>
+                    <div class="aeo-content-card">
+                        <h3>Missed opportunities</h3>
+                        <p>Identify weak queries, missing coverage, and gaps your competitors may be winning.</p>
+                    </div>
+                    <div class="aeo-content-card">
+                        <h3>Actionable output</h3>
+                        <p>Move straight into briefs, drafts, and a queue your team can actually use.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="aeo-section aeo-section-soft">
+        <div class="aeo-container">
+            <div class="aeo-section-intro center">
+                <div class="aeo-section-kicker">Pricing</div>
+                <h2>Start free, then scale when usage grows</h2>
+                <p>
+                    Use free credits to experience the workflow, then upgrade only when you need more recurring usage and production capacity.
+                </p>
+            </div>
+
+            <div class="aeo-card-grid three">
+                <div class="aeo-pricing-card">
+                    <div class="aeo-plan-name">Free</div>
+                    <div class="aeo-plan-price">US$0</div>
+                    <p>Explore the product and run the core workflow with starter credits.</p>
+                    <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+                </div>
+
+                <div class="aeo-pricing-card featured">
+                    <div class="aeo-plan-badge">Most Popular</div>
+                    <div class="aeo-plan-name">Pro</div>
+                    <div class="aeo-plan-price">US$29 <span>/month</span></div>
+                    <p>Best for recurring audits, content support, and solo operators who need regular usage.</p>
+                    <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-light">View Pricing</a>
+                </div>
+
+                <div class="aeo-pricing-card accent">
+                    <div class="aeo-plan-name">Agency</div>
+                    <div class="aeo-plan-price">Optional add-on</div>
+                    <p>For branded delivery, white-label reports, and client-facing workflows.</p>
+                    <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-outline">See Plans</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" class="aeo-section aeo-section-dark">
+        <div class="aeo-container aeo-container-narrow">
+            <div class="aeo-section-intro center">
+                <div class="aeo-section-kicker">FAQ</div>
+                <h2>Quick answers</h2>
+            </div>
+
+            <div class="aeo-faq-list">
+                <div class="aeo-faq-card">
+                    <h3>What does DarInsights do?</h3>
+                    <p>It helps you audit AI visibility, identify missed opportunities, and turn findings into content actions.</p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>Who is it for?</h3>
+                    <p>It is built for agencies, consultants, in-house teams, and businesses that want a clearer AI visibility workflow.</p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>Do I need to be technical?</h3>
+                    <p>No. The product is designed to surface what matters and guide you toward the next best action.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="aeo-section">
+        <div class="aeo-container">
+            <div class="aeo-cta-panel">
+                <div class="aeo-cta-left">
+                    <div class="aeo-section-kicker">Get Started</div>
+                    <h2>Want to improve your visibility in AI answers without guessing what to do next?</h2>
+                    <p>
+                        Start free if you want to explore the platform yourself.
+                        Book a strategy call if you want help deciding what to fix first.
+                    </p>
+
+                    <div class="aeo-hero-actions">
+                        <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+                        <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-outline">Book Strategy Call</a>
+                    </div>
+                </div>
+
+                <div class="aeo-cta-right">
+                    <div class="aeo-content-card">
+                        <h3>Need a deeper walkthrough?</h3>
+                        <p>Use the pricing page for plan details, or book a call to discuss self-serve, agency, or hybrid use.</p>
+
+                        <div class="aeo-cta-points">
+                            <div class="aeo-cta-point">Start with free credits</div>
+                            <div class="aeo-cta-point">Upgrade only when usage grows</div>
+                            <div class="aeo-cta-point">Get help if you want a faster rollout</div>
+                        </div>
+
+                        <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-primary aeo-btn-block">View Pricing</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+:root {
+    --bg-main: #020617;
+    --bg-soft: #0b1120;
+    --panel: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.10);
+    --text-main: #f8fafc;
+    --text-soft: #cbd5e1;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-strong: #6366f1;
+    --success: #34d399;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.aeo-landing-page {
+    position: relative;
+    min-height: 100vh;
+    margin: 0;
+    color: var(--text-main);
+    background:
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.22), transparent 34%),
+        radial-gradient(circle at top right, rgba(139, 92, 246, 0.16), transparent 28%),
+        linear-gradient(180deg, var(--bg-main) 0%, var(--bg-soft) 100%);
+    overflow-x: hidden;
+}
+
+.aeo-container {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+}
+
+.aeo-container-narrow {
+    width: min(920px, calc(100% - 32px));
+    margin: 0 auto;
+}
+
+.aeo-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(12px);
+}
+
+.aeo-topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px 0;
+}
+
+.aeo-brand {
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+}
+
+.aeo-brand-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-main);
+}
+
+.aeo-brand-subtitle {
+    margin-top: 2px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.aeo-nav {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+}
+
+.aeo-nav a {
+    color: var(--text-soft);
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+.aeo-nav a:hover {
+    color: var(--text-main);
+}
+
+.aeo-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aeo-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 999px;
+    transition: 0.2s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.aeo-topbar-actions .aeo-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 136px;
+}
+
+.aeo-btn-light {
+    background: #ffffff;
+    color: #0f172a;
+}
+
+.aeo-btn-light:hover {
+    background: #f1f5f9;
+}
+
+.aeo-btn-primary {
+    background: var(--accent-strong);
+    color: #ffffff;
+}
+
+.aeo-btn-primary:hover {
+    background: var(--accent);
+}
+
+.aeo-btn-outline,
+.aeo-btn-ghost {
+    background: transparent;
+    color: var(--text-main);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.aeo-btn-outline:hover,
+.aeo-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.aeo-btn-block {
+    width: 100%;
+}
+
+.aeo-hero {
+    padding: 84px 0 64px;
+}
+
+.aeo-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 36px;
+    align-items: start;
+}
+
+.aeo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(129, 140, 248, 0.10);
+    border: 1px solid rgba(129, 140, 248, 0.18);
+    color: #c7d2fe;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.aeo-pill-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--success);
+    flex: 0 0 auto;
+}
+
+.aeo-hero-title {
+    margin: 24px 0 0;
+    font-size: clamp(36px, 7vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    font-weight: 800;
+    color: var(--text-main);
+    max-width: 11ch;
+}
+
+.aeo-hero-title .block {
+    display: block;
+}
+
+.aeo-typed-line,
+#heroTypedWord,
+#heroCursor {
+    color: #a5b4fc;
+}
+
+#heroCursor {
+    display: inline-block;
+    margin-left: 2px;
+}
+
+.aeo-hero-copy {
+    margin: 24px 0 0;
+    max-width: 760px;
+    font-size: 18px;
+    line-height: 1.8;
+    color: var(--text-soft);
+}
+
+.aeo-note {
+    margin-top: 22px;
+    max-width: 760px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.aeo-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.aeo-hero-actions .aeo-btn {
+    padding: 13px 22px;
+    font-size: 15px;
+    border-radius: 18px;
+}
+
+.aeo-feature-grid,
+.aeo-strip-grid,
+.aeo-card-grid,
+.aeo-score-grid,
+.aeo-faq-list,
+.aeo-insight-list,
+.aeo-side-stack,
+.aeo-cta-points {
+    display: grid;
+    gap: 16px;
+}
+
+.aeo-feature-grid {
+    margin-top: 36px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aeo-feature-card,
+.aeo-strip-card,
+.aeo-content-card,
+.aeo-step-card,
+.aeo-faq-card,
+.aeo-pricing-card,
+.aeo-scorecard {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: 24px;
+}
+
+.aeo-feature-card,
+.aeo-strip-card,
+.aeo-content-card,
+.aeo-step-card,
+.aeo-faq-card,
+.aeo-pricing-card {
+    padding: 22px;
+}
+
+.aeo-feature-title,
+.aeo-strip-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.aeo-feature-text,
+.aeo-strip-text,
+.aeo-content-card p,
+.aeo-step-card p,
+.aeo-faq-card p,
+.aeo-pricing-card p {
+    margin-top: 10px;
+    color: var(--text-soft);
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+.aeo-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.aeo-tag-row span {
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: 14px;
+}
+
+.aeo-scorecard {
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 24px 48px rgba(30, 27, 75, 0.26);
+}
+
+.aeo-scorecard-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.aeo-kicker {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+}
+
+.aeo-scorecard-title {
+    margin-top: 6px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.aeo-badge {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.aeo-score-grid {
+    margin-top: 22px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.aeo-stat-card {
+    padding: 18px;
+    background: rgba(2, 6, 23, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+}
+
+.aeo-stat-label {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.aeo-stat-value {
+    margin-top: 8px;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-main);
+}
+
+.aeo-stat-small {
+    font-size: 24px;
+}
+
+.aeo-highlight {
+    margin-top: 20px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(129, 140, 248, 0.18);
+    background: rgba(129, 140, 248, 0.10);
+    color: #e0e7ff;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.aeo-insight-card {
+    padding: 16px 18px;
+    background: rgba(2, 6, 23, 0.50);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+}
+
+.aeo-insight-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.aeo-insight-text {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-soft);
+}
+
+.aeo-strip {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.36);
+    padding: 26px 0;
+}
+
+.aeo-strip-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.aeo-section {
+    padding: 76px 0;
+}
+
+.aeo-section-dark {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.36);
+}
+
+.aeo-section-soft {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.aeo-section-intro {
+    max-width: 760px;
+    margin-bottom: 36px;
+}
+
+.aeo-section-intro.center {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.aeo-section-kicker {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: #a5b4fc;
+}
+
+.aeo-section-intro h2,
+.aeo-cta-left h2 {
+    margin: 14px 0 0;
+    font-size: 34px;
+    line-height: 1.14;
+    letter-spacing: -0.03em;
+    color: var(--text-main);
+}
+
+.aeo-section-intro p,
+.aeo-cta-left p {
+    margin: 18px 0 0;
+    font-size: 18px;
+    line-height: 1.8;
+    color: var(--text-soft);
+}
+
+.aeo-card-grid.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aeo-step-card h3,
+.aeo-faq-card h3,
+.aeo-content-card h3,
+.aeo-pricing-card h3 {
+    margin: 0;
+    font-size: 22px;
+    color: var(--text-main);
+}
+
+.aeo-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+    background: rgba(99, 102, 241, 0.20);
+    color: #c7d2fe;
+    font-weight: 800;
+}
+
+.aeo-split-grid,
+.aeo-cta-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+    gap: 20px;
+}
+
+.aeo-pricing-card {
+    position: relative;
+}
+
+.aeo-pricing-card.featured {
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.aeo-pricing-card.accent {
+    border-color: rgba(129, 140, 248, 0.24);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.10));
+}
+
+.aeo-plan-badge {
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.20);
+    color: #c7d2fe;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.aeo-plan-name {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.aeo-plan-price {
+    margin-top: 14px;
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.aeo-plan-price span {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.aeo-faq-list {
+    gap: 18px;
+}
+
+.aeo-faq-card {
+    padding: 24px;
+}
+
+.aeo-cta-panel {
+    padding: 28px;
+    border-radius: 32px;
+    border: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.15));
+}
+
+.aeo-cta-points {
+    margin-top: 16px;
+}
+
+.aeo-cta-point {
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-soft);
+    font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+    .aeo-nav {
+        display: none;
+    }
+
+    .aeo-feature-grid,
+    .aeo-card-grid.three,
+    .aeo-strip-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 980px) {
+    .aeo-hero-grid,
+    .aeo-split-grid,
+    .aeo-cta-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .aeo-hero-title {
+        max-width: none;
+    }
+
+    .aeo-scorecard {
+        margin-top: 6px;
+    }
+}
+
+@media (max-width: 767px) {
+    .aeo-container,
+    .aeo-container-narrow {
+        width: min(100%, calc(100% - 20px));
+    }
+
+    .aeo-topbar-inner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+
+    .aeo-topbar-actions {
+        width: 100%;
+    }
+
+    .aeo-topbar-actions .aeo-btn {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .aeo-hero,
+    .aeo-section {
+        padding-top: 56px;
+        padding-bottom: 56px;
+    }
+
+    .aeo-section-intro h2,
+    .aeo-cta-left h2 {
+        font-size: 28px;
+    }
+
+    .aeo-hero-copy,
+    .aeo-section-intro p,
+    .aeo-cta-left p {
+        font-size: 16px;
+    }
+
+    .aeo-feature-grid,
+    .aeo-card-grid.three,
+    .aeo-strip-grid,
+    .aeo-score-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .aeo-feature-card,
+    .aeo-strip-card,
+    .aeo-content-card,
+    .aeo-step-card,
+    .aeo-faq-card,
+    .aeo-pricing-card,
+    .aeo-scorecard {
+        border-radius: 20px;
+    }
+
+    .aeo-hero-actions .aeo-btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const typedWords = ["Google AI", "ChatGPT", "Perplexity", "AI Search"];
+    const heroTypedWordEl = document.getElementById("heroTypedWord");
+    const heroCursorEl = document.getElementById("heroCursor");
+
+    if (!heroTypedWordEl || !heroCursorEl) return;
+
+    let wordIndex = 0;
+    let charIndex = typedWords[0].length;
+    let isDeleting = false;
+
+    heroTypedWordEl.textContent = typedWords[0];
+    heroCursorEl.style.opacity = "1";
+
+    function typeHeroWord() {
+        const currentWord = typedWords[wordIndex];
+
+        if (!isDeleting) {
+            charIndex += 1;
+            heroTypedWordEl.textContent = currentWord.slice(0, charIndex);
+
+            if (charIndex === currentWord.length) {
+                isDeleting = true;
+                setTimeout(typeHeroWord, 1800);
+                return;
+            }
+
+            setTimeout(typeHeroWord, 95);
+        } else {
+            charIndex -= 1;
+            heroTypedWordEl.textContent = currentWord.slice(0, charIndex);
+
+            if (charIndex === 0) {
+                isDeleting = false;
+                wordIndex = (wordIndex + 1) % typedWords.length;
+                setTimeout(typeHeroWord, 260);
+                return;
+            }
+
+            setTimeout(typeHeroWord, 55);
+        }
+    }
+
+    setTimeout(() => {
+        isDeleting = true;
+        typeHeroWord();
+    }, 2200);
+
+    setInterval(() => {
+        heroCursorEl.style.opacity = heroCursorEl.style.opacity === "0" ? "1" : "0";
+    }, 530);
+});
+</script>
+
+{% endblock %}
