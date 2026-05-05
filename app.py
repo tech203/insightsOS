@@ -1,4 +1,8 @@
-from PIL.Image import item
+import csv
+import os
+from urllib.parse import urlparse
+from tavily import TavilyClient
+from datetime import datetime
 from flask import (
     Flask,
     render_template,
@@ -10,8 +14,7 @@ from flask import (
     flash,
     session,
 )
-from stripe import client_id
-
+from query_idea_generator import generate_query_ideas
 from action_engine import build_recommended_actions
 
 from flask_sqlalchemy import SQLAlchemy
@@ -36,11 +39,10 @@ from content_queue import (
     add_queue_item,
     get_queue_items,
     get_queue_item_by_id,
+    get_next_action,
     update_queue_item_status,
     update_queue_item_content,
-    get_client_progress,
-    get_next_action,
-    create_queue_item_from_audit_opportunity,
+    update_queue_item_details,
     delete_queue_item,
 )
 
@@ -191,6 +193,39 @@ class PromptTracking(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+class GeneratedWebsiteProject(db.Model):
+    __tablename__ = "generated_website_projects"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
+
+    title = db.Column(db.String(255), nullable=False)
+    theme = db.Column(db.String(100), default="professional_services")
+    status = db.Column(db.String(40), default="draft")
+
+    blueprint_json = db.Column(db.JSON, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class GeneratedWebsitePage(db.Model):
+    __tablename__ = "generated_website_pages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("generated_website_projects.id"), nullable=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
+
+    title = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(220), nullable=False)
+    page_type = db.Column(db.String(80), default="service")
+    status = db.Column(db.String(40), default="draft")
+
+    page_json = db.Column(db.JSON, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -244,6 +279,79 @@ def build_ai_brief_context(client, target_query, latest_audit=None):
         f"Brand website: {website}. "
         f"{'Additional brand notes: ' + notes if notes else ''}"
     ).strip()
+
+def extract_domain_from_url(url):
+    if not url:
+        return ""
+
+    parsed = urlparse(url)
+    domain = parsed.netloc or parsed.path
+    return normalize_website(domain)
+
+
+def discover_competitors_from_web(client):
+    api_key = os.getenv("TAVILY_API_KEY")
+
+    if not api_key:
+        return []
+
+    tavily_client = TavilyClient(api_key=api_key)
+
+    client_name = client.get("name", "")
+    industry = client.get("industry", "")
+    location = client.get("location", "")
+    own_domain = normalize_website(client.get("website", ""))
+
+    search_queries = [
+        f"best {industry} in {location}",
+        f"top {industry} companies in {location}",
+        f"{industry} services in {location}",
+        f"{client_name} competitors",
+        f"recommended {industry} provider in {location}",
+    ]
+
+    domain_counts = {}
+
+    for query in search_queries:
+        try:
+            response = tavily_client.search(
+                query=query,
+                search_depth="basic",
+                max_results=8,
+            )
+
+            for result in response.get("results", []):
+                domain = extract_domain_from_url(result.get("url", ""))
+
+                if not domain:
+                    continue
+
+                if own_domain and domain == own_domain:
+                    continue
+
+                if "google." in domain or "facebook." in domain or "linkedin." in domain:
+                    continue
+
+                if domain not in domain_counts:
+                    domain_counts[domain] = {
+                        "name": domain,
+                        "mentions": 0,
+                        "sources": [],
+                    }
+
+                domain_counts[domain]["mentions"] += 1
+                domain_counts[domain]["sources"].append(query)
+
+        except Exception as e:
+            print("Tavily competitor discovery error:", e)
+
+    results = sorted(
+        domain_counts.values(),
+        key=lambda x: x["mentions"],
+        reverse=True
+    )
+
+    return results[:10]
 
 def get_prompt_visibility(client_id, target_query):
     rows = PromptTracking.query.filter_by(
@@ -317,6 +425,768 @@ def calculate_aeo_score(visibility=None, competitors=None, content_score=None):
         "competitor_strength": "High" if competitors > 60 else "Low",
         "visibility": visibility
     }
+
+def auto_detect_competitors_for_client(client_id, user_id):
+    client = get_client_by_id(client_id)
+
+    if not client:
+        return []
+
+    competitors = {}
+
+    def add_competitor(name, source="audit"):
+        name = safe_str(name)
+        if not name or name in ["—", "-", "None", "N/A"]:
+            return
+
+        key = name.lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/")
+
+        if not key:
+            return
+
+        if key not in competitors:
+            competitors[key] = {
+                "name": key,
+                "mentions": 0,
+                "sources": set(),
+            }
+
+        competitors[key]["mentions"] += 1
+        competitors[key]["sources"].add(source)
+
+    # 1) Pull from saved audits
+    audits = get_saved_audits(user_id=user_id)
+
+    matched_audits = [
+        audit for audit in audits
+        if str(audit.get("client_id")) == str(client_id)
+        or normalize_website(audit.get("website", "")) == normalize_website(client.get("website", ""))
+    ]
+
+    for audit in matched_audits:
+        for comp in audit.get("top_competitors", []) or []:
+            if isinstance(comp, dict):
+                add_competitor(comp.get("name") or comp.get("domain"), "audit")
+            else:
+                add_competitor(comp, "audit")
+
+        full_data = read_full_audit_data(audit.get("filename"))
+        if full_data:
+            for row in full_data.get("ai_answer_results", []) or []:
+                for comp in row.get("competitors_mentioned", []) or []:
+                    add_competitor(comp, "ai_answer")
+
+                for comp in row.get("latest_competitors", []) or []:
+                    add_competitor(comp, "ai_answer")
+
+    # 2) Pull from prompt tracking
+    domain = normalize_website(client.get("website", ""))
+
+    prompt_rows = PromptTracking.query.filter_by(user_id=user_id).all()
+
+    for row in prompt_rows:
+        if domain and row.domain and normalize_website(row.domain) != domain:
+            continue
+
+        add_competitor(row.top_competitor, "prompt_tracking")
+
+    results = []
+
+    for item in competitors.values():
+        results.append({
+            "name": item["name"],
+            "mentions": item["mentions"],
+            "sources": sorted(list(item["sources"])),
+        })
+
+    results = sorted(results, key=lambda x: x["mentions"], reverse=True)
+
+    return results[:10]
+
+def demo_website_page_json(client_name="Demo Business"):
+    return {
+        "page_type": "service",
+        "title": f"{client_name} AI Visibility Service Page",
+        "slug": "ai-visibility-service-page",
+        "seo": {
+            "title": f"{client_name} | AI Visibility Services",
+            "description": f"Improve how {client_name} appears in AI search answers, ChatGPT recommendations, and customer discovery prompts."
+        },
+        "sections": [
+            {
+                "type": "hero",
+                "eyebrow": "AI Visibility Growth",
+                "headline": f"Help {client_name} get discovered in AI answers",
+                "subtext": "We identify why your business is missing from AI-generated recommendations and create the content needed to improve visibility.",
+                "primary_cta": "Request an AI Visibility Audit",
+                "secondary_cta": "View Recommendations"
+            },
+            {
+                "type": "problem",
+                "headline": "Your customers are searching differently now",
+                "body": "More customers are asking AI tools for recommendations before they visit Google or compare websites. If your business is not mentioned, you may be invisible at the decision stage."
+            },
+            {
+                "type": "services",
+                "headline": "What we improve",
+                "items": [
+                    {
+                        "title": "AI Answer Visibility",
+                        "description": "Track whether your brand appears in relevant AI-generated answers."
+                    },
+                    {
+                        "title": "Content Gap Fixes",
+                        "description": "Find missing FAQs, service pages, comparison content, and trust signals."
+                    },
+                    {
+                        "title": "AEO-Ready Pages",
+                        "description": "Generate structured pages designed for AI answer engines and human readers."
+                    }
+                ]
+            },
+            {
+                "type": "proof",
+                "headline": "Built for measurable improvement",
+                "items": [
+                    "Track prompt visibility over time",
+                    "Compare against competitors",
+                    "Generate pages from missed opportunities",
+                    "Review and publish updates"
+                ]
+            },
+            {
+                "type": "faq",
+                "headline": "Frequently asked questions",
+                "items": [
+                    {
+                        "question": "What is AI visibility?",
+                        "answer": "AI visibility means how often your business appears when users ask AI tools for recommendations, comparisons, or service providers."
+                    },
+                    {
+                        "question": "How is this different from SEO?",
+                        "answer": "SEO focuses on search engine rankings. AEO focuses on being included and recommended inside AI-generated answers."
+                    },
+                    {
+                        "question": "Can this improve my website?",
+                        "answer": "Yes. The system identifies missing content and turns it into website-ready sections or pages."
+                    }
+                ]
+            },
+            {
+                "type": "cta",
+                "headline": "Ready to improve your AI visibility?",
+                "body": "Start with an audit and see where your business is missing from AI answers.",
+                "button": "Start Audit"
+            }
+        ]
+    }
+
+@app.route("/client/<client_id>/website-builder")
+@login_required
+def website_builder_page(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    row = Client.query.filter_by(slug=str(client_id), user_id=current_user.id).first()
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(id=int(client_id), user_id=current_user.id).first()
+
+    projects = []
+    if row:
+        projects = GeneratedWebsiteProject.query.filter_by(
+            user_id=current_user.id,
+            client_id=row.id
+        ).order_by(GeneratedWebsiteProject.created_at.desc()).all()
+
+    return render_template(
+        "website_builder.html",
+        client=client,
+        projects=projects
+    )
+
+@app.route("/client/<client_id>/competitors/auto-detect")
+@login_required
+def auto_detect_competitors_page(client_id):
+    client = get_client_by_id(client_id)
+
+    if not client:
+        abort(404)
+
+    detected_competitors = auto_detect_competitors_for_client(
+        client_id=client_id,
+        user_id=current_user.id
+    )
+
+    if not detected_competitors:
+        flash("No competitors found yet. Run an audit or add prompt tracking first, then try auto-detect again.", "warning")
+        return redirect(url_for(
+            "client_competitors_page",
+            client_id=client_id,
+            domain=normalize_website(client.get("website", ""))
+        ))
+
+    competitor_args = {}
+
+    for index, comp in enumerate(detected_competitors[:4], start=1):
+        competitor_args[f"competitor_{index}"] = comp["name"]
+
+    flash(f"Auto-filled {len(competitor_args)} competitors from audit/prompt data.", "success")
+
+    return redirect(url_for(
+        "client_competitors_page",
+        client_id=client_id,
+        domain=normalize_website(client.get("website", "")),
+        **competitor_args
+    ))
+
+@app.route("/client/<client_id>/website-builder/generate", methods=["POST"])
+@login_required
+def generate_full_website(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    row = Client.query.filter_by(slug=str(client_id), user_id=current_user.id).first()
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(id=int(client_id), user_id=current_user.id).first()
+
+    if not row:
+        abort(404)
+
+    blueprint = build_demo_website_blueprint(client)
+
+    project = GeneratedWebsiteProject(
+        user_id=current_user.id,
+        client_id=row.id,
+        title=f"{client.get('name')} Website Revamp",
+        theme=blueprint["theme"],
+        status="draft",
+        blueprint_json=blueprint
+    )
+
+    db.session.add(project)
+    db.session.flush()
+
+    for page_config in blueprint["pages"]:
+        page_json = build_generated_site_page(client, blueprint, page_config)
+
+        page = GeneratedWebsitePage(
+            project_id=project.id,
+            user_id=current_user.id,
+            client_id=row.id,
+            title=page_json["title"],
+            slug=page_json["slug"],
+            page_type=page_json["page_type"],
+            status="draft",
+            page_json=page_json
+        )
+        db.session.add(page)
+
+    db.session.commit()
+
+    flash("Full website draft generated.", "success")
+    return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+@app.route("/website-builder/project/<int:project_id>/preview")
+@login_required
+def preview_website_project(project_id):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.user_id != current_user.id:
+        abort(403)
+
+    pages = GeneratedWebsitePage.query.filter_by(
+        project_id=project.id,
+        user_id=current_user.id
+    ).order_by(GeneratedWebsitePage.id.asc()).all()
+
+    return render_template(
+        "website_project_preview.html",
+        project=project,
+        pages=pages,
+        blueprint=project.blueprint_json
+    )
+
+@app.route("/website-builder/project/<int:project_id>/publish", methods=["POST"])
+@login_required
+def publish_website_project(project_id):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.user_id != current_user.id:
+        abort(403)
+
+    project.status = "published"
+
+    pages = GeneratedWebsitePage.query.filter_by(project_id=project.id).all()
+    for page in pages:
+        page.status = "published"
+
+    db.session.commit()
+
+    flash("Website published.", "success")
+    return redirect(url_for("public_website_project", project_id=project.id))
+
+
+@app.route("/site/<int:project_id>")
+def public_website_project(project_id):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.status != "published":
+        abort(404)
+
+    page = GeneratedWebsitePage.query.filter_by(
+        project_id=project.id,
+        slug="home",
+        status="published"
+    ).first()
+
+    if not page:
+        abort(404)
+
+    pages = GeneratedWebsitePage.query.filter_by(
+        project_id=project.id,
+        status="published"
+    ).order_by(GeneratedWebsitePage.id.asc()).all()
+
+    return render_template(
+        "generated_full_site.html",
+        project=project,
+        page=page,
+        pages=pages,
+        page_json=page.page_json,
+        blueprint=project.blueprint_json
+    )
+
+
+@app.route("/site/<int:project_id>/<slug>")
+def public_website_page(project_id, slug):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.status != "published":
+        abort(404)
+
+    page = GeneratedWebsitePage.query.filter_by(
+        project_id=project.id,
+        slug=slug,
+        status="published"
+    ).first_or_404()
+
+    pages = GeneratedWebsitePage.query.filter_by(
+        project_id=project.id,
+        status="published"
+    ).order_by(GeneratedWebsitePage.id.asc()).all()
+
+    return render_template(
+        "generated_full_site.html",
+        project=project,
+        page=page,
+        pages=pages,
+        page_json=page.page_json,
+        blueprint=project.blueprint_json
+    )
+
+def build_demo_website_blueprint(client):
+    industry = (client.get("industry") or "").lower()
+    client_name = client.get("name", "Business")
+    location = client.get("location", "Singapore")
+
+    if "clinic" in industry or "health" in industry or "wellness" in industry:
+        theme = "clinic_wellness"
+        style = "calm, clean, reassuring, health-focused"
+        functions = ["appointment booking", "contact form", "FAQ schema"]
+    elif "tuition" in industry or "education" in industry or "school" in industry:
+        theme = "education_centre"
+        style = "friendly, structured, parent-focused, trustworthy"
+        functions = ["enquiry form", "programme cards", "FAQ schema"]
+    elif "restaurant" in industry or "cafe" in industry or "food" in industry:
+        theme = "restaurant_cafe"
+        style = "warm, visual, menu-led, lifestyle-focused"
+        functions = ["menu section", "reservation CTA", "WhatsApp CTA"]
+    elif "ecommerce" in industry or "retail" in industry or "shop" in industry:
+        theme = "ecommerce_store"
+        style = "conversion-focused, product-led, clean, modern"
+        functions = ["product grid", "checkout CTA", "FAQ schema"]
+    else:
+        theme = "professional_services"
+        style = "premium, trustworthy, clear, professional"
+        functions = ["lead form", "consultation CTA", "FAQ schema"]
+
+    return {
+        "client_name": client_name,
+        "business_type": client.get("industry", "Professional Services"),
+        "location": location,
+        "theme": theme,
+        "style_direction": style,
+        "primary_cta": "Book a Consultation",
+        "secondary_cta": "View Services",
+        "functions": functions,
+        "pages": [
+            {
+                "title": "Home",
+                "slug": "home",
+                "page_type": "home",
+                "goal": "Explain the business clearly and convert visitors into enquiries."
+            },
+            {
+                "title": "Services",
+                "slug": "services",
+                "page_type": "services",
+                "goal": "Show what the business offers and answer buying-intent questions."
+            },
+            {
+                "title": "About",
+                "slug": "about",
+                "page_type": "about",
+                "goal": "Build trust, credibility, and brand confidence."
+            },
+            {
+                "title": "FAQ",
+                "slug": "faq",
+                "page_type": "faq",
+                "goal": "Answer common questions clearly for humans and AI answer engines."
+            },
+            {
+                "title": "Contact",
+                "slug": "contact",
+                "page_type": "contact",
+                "goal": "Make it easy for visitors to enquire."
+            }
+        ],
+        "aeo_focus": [
+            f"best {client.get('industry', 'service provider')} in {location}",
+            f"{client_name} services",
+            f"how to choose {client.get('industry', 'a provider')}",
+            f"{client.get('industry', 'service')} cost in {location}"
+        ]
+    }
+
+
+def build_generated_site_page(client, blueprint, page_config):
+    client_name = blueprint["client_name"]
+    page_type = page_config["page_type"]
+
+    if page_type == "home":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": blueprint["business_type"],
+                "headline": f"{client_name} helps customers make confident decisions",
+                "subtext": f"A {blueprint['style_direction']} website experience designed to explain services clearly, build trust, and improve AI visibility.",
+                "primary_cta": blueprint["primary_cta"],
+                "secondary_cta": blueprint["secondary_cta"]
+            },
+            {
+                "type": "services",
+                "headline": "What we help with",
+                "items": [
+                    {"title": "Clear service information", "description": "Pages structured around what customers and AI answer engines need to understand."},
+                    {"title": "Trust-building content", "description": "Proof, FAQs, and decision factors that make the business easier to recommend."},
+                    {"title": "Conversion-ready journeys", "description": "Clear calls-to-action that guide visitors toward enquiry or booking."}
+                ]
+            },
+            {
+                "type": "proof",
+                "headline": "Why customers choose us",
+                "items": [
+                    "Clear explanations",
+                    "Helpful service guidance",
+                    "Trust-focused content",
+                    "Fast enquiry options"
+                ]
+            },
+            {
+                "type": "cta",
+                "headline": "Ready to take the next step?",
+                "body": "Get in touch to learn more or request a consultation.",
+                "button": blueprint["primary_cta"]
+            }
+        ]
+
+    elif page_type == "services":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "Services",
+                "headline": f"Services from {client_name}",
+                "subtext": "Explore the key services, what they include, and how to decide what is right for you.",
+                "primary_cta": blueprint["primary_cta"],
+                "secondary_cta": "Read FAQs"
+            },
+            {
+                "type": "services",
+                "headline": "Core services",
+                "items": [
+                    {"title": "Main service", "description": "A clear explanation of the primary offer and who it is best for."},
+                    {"title": "Specialist support", "description": "Helpful guidance for customers with more specific needs."},
+                    {"title": "Ongoing help", "description": "Support designed to make the next step simple and clear."}
+                ]
+            },
+            {
+                "type": "faq",
+                "headline": "Service questions",
+                "items": [
+                    {"question": "How do I know which service I need?", "answer": "Start by identifying your main goal, timeline, and the outcome you want."},
+                    {"question": "Can I speak to someone first?", "answer": "Yes, you can submit an enquiry or book a consultation."}
+                ]
+            }
+        ]
+
+    elif page_type == "about":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "About",
+                "headline": f"About {client_name}",
+                "subtext": f"{client_name} is built around clear advice, helpful service, and trustworthy customer experiences.",
+                "primary_cta": blueprint["primary_cta"],
+                "secondary_cta": "View Services"
+            },
+            {
+                "type": "proof",
+                "headline": "What we stand for",
+                "items": [
+                    "Clear communication",
+                    "Practical guidance",
+                    "Customer-first service",
+                    "Reliable follow-through"
+                ]
+            }
+        ]
+
+    elif page_type == "faq":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "FAQ",
+                "headline": "Frequently asked questions",
+                "subtext": "Helpful answers to common questions customers ask before making a decision.",
+                "primary_cta": blueprint["primary_cta"],
+                "secondary_cta": "Contact Us"
+            },
+            {
+                "type": "faq",
+                "headline": "Common questions",
+                "items": [
+                    {"question": f"What does {client_name} do?", "answer": f"{client_name} provides services related to {blueprint['business_type']}."},
+                    {"question": "How do I get started?", "answer": "You can start by submitting an enquiry or booking a consultation."},
+                    {"question": "Where are you based?", "answer": f"We serve customers in {blueprint['location']} and surrounding areas."}
+                ]
+            }
+        ]
+
+    else:
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "Contact",
+                "headline": f"Contact {client_name}",
+                "subtext": "Send an enquiry and our team will get back to you.",
+                "primary_cta": "Send Enquiry",
+                "secondary_cta": "View Services"
+            },
+            {
+                "type": "contact",
+                "headline": "Start your enquiry",
+                "body": "Tell us what you need help with and we will respond as soon as possible."
+            }
+        ]
+
+    return {
+        "page_type": page_type,
+        "title": f"{client_name} | {page_config['title']}",
+        "slug": page_config["slug"],
+        "seo": {
+            "title": f"{page_config['title']} | {client_name}",
+            "description": page_config["goal"]
+        },
+        "sections": sections
+    }
+
+@app.route("/content-queue/<item_id>/generate-page")
+@login_required
+def generate_page_from_queue(item_id):
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+
+    if not item:
+        flash("Queue item not found.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    client_id = str(item.get("client_id", "")).strip()
+    client = get_client_by_id(client_id)
+
+    if not client:
+        flash("This queue item is linked to a missing workspace.", "warning")
+        return redirect(url_for("content_queue_page"))
+
+    target_query = safe_str(item.get("target_query")) or "Service information"
+    content_type = safe_str(item.get("content_type")) or "service_page"
+    client_name = client.get("name", "Business")
+    industry = client.get("industry", "service provider")
+    location = client.get("location", "Singapore")
+    saved_context = safe_str(item.get("content"))
+
+    page_slug = slugify(target_query) or "generated-page"
+
+    page_json = {
+        "page_type": content_type,
+        "title": f"{client_name} | {target_query}",
+        "slug": page_slug,
+        "seo": {
+            "title": f"{target_query} | {client_name}",
+            "description": f"Learn about {target_query} from {client_name}, a {industry} in {location}."
+        },
+        "sections": [
+            {
+                "type": "hero",
+                "eyebrow": "AEO Opportunity",
+                "headline": target_query,
+                "subtext": (
+                    f"This page was created from a real AI visibility opportunity for {client_name}. "
+                    f"It is designed to answer what customers are asking about: {target_query}."
+                ),
+                "primary_cta": "Make an Enquiry",
+                "secondary_cta": "View Services"
+            },
+            {
+                "type": "problem",
+                "headline": f"Why people search for {target_query}",
+                "body": (
+                    saved_context if saved_context else
+                    f"Customers searching for '{target_query}' are usually comparing options, looking for trustworthy information, "
+                    f"and trying to decide which {industry} in {location} is suitable for them."
+                )
+            },
+            {
+                "type": "services",
+                "headline": f"How {client_name} can help",
+                "items": [
+                    {
+                        "title": "Clear guidance",
+                        "description": f"We explain {target_query} in simple terms so customers can make confident decisions."
+                    },
+                    {
+                        "title": "Relevant service support",
+                        "description": f"Our content is structured around what people want to know before choosing a {industry}."
+                    },
+                    {
+                        "title": "AI-friendly answers",
+                        "description": "The page is organised with direct answers, FAQs, and trust signals to support AI visibility."
+                    }
+                ]
+            },
+            {
+                "type": "faq",
+                "headline": f"Questions about {target_query}",
+                "items": [
+                    {
+                        "question": f"What should I know about {target_query}?",
+                        "answer": f"You should understand what the service includes, who it is suitable for, expected costs or timelines, and why {client_name} may be a good fit."
+                    },
+                    {
+                        "question": f"How do I choose the right {industry}?",
+                        "answer": "Look for clear explanations, relevant experience, trust signals, and a service provider that answers your specific questions."
+                    },
+                    {
+                        "question": f"Does {client_name} help with this?",
+                        "answer": f"Yes. {client_name} can provide guidance related to {target_query} and help you decide the next step."
+                    }
+                ]
+            },
+            {
+                "type": "cta",
+                "headline": f"Need help with {target_query}?",
+                "body": f"Contact {client_name} to ask a question or request more information.",
+                "button": "Contact Us"
+            }
+        ]
+    }
+
+    page = GeneratedWebsitePage(
+        project_id=None,
+        user_id=current_user.id,
+        client_id=client.get("db_id"),
+        title=page_json["title"],
+        slug=page_json["slug"],
+        page_type=page_json["page_type"],
+        status="draft",
+        page_json=page_json
+    )
+
+    db.session.add(page)
+    db.session.commit()
+
+    flash("Website page generated from content queue opportunity.", "success")
+    return redirect(url_for("preview_generated_page", page_id=page.id))
+
+@app.route("/client/<client_id>/website-engine/demo")
+@login_required
+def website_engine_demo(client_id):
+    client_data = get_client_by_id(client_id)
+
+    if not client_data:
+        abort(404)
+
+    page_json = demo_website_page_json(client_data.get("name", "Demo Business"))
+
+    page = GeneratedWebsitePage(
+        user_id=current_user.id,
+        client_id=str(client_data.get("db_id")),
+        title=page_json["title"],
+        slug=page_json["slug"],
+        page_type=page_json["page_type"],
+        status="draft",
+        page_json=page_json
+    )
+
+    db.session.add(page)
+    db.session.commit()
+
+    return redirect(url_for("preview_generated_page", page_id=page.id))
+
+@app.route("/website-engine/page/<int:page_id>/preview")
+@login_required
+def preview_generated_page(page_id):
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+
+    if page.user_id != current_user.id:
+        abort(403)
+
+    return render_template(
+        "website_engine_preview.html",
+        page=page,
+        page_json=page.page_json
+    )
+
+
+@app.route("/website-engine/page/<int:page_id>/publish", methods=["POST"])
+@login_required
+def publish_generated_page(page_id):
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+
+    if page.user_id != current_user.id:
+        abort(403)
+
+    page.status = "published"
+    db.session.commit()
+
+    flash("Page published successfully.", "success")
+    return redirect(url_for("public_generated_page", page_id=page.id, slug=page.slug))
+
+
+@app.route("/p/<int:page_id>/<slug>")
+def public_generated_page(page_id, slug):
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+
+    if page.status != "published":
+        abort(404)
+
+    return render_template(
+        "website_engine_public.html",
+        page=page,
+        page_json=page.page_json
+    )
 
 def create_content_opportunities_from_latest_audit(client_id, user_id):
     audits = get_saved_audits(user_id=user_id)
@@ -1222,7 +2092,137 @@ def get_focused_client_for_user(user):
 # Routes
 # =========================
 
+@app.route("/content-queue/<item_id>/brief")
+@login_required
+def view_queue_brief(item_id):
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
 
+    if not item:
+        flash("Queue item not found.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    client_id = str(item.get("client_id", "")).strip()
+    client = get_client_by_id(client_id)
+
+    if not client:
+        flash("This queue item is linked to a missing workspace.", "warning")
+        return redirect(url_for("content_queue_page"))
+
+    saved_brief = item.get("brief") or item.get("content") or ""
+
+    brief = {}
+
+    if saved_brief:
+        try:
+            brief = json.loads(saved_brief)
+        except Exception:
+            brief = {
+                "target_query": item.get("target_query", ""),
+                "content_type": item.get("content_type", "service_page"),
+                "brief_text": saved_brief,
+            }
+
+    result = {
+        "target_query": item.get("target_query", ""),
+        "content_type": item.get("content_type", "service_page"),
+        "brief": brief.get("brief_text") or brief.get("brief") or saved_brief,
+        "brief_text": brief.get("brief_text") or brief.get("brief") or saved_brief,
+        "search_intent": brief.get("search_intent", ""),
+        "recommended_angle": brief.get("recommended_angle", ""),
+        "primary_keywords": brief.get("primary_keywords", []),
+        "suggested_title_ideas": brief.get("suggested_title_ideas", []),
+        "meta_title": brief.get("meta_title", ""),
+        "meta_description": brief.get("meta_description", ""),
+        "outline": brief.get("outline", []),
+        "faq_questions": brief.get("faq_questions", []),
+    }
+
+    aeo = calculate_aeo_score(
+        visibility=30,
+        competitors=50,
+        content_score=get_content_score(saved_brief),
+    )
+
+    return render_template(
+        "content_brief_result.html",
+        client=client,
+        result=result,
+        brief=brief,
+        aeo=aeo,
+        top_competitors=[],
+        tracked_prompt_count=0,
+        target_query=item.get("target_query", ""),
+        content_type=item.get("content_type", "service_page"),
+        brand_context=item.get("brand_context", ""),
+    )
+
+@app.route("/interest", methods=["POST"])
+def collect_interest():
+    email = request.form.get("email", "").strip().lower()
+    company = request.form.get("company", "").strip()
+    use_case = request.form.get("use_case", "").strip()
+
+    if not email:
+        return redirect("/?interest=missing#early-access")
+
+    os.makedirs("data", exist_ok=True)
+
+    file_path = "data/interest_waitlist.csv"
+    file_exists = os.path.exists(file_path)
+
+    with open(file_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+
+        if not file_exists:
+            writer.writerow([
+                "created_at",
+                "email",
+                "company",
+                "use_case"
+            ])
+
+        writer.writerow([
+            datetime.utcnow().isoformat(),
+            email,
+            company,
+            use_case
+        ])
+
+    return redirect("/?interest=success#early-access")
+
+@app.route("/client/<client_id>/query-ideas")
+@login_required
+def client_query_ideas(client_id):
+    client = get_client_by_id(client_id)
+
+    if not client:
+        abort(404)
+
+    service_text = request.args.get("services", "").strip()
+
+    services = [
+        s.strip()
+        for s in service_text.split(",")
+        if s.strip()
+    ]
+
+    if not services:
+        services = [
+            client.get("industry", "")
+        ]
+
+    query_ideas = generate_query_ideas(
+        industry=client.get("industry", ""),
+        location=client.get("location", ""),
+        services=services,
+    )
+
+    return render_template(
+        "query_ideas.html",
+        client=client,
+        query_ideas=query_ideas,
+        services=", ".join(services),
+    )
 
 @app.route("/help")
 @login_required
@@ -1580,6 +2580,72 @@ def edit_client(client_id):
         client=client,
     )
 
+@app.route("/client/<client_id>/brand-context", methods=["GET", "POST"])
+@login_required
+def client_brand_context(client_id):
+    row = Client.query.filter_by(
+        slug=str(client_id),
+        user_id=current_user.id
+    ).first()
+
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_id),
+            user_id=current_user.id
+        ).first()
+
+    if not row:
+        abort(404)
+
+    if request.method == "POST":
+        audience = safe_str(request.form.get("audience"))
+        services = safe_str(request.form.get("services"))
+        differentiators = safe_str(request.form.get("differentiators"))
+        proof = safe_str(request.form.get("proof"))
+        tone = safe_str(request.form.get("tone"))
+        locations = safe_str(request.form.get("locations"))
+        avoid = safe_str(request.form.get("avoid"))
+        extra_notes = safe_str(request.form.get("extra_notes"))
+
+        brand_context = f"""
+Target audience:
+{audience or "Not specified"}
+
+Main services / products:
+{services or "Not specified"}
+
+What makes the brand different:
+{differentiators or "Not specified"}
+
+Proof, trust signals, or credentials:
+{proof or "Not specified"}
+
+Preferred tone:
+{tone or "Clear, helpful, professional"}
+
+Locations served:
+{locations or row.location or "Not specified"}
+
+Things to avoid:
+{avoid or "Not specified"}
+
+Additional notes:
+{extra_notes or "Not specified"}
+""".strip()
+
+        row.notes = brand_context
+        db.session.commit()
+
+        flash("Brand context saved. Future briefs and drafts will use this workspace context.", "success")
+        return redirect(url_for("client_query_ideas", client_id=row.slug))
+
+    client = serialize_client_row(row)
+
+    return render_template(
+        "brand_context_form.html",
+        client=client,
+        existing_context=row.notes or "",
+    )
 
 @app.route("/client/<client_id>/delete", methods=["POST"])
 @login_required
@@ -2015,18 +3081,94 @@ def generate_draft_from_queue(item_id):
         brief_context=brief_context,
         brand_context=brand_context,
     ))
+
+@app.route("/client/<client_id>/query-ideas/add", methods=["POST"])
+@login_required
+def add_query_idea_to_queue(client_id):
+    client = get_client_by_id(client_id)
+
+    if not client:
+        abort(404)
+
+    target_query = request.form.get("target_query", "").strip()
+    content_type = request.form.get("content_type", "service_page").strip()
+
+    if not target_query:
+        flash("Please choose a query before adding it to the queue.", "error")
+        return redirect(url_for("client_query_ideas", client_id=client_id))
+
+    client_name = client.get("name", "Workspace")
+    client_real_id = client.get("id", client_id)
+
+    add_queue_item(
+        client_id=client_real_id,
+        client_name=client_name,
+        target_query=target_query,
+        content_type=content_type,
+        item_type="brief",
+        title=f"Suggested query: {target_query}",
+        content="",
+        status="pending",
+        priority="medium",
+        source="query_ideas",
+        user_id=current_user.id,
+    )
+
+    flash("Query added to the content queue.", "success")
+    return redirect(url_for("content_queue_page", client_id=client_real_id))
         
+
 @app.route("/content-queue/<item_id>/delete", methods=["POST"])
 @login_required
 def delete_content_queue_item(item_id):
-    deleted = delete_queue_item(item_id, user_id=current_user.id)
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
 
-    if not deleted:
+    if not item:
         flash("Queue item not found.", "error")
         return redirect(url_for("content_queue_page"))
 
-    flash("Queue item deleted.", "success")
-    return redirect(url_for("content_queue_page"))
+    client_id = item.get("client_id")
+
+    deleted = delete_queue_item(
+        item_id=item_id,
+        user_id=current_user.id,
+    )
+
+    if deleted:
+        flash("Queue item deleted.", "success")
+    else:
+        flash("Could not delete queue item.", "error")
+
+    return redirect(url_for("content_queue_page", client_id=client_id))
+
+@app.route("/content-queue/<item_id>/edit", methods=["POST"])
+@login_required
+def edit_content_queue_item(item_id):
+    target_query = request.form.get("target_query", "").strip()
+    title = request.form.get("title", "").strip()
+    content_type = request.form.get("content_type", "service_page").strip()
+    priority = request.form.get("priority", "medium").strip()
+
+    if not target_query:
+        flash("Target query cannot be empty.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    updated_item = update_queue_item_details(
+        item_id=item_id,
+        title=title or f"Suggested query: {target_query}",
+        target_query=target_query,
+        content_type=content_type,
+        priority=priority,
+        user_id=current_user.id,
+    )
+
+    if not updated_item:
+        flash("Queue item not found.", "error")
+        return redirect(url_for("content_queue_page"))
+
+    client_id = updated_item.get("client_id")
+    flash("Queue item updated.", "success")
+    return redirect(url_for("content_queue_page", client_id=client_id))
 
 @app.route("/client/<client_id>/content-draft", methods=["GET", "POST"])
 @login_required
@@ -2326,10 +3468,59 @@ def save_prompts():
 @login_required
 def client_competitors_page(client_id):
     client = get_client_by_id(client_id)
+
     if not client:
         abort(404)
-    return render_template("client_competitors.html", client=client)
 
+    domain = request.args.get("domain", "").strip()
+    competitor_1 = request.args.get("competitor_1", "").strip()
+    competitor_2 = request.args.get("competitor_2", "").strip()
+    competitor_3 = request.args.get("competitor_3", "").strip()
+    competitor_4 = request.args.get("competitor_4", "").strip()
+
+    project_domain = (
+        domain
+        or normalize_website(client.get("website", ""))
+        or client.get("website", "")
+        or ""
+    )
+
+    competitors = [
+        c for c in [
+            competitor_1,
+            competitor_2,
+            competitor_3,
+            competitor_4,
+        ]
+        if c
+    ]
+
+    # sample fallback
+    if not competitors and request.args.get("sample") == "1":
+        competitors = [
+            "tawk.to",
+            "wati.io",
+            "botpenguin.com",
+            "chatmaxima.com",
+        ]
+
+    analysis_has_run = bool(
+        domain
+        or competitor_1
+        or competitor_2
+        or competitor_3
+        or competitor_4
+    )
+
+    return render_template(
+        "client_competitors.html",
+        client=client,
+        project_domain=project_domain,
+        competitors=competitors,
+        selected_platform="ChatGPT",
+        selected_market="United States (English)",
+        analysis_has_run=analysis_has_run,
+    )
 
 @app.route("/client/<client_id>/actions")
 @login_required
@@ -2339,6 +3530,70 @@ def client_actions_page(client_id):
         abort(404)
     return render_template("client_actions.html", client=client)
 
+@app.route("/client/<client_id>/competitor-topic/add-to-queue", methods=["POST"])
+@login_required
+def add_competitor_topic_to_queue(client_id):
+    client = get_client_by_id(client_id)
+
+    if not client:
+        abort(404)
+
+    topic = request.form.get("topic", "").strip()
+    target_query = request.form.get("target_query", "").strip()
+    content_type = request.form.get("content_type", "service_page").strip()
+    best_competitor = request.form.get("best_competitor", "").strip()
+    intent = request.form.get("intent", "").strip()
+    priority = request.form.get("priority", "medium").strip().lower()
+    sample_prompts = request.form.get("sample_prompts", "").strip()
+
+    if not target_query:
+        target_query = topic
+
+    if not target_query:
+        flash("No competitor opportunity was selected.", "error")
+        return redirect(url_for("client_competitors_page", client_id=client_id))
+
+    if priority not in ["low", "medium", "high"]:
+        priority = "medium"
+
+    queue_context = f"""
+Competitor gap opportunity
+
+Topic:
+{topic or "Not specified"}
+
+Primary target query:
+{target_query}
+
+Best visible competitor:
+{best_competitor or "Not specified"}
+
+Intent:
+{intent or "Not specified"}
+
+Sample prompts:
+{sample_prompts or target_query}
+
+Recommended use:
+Create a page or section that directly answers the selected prompt, explains the topic clearly, and gives stronger reasons for the brand to be included in AI answers.
+""".strip()
+
+    add_queue_item(
+        client_id=client.get("id"),
+        client_name=client.get("name", "Workspace"),
+        target_query=target_query,
+        content_type=content_type,
+        item_type="brief",
+        title=f"Competitor gap: {target_query}",
+        content=queue_context,
+        status="pending",
+        priority=priority,
+        source="competitor_research",
+        user_id=current_user.id,
+    )
+
+    flash("Competitor opportunity added to the content queue.", "success")
+    return redirect(url_for("content_queue_page", client_id=client.get("id")))
 
 @app.route("/client/<client_id>/history")
 @login_required
@@ -2472,11 +3727,24 @@ def content_queue_page():
             item["generate_brief_url"] = None
             item["generate_draft_url"] = None
 
+    # Stats should use ALL filtered items, not only the current page
     stats = {
-        "queued": len([i for i in items if (i.get("status") or "").lower() in ["queued", "pending"]]),
-        "in_progress": len([i for i in items if (i.get("status") or "").lower() in ["in_progress", "in-progress", "draft_generated"]]),
-        "ready": len([i for i in items if (i.get("status") or "").lower() in ["ready", "brief_generated", "brief ready"]]),
-        "published": len([i for i in items if (i.get("status") or "").lower() == "published"]),
+        "queued": len([
+            i for i in items
+            if (i.get("status") or "").lower() in ["queued", "pending"]
+        ]),
+        "in_progress": len([
+            i for i in items
+            if (i.get("status") or "").lower() in ["in_progress", "in-progress", "draft_generated"]
+        ]),
+        "ready": len([
+            i for i in items
+            if (i.get("status") or "").lower() in ["ready", "brief_generated", "brief generated", "brief ready"]
+        ]),
+        "published": len([
+            i for i in items
+            if (i.get("status") or "").lower() == "published"
+        ]),
     }
 
     selected_client = None
@@ -2486,9 +3754,31 @@ def content_queue_page():
             None
         )
 
+    # Pagination
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+
+    total_queue_items = len(items)
+    total_pages = max((total_queue_items + per_page - 1) // per_page, 1)
+
+    if page < 1:
+        page = 1
+
+    if page > total_pages:
+        page = total_pages
+
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    visible_queue_items = items[start:end]
+
     return render_template(
         "content_queue.html",
-        queue_items=items,
+        queue_items=visible_queue_items,
+        total_queue_items=total_queue_items,
+        current_page=page,
+        total_pages=total_pages,
+        per_page=per_page,
         selected_client_id=selected_client_id,
         selected_client=selected_client,
         stats=stats,

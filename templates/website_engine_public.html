@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ page_json.seo.title if page_json.seo else page.title }}</title>
+    <meta name="description" content="{{ page_json.seo.description if page_json.seo else '' }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+</head>
+
+<body class="generated-site-body">
+    <nav class="generated-site-nav">
+        <strong>{{ page.title.split(" AI Visibility")[0] }}</strong>
+        <a href="#contact">Contact</a>
+    </nav>
+
+    <main class="generated-site">
+        {% include "website_engine_render.html" %}
+    </main>
+</body>
+</html>

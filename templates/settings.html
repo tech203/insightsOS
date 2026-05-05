@@ -36,26 +36,32 @@
            class="settings-v3-tab {% if active_settings_section == 'profile' %}active{% endif %}">
             Profile
         </a>
+
         <a href="{{ url_for('settings_account') }}"
            class="settings-v3-tab {% if active_settings_section == 'account' %}active{% endif %}">
             Account
         </a>
+
         <a href="{{ url_for('settings_billing') }}"
            class="settings-v3-tab {% if active_settings_section == 'billing' %}active{% endif %}">
             Billing
         </a>
+
         <a href="{{ url_for('settings_credits') }}"
            class="settings-v3-tab {% if active_settings_section == 'credits' %}active{% endif %}">
             Credits
         </a>
+
         <a href="{{ url_for('settings_referrals') }}"
            class="settings-v3-tab {% if active_settings_section == 'referrals' %}active{% endif %}">
             Referrals
         </a>
+
         <a href="{{ url_for('settings_preferences') }}"
            class="settings-v3-tab {% if active_settings_section == 'preferences' %}active{% endif %}">
             Preferences
         </a>
+
         <a href="{{ url_for('settings_team') }}"
            class="settings-v3-tab {% if active_settings_section == 'team' %}active{% endif %}">
             Team
@@ -107,14 +113,17 @@
                     <span>Name</span>
                     <strong>{{ current_user.name }}</strong>
                 </div>
+
                 <div class="settings-v3-info-row">
                     <span>Email</span>
                     <strong>{{ current_user.email }}</strong>
                 </div>
+
                 <div class="settings-v3-info-row">
                     <span>Workspace</span>
                     <strong>DarInsights</strong>
                 </div>
+
                 <div class="settings-v3-info-row">
                     <span>Role</span>
                     <strong>{{ current_user.role|default("user")|title }}</strong>
@@ -156,14 +165,17 @@
                     <span>Full Name</span>
                     <strong>{{ current_user.name }}</strong>
                 </div>
+
                 <div class="settings-v3-info-row">
                     <span>Email Address</span>
                     <strong>{{ current_user.email }}</strong>
                 </div>
+
                 <div class="settings-v3-info-row">
                     <span>Referral Code</span>
                     <strong>{{ current_user.referral_code or "Pending setup" }}</strong>
                 </div>
+
                 <div class="settings-v3-info-row">
                     <span>Workspace Access</span>
                     <strong>{{ current_user.role|default("user")|title }}</strong>
@@ -210,14 +222,17 @@
                     <span>Current Plan</span>
                     <strong>{{ current_user.plan|default("free")|replace('_', ' ')|title }}</strong>
                 </div>
+
                 <div class="settings-v3-metric-card">
                     <span>Billing Status</span>
                     <strong>Setup pending</strong>
                 </div>
+
                 <div class="settings-v3-metric-card">
                     <span>Renewal</span>
                     <strong>—</strong>
                 </div>
+
                 <div class="settings-v3-metric-card">
                     <span>Agency Add-on</span>
                     <strong>{% if current_user.is_white_label_enabled %}Enabled{% else %}Not enabled{% endif %}</strong>
@@ -321,14 +336,17 @@
                     <span>Your Referral Code</span>
                     <strong>{{ current_user.referral_code or "Pending setup" }}</strong>
                 </div>
+
                 <div class="settings-v3-metric-card">
                     <span>Referral Link</span>
                     <strong>Not connected yet</strong>
                 </div>
+
                 <div class="settings-v3-metric-card">
                     <span>Successful Referrals</span>
                     <strong>Not tracked yet</strong>
                 </div>
+
                 <div class="settings-v3-metric-card">
                     <span>Rewards Earned</span>
                     <strong>Not tracked yet</strong>
@@ -353,77 +371,82 @@
     </section>
     {% endif %}
 
-{% if active_settings_section == "preferences" %}
-<section class="settings-v3-grid">
-    <div class="settings-v3-panel">
-        <div class="settings-v3-panel-head">
-            <h2>Workspace Preferences</h2>
-            <p>Control defaults and behaviour across your workspace.</p>
-        </div>
-
-        <div class="settings-v3-card-list">
-            <div class="settings-v3-mini-card">
-                <h3>Report Defaults</h3>
-                <p>Set default report views, output modes, and presentation preferences here later.</p>
+    {% if active_settings_section == "preferences" %}
+    <section class="settings-v3-grid">
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Workspace Preferences</h2>
+                <p>Control defaults and behaviour across your workspace.</p>
             </div>
 
-            <div class="settings-v3-mini-card">
-                <h3>Notifications</h3>
-                <p>Control system alerts, audit completion notices, and email preferences here later.</p>
-            </div>
+            <div class="settings-v3-card-list">
+                <div class="settings-v3-mini-card">
+                    <h3>Report Defaults</h3>
+                    <p>Set default report views, output modes, and presentation preferences here later.</p>
+                </div>
 
-            <div class="settings-v3-mini-card">
-                <h3>Brand & Interface</h3>
-                <p>Add interface preferences, white-label defaults, and workspace branding rules here later.</p>
-            </div>
-        </div>
-    </div>
+                <div class="settings-v3-mini-card">
+                    <h3>Notifications</h3>
+                    <p>Control system alerts, audit completion notices, and email preferences here later.</p>
+                </div>
 
-    <div class="settings-v3-panel">
-        <div class="settings-v3-panel-head">
-            <h2>Current State</h2>
-            <p>This section is ready to become the future control centre for workspace preferences.</p>
-        </div>
-
-        <div class="settings-v3-note-box">
-            Preference persistence is not connected yet.
-        </div>
-    </div>
-
-{% if is_internal_user %}
-<div class="settings-v3-panel">
-    <div class="settings-v3-panel-head">
-        <h2>Developer Controls</h2>
-        <p>Internal testing controls for switching interface modes.</p>
-    </div>
-
-    <div class="settings-v3-card-list">
-        <div class="settings-v3-mini-card">
-            <h3>Dev View Mode</h3>
-            <p>Switch between interface modes for internal testing only.</p>
-
-            <div class="dev-view-buttons">
-                <a href="{{ url_for('dev_set_view_mode', mode='single') }}"
-                   class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}">
-                    Single
-                </a>
-                <a href="{{ url_for('dev_set_view_mode', mode='multi') }}"
-                   class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}">
-                    Multi
-                </a>
-                <a href="{{ url_for('dev_set_view_mode', mode='admin') }}"
-                   class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}">
-                    Admin
-                </a>
-                <a href="{{ url_for('dev_set_view_mode', mode='auto') }}"
-                   class="dev-view-btn {% if view_mode == 'auto' %}active{% endif %}">
-                    Auto
-                </a>
+                <div class="settings-v3-mini-card">
+                    <h3>Brand & Interface</h3>
+                    <p>Add interface preferences, white-label defaults, and workspace branding rules here later.</p>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-{% endif %}
+
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Current State</h2>
+                <p>This section is ready to become the future control centre for workspace preferences.</p>
+            </div>
+
+            <div class="settings-v3-note-box">
+                Preference persistence is not connected yet.
+            </div>
+        </div>
+
+        {% if is_internal_user %}
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Developer Controls</h2>
+                <p>Internal testing controls for switching interface modes.</p>
+            </div>
+
+            <div class="settings-v3-card-list">
+                <div class="settings-v3-mini-card">
+                    <h3>Dev View Mode</h3>
+                    <p>Switch between interface modes for internal testing only.</p>
+
+                    <div class="dev-view-buttons">
+                        <a href="{{ url_for('dev_set_view_mode', mode='single') }}"
+                           class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}">
+                            Single
+                        </a>
+
+                        <a href="{{ url_for('dev_set_view_mode', mode='multi') }}"
+                           class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}">
+                            Multi
+                        </a>
+
+                        <a href="{{ url_for('dev_set_view_mode', mode='admin') }}"
+                           class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}">
+                            Admin
+                        </a>
+
+                        <a href="{{ url_for('dev_set_view_mode', mode='auto') }}"
+                           class="dev-view-btn {% if view_mode == 'auto' %}active{% endif %}">
+                            Auto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
 
     {% if active_settings_section == "team" %}
     <section class="settings-v3-grid">
@@ -730,6 +753,40 @@
     border-color: #ffe3d6;
 }
 
+.dev-view-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.dev-view-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #e7ebf3;
+    background: #ffffff;
+    color: #4a586c;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.dev-view-btn:hover {
+    border-color: #ffd8c6;
+    color: #E83256;
+    background: #fff8f4;
+}
+
+.dev-view-btn.active {
+    background: #fff2ea;
+    border-color: #ffd8c6;
+    color: #E83256;
+}
+
 @media (max-width: 1200px) {
     .settings-v3-hero,
     .settings-v3-summary-grid,
@@ -779,40 +836,6 @@
         text-align: left;
     }
 }
-
-.dev-view-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 14px;
-}
-
-.dev-view-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: 1px solid #e7ebf3;
-    background: #ffffff;
-    color: #4a586c;
-    font-size: 14px;
-    font-weight: 800;
-    text-decoration: none;
-    transition: all 0.18s ease;
-}
-
-.dev-view-btn:hover {
-    border-color: #ffd8c6;
-    color: #E83256;
-    background: #fff8f4;
-}
-
-.dev-view-btn.active {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
-}
-
 </style>
+
 {% endblock %}

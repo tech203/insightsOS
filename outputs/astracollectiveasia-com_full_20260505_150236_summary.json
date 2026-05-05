@@ -1,0 +1,149 @@
+{
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "astra-collective",
+  "client_name": "Astra Collective",
+  "user_id": 1,
+  "audit_type": "full",
+  "saved_at": "2026-05-05T15:02:36",
+  "scores": {
+    "normalized_score": 25.2,
+    "visibility_score": 0.0,
+    "content_score": 2.0,
+    "schema_score": 0.0,
+    "entity_score": 2.0,
+    "technical_score": 8.0,
+    "avg_query_score": 4.0,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "Astra Collective is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Marketing Singapore'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Expand content coverage around target intent",
+      "Target missed query: best Marketing Singapore"
+    ]
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "content_gap",
+      "priority": "high",
+      "title": "Expand content coverage around target intent",
+      "issue": "Content score is weak.",
+      "why_it_matters": "Thin or incomplete topic coverage makes it harder for answer engines to understand when your brand should be included.",
+      "recommended_fix": "Build or expand service pages, FAQ pages, and educational content mapped to the top missed query clusters.",
+      "linked_query": null,
+      "suggested_content_type": "service_page",
+      "support_signal": "Low content score in latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Marketing Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'best Marketing Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Marketing Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities., Dentsu Singapore** – Leading in integrated marketing, media, and creative solutions., VLT** – Specializes in digital marketing, social media, and branding."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Marketing Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'top Marketing Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Marketing Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Ogilvy Singapore** – Global agency known for creative advertising and integrated marketing., Dentsu Singapore** – Offers digital marketing, media planning, and brand strategy., VLT** – Specializes in digital marketing, social media, and influencer campaigns."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Marketing services Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Marketing services Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Marketing services Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Vintedge** – Digital marketing and branding, Happy Marketer** – Full-service digital marketing agency, Ogilvy Singapore** – Integrated marketing and advertising"
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Marketing Singapore",
+      "target_query": "best Marketing Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Marketing Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Marketing Singapore",
+      "target_query": "top Marketing Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Marketing Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Marketing services Singapore",
+      "target_query": "Marketing services Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Marketing services Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Marketing Singapore",
+      "target_query": "recommended Marketing Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Marketing Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Marketing company Singapore",
+      "target_query": "Marketing company Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Marketing company Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "meta": {
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
+    "industry": "Marketing",
+    "location": "Singapore",
+    "audit_type": "full",
+    "topic": "Marketing",
+    "client_id": "astra-collective",
+    "client_name": "Astra Collective",
+    "user_id": 1,
+    "saved_at": "2026-05-05T15:02:36",
+    "schema_version": "2.0"
+  },
+  "schema_version": "2.0"
+}

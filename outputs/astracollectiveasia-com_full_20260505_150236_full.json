@@ -1,0 +1,805 @@
+{
+  "meta": {
+    "website": "https://www.astracollectiveasia.com",
+    "website_normalized": "astracollectiveasia.com",
+    "industry": "Marketing",
+    "location": "Singapore",
+    "audit_type": "full",
+    "topic": "Marketing",
+    "client_id": "astra-collective",
+    "client_name": "Astra Collective",
+    "user_id": 1,
+    "saved_at": "2026-05-05T15:02:36",
+    "schema_version": "2.0"
+  },
+  "scores": {
+    "normalized_score": 25.2,
+    "visibility_score": 0.0,
+    "content_score": 2.0,
+    "schema_score": 0.0,
+    "entity_score": 2.0,
+    "technical_score": 8.0,
+    "avg_query_score": 4.0,
+    "brand_mention_rate": 0.0,
+    "total_queries": 12,
+    "brand_mentions": 0
+  },
+  "summary": {
+    "verdict": "Weak AEO visibility with substantial improvement potential.",
+    "opportunity_level": "High",
+    "biggest_problem": "Astra Collective is still missing from too many tracked answer queries.",
+    "biggest_opportunity": "Build content for missed query 'best Marketing Singapore'.",
+    "top_3_actions": [
+      "Improve brand visibility in AI answers",
+      "Expand content coverage around target intent",
+      "Target missed query: best Marketing Singapore"
+    ]
+  },
+  "query_analysis": [
+    {
+      "query": "best Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities.",
+        "Dentsu Singapore** – Leading in integrated marketing, media, and creative solutions.",
+        "VLT** – Specializes in digital marketing, social media, and branding.",
+        "Happy Marketer** – Focuses on digital marketing strategies and data-driven campaigns.",
+        "MediaOne Business Group** – Known for SEO, SEM, and online marketing services."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "top Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Global agency known for creative advertising and integrated marketing.",
+        "Dentsu Singapore** – Offers digital marketing, media planning, and brand strategy.",
+        "VLT** – Specializes in digital marketing, social media, and influencer campaigns.",
+        "Happy Marketer** – Focuses on digital marketing, SEO, and content strategy.",
+        "MediaOne** – Known for SEO, SEM, and performance marketing."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Marketing services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Vintedge** – Digital marketing and branding",
+        "Happy Marketer** – Full-service digital marketing agency",
+        "Ogilvy Singapore** – Integrated marketing and advertising",
+        "MediaOne** – SEO and online marketing",
+        "First Page Digital** – SEO and PPC services"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "recommended Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities.",
+        "Dentsu Singapore** – Integrated marketing solutions with a focus on data-driven campaigns.",
+        "VLT** – Specializes in digital marketing, social media, and content creation.",
+        "Happy Marketer** – Known for digital marketing strategy and execution.",
+        "MediaOne Business Group** – SEO, SEM, and online marketing experts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Marketing company Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service advertising and marketing agency.",
+        "Dentsu Singapore** – Integrated marketing communications.",
+        "VLT** – Digital marketing and branding specialists.",
+        "Happy Marketer** – Digital marketing agency focusing on data-driven strategies.",
+        "MediaOne Business Group** – SEO, SEM, and digital marketing services."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how much does Marketing cost Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Digital Marketing (social media, SEO, PPC):** SGD 1,000 to SGD 10,000+ per month for small to medium businesses.",
+        "Traditional Advertising (TV, radio, print):** Can range from SGD 5,000 to SGD 50,000+ per campaign.",
+        "Marketing Agencies:** Monthly retainers typically start around SGD 3,000 and can go up to SGD 20,000+ depending on services.",
+        "Freelancers/Consultants:** SGD 50 to SGD 200+ per hour."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how to choose Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**Define Your Goals**: Identify if you need digital marketing, SEO, social media, branding, or traditional marketing.",
+        "**Experience & Expertise**: Look for agencies with proven experience in your industry and a strong portfolio.",
+        "**Services Offered**: Choose a provider offering comprehensive services that match your needs.",
+        "**Reputation & Reviews**: Check client testimonials, case studies, and online reviews.",
+        "**Budget**: Ensure their pricing aligns with your budget without compromising quality."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "what is the best Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Renowned global agency with strong digital and branding services.",
+        "Dentsu Singapore** – Offers integrated marketing solutions with a focus on data-driven strategies.",
+        "VLT** – A leading digital marketing agency specializing in social media and content marketing.",
+        "Happy Marketer** – Known for digital marketing, SEO, and performance marketing.",
+        "MediaOne** – Focuses on SEO, SEM, and digital advertising."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "who are the top Marketing companies Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Global agency with full-service marketing and advertising.",
+        "Dentsu Singapore** – Leading integrated marketing communications network.",
+        "BBDO Singapore** – Creative advertising and marketing solutions.",
+        "Havas Group Singapore** – Offers digital marketing, media, and creative services.",
+        "VLT Singapore** – Specializes in digital marketing and branding."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "affordable Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Social Media Agencies** like MediaOne or Happy Marketer offer budget-friendly digital marketing.",
+        "Freelancers on platforms** like Upwork or Fiverr provide cost-effective marketing support.",
+        "Local firms** such as Clickr Media or Vintedge specialize in affordable SEO and content marketing.",
+        "DIY tools** like Canva for design and Mailchimp for email marketing help reduce costs."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Marketing companies in Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service advertising and marketing agency.",
+        "Dentsu Singapore** – Integrated marketing communications.",
+        "BBDO Singapore** – Creative advertising and brand strategy.",
+        "VLT** – Digital marketing and social media agency.",
+        "Happy Marketer** – Digital marketing and analytics."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "compare Marketing services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**Ogilvy Singapore** – Full-service agency offering advertising, digital marketing, branding, and PR with a global network.",
+        "**Dentsu Singapore** – Strong in digital marketing, media buying, and creative campaigns, leveraging data-driven strategies.",
+        "**VLT** – Focuses on digital marketing, SEO, social media management, and content marketing for SMEs.",
+        "**Happy Marketer** – Specializes in digital marketing, analytics, and customer engagement strategies.",
+        "**MediaOne Business Group** – Known for SEO, SEM, and online advertising tailored to local businesses."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    }
+  ],
+  "competitor_analysis": {
+    "top_competitors": [
+      {
+        "name": "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities.",
+        "mention_count": 2
+      },
+      {
+        "name": "Ogilvy Singapore** – Full-service advertising and marketing agency.",
+        "mention_count": 2
+      },
+      {
+        "name": "Dentsu Singapore** – Integrated marketing communications.",
+        "mention_count": 2
+      },
+      {
+        "name": "Dentsu Singapore** – Leading in integrated marketing, media, and creative solutions.",
+        "mention_count": 1
+      },
+      {
+        "name": "VLT** – Specializes in digital marketing, social media, and branding.",
+        "mention_count": 1
+      },
+      {
+        "name": "Happy Marketer** – Focuses on digital marketing strategies and data-driven campaigns.",
+        "mention_count": 1
+      },
+      {
+        "name": "MediaOne Business Group** – Known for SEO, SEM, and online marketing services.",
+        "mention_count": 1
+      },
+      {
+        "name": "Ogilvy Singapore** – Global agency known for creative advertising and integrated marketing.",
+        "mention_count": 1
+      },
+      {
+        "name": "Dentsu Singapore** – Offers digital marketing, media planning, and brand strategy.",
+        "mention_count": 1
+      },
+      {
+        "name": "VLT** – Specializes in digital marketing, social media, and influencer campaigns.",
+        "mention_count": 1
+      }
+    ],
+    "total_distinct_competitors": 55
+  },
+  "site_findings": {
+    "content_depth_score": 2.0,
+    "schema_score": 0.0,
+    "entity_score": 2.0,
+    "technical_score": 8.0,
+    "technical_issues": [],
+    "content_gaps": [],
+    "entity_gaps": [],
+    "schema_gaps": [],
+    "notes": []
+  },
+  "recommended_actions": [
+    {
+      "category": "visibility_gap",
+      "priority": "high",
+      "title": "Improve brand visibility in AI answers",
+      "issue": "Overall visibility score is weak.",
+      "why_it_matters": "If the brand is not being surfaced in answer engines, competitors are more likely to be recommended first.",
+      "recommended_fix": "Prioritize direct-answer pages, comparison pages, and FAQ-led content for missed commercial and recommendation-style queries.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low visibility score across the latest audit."
+    },
+    {
+      "category": "content_gap",
+      "priority": "high",
+      "title": "Expand content coverage around target intent",
+      "issue": "Content score is weak.",
+      "why_it_matters": "Thin or incomplete topic coverage makes it harder for answer engines to understand when your brand should be included.",
+      "recommended_fix": "Build or expand service pages, FAQ pages, and educational content mapped to the top missed query clusters.",
+      "linked_query": null,
+      "suggested_content_type": "service_page",
+      "support_signal": "Low content score in latest audit."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: best Marketing Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'best Marketing Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "best Marketing Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities., Dentsu Singapore** – Leading in integrated marketing, media, and creative solutions., VLT** – Specializes in digital marketing, social media, and branding."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: top Marketing Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'top Marketing Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "top Marketing Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Ogilvy Singapore** – Global agency known for creative advertising and integrated marketing., Dentsu Singapore** – Offers digital marketing, media planning, and brand strategy., VLT** – Specializes in digital marketing, social media, and influencer campaigns."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Marketing services Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Marketing services Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Marketing services Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Vintedge** – Digital marketing and branding, Happy Marketer** – Full-service digital marketing agency, Ogilvy Singapore** – Integrated marketing and advertising"
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: recommended Marketing Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'recommended Marketing Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "recommended Marketing Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities., Dentsu Singapore** – Integrated marketing solutions with a focus on data-driven campaigns., VLT** – Specializes in digital marketing, social media, and content creation."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: Marketing company Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'Marketing company Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "Marketing company Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Ogilvy Singapore** – Full-service advertising and marketing agency., Dentsu Singapore** – Integrated marketing communications., VLT** – Digital marketing and branding specialists."
+    },
+    {
+      "category": "query_opportunity",
+      "priority": "high",
+      "title": "Target missed query: how much does Marketing cost Singapore",
+      "issue": "Brand is not mentioned for this tracked query.",
+      "why_it_matters": "This is a direct visibility gap where answer engines are not associating the brand with the query intent.",
+      "recommended_fix": "Create or improve a comparison page focused on 'how much does Marketing cost Singapore' with direct answers, proof, and stronger differentiators.",
+      "linked_query": "how much does Marketing cost Singapore",
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Competitors seen: Digital Marketing (social media, SEO, PPC):** SGD 1,000 to SGD 10,000+ per month for small to medium businesses., Traditional Advertising (TV, radio, print):** Can range from SGD 5,000 to SGD 50,000+ per campaign., Marketing Agencies:** Monthly retainers typically start around SGD 3,000 and can go up to SGD 20,000+ depending on services."
+    },
+    {
+      "category": "schema_fix",
+      "priority": "medium",
+      "title": "Strengthen structured data support",
+      "issue": "Schema score is weak.",
+      "why_it_matters": "Structured data helps clarify business identity, page purpose, and reusable question-answer content.",
+      "recommended_fix": "Add or improve Organization, FAQPage, Service, and LocalBusiness schema where relevant.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low schema score in latest audit."
+    },
+    {
+      "category": "entity_fix",
+      "priority": "medium",
+      "title": "Clarify brand and entity signals",
+      "issue": "Entity clarity is weak.",
+      "why_it_matters": "If your site does not clearly explain who you are, what you offer, and how you differ, answer engines may prefer more explicit competitors.",
+      "recommended_fix": "Strengthen homepage, about page, and core service pages with clearer positioning, repeated brand signals, proof, and differentiators.",
+      "linked_query": null,
+      "suggested_content_type": null,
+      "support_signal": "Low entity score in latest audit."
+    },
+    {
+      "category": "competitor_counter",
+      "priority": "medium",
+      "title": "Build counter-positioning against Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities.",
+      "issue": "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities. appears repeatedly in tracked answer comparisons.",
+      "why_it_matters": "Repeated competitor presence suggests stronger topic ownership or clearer entity positioning.",
+      "recommended_fix": "Create competitor-aware comparison pages, differentiation content, and FAQ content showing when Astra Collective is a better fit.",
+      "linked_query": null,
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities. appeared in 2 tracked queries."
+    },
+    {
+      "category": "competitor_counter",
+      "priority": "medium",
+      "title": "Build counter-positioning against Ogilvy Singapore** – Full-service advertising and marketing agency.",
+      "issue": "Ogilvy Singapore** – Full-service advertising and marketing agency. appears repeatedly in tracked answer comparisons.",
+      "why_it_matters": "Repeated competitor presence suggests stronger topic ownership or clearer entity positioning.",
+      "recommended_fix": "Create competitor-aware comparison pages, differentiation content, and FAQ content showing when Astra Collective is a better fit.",
+      "linked_query": null,
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Ogilvy Singapore** – Full-service advertising and marketing agency. appeared in 2 tracked queries."
+    },
+    {
+      "category": "competitor_counter",
+      "priority": "medium",
+      "title": "Build counter-positioning against Dentsu Singapore** – Integrated marketing communications.",
+      "issue": "Dentsu Singapore** – Integrated marketing communications. appears repeatedly in tracked answer comparisons.",
+      "why_it_matters": "Repeated competitor presence suggests stronger topic ownership or clearer entity positioning.",
+      "recommended_fix": "Create competitor-aware comparison pages, differentiation content, and FAQ content showing when Astra Collective is a better fit.",
+      "linked_query": null,
+      "suggested_content_type": "comparison_page",
+      "support_signal": "Dentsu Singapore** – Integrated marketing communications. appeared in 2 tracked queries."
+    }
+  ],
+  "content_opportunities": [
+    {
+      "title": "best Marketing Singapore",
+      "target_query": "best Marketing Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: best Marketing Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "top Marketing Singapore",
+      "target_query": "top Marketing Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: top Marketing Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Marketing services Singapore",
+      "target_query": "Marketing services Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Marketing services Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "recommended Marketing Singapore",
+      "target_query": "recommended Marketing Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: recommended Marketing Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "Marketing company Singapore",
+      "target_query": "Marketing company Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: Marketing company Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    },
+    {
+      "title": "how much does Marketing cost Singapore",
+      "target_query": "how much does Marketing cost Singapore",
+      "content_type": "comparison_page",
+      "priority": "high",
+      "source_action_title": "Target missed query: how much does Marketing cost Singapore",
+      "reason": "Brand is not mentioned for this tracked query.",
+      "status": "idea"
+    }
+  ],
+  "ai_answer_results": [
+    {
+      "query": "best Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities.",
+        "Dentsu Singapore** – Leading in integrated marketing, media, and creative solutions.",
+        "VLT** – Specializes in digital marketing, social media, and branding.",
+        "Happy Marketer** – Focuses on digital marketing strategies and data-driven campaigns.",
+        "MediaOne Business Group** – Known for SEO, SEM, and online marketing services."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "top Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Global agency known for creative advertising and integrated marketing.",
+        "Dentsu Singapore** – Offers digital marketing, media planning, and brand strategy.",
+        "VLT** – Specializes in digital marketing, social media, and influencer campaigns.",
+        "Happy Marketer** – Focuses on digital marketing, SEO, and content strategy.",
+        "MediaOne** – Known for SEO, SEM, and performance marketing."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Marketing services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Vintedge** – Digital marketing and branding",
+        "Happy Marketer** – Full-service digital marketing agency",
+        "Ogilvy Singapore** – Integrated marketing and advertising",
+        "MediaOne** – SEO and online marketing",
+        "First Page Digital** – SEO and PPC services"
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "recommended Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service marketing and advertising with strong digital capabilities.",
+        "Dentsu Singapore** – Integrated marketing solutions with a focus on data-driven campaigns.",
+        "VLT** – Specializes in digital marketing, social media, and content creation.",
+        "Happy Marketer** – Known for digital marketing strategy and execution.",
+        "MediaOne Business Group** – SEO, SEM, and online marketing experts."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Marketing company Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service advertising and marketing agency.",
+        "Dentsu Singapore** – Integrated marketing communications.",
+        "VLT** – Digital marketing and branding specialists.",
+        "Happy Marketer** – Digital marketing agency focusing on data-driven strategies.",
+        "MediaOne Business Group** – SEO, SEM, and digital marketing services."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how much does Marketing cost Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Digital Marketing (social media, SEO, PPC):** SGD 1,000 to SGD 10,000+ per month for small to medium businesses.",
+        "Traditional Advertising (TV, radio, print):** Can range from SGD 5,000 to SGD 50,000+ per campaign.",
+        "Marketing Agencies:** Monthly retainers typically start around SGD 3,000 and can go up to SGD 20,000+ depending on services.",
+        "Freelancers/Consultants:** SGD 50 to SGD 200+ per hour."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "how to choose Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**Define Your Goals**: Identify if you need digital marketing, SEO, social media, branding, or traditional marketing.",
+        "**Experience & Expertise**: Look for agencies with proven experience in your industry and a strong portfolio.",
+        "**Services Offered**: Choose a provider offering comprehensive services that match your needs.",
+        "**Reputation & Reviews**: Check client testimonials, case studies, and online reviews.",
+        "**Budget**: Ensure their pricing aligns with your budget without compromising quality."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "what is the best Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Renowned global agency with strong digital and branding services.",
+        "Dentsu Singapore** – Offers integrated marketing solutions with a focus on data-driven strategies.",
+        "VLT** – A leading digital marketing agency specializing in social media and content marketing.",
+        "Happy Marketer** – Known for digital marketing, SEO, and performance marketing.",
+        "MediaOne** – Focuses on SEO, SEM, and digital advertising."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "who are the top Marketing companies Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Global agency with full-service marketing and advertising.",
+        "Dentsu Singapore** – Leading integrated marketing communications network.",
+        "BBDO Singapore** – Creative advertising and marketing solutions.",
+        "Havas Group Singapore** – Offers digital marketing, media, and creative services.",
+        "VLT Singapore** – Specializes in digital marketing and branding."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "affordable Marketing Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Social Media Agencies** like MediaOne or Happy Marketer offer budget-friendly digital marketing.",
+        "Freelancers on platforms** like Upwork or Fiverr provide cost-effective marketing support.",
+        "Local firms** such as Clickr Media or Vintedge specialize in affordable SEO and content marketing.",
+        "DIY tools** like Canva for design and Mailchimp for email marketing help reduce costs."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "Marketing companies in Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "Ogilvy Singapore** – Full-service advertising and marketing agency.",
+        "Dentsu Singapore** – Integrated marketing communications.",
+        "BBDO Singapore** – Creative advertising and brand strategy.",
+        "VLT** – Digital marketing and social media agency.",
+        "Happy Marketer** – Digital marketing and analytics."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    },
+    {
+      "query": "compare Marketing services Singapore",
+      "brand_mentioned": false,
+      "previous_brand_mentioned": false,
+      "brand_position": null,
+      "previous_brand_position": null,
+      "score": 4.0,
+      "previous_score": 0.0,
+      "score_delta": 4.0,
+      "change_type": "improved",
+      "priority": "high",
+      "competitors_mentioned": [
+        "**Ogilvy Singapore** – Full-service agency offering advertising, digital marketing, branding, and PR with a global network.",
+        "**Dentsu Singapore** – Strong in digital marketing, media buying, and creative campaigns, leveraging data-driven strategies.",
+        "**VLT** – Focuses on digital marketing, SEO, social media management, and content marketing for SMEs.",
+        "**Happy Marketer** – Specializes in digital marketing, analytics, and customer engagement strategies.",
+        "**MediaOne Business Group** – Known for SEO, SEM, and online advertising tailored to local businesses."
+      ],
+      "previous_competitors_mentioned": [],
+      "answer_excerpt": ""
+    }
+  ],
+  "website": "https://www.astracollectiveasia.com",
+  "client_id": "astra-collective",
+  "client_name": "Astra Collective",
+  "user_id": 1,
+  "audit_type": "full",
+  "saved_at": "2026-05-05T15:02:36"
+}

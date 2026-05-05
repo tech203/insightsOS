@@ -1,154 +1,503 @@
 {% extends "base.html" %}
 
-{% block title %}{{ client.name }} | Draft Result{% endblock %}
-
-{% block page_header %}
-<div class="page-header-standard draft-result-header-clean">
-    <div class="page-header-copy">
-        <h1>{{ client.name }} · Draft Result</h1>
-        <p>Review the generated draft, refine it if needed, then save it into the queue for production or publishing.</p>
-    </div>
-
-    <div class="page-header-actions">
-        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">
-            Open Queue
-        </a>
-    </div>
-</div>
-{% endblock %}
+{% block title %}Draft Result | DarInsights{% endblock %}
 
 {% block content %}
 
-<section class="draft-result-shell-clean">
+{% set client_route_id = client.id if client.id is defined else client.get('id') %}
+{% set client_name = client.name if client.name is defined else client.get('name', 'Workspace') %}
 
-    <section class="draft-top-strip">
-        <div class="draft-top-copy">
-            <span class="section-kicker">Draft Ready</span>
-            <h2>Your generated draft is ready for review</h2>
-            <p>
-                Refine the wording, add client-specific detail, and clean up any claims or examples before saving this draft into the queue.
-            </p>
+{% set result_data = result if result is defined and result else {} %}
+
+{% set display_target_query =
+    target_query
+    if target_query is defined and target_query
+    else result_data.get('target_query') or 'Untitled target query'
+%}
+
+{% set display_content_type =
+    content_type
+    if content_type is defined and content_type
+    else result_data.get('content_type') or 'service_page'
+%}
+
+{% set raw_draft =
+    result_data.get('draft_text')
+    or result_data.get('draft')
+    or result_data.get('content')
+    or result_data.get('article')
+    or ''
+%}
+
+{% set intro =
+    result_data.get('intro')
+    or result_data.get('introduction')
+    or ''
+%}
+
+{% set sections =
+    result_data.get('sections')
+    or result_data.get('body_sections')
+    or []
+%}
+
+{% set conclusion =
+    result_data.get('conclusion')
+    or ''
+%}
+
+{% set meta_title =
+    result_data.get('meta_title')
+    or ''
+%}
+
+{% set meta_description =
+    result_data.get('meta_description')
+    or ''
+%}
+
+{% set cta =
+    result_data.get('cta')
+    or ''
+%}
+
+{% if not raw_draft %}
+    {% set raw_draft = result_data|string %}
+{% endif %}
+
+<div class="page-shell">
+
+    <div class="page-header">
+        <div>
+            <h1>{{ client_name }} · Draft Result</h1>
+            <p>Review the generated draft, refine it, then save it into the content queue.</p>
         </div>
 
-        <div class="draft-top-card">
-            <span class="hero-card-label">Recommended flow</span>
-            <strong class="hero-card-value">Review → Save → Publish</strong>
-            <p class="hero-card-text">
-                Edit the draft first, save it to the queue, then move it through production and re-audit after publishing.
-            </p>
+        <div class="page-header-actions">
+            <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-primary">
+                Open Queue
+            </a>
         </div>
-    </section>
+    </div>
 
-    <section class="draft-result-grid">
+    <div class="draft-result-shell">
 
-        <div class="panel panel-main">
-            <div class="panel-header">
-                <div>
-                    <h2>Generated Draft</h2>
-                    <p class="panel-subtitle">Edit the draft before saving it to the queue.</p>
-                </div>
+        <section class="draft-hero-card">
+            <div>
+                <span class="status-pill success">Draft Ready</span>
+                <h2>Review this draft before saving</h2>
+                <p>
+                    Check the opening, structure, proof points, local relevance, and call to action.
+                    Edit the draft below before saving it into the queue.
+                </p>
             </div>
 
-            <form method="POST" action="{{ url_for('save_generated_draft', client_id=client.id) }}" class="form-stack">
-                <div class="form-grid-2">
-
-                    <div class="form-field form-field-full">
-                        <label for="target_query">Target Query</label>
-                        <p class="field-help">
-                            Confirm the query this draft is targeting before saving it.
-                        </p>
-                        <input
-                            type="text"
-                            id="target_query"
-                            name="target_query"
-                            value="{{ result.target_query if result and result.target_query is defined else '' }}"
-                        >
-                    </div>
-
-                    <div class="form-field">
-                        <label for="content_type">Content Type</label>
-                        <p class="field-help">
-                            Keep this label consistent so the queue stays organised.
-                        </p>
-                        <input
-                            type="text"
-                            id="content_type"
-                            name="content_type"
-                            value="{{ result.content_type if result and result.content_type is defined else '' }}"
-                        >
-                    </div>
-
-                    <div class="form-field form-field-full">
-                        <label for="draft_text">Draft Content</label>
-                        <p class="field-help">
-                            Edit directly in the box before saving the draft into the queue.
-                        </p>
-                        <textarea id="draft_text" name="draft_text" class="editor-textarea" rows="20">{% if result.draft is defined %}{{ result.draft }}{% else %}{{ result | tojson(indent=2) }}{% endif %}</textarea>
-                    </div>
-                </div>
-
-                <div class="card-actions">
-                    <button type="submit" class="btn btn-primary">Save to Queue</button>
-                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="btn btn-secondary">Generate Another</a>
-                </div>
-            </form>
-        </div>
-
-        <aside class="side-stack">
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Recommended Workflow</h2>
-                        <p class="panel-subtitle">A practical way to move this draft forward.</p>
-                    </div>
-                </div>
-
-                <div class="action-list">
-                    <div class="action-card">
-                        <div class="action-card-top">
-                            <span class="priority-badge low">Step 1</span>
-                            <h3>Edit the first draft</h3>
-                        </div>
-                        <p>Adjust claims, examples, CTA, tone, and any client-specific facts before publishing.</p>
-                    </div>
-
-                    <div class="action-card">
-                        <div class="action-card-top">
-                            <span class="priority-badge medium">Step 2</span>
-                            <h3>Save to queue</h3>
-                        </div>
-                        <p>Store the draft in the queue so it can be tracked properly through production.</p>
-                    </div>
-
-                    <div class="action-card">
-                        <div class="action-card-top">
-                            <span class="priority-badge high">Step 3</span>
-                            <h3>Publish and re-audit</h3>
-                        </div>
-                        <p>After the page is live, run another audit later to check whether visibility improved.</p>
-                    </div>
-                </div>
+            <div class="draft-flow-card">
+                <div class="mini-label">Recommended flow</div>
+                <strong>Review → Edit → Save → Publish</strong>
+                <p>Use this page as the final editing layer before queueing the draft for production.</p>
             </div>
+        </section>
 
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>What To Check First</h2>
-                        <p class="panel-subtitle">Quick quality control before saving.</p>
+        <section class="draft-grid">
+
+            <main class="draft-main-card">
+
+                <div class="draft-section">
+                    <div class="mini-label">Target Query</div>
+                    <h3>{{ display_target_query }}</h3>
+                </div>
+
+                <div class="draft-section">
+                    <div class="mini-label">Content Type</div>
+                    <p>{{ display_content_type|replace("_", " ")|title }}</p>
+                </div>
+
+                {% if meta_title or meta_description %}
+                <div class="draft-section">
+                    <div class="mini-label">SEO Preview</div>
+
+                    {% if meta_title %}
+                    <div class="seo-preview-box">
+                        <strong>{{ meta_title }}</strong>
+                        {% if meta_description %}
+                            <p>{{ meta_description }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if intro %}
+                <div class="draft-section">
+                    <div class="mini-label">Introduction</div>
+                    <div class="draft-readable-box">
+                        {{ intro | replace('\n', '<br>') | safe }}
                     </div>
                 </div>
+                {% endif %}
 
-                <div class="tips-list">
-                    <div class="tip-item">Make sure the opening section matches the real client offer and audience.</div>
-                    <div class="tip-item">Replace generic wording with specific examples, proof, and context.</div>
-                    <div class="tip-item">Check that the CTA fits the client’s real conversion goal.</div>
-                    <div class="tip-item">Remove anything that sounds too broad, vague, or unlike the client’s tone.</div>
+                {% if sections %}
+                <div class="draft-section">
+                    <div class="mini-label">Draft Sections</div>
+
+                    <div class="draft-section-stack">
+                        {% for section in sections %}
+                            <article class="draft-content-section">
+                                {% if section is mapping %}
+                                    <h4>{{ section.get('heading', 'Section') }}</h4>
+
+                                    {% if section.get('content') %}
+                                        <p>{{ section.get('content') }}</p>
+                                    {% endif %}
+
+                                    {% if section.get('bullets') %}
+                                        <ul>
+                                            {% for bullet in section.get('bullets') %}
+                                                <li>{{ bullet }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                {% else %}
+                                    <p>{{ section }}</p>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
+                {% endif %}
 
-        </aside>
-    </section>
+                {% if conclusion %}
+                <div class="draft-section">
+                    <div class="mini-label">Conclusion</div>
+                    <div class="draft-readable-box">
+                        {{ conclusion | replace('\n', '<br>') | safe }}
+                    </div>
+                </div>
+                {% endif %}
 
-</section>
+                {% if cta %}
+                <div class="draft-section">
+                    <div class="mini-label">Call To Action</div>
+                    <div class="draft-readable-box">
+                        {{ cta | replace('\n', '<br>') | safe }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('save_generated_draft', client_id=client_route_id) }}" class="draft-save-form">
+
+                    <input type="hidden" name="target_query" value="{{ display_target_query }}">
+                    <input type="hidden" name="content_type" value="{{ display_content_type }}">
+
+                    <div class="draft-section no-border">
+                        <div class="mini-label">Editable Draft</div>
+                        <p class="draft-helper-text">
+                            Make final edits here before saving this draft into the queue.
+                        </p>
+
+                        <textarea name="draft_text" class="draft-editor" rows="22">{{ raw_draft }}</textarea>
+                    </div>
+
+                    <div class="draft-actions">
+                        <button type="submit" class="btn btn-primary">
+                            Save to Queue
+                        </button>
+
+                        <a href="{{ url_for(
+                            'generate_client_content_draft',
+                            client_id=client_route_id,
+                            target_query=display_target_query,
+                            content_type=display_content_type
+                        ) }}" class="btn btn-secondary">
+                            Generate Another
+                        </a>
+
+                        <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
+                            Back to Queue
+                        </a>
+                    </div>
+
+                </form>
+
+            </main>
+
+            <aside class="draft-side-card">
+
+                <div class="side-block">
+                    <div class="mini-label">Next Best Action</div>
+                    <h3>Edit, then save</h3>
+                    <p>
+                        The draft should be checked for accuracy, client fit, and usefulness before publishing.
+                    </p>
+                </div>
+
+                <div class="side-block">
+                    <div class="mini-label">What To Check First</div>
+                    <ul class="draft-list compact">
+                        <li>Does the opening match the real customer intent?</li>
+                        <li>Is the advice specific enough?</li>
+                        <li>Are there examples, proof points, or trust signals?</li>
+                        <li>Does the CTA fit the client’s actual offer?</li>
+                        <li>Can this page help improve AI visibility?</li>
+                    </ul>
+                </div>
+
+                <div class="side-block">
+                    <div class="mini-label">Publishing Notes</div>
+                    <p>
+                        After the draft is saved, move it through the content queue and publish only after final human review.
+                    </p>
+                </div>
+
+            </aside>
+
+        </section>
+
+    </div>
+</div>
+
+<style>
+.draft-result-shell {
+    display: grid;
+    gap: 24px;
+}
+
+.draft-hero-card,
+.draft-main-card,
+.draft-side-card,
+.draft-flow-card {
+    background: #ffffff;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 24px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.draft-hero-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 24px;
+    align-items: center;
+    padding: 28px;
+}
+
+.draft-hero-card h2 {
+    margin: 14px 0 0;
+    font-size: 36px;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    color: #0f172a;
+}
+
+.draft-hero-card p,
+.draft-flow-card p,
+.draft-main-card p,
+.draft-side-card p {
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.draft-flow-card {
+    padding: 22px;
+}
+
+.draft-flow-card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 22px;
+    color: #0f172a;
+}
+
+.draft-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 24px;
+    align-items: start;
+}
+
+.draft-main-card,
+.draft-side-card {
+    padding: 26px;
+}
+
+.draft-section {
+    padding: 22px 0;
+    border-bottom: 1px solid #e5edf7;
+}
+
+.draft-section:first-child {
+    padding-top: 0;
+}
+
+.draft-section.no-border,
+.draft-section:last-child {
+    border-bottom: 0;
+}
+
+.draft-section h3 {
+    margin: 8px 0 0;
+    font-size: 28px;
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+.mini-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.status-pill.success {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.seo-preview-box,
+.draft-readable-box,
+.draft-content-section {
+    margin-top: 12px;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid #dbe6f3;
+    background: #f8fafc;
+    color: #334155;
+    line-height: 1.75;
+}
+
+.seo-preview-box strong {
+    display: block;
+    color: #0f172a;
+    font-size: 18px;
+}
+
+.seo-preview-box p {
+    margin: 8px 0 0;
+}
+
+.draft-section-stack {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.draft-content-section h4 {
+    margin: 0 0 8px;
+    color: #0f172a;
+    font-size: 20px;
+}
+
+.draft-content-section ul {
+    margin: 10px 0 0;
+    padding-left: 20px;
+    color: #475569;
+    line-height: 1.7;
+}
+
+.draft-helper-text {
+    margin: 8px 0 12px;
+    font-size: 14px;
+}
+
+.draft-editor {
+    width: 100%;
+    min-height: 520px;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid #dbe6f3;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 16px;
+    line-height: 1.75;
+    resize: vertical;
+    outline: none;
+}
+
+.draft-editor:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+
+.draft-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 24px;
+}
+
+.side-block {
+    padding: 0 0 22px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid #e5edf7;
+}
+
+.side-block:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.side-block h3 {
+    margin: 8px 0 0;
+    color: #0f172a;
+}
+
+.draft-list {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    color: #475569;
+    line-height: 1.8;
+}
+
+.draft-list.compact {
+    font-size: 14px;
+}
+
+@media (max-width: 1000px) {
+    .draft-hero-card,
+    .draft-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .draft-hero-card,
+    .draft-main-card,
+    .draft-side-card {
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .draft-hero-card h2 {
+        font-size: 28px;
+    }
+
+    .draft-section h3 {
+        font-size: 22px;
+    }
+
+    .draft-actions .btn,
+    .draft-actions form,
+    .draft-actions button {
+        width: 100%;
+    }
+
+    .draft-editor {
+        min-height: 420px;
+        font-size: 15px;
+    }
+}
+</style>
 
 {% endblock %}

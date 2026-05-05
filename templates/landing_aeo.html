@@ -1,6 +1,6 @@
 {% extends "marketing_base.html" %}
 
-{% block title %}DarInsights | Improve AI Visibility and Know What to Fix Next{% endblock %}
+{% block title %}DarInsights | AI Visibility Operating System{% endblock %}
 
 {% block content %}
 
@@ -15,23 +15,24 @@
 
             <nav class="aeo-nav">
                 <a href="#how-it-works">How It Works</a>
-                <a href="{{ url_for('pricing_page') }}">Pricing</a>
+                <a href="#planned-pricing">Pricing</a>
+                <a href="#early-access">Early Access</a>
                 <a href="#faq">FAQ</a>
             </nav>
 
             <div class="aeo-topbar-actions">
-                <a href="{{ url_for('login') }}" class="aeo-btn aeo-btn-ghost">Log In</a>
-                <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+                <a href="#early-access" class="aeo-btn aeo-btn-light">Join Interest List</a>
             </div>
         </div>
     </header>
 
     <section class="aeo-hero">
         <div class="aeo-container aeo-hero-grid">
+
             <div class="aeo-hero-left">
                 <div class="aeo-pill">
                     <span class="aeo-pill-dot"></span>
-                    For agencies, B2B brands, local businesses, and service companies
+                    Early access opening soon for agencies, B2B brands, and service businesses
                 </div>
 
                 <h1 class="aeo-hero-title">
@@ -40,45 +41,53 @@
                         <span id="heroTypedWord">Google AI</span>
                         <span id="heroCursor">|</span>
                     </span>
-                    <span class="block">and know exactly what to fix next.</span>
+                    <span class="block">and know what to improve next.</span>
                 </h1>
 
                 <p class="aeo-hero-copy">
-                    DarInsights helps you see where your brand is being missed in AI answers,
-                    which competitors are being recommended instead, and what pages, signals,
-                    or content you should improve next.
+                    DarInsights helps businesses and agencies understand where their brand is missing
+                    from AI-generated answers, which competitors are appearing instead, and what
+                    content or visibility actions to prioritise next.
                 </p>
 
                 <div class="aeo-note">
-                    Built for teams that want more than a one-time report. Move from audit
-                    to priority to execution with a workflow your team can actually use.
+                    We are currently refining the backend, audit workflow, reporting experience,
+                    and content action tools before opening self-serve signup and payment.
                 </div>
 
                 <div class="aeo-hero-actions">
-                    <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+                    <a href="#early-access" class="aeo-btn aeo-btn-light">Join Interest List</a>
                     <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-primary">Book Strategy Call</a>
-                    <a href="#how-it-works" class="aeo-btn aeo-btn-outline">See How It Works</a>
+                    <a href="#planned-pricing" class="aeo-btn aeo-btn-outline">View Planned Pricing</a>
                 </div>
 
                 <div class="aeo-feature-grid">
                     <div class="aeo-feature-card">
                         <div class="aeo-feature-title">Audit AI visibility</div>
-                        <div class="aeo-feature-text">See where your brand is present, where it is missing, and where competitors are winning.</div>
+                        <div class="aeo-feature-text">
+                            See where your brand appears, where it is missing, and where competitors may be winning.
+                        </div>
                     </div>
+
                     <div class="aeo-feature-card">
-                        <div class="aeo-feature-title">Get clear priorities</div>
-                        <div class="aeo-feature-text">Surface missed queries, weak coverage, and the next best actions to improve visibility.</div>
+                        <div class="aeo-feature-title">Find clear priorities</div>
+                        <div class="aeo-feature-text">
+                            Identify missed queries, weak coverage, and the next actions that may improve AI visibility.
+                        </div>
                     </div>
+
                     <div class="aeo-feature-card">
-                        <div class="aeo-feature-title">Execute faster</div>
-                        <div class="aeo-feature-text">Turn opportunities into briefs, drafts, and a content queue that supports real production.</div>
+                        <div class="aeo-feature-title">Move into action</div>
+                        <div class="aeo-feature-text">
+                            Turn opportunities into briefs, drafts, and content queue items once the full workflow is ready.
+                        </div>
                     </div>
                 </div>
 
                 <div class="aeo-tag-row">
-                    <span>Start free</span>
-                    <span>Credits-based usage</span>
-                    <span>Agency-ready workflow</span>
+                    <span>Early access opening soon</span>
+                    <span>No payment required now</span>
+                    <span>Built for agencies and growing brands</span>
                 </div>
             </div>
 
@@ -86,7 +95,7 @@
                 <div class="aeo-scorecard">
                     <div class="aeo-scorecard-head">
                         <div>
-                            <div class="aeo-kicker">Live Snapshot</div>
+                            <div class="aeo-kicker">Preview Snapshot</div>
                             <div class="aeo-scorecard-title">AI Visibility Scorecard</div>
                         </div>
                         <div class="aeo-badge">Sample</div>
@@ -97,14 +106,17 @@
                             <div class="aeo-stat-label">Normalized Score</div>
                             <div class="aeo-stat-value">58 / 100</div>
                         </div>
+
                         <div class="aeo-stat-card">
                             <div class="aeo-stat-label">Visibility Score</div>
                             <div class="aeo-stat-value">9.4 / 20</div>
                         </div>
+
                         <div class="aeo-stat-card">
                             <div class="aeo-stat-label">Opportunity Level</div>
                             <div class="aeo-stat-value aeo-stat-small">Moderate Opportunity</div>
                         </div>
+
                         <div class="aeo-stat-card">
                             <div class="aeo-stat-label">Missed Brand Mentions</div>
                             <div class="aeo-stat-value">7</div>
@@ -112,26 +124,35 @@
                     </div>
 
                     <div class="aeo-highlight">
-                        Clear takeaway: this brand has room to grow through stronger service-page coverage,
+                        Example takeaway: this brand may have room to grow through stronger service-page coverage,
                         FAQ structure, comparison content, and better AI-readable authority signals.
                     </div>
 
                     <div class="aeo-insight-list">
                         <div class="aeo-insight-card">
                             <div class="aeo-insight-title">Missed query detected</div>
-                            <div class="aeo-insight-text">Brand not mentioned for “best live chat software for small business”.</div>
+                            <div class="aeo-insight-text">
+                                Brand not mentioned for “best live chat software for small business”.
+                            </div>
                         </div>
+
                         <div class="aeo-insight-card">
                             <div class="aeo-insight-title">Recommended next action</div>
-                            <div class="aeo-insight-text">Create a comparison page, FAQ cluster, and trust-supporting content.</div>
+                            <div class="aeo-insight-text">
+                                Create comparison content, FAQ clusters, and trust-supporting pages.
+                            </div>
                         </div>
+
                         <div class="aeo-insight-card">
-                            <div class="aeo-insight-title">Workflow output</div>
-                            <div class="aeo-insight-text">Generate brief → generate draft → save to content queue.</div>
+                            <div class="aeo-insight-title">Workflow preview</div>
+                            <div class="aeo-insight-text">
+                                Audit visibility → identify gaps → create content actions.
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </section>
 
@@ -141,17 +162,20 @@
                 <div class="aeo-strip-title">Audit</div>
                 <div class="aeo-strip-text">Measure how visible your brand is in AI-generated answers.</div>
             </div>
+
             <div class="aeo-strip-card">
                 <div class="aeo-strip-title">Prioritize</div>
                 <div class="aeo-strip-text">Turn weak queries and missing mentions into focused next steps.</div>
             </div>
+
             <div class="aeo-strip-card">
                 <div class="aeo-strip-title">Execute</div>
-                <div class="aeo-strip-text">Generate briefs and drafts, then manage output in one queue.</div>
+                <div class="aeo-strip-text">Move findings into briefs, drafts, and future content actions.</div>
             </div>
+
             <div class="aeo-strip-card">
-                <div class="aeo-strip-title">Scale</div>
-                <div class="aeo-strip-text">Use it for your own brand, multiple clients, or an agency workflow.</div>
+                <div class="aeo-strip-title">Prepare</div>
+                <div class="aeo-strip-text">Join the interest list while the full workflow is being completed.</div>
             </div>
         </div>
     </section>
@@ -162,7 +186,8 @@
                 <div class="aeo-section-kicker">How It Works</div>
                 <h2>A simpler workflow for AI visibility</h2>
                 <p>
-                    Run an audit, identify what is holding your brand back, and move directly into action.
+                    DarInsights is being designed to help you move from visibility audit to clear priorities,
+                    then from priorities into content actions.
                 </p>
             </div>
 
@@ -170,17 +195,19 @@
                 <div class="aeo-step-card">
                     <div class="aeo-step-number">1</div>
                     <h3>Audit</h3>
-                    <p>Check visibility, content coverage, and machine-readable signals.</p>
+                    <p>Check brand visibility, content coverage, competitor presence, and AI-readable signals.</p>
                 </div>
+
                 <div class="aeo-step-card">
                     <div class="aeo-step-number">2</div>
                     <h3>Prioritize</h3>
-                    <p>See the most important gaps, missed queries, and next best actions.</p>
+                    <p>See the most important gaps, missed queries, and next best actions to work on.</p>
                 </div>
+
                 <div class="aeo-step-card">
                     <div class="aeo-step-number">3</div>
                     <h3>Execute</h3>
-                    <p>Generate briefs and drafts, then move work through your content queue.</p>
+                    <p>Turn findings into briefs, drafts, reports, and content queue items once access opens.</p>
                 </div>
             </div>
         </div>
@@ -194,8 +221,8 @@
                         <div class="aeo-section-kicker">What You Get</div>
                         <h2>A clearer view of what to improve</h2>
                         <p>
-                            Instead of guessing, you get a clearer operating view of your AI visibility,
-                            what is missing, and what your team should work on next.
+                            Instead of guessing why your brand is not appearing in AI answers,
+                            DarInsights helps surface the gaps that may be holding your visibility back.
                         </p>
                     </div>
                 </div>
@@ -203,52 +230,232 @@
                 <div class="aeo-side-stack">
                     <div class="aeo-content-card">
                         <h3>Visibility snapshot</h3>
-                        <p>See whether your brand is present in the answer scenarios that matter.</p>
+                        <p>See whether your brand is present in answer scenarios that matter to your market.</p>
                     </div>
+
                     <div class="aeo-content-card">
                         <h3>Missed opportunities</h3>
-                        <p>Identify weak queries, missing coverage, and gaps your competitors may be winning.</p>
+                        <p>Identify weak queries, missing coverage, and competitor visibility gaps.</p>
                     </div>
+
                     <div class="aeo-content-card">
                         <h3>Actionable output</h3>
-                        <p>Move straight into briefs, drafts, and a queue your team can actually use.</p>
+                        <p>Move from insight into content actions once the full backend workflow is ready.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="aeo-section aeo-section-soft">
+    <section id="planned-pricing" class="aeo-section aeo-section-soft">
         <div class="aeo-container">
             <div class="aeo-section-intro center">
-                <div class="aeo-section-kicker">Pricing</div>
-                <h2>Start free, then scale when usage grows</h2>
+                <div class="aeo-section-kicker">Planned Pricing</div>
+                <h2>Simple plans for different stages of AI visibility work</h2>
                 <p>
-                    Use free credits to experience the workflow, then upgrade only when you need more recurring usage and production capacity.
+                    Pricing is not active yet. These planned packages show how DarInsights may be structured
+                    when self-serve access opens.
                 </p>
             </div>
 
-            <div class="aeo-card-grid three">
-                <div class="aeo-pricing-card">
-                    <div class="aeo-plan-name">Free</div>
-                    <div class="aeo-plan-price">US$0</div>
-                    <p>Explore the product and run the core workflow with starter credits.</p>
-                    <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+            <div class="aeo-pricing-note">
+                <strong>Early access note:</strong>
+                Payment is not required now. Join the interest list first and we will notify you when
+                signup, billing, and self-serve access are ready.
+            </div>
+
+            <div class="aeo-pricing-grid">
+                <article class="aeo-pricing-card">
+                    <div class="aeo-pricing-top">
+                        <span class="aeo-pricing-name">Free</span>
+                        <span class="aeo-pricing-badge">Starter</span>
+                    </div>
+
+                    <div class="aeo-pricing-price">
+                        <strong>US$0</strong>
+                        <small>to start</small>
+                    </div>
+
+                    <p>
+                        Best for trying DarInsights and running your first AI visibility checks.
+                    </p>
+
+                    <div class="aeo-pricing-features">
+                        <div>3 starter credits</div>
+                        <div>Basic audit reports</div>
+                        <div>Standard branding</div>
+                        <div>Limited history</div>
+                    </div>
+
+                    <a href="#early-access" class="aeo-btn aeo-btn-outline aeo-btn-block">
+                        Join Interest List
+                    </a>
+                </article>
+
+                <article class="aeo-pricing-card featured">
+                    <div class="aeo-pricing-top">
+                        <span class="aeo-pricing-name">Pro</span>
+                        <span class="aeo-pricing-badge featured">Most Popular</span>
+                    </div>
+
+                    <div class="aeo-pricing-price">
+                        <strong>US$29</strong>
+                        <small>per month</small>
+                    </div>
+
+                    <p>
+                        For businesses that want regular visibility checks, content briefs,
+                        and action planning.
+                    </p>
+
+                    <div class="aeo-pricing-features">
+                        <div>20 monthly credits</div>
+                        <div>Buy extra credits anytime</div>
+                        <div>Content brief and draft workflow</div>
+                        <div>Better history and workflow access</div>
+                    </div>
+
+                    <a href="#early-access" class="aeo-btn aeo-btn-light aeo-btn-block">
+                        Register Interest
+                    </a>
+                </article>
+
+                <article class="aeo-pricing-card">
+                    <div class="aeo-pricing-top">
+                        <span class="aeo-pricing-name">Growth</span>
+                        <span class="aeo-pricing-badge">Heavy Use</span>
+                    </div>
+
+                    <div class="aeo-pricing-price">
+                        <strong>US$79</strong>
+                        <small>per month</small>
+                    </div>
+
+                    <p>
+                        For teams, frequent audits, higher content output, and heavier visibility workflows.
+                    </p>
+
+                    <div class="aeo-pricing-features">
+                        <div>75 monthly credits</div>
+                        <div>Good for small teams</div>
+                        <div>Faster workflow throughput</div>
+                        <div>More operating flexibility</div>
+                    </div>
+
+                    <a href="#early-access" class="aeo-btn aeo-btn-outline aeo-btn-block">
+                        Join Interest List
+                    </a>
+                </article>
+            </div>
+
+            <div class="aeo-addon-panel">
+                <div>
+                    <div class="aeo-section-kicker">Optional Agency Layer</div>
+                    <h3>Agency Add-on</h3>
+                    <p>
+                        For consultants and agencies that need client-facing delivery, white-label reports,
+                        branded exports, and a more polished reporting workflow.
+                    </p>
                 </div>
 
-                <div class="aeo-pricing-card featured">
-                    <div class="aeo-plan-badge">Most Popular</div>
-                    <div class="aeo-plan-name">Pro</div>
-                    <div class="aeo-plan-price">US$29 <span>/month</span></div>
-                    <p>Best for recurring audits, content support, and solo operators who need regular usage.</p>
-                    <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-light">View Pricing</a>
+                <div class="aeo-addon-price">
+                    <strong>US$79</strong>
+                    <small>per month add-on</small>
+                    <a href="#early-access" class="aeo-btn aeo-btn-light aeo-btn-block">
+                        Request Agency Access
+                    </a>
+                </div>
+            </div>
+
+            <div class="aeo-credit-panel">
+                <div class="aeo-credit-card">
+                    <strong>Starter Pack</strong>
+                    <span>10 Credits</span>
+                    <div class="aeo-credit-price">US$9</div>
+                    <p>For occasional extra audits and content generation.</p>
                 </div>
 
-                <div class="aeo-pricing-card accent">
-                    <div class="aeo-plan-name">Agency</div>
-                    <div class="aeo-plan-price">Optional add-on</div>
-                    <p>For branded delivery, white-label reports, and client-facing workflows.</p>
-                    <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-outline">See Plans</a>
+                <div class="aeo-credit-card">
+                    <strong>Growth Pack</strong>
+                    <span>25 Credits</span>
+                    <div class="aeo-credit-price">US$19</div>
+                    <p>For regular extra usage beyond monthly included credits.</p>
+                </div>
+
+                <div class="aeo-credit-card">
+                    <strong>Agency Pack</strong>
+                    <span>75 Credits</span>
+                    <div class="aeo-credit-price">US$49</div>
+                    <p>For teams, client work, and higher output volume.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="early-access" class="aeo-section">
+        <div class="aeo-container">
+            <div class="aeo-cta-panel">
+                <div class="aeo-cta-left">
+                    <div class="aeo-section-kicker">Early Access</div>
+                    <h2>DarInsights is being prepared for early users.</h2>
+                    <p>
+                        We are refining the product before opening self-serve signup. Leave your email
+                        if you want to be notified when early access is available.
+                    </p>
+
+                    <div class="aeo-tag-row">
+                        <span>No payment needed now</span>
+                        <span>Get launch updates</span>
+                        <span>Early user access</span>
+                    </div>
+                </div>
+
+                <div class="aeo-cta-right">
+                    <div class="aeo-content-card">
+                        <h3>Join the interest list</h3>
+                        <p>Tell us where to send early access updates.</p>
+
+                        {% if request.args.get("interest") == "success" %}
+                            <div class="aeo-form-success">
+                                Thanks — you have been added to the interest list.
+                            </div>
+                        {% elif request.args.get("interest") == "missing" %}
+                            <div class="aeo-form-error">
+                                Please enter your email address.
+                            </div>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('collect_interest') }}" class="aeo-interest-form">
+                            <label>
+                                Email address
+                                <input type="email" name="email" placeholder="you@example.com" required>
+                            </label>
+
+                            <label>
+                                Company / website
+                                <input type="text" name="company" placeholder="Optional">
+                            </label>
+
+                            <label>
+                                What are you interested in?
+                                <select name="use_case">
+                                    <option value="">Select one</option>
+                                    <option value="Own business visibility">Own business visibility</option>
+                                    <option value="Agency client reporting">Agency client reporting</option>
+                                    <option value="SEO or content workflow">SEO or content workflow</option>
+                                    <option value="Partnership or reseller">Partnership or reseller</option>
+                                </select>
+                            </label>
+
+                            <button type="submit" class="aeo-btn aeo-btn-light aeo-btn-block">
+                                Join Interest List
+                            </button>
+                        </form>
+
+                        <p class="aeo-form-note">
+                            We will only use this to contact you about DarInsights updates and early access.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -264,17 +471,42 @@
             <div class="aeo-faq-list">
                 <div class="aeo-faq-card">
                     <h3>What does DarInsights do?</h3>
-                    <p>It helps you audit AI visibility, identify missed opportunities, and turn findings into content actions.</p>
+                    <p>
+                        DarInsights helps teams audit AI visibility, identify missed opportunities,
+                        and turn findings into practical content actions.
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>Can I sign up now?</h3>
+                    <p>
+                        Self-serve signup is not open yet. For now, you can join the interest list
+                        and we will notify you when early access is available.
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>Do I need to pay now?</h3>
+                    <p>
+                        No. The pricing shown is planned early access pricing. Payment is not active yet,
+                        so you can join the interest list first without subscribing.
+                    </p>
                 </div>
 
                 <div class="aeo-faq-card">
                     <h3>Who is it for?</h3>
-                    <p>It is built for agencies, consultants, in-house teams, and businesses that want a clearer AI visibility workflow.</p>
+                    <p>
+                        It is being built for agencies, consultants, in-house teams, local businesses,
+                        B2B brands, and service companies that want better visibility in AI answers.
+                    </p>
                 </div>
 
                 <div class="aeo-faq-card">
-                    <h3>Do I need to be technical?</h3>
-                    <p>No. The product is designed to surface what matters and guide you toward the next best action.</p>
+                    <h3>Can I request a walkthrough?</h3>
+                    <p>
+                        Yes. If you want to discuss agency use, client reporting, or an early pilot,
+                        you can book a strategy call.
+                    </p>
                 </div>
             </div>
         </div>
@@ -284,36 +516,38 @@
         <div class="aeo-container">
             <div class="aeo-cta-panel">
                 <div class="aeo-cta-left">
-                    <div class="aeo-section-kicker">Get Started</div>
-                    <h2>Want to improve your visibility in AI answers without guessing what to do next?</h2>
+                    <div class="aeo-section-kicker">Get Notified</div>
+                    <h2>Want early access to DarInsights?</h2>
                     <p>
-                        Start free if you want to explore the platform yourself.
-                        Book a strategy call if you want help deciding what to fix first.
+                        Join the interest list to receive updates when the audit workflow,
+                        reporting dashboard, and content action tools are ready for early users.
                     </p>
 
                     <div class="aeo-hero-actions">
-                        <a href="{{ url_for('signup') }}" class="aeo-btn aeo-btn-light">Start Free</a>
+                        <a href="#early-access" class="aeo-btn aeo-btn-light">Join Interest List</a>
                         <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-outline">Book Strategy Call</a>
                     </div>
                 </div>
 
                 <div class="aeo-cta-right">
                     <div class="aeo-content-card">
-                        <h3>Need a deeper walkthrough?</h3>
-                        <p>Use the pricing page for plan details, or book a call to discuss self-serve, agency, or hybrid use.</p>
+                        <h3>Built for practical AI visibility work</h3>
+                        <p>
+                            DarInsights is not just a one-time audit. The goal is to help teams understand
+                            what is missing, what to fix first, and how to move into execution.
+                        </p>
 
                         <div class="aeo-cta-points">
-                            <div class="aeo-cta-point">Start with free credits</div>
-                            <div class="aeo-cta-point">Upgrade only when usage grows</div>
-                            <div class="aeo-cta-point">Get help if you want a faster rollout</div>
+                            <div class="aeo-cta-point">Audit AI visibility</div>
+                            <div class="aeo-cta-point">Find missed opportunities</div>
+                            <div class="aeo-cta-point">Turn gaps into content actions</div>
                         </div>
-
-                        <a href="{{ url_for('pricing_page') }}" class="aeo-btn aeo-btn-primary aeo-btn-block">View Pricing</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
 </div>
 
 <style>
@@ -328,6 +562,7 @@
     --accent: #818cf8;
     --accent-strong: #6366f1;
     --success: #34d399;
+    --danger: #fb7185;
 }
 
 * {
@@ -426,12 +661,13 @@
     transition: 0.2s ease;
     border: 1px solid transparent;
     white-space: nowrap;
+    cursor: pointer;
 }
 
 .aeo-topbar-actions .aeo-btn {
     padding: 10px 16px;
     font-size: 14px;
-    min-width: 136px;
+    min-width: 160px;
 }
 
 .aeo-btn-light {
@@ -580,7 +816,6 @@
 .aeo-content-card,
 .aeo-step-card,
 .aeo-faq-card,
-.aeo-pricing-card,
 .aeo-scorecard {
     border: 1px solid var(--border);
     background: var(--panel);
@@ -591,8 +826,7 @@
 .aeo-strip-card,
 .aeo-content-card,
 .aeo-step-card,
-.aeo-faq-card,
-.aeo-pricing-card {
+.aeo-faq-card {
     padding: 22px;
 }
 
@@ -607,8 +841,7 @@
 .aeo-strip-text,
 .aeo-content-card p,
 .aeo-step-card p,
-.aeo-faq-card p,
-.aeo-pricing-card p {
+.aeo-faq-card p {
     margin-top: 10px;
     color: var(--text-soft);
     line-height: 1.7;
@@ -796,8 +1029,7 @@
 
 .aeo-step-card h3,
 .aeo-faq-card h3,
-.aeo-content-card h3,
-.aeo-pricing-card h3 {
+.aeo-content-card h3 {
     margin: 0;
     font-size: 22px;
     color: var(--text-main);
@@ -821,55 +1053,6 @@
     display: grid;
     grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
     gap: 20px;
-}
-
-.aeo-pricing-card {
-    position: relative;
-}
-
-.aeo-pricing-card.featured {
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-    border-color: rgba(255, 255, 255, 0.16);
-}
-
-.aeo-pricing-card.accent {
-    border-color: rgba(129, 140, 248, 0.24);
-    background: linear-gradient(180deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.10));
-}
-
-.aeo-plan-badge {
-    display: inline-block;
-    margin-bottom: 12px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(99, 102, 241, 0.20);
-    color: #c7d2fe;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-}
-
-.aeo-plan-name {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--text-muted);
-    font-weight: 700;
-}
-
-.aeo-plan-price {
-    margin-top: 14px;
-    font-size: 42px;
-    line-height: 1;
-    font-weight: 700;
-    color: var(--text-main);
-}
-
-.aeo-plan-price span {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-muted);
 }
 
 .aeo-faq-list {
@@ -900,6 +1083,271 @@
     font-size: 14px;
 }
 
+.aeo-interest-form {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.aeo-interest-form label {
+    display: grid;
+    gap: 8px;
+    color: var(--text-soft);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.aeo-interest-form input,
+.aeo-interest-form select {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(2, 6, 23, 0.58);
+    color: var(--text-main);
+    font-size: 15px;
+    outline: none;
+}
+
+.aeo-interest-form input::placeholder {
+    color: var(--text-muted);
+}
+
+.aeo-interest-form input:focus,
+.aeo-interest-form select:focus {
+    border-color: rgba(165, 180, 252, 0.7);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.16);
+}
+
+.aeo-form-note {
+    margin-top: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+.aeo-form-success {
+    margin-top: 16px;
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    background: rgba(52, 211, 153, 0.12);
+    color: #bbf7d0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.aeo-form-error {
+    margin-top: 16px;
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(251, 113, 133, 0.28);
+    background: rgba(251, 113, 133, 0.12);
+    color: #fecdd3;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Pricing */
+
+.aeo-pricing-note {
+    margin: 0 auto 22px;
+    max-width: 860px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(129, 140, 248, 0.22);
+    background: rgba(129, 140, 248, 0.10);
+    color: #e0e7ff;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+.aeo-pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    align-items: stretch;
+}
+
+.aeo-pricing-card {
+    display: grid;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+}
+
+.aeo-pricing-card.featured {
+    border-color: rgba(165, 180, 252, 0.55);
+    background:
+        linear-gradient(180deg, rgba(129, 140, 248, 0.16), rgba(255,255,255,0.05));
+    box-shadow: 0 24px 48px rgba(30, 27, 75, 0.28);
+}
+
+.aeo-pricing-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.aeo-pricing-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.aeo-pricing-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.aeo-pricing-badge.featured {
+    background: #ffffff;
+    color: #0f172a;
+    border-color: transparent;
+}
+
+.aeo-pricing-price strong {
+    display: block;
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.aeo-pricing-price small {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.aeo-pricing-card p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.aeo-pricing-features {
+    display: grid;
+    gap: 10px;
+}
+
+.aeo-pricing-features div {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(2, 6, 23, 0.42);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text-soft);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.aeo-addon-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+    gap: 20px;
+    margin-top: 20px;
+    padding: 26px;
+    border-radius: 28px;
+    border: 1px solid rgba(165, 180, 252, 0.24);
+    background:
+        linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.12));
+}
+
+.aeo-addon-panel h3 {
+    margin: 12px 0 0;
+    font-size: 26px;
+    color: var(--text-main);
+}
+
+.aeo-addon-panel p {
+    margin: 12px 0 0;
+    color: var(--text-soft);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.aeo-addon-price {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    padding: 20px;
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    background: rgba(2, 6, 23, 0.42);
+}
+
+.aeo-addon-price strong {
+    font-size: 36px;
+    line-height: 1;
+    color: var(--text-main);
+}
+
+.aeo-addon-price small {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.aeo-credit-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.aeo-credit-card {
+    padding: 20px;
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+}
+
+.aeo-credit-card strong {
+    display: block;
+    color: var(--text-main);
+    font-size: 18px;
+}
+
+.aeo-credit-card span {
+    display: block;
+    margin-top: 10px;
+    color: #a5b4fc;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.aeo-credit-card p {
+    margin: 10px 0 0;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.aeo-credit-price {
+    margin-top: 8px;
+    color: var(--text-main);
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 800;
+}
+
+/* Responsive */
+
 @media (max-width: 1100px) {
     .aeo-nav {
         display: none;
@@ -915,7 +1363,8 @@
 @media (max-width: 980px) {
     .aeo-hero-grid,
     .aeo-split-grid,
-    .aeo-cta-panel {
+    .aeo-cta-panel,
+    .aeo-addon-panel {
         grid-template-columns: 1fr;
     }
 
@@ -925,6 +1374,11 @@
 
     .aeo-scorecard {
         margin-top: 6px;
+    }
+
+    .aeo-pricing-grid,
+    .aeo-credit-panel {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -969,7 +1423,10 @@
     .aeo-feature-grid,
     .aeo-card-grid.three,
     .aeo-strip-grid,
-    .aeo-score-grid {
+    .aeo-score-grid,
+    .aeo-pricing-grid,
+    .aeo-credit-panel,
+    .aeo-addon-panel {
         grid-template-columns: 1fr;
     }
 
@@ -978,13 +1435,28 @@
     .aeo-content-card,
     .aeo-step-card,
     .aeo-faq-card,
+    .aeo-scorecard,
     .aeo-pricing-card,
-    .aeo-scorecard {
+    .aeo-addon-panel,
+    .aeo-credit-card {
         border-radius: 20px;
     }
 
     .aeo-hero-actions .aeo-btn {
         width: 100%;
+    }
+
+    .aeo-pricing-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .aeo-pricing-price strong {
+        font-size: 36px;
+    }
+
+    .aeo-addon-price strong {
+        font-size: 32px;
     }
 }
 </style>
@@ -1033,12 +1505,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    setTimeout(() => {
+    setTimeout(function () {
         isDeleting = true;
         typeHeroWord();
     }, 2200);
 
-    setInterval(() => {
+    setInterval(function () {
         heroCursorEl.style.opacity = heroCursorEl.style.opacity === "0" ? "1" : "0";
     }, 530);
 });

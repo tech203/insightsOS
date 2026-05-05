@@ -33,6 +33,8 @@
 "Some of the best messaging platforms for customer support include tawk.to, Wati, Intercom, and other live chat or messaging solutions depending on business size, WhatsApp integration needs, and automation features. Companies often choose based on pricing, chatbot capability, CRM integration, and multichannel support."
 %}
 
+{% set active_client_id = client_id if client_id is defined and client_id else focused_client['id'] if focused_client is defined and focused_client else None %}
+
 <div class="prompt-detail-shell">
 
     <section class="prompt-detail-hero-card">
@@ -100,8 +102,19 @@
         </div>
 
         <div class="action-band-actions">
-            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Send to Content Queue</a>
-            <a href="{{ url_for('position_tracking_page') }}" class="btn btn-secondary">Back to Tracking</a>
+            {% if active_client_id %}
+            <a href="{{ url_for('content_queue_page', client_id=active_client_id, query=prompt_text, topic=tracked_topic, source='prompt_detail') }}" class="btn btn-primary">
+                Send to Content Queue
+            </a>
+            {% else %}
+            <a href="{{ url_for('content_queue_page', query=prompt_text, topic=tracked_topic, source='prompt_detail') }}" class="btn btn-primary">
+                Send to Content Queue
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('position_tracking_page') }}" class="btn btn-secondary">
+                Back to Tracking
+            </a>
         </div>
     </section>
 
@@ -207,30 +220,44 @@
                 <span class="section-kicker">Workflow</span>
                 <h2 class="section-title">Continue the loop</h2>
                 <p class="section-copy">
-                    Use this prompt as part of your broader visibility workflow across research, tracking, and execution.
+                    Use this prompt as part of your broader visibility workflow across tracking, competitor gaps, and content execution.
                 </p>
             </div>
         </div>
 
         <div class="workflow-grid">
-            <a href="{{ url_for('prompt_research_page') }}" class="workflow-card">
-                <h3>Prompt Research</h3>
-                <p>Find adjacent prompts and related intent clusters.</p>
-            </a>
-
-            <a href="{{ url_for('competitor_page') }}" class="workflow-card">
-                <h3>Competitor Research</h3>
-                <p>Compare which brands are showing up instead of you.</p>
-            </a>
-
             <a href="{{ url_for('position_tracking_page') }}" class="workflow-card">
-                <h3>Position Tracking</h3>
-                <p>Monitor whether visibility changes over time.</p>
+                <h3>Prompt Tracking</h3>
+                <p>Return to the prompt tracking overview and continue monitoring visibility.</p>
             </a>
 
-            <a href="{{ url_for('content_queue_page') }}" class="workflow-card">
+            {% if active_client_id %}
+            <a href="{{ url_for('client_competitors_page', client_id=active_client_id) }}" class="workflow-card">
+                <h3>Competitor Gaps</h3>
+                <p>Compare competitor visibility and find more missing prompt opportunities.</p>
+            </a>
+            {% else %}
+            <a href="{{ url_for('clients_page') }}" class="workflow-card">
+                <h3>Choose Workspace</h3>
+                <p>Select a workspace before opening competitor gap research.</p>
+            </a>
+            {% endif %}
+
+            {% if active_client_id %}
+            <a href="{{ url_for('content_queue_page', client_id=active_client_id, query=prompt_text, topic=tracked_topic, source='prompt_detail') }}" class="workflow-card">
                 <h3>Content Queue</h3>
                 <p>Turn this prompt into a clear content action.</p>
+            </a>
+            {% else %}
+            <a href="{{ url_for('content_queue_page', query=prompt_text, topic=tracked_topic, source='prompt_detail') }}" class="workflow-card">
+                <h3>Content Queue</h3>
+                <p>Turn this prompt into a clear content action.</p>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('clients_page') }}" class="workflow-card">
+                <h3>Workspaces</h3>
+                <p>Open your workspace list and continue from the selected client.</p>
             </a>
         </div>
     </section>

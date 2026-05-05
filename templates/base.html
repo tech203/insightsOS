@@ -8,12 +8,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
     {% block head %}{% endblock %}
 </head>
+
 <body class="{% block body_class %}{% endblock %}">
     {% set current_endpoint = request.endpoint or '' %}
     {% set sidebar_client = focused_client if focused_client is defined and focused_client else none %}
 
     <div class="mobile-topbar">
-        <button class="mobile-menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
+        <button
+            class="mobile-menu-btn"
+            type="button"
+            aria-label="Open navigation"
+            aria-expanded="false"
+            aria-controls="appSidebar"
+        >
             <span></span>
             <span></span>
             <span></span>
@@ -27,6 +34,7 @@
                     D
                 {% endif %}
             </div>
+
             <div class="mobile-brand-text">
                 {% if sidebar_client %}
                     {{ sidebar_client.name or "Workspace" }}
@@ -44,7 +52,7 @@
             <div class="sidebar-inner">
 
                 <div class="sidebar-brand">
-                    <a href="{{ url_for('index') }}" class="brand-link">
+                    <a href="{{ url_for('index') }}" class="brand-link" aria-label="DarInsights dashboard">
                         <div class="brand-mark">
                             {% if current_user.is_authenticated %}
                                 {{ (current_user.name or current_user.email or "D")[0]|upper }}
@@ -52,6 +60,7 @@
                                 D
                             {% endif %}
                         </div>
+
                         <div class="brand-copy">
                             <strong>DarInsights</strong>
                             <span>AI Visibility Workspace</span>
@@ -59,32 +68,45 @@
                     </a>
                 </div>
 
-                <nav class="sidebar-nav">
+                <nav class="sidebar-nav" aria-label="Main navigation">
+
                     <div class="nav-group">
                         <div class="nav-label">Workspace</div>
 
                         <a href="{{ url_for('index') }}"
-                           class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}">
+                           class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
+                           aria-label="Dashboard"
+                           data-label="Dashboard">
                             <span class="nav-icon">⌂</span>
                             <span class="nav-text">Dashboard</span>
+                            <span class="nav-tooltip">Dashboard</span>
                         </a>
 
                         <a href="{{ url_for('clients_page') }}"
-                           class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'create_client'] %}active{% endif %}">
-                            <span class="nav-icon">◫</span>
+                           class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'create_client'] %}active{% endif %}"
+                           aria-label="All Workspaces"
+                           data-label="All Workspaces">
+                            <span class="nav-icon">▣</span>
                             <span class="nav-text">All Workspaces</span>
+                            <span class="nav-tooltip">All Workspaces</span>
                         </a>
 
                         <a href="{{ url_for('content_queue_page') }}"
-                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue'] %}active{% endif %}">
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] %}active{% endif %}"
+                           aria-label="Content Queue"
+                           data-label="Content Queue">
                             <span class="nav-icon">☰</span>
                             <span class="nav-text">Content Queue</span>
+                            <span class="nav-tooltip">Content Queue</span>
                         </a>
 
                         <a href="{{ url_for('position_tracking_page') }}"
-                           class="nav-item {% if current_endpoint == 'position_tracking_page' %}active{% endif %}">
+                           class="nav-item {% if current_endpoint == 'position_tracking_page' %}active{% endif %}"
+                           aria-label="Tracked Prompts"
+                           data-label="Tracked Prompts">
                             <span class="nav-icon">◎</span>
                             <span class="nav-text">Tracked Prompts</span>
+                            <span class="nav-tooltip">Tracked Prompts</span>
                         </a>
                     </div>
 
@@ -93,48 +115,109 @@
                         <div class="nav-label">Current Workspace</div>
 
                         <a href="{{ url_for('client_detail', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}">
-                            <span class="nav-icon">◌</span>
+                           class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}"
+                           aria-label="Workspace Overview"
+                           data-label="Overview">
+                            <span class="nav-icon">◉</span>
                             <span class="nav-text">Overview</span>
+                            <span class="nav-tooltip">Overview</span>
                         </a>
 
                         <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}">
-                            <span class="nav-icon">⌕</span>
+                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
+                           aria-label="Run Audit"
+                           data-label="Run Audit">
+                            <span class="nav-icon">◈</span>
                             <span class="nav-text">Run Audit</span>
+                            <span class="nav-tooltip">Run Audit</span>
                         </a>
 
                         <a href="{{ url_for('client_visibility_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint == 'client_visibility_page' %}active{% endif %}">
+                           class="nav-item {% if current_endpoint == 'client_visibility_page' %}active{% endif %}"
+                           aria-label="Visibility"
+                           data-label="Visibility">
                             <span class="nav-icon">◔</span>
                             <span class="nav-text">Visibility</span>
+                            <span class="nav-tooltip">Visibility</span>
                         </a>
 
                         <a href="{{ url_for('client_competitors_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['client_competitors_page', 'competitor_page'] %}active{% endif %}">
+                           class="nav-item {% if current_endpoint in ['client_competitors_page', 'competitor_page'] %}active{% endif %}"
+                           aria-label="Competitors"
+                           data-label="Competitors">
                             <span class="nav-icon">△</span>
                             <span class="nav-text">Competitors</span>
+                            <span class="nav-tooltip">Competitors</span>
+                        </a>
+
+                        <a href="{{ url_for('client_brand_context', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_brand_context' %}active{% endif %}"
+                           aria-label="Brand Context"
+                           data-label="Brand Context">
+                            <span class="nav-icon">✦</span>
+                            <span class="nav-text">Brand Context</span>
+                            <span class="nav-tooltip">Brand Context</span>
+                        </a>
+
+                        <a href="{{ url_for('client_query_ideas', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_query_ideas' %}active{% endif %}"
+                           aria-label="Query Ideas"
+                           data-label="Query Ideas">
+                            <span class="nav-icon">?</span>
+                            <span class="nav-text">Query Ideas</span>
+                            <span class="nav-tooltip">Query Ideas</span>
                         </a>
 
                         <a href="{{ url_for('generate_client_content_brief', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['generate_client_content_brief', 'content_brief_form'] %}active{% endif %}">
+                           class="nav-item {% if current_endpoint in ['generate_client_content_brief', 'content_brief_form'] %}active{% endif %}"
+                           aria-label="Content Brief"
+                           data-label="Content Brief">
                             <span class="nav-icon">✎</span>
                             <span class="nav-text">Content Brief</span>
+                            <span class="nav-tooltip">Content Brief</span>
                         </a>
 
                         <a href="{{ url_for('generate_client_content_draft', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['generate_client_content_draft', 'content_draft_form'] %}active{% endif %}">
+                           class="nav-item {% if current_endpoint in ['generate_client_content_draft', 'content_draft_form'] %}active{% endif %}"
+                           aria-label="Content Draft"
+                           data-label="Content Draft">
                             <span class="nav-icon">▤</span>
                             <span class="nav-text">Content Draft</span>
+                            <span class="nav-tooltip">Content Draft</span>
                         </a>
 
                         <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}">
+                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
+                           aria-label="History"
+                           data-label="History">
                             <span class="nav-icon">◷</span>
                             <span class="nav-text">History</span>
+                            <span class="nav-tooltip">History</span>
                         </a>
                     </div>
                     {% endif %}
+
+                    <div class="nav-group">
+                        <div class="nav-label">Account</div>
+
+                        <a href="{{ url_for('settings_page') }}"
+                           class="nav-item {% if current_endpoint.startswith('settings') %}active{% endif %}"
+                           aria-label="Settings"
+                           data-label="Settings">
+                            <span class="nav-icon">⚙</span>
+                            <span class="nav-text">Settings</span>
+                            <span class="nav-tooltip">Settings</span>
+                        </a>
+
+                        <a href="{{ url_for('help_page') }}"
+                           class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
+                           aria-label="Help"
+                           data-label="Help">
+                            <span class="nav-icon">?</span>
+                            <span class="nav-text">Help</span>
+                            <span class="nav-tooltip">Help</span>
+                        </a>
+                    </div>
                 </nav>
 
                 <div class="sidebar-footer">
@@ -174,16 +257,13 @@
                         {% endif %}
                     </div>
                 </div>
+
             </div>
         </aside>
 
         <div class="app-main">
             <header class="app-topbar">
                 <div class="topbar-left">
-                    <button class="sidebar-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
-                        ☰
-                    </button>
-
                     <div class="topbar-heading">
                         {% block page_header %}
                             <h1>{% block page_title %}Dashboard{% endblock %}</h1>
@@ -212,7 +292,7 @@
             const body = document.body;
             const sidebar = document.getElementById("appSidebar");
             const overlay = document.getElementById("sidebarOverlay");
-            const toggleButtons = document.querySelectorAll(".sidebar-toggle, .mobile-menu-btn");
+            const toggleButtons = document.querySelectorAll(".mobile-menu-btn");
             const desktopBreakpoint = 1200;
 
             function setExpanded(expanded) {
@@ -223,18 +303,27 @@
 
             function openSidebar() {
                 if (!sidebar || window.innerWidth >= desktopBreakpoint) return;
+
                 sidebar.classList.add("open");
                 sidebar.setAttribute("aria-hidden", "false");
+
                 if (overlay) overlay.classList.add("show");
+
                 body.classList.add("sidebar-open");
                 setExpanded(true);
             }
 
             function closeSidebar() {
                 if (!sidebar) return;
+
                 sidebar.classList.remove("open");
-                sidebar.setAttribute("aria-hidden", window.innerWidth >= desktopBreakpoint ? "false" : "true");
+                sidebar.setAttribute(
+                    "aria-hidden",
+                    window.innerWidth >= desktopBreakpoint ? "false" : "true"
+                );
+
                 if (overlay) overlay.classList.remove("show");
+
                 body.classList.remove("sidebar-open");
                 setExpanded(false);
             }
@@ -282,18 +371,32 @@
                 if (window.innerWidth >= desktopBreakpoint) {
                     sidebar.classList.remove("open");
                     sidebar.setAttribute("aria-hidden", "false");
+
                     if (overlay) overlay.classList.remove("show");
+
                     body.classList.remove("sidebar-open");
                     setExpanded(false);
                 } else {
-                    sidebar.setAttribute("aria-hidden", sidebar.classList.contains("open") ? "false" : "true");
+                    sidebar.setAttribute(
+                        "aria-hidden",
+                        sidebar.classList.contains("open") ? "false" : "true"
+                    );
                 }
             });
 
-            if (window.innerWidth >= desktopBreakpoint) {
-                if (sidebar) sidebar.setAttribute("aria-hidden", "false");
-            } else {
-                if (sidebar) sidebar.setAttribute("aria-hidden", "true");
+            document.querySelectorAll(".nav-item").forEach((item) => {
+                item.addEventListener("mouseenter", function () {
+                    const rect = item.getBoundingClientRect();
+                    item.style.setProperty("--tooltip-top", `${rect.top + rect.height / 2}px`);
+                });
+            });
+
+            if (sidebar) {
+                if (window.innerWidth >= desktopBreakpoint) {
+                    sidebar.setAttribute("aria-hidden", "false");
+                } else {
+                    sidebar.setAttribute("aria-hidden", "true");
+                }
             }
         });
     </script>

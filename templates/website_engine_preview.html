@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="workspace-page-shell">
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <p class="section-kicker">Website Engine</p>
+                <h1>{{ page.title }}</h1>
+                <p class="muted">Draft preview generated from structured page JSON.</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('publish_generated_page', page_id=page.id) }}">
+                <button class="btn btn-primary" type="submit">Publish Page</button>
+            </form>
+        </div>
+    </section>
+
+    {% include "website_engine_render.html" %}
+
+</div>
+{% endblock %}

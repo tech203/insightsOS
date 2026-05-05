@@ -17,7 +17,7 @@ VALID_ITEM_TYPES = {"brief", "draft"}
 
 VALID_PRIORITIES = {"low", "medium", "high"}
 
-VALID_SOURCES = {"manual", "audit"}
+VALID_SOURCES = {"manual", "audit", "query_ideas", "competitor_research"}
 
 
 def _ensure_data_dir():
@@ -376,3 +376,51 @@ def create_queue_item_from_audit_opportunity(client_id, client_name, opportunity
         source="audit",
         user_id=user_id,
     )
+
+def update_queue_item_details(
+    item_id,
+    title=None,
+    target_query=None,
+    content_type=None,
+    item_type=None,
+    priority=None,
+    source=None,
+    user_id=None,
+):
+    items = load_queue_items()
+    updated_item = None
+
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+
+        if title is not None:
+            item["title"] = _normalize_text(title, item.get("title", "Untitled Item"))
+
+        if target_query is not None:
+            item["target_query"] = _normalize_text(target_query)
+
+        if content_type is not None:
+            item["content_type"] = _normalize_text(content_type, item.get("content_type", "service_page"))
+
+        if item_type is not None:
+            item["item_type"] = _normalize_item_type(item_type)
+
+        if priority is not None:
+            item["priority"] = _normalize_priority(priority)
+
+        if source is not None:
+            item["source"] = _normalize_source(source)
+
+        item["updated_at"] = _now_iso()
+        updated_item = item
+        break
+
+    if not updated_item:
+        return None
+
+    save_queue_items(items)
+    return updated_item

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Website Preview | DarInsights{% endblock %}
+
+{% block content %}
+<div class="workspace-page-shell">
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <p class="section-kicker">Website Blueprint</p>
+                <h1>{{ project.title }}</h1>
+                <p class="muted">
+                    Theme: {{ project.theme|replace("_", " ")|title }}
+                </p>
+            </div>
+
+            <form method="POST" action="{{ url_for('publish_website_project', project_id=project.id) }}">
+                <button type="submit" class="btn btn-primary">
+                    Publish Website
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Blueprint</h2>
+
+        <div class="website-card-grid">
+            <div class="website-mini-card">
+                <h3>Style</h3>
+                <p>{{ blueprint.style_direction }}</p>
+            </div>
+
+            <div class="website-mini-card">
+                <h3>Functions</h3>
+                <p>{{ blueprint.functions|join(", ") }}</p>
+            </div>
+
+            <div class="website-mini-card">
+                <h3>AEO Focus</h3>
+                <p>{{ blueprint.aeo_focus|join(", ") }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Generated Pages</h2>
+
+        <div class="premium-queue-list">
+            {% for site_page in pages %}
+            <article class="premium-queue-item-card">
+                <div class="queue-item-main">
+                    <h3>{{ site_page.title }}</h3>
+                    <p>/{{ site_page.slug }} · {{ site_page.page_type|title }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+</div>
+{% endblock %}

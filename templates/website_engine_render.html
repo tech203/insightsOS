@@ -1,0 +1,82 @@
+{% for section in page_json.sections %}
+
+    {% if section.type == "hero" %}
+    <section class="panel website-hero">
+        <p class="section-kicker">{{ section.eyebrow }}</p>
+        <h1>{{ section.headline }}</h1>
+        <p class="hero-subtext">{{ section.subtext }}</p>
+
+        <div class="form-actions">
+            <a href="#" class="btn btn-primary">{{ section.primary_cta }}</a>
+            <a href="#" class="btn btn-secondary">{{ section.secondary_cta }}</a>
+        </div>
+    </section>
+    {% endif %}
+
+
+    {% if section.type == "problem" %}
+    <section class="panel">
+        <p class="section-kicker">Problem</p>
+        <h2>{{ section.headline }}</h2>
+        <p>{{ section.body }}</p>
+    </section>
+    {% endif %}
+
+
+    {% if section.type == "services" %}
+    <section class="panel">
+        <p class="section-kicker">Services</p>
+        <h2>{{ section.headline }}</h2>
+
+        <div class="website-card-grid">
+            {% for item in section["items"] %}
+            <div class="website-mini-card">
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+
+    {% if section.type == "proof" %}
+    <section class="panel">
+        <p class="section-kicker">Proof</p>
+        <h2>{{ section.headline }}</h2>
+
+        <ul class="website-check-list">
+            {% for item in section["items"] %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+
+    {% if section.type == "faq" %}
+    <section class="panel">
+        <p class="section-kicker">FAQ</p>
+        <h2>{{ section.headline }}</h2>
+
+        <div class="website-faq-list">
+            {% for item in section["items"] %}
+            <div class="website-faq-item">
+                <h3>{{ item.question }}</h3>
+                <p>{{ item.answer }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+
+    {% if section.type == "cta" %}
+    <section class="panel website-cta">
+        <h2>{{ section.headline }}</h2>
+        <p>{{ section.body }}</p>
+        <a href="#" class="btn btn-primary">{{ section.button }}</a>
+    </section>
+    {% endif %}
+
+{% endfor %}

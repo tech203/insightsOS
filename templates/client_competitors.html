@@ -1,30 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Competitor Research | DarInsights{% endblock %}
+{% block title %}Competitor Gaps | DarInsights{% endblock %}
 
 {% block page_header %}
 <div class="page-header-standard competitor-page-header-clean">
     <div class="page-header-copy">
-        <h1>Competitor Research</h1>
-        <p>See where competitors appear in AI answers, uncover the topics you are missing, and move the best prompts into tracking.</p>
-    </div>
-
-    <div class="page-header-actions">
-        <button type="submit" form="competitorAnalysisForm" class="btn btn-primary">Run Competitor Analysis</button>
+        <h1>Competitor Gaps</h1>
+        <p>Find the AI prompts your competitors are winning, then track them or turn them into content opportunities.</p>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
+
+{% set client_route_id = client.id if client.id is defined else client.get('id') %}
 {% set project_domain = project_domain if project_domain is defined else "supportfast.ai" %}
 {% set selected_platform = selected_platform if selected_platform is defined else "ChatGPT" %}
 {% set selected_market = selected_market if selected_market is defined else "United States (English)" %}
-{% set competitor_list = competitors if competitors is defined else ["tawk.to", "wati.io", "botpenguin.com", "chatmaxima.com"] %}
+{% set competitor_list = competitors if competitors is defined else [] %}
 
 {% set summary_cards = summary_cards if summary_cards is defined else [
-    {"label": "Missing Topics", "value": 638, "desc": "Competitors appear but you do not"},
-    {"label": "Shared Topics", "value": 11, "desc": "You and competitors both appear"},
-    {"label": "Unique Opportunities", "value": 1, "desc": "Topics where you can differentiate"},
-    {"label": "Source Domains", "value": "4.8K", "desc": "Domains influencing AI answers"}
+    {"label": "Missing Topics", "value": 638, "desc": "Suggested topics where competitors appear but you do not"},
+    {"label": "Shared Topics", "value": 11, "desc": "Topics where you and competitors both appear"},
+    {"label": "Content Opportunities", "value": 5, "desc": "High-priority ideas that can be moved into your queue"},
+    {"label": "Source Domains", "value": "4.8K", "desc": "Domains that may influence AI answers"}
 ] %}
 
 {% set gap_topics = gap_topics if gap_topics is defined else [
@@ -91,17 +89,42 @@
 
     <section class="competitor-setup-card">
         <div class="competitor-setup-copy">
-            <span class="section-kicker">Competitor Gap Analysis</span>
-            <h2>Compare your visibility against competitors</h2>
-            <p>Start with your domain and a few competitors, then review the missing topics and move the best prompts into tracking.</p>
+            <span class="section-kicker">Competitor Gap Finder</span>
+            <h2>Find what competitors are visible for</h2>
+            <p>
+                Compare your domain against competitors, identify suggested missing prompt topics,
+                then either track the prompts or add them to the Content Queue for briefing and drafting.
+            </p>
 
             <div class="competitor-meta-row">
                 <span class="meta-pill">{{ selected_platform }}</span>
                 <span class="meta-pill meta-pill-soft">{{ selected_market }}</span>
             </div>
+
+            {% if analysis_has_run is defined and analysis_has_run %}
+            <div class="competitor-run-status">
+                <strong>Analysis updated</strong>
+                <p>
+                    Showing competitor gap results for <b>{{ project_domain }}</b>
+                    against <b>{{ competitor_list|join(", ") }}</b>.
+                </p>
+            </div>
+            {% else %}
+            <div class="competitor-run-note">
+                <strong>MVP sample insight mode</strong>
+                <p>
+                    Adjust the domains, then click Run Competitor Analysis. Current results are suggested sample insights until the live analysis engine is connected.
+                </p>
+            </div>
+            {% endif %}
         </div>
 
-        <form class="competitor-search-form" id="competitorAnalysisForm" method="get" action="">
+        <form
+            class="competitor-search-form"
+            id="competitorAnalysisForm"
+            method="GET"
+            action="{{ url_for('client_competitors_page', client_id=client_route_id) }}"
+        >
             <div class="competitor-form-grid">
                 <div class="form-field form-field-full">
                     <label for="domain">Your domain</label>
@@ -128,6 +151,21 @@
                     <input id="competitor_4" name="competitor_4" type="text" value="{{ competitor_list[3] if competitor_list|length > 3 else '' }}" placeholder="competitor.com">
                 </div>
             </div>
+
+            <div class="competitor-form-actions">
+                <button type="submit" class="btn btn-primary">
+                    Run Competitor Analysis
+                </button>
+
+                <a href="{{ url_for('auto_detect_competitors_page', client_id=client.id) }}" class="btn btn-secondary">
+                    Find Competitors Automatically
+                </a>
+
+
+                <a href="{{ url_for('client_competitors_page', client_id=client_route_id) }}" class="btn btn-secondary">
+                    Reset
+                </a>
+            </div>
         </form>
     </section>
 
@@ -144,18 +182,22 @@
     <section class="competitor-insight-strip">
         <div class="insight-strip-copy">
             <span class="section-kicker">Main Insight</span>
-            <h3>Competitors are winning visibility in prompts your audience is likely asking</h3>
-            <p>Start with missing commercial and transactional topics first. These usually create the fastest path to stronger AI discoverability.</p>
+            <h3>Competitor gaps should become tracked prompts or content tasks</h3>
+            <p>
+                Use this page to decide what to monitor and what to create next. Tracking helps you watch visibility.
+                Adding to the queue helps you generate briefs and drafts.
+            </p>
         </div>
 
         <div class="insight-strip-side">
             <div class="insight-mini-card">
-                <span>Highest priority cluster</span>
-                <strong>Messaging, chatbot, and scheduling prompts</strong>
-            </div>
-            <div class="insight-mini-card">
                 <span>Best next move</span>
-                <strong>Track the prompts, then build content for the missing intent</strong>
+                <strong>Start with High priority commercial topics</strong>
+            </div>
+
+            <div class="insight-mini-card">
+                <span>Execution flow</span>
+                <strong>Track prompt → Add to Queue → Generate Brief</strong>
             </div>
         </div>
     </section>
@@ -164,14 +206,17 @@
         <div class="results-section-header">
             <div>
                 <span class="section-kicker">Opportunity Engine</span>
-                <h2 class="section-title">Missed topic opportunities</h2>
+                <h2 class="section-title">Suggested competitor gap opportunities</h2>
                 <p class="section-copy">
-                    These are the topics where competitors are being mentioned and your brand is currently absent from AI answers.
+                    These are suggested topics where competitors may be visible and your brand may be missing.
+                    Track the prompt, or add it to the Content Queue to create content around it.
                 </p>
             </div>
 
             <div class="results-header-actions">
-                <button type="button" class="btn btn-secondary" id="open-track-all">Track All Priority Prompts</button>
+                <button type="button" class="btn btn-secondary" id="open-track-all">
+                    Track All Priority Prompts
+                </button>
             </div>
         </div>
 
@@ -207,8 +252,10 @@
                         <th class="table-action-col">Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {% for row in gap_topics %}
+                    {% set primary_prompt = row.sample_prompts[0] if row.sample_prompts|length > 0 else row.topic %}
                     <tr>
                         <td>
                             <div class="topic-cell">
@@ -216,16 +263,28 @@
                                 <small>{{ row.sample_prompts|length }} example prompts available</small>
                             </div>
                         </td>
-                        <td><span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span></td>
+
+                        <td>
+                            <span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span>
+                        </td>
+
                         <td>
                             <div class="competitor-cell">
                                 <strong>{{ row.best_competitor }}</strong>
                                 <small>{{ row.best_mentions }} mentions</small>
                             </div>
                         </td>
+
                         <td>{{ row.ai_volume }}</td>
-                        <td><span class="intent-badge">{{ row.intent }}</span></td>
-                        <td><span class="priority-pill priority-{{ row.priority|lower }}">{{ row.priority }}</span></td>
+
+                        <td>
+                            <span class="intent-badge">{{ row.intent }}</span>
+                        </td>
+
+                        <td>
+                            <span class="priority-pill priority-{{ row.priority|lower }}">{{ row.priority }}</span>
+                        </td>
+
                         <td class="table-action-col action-stack-cell">
                             <button
                                 type="button"
@@ -237,14 +296,29 @@
                             </button>
 
                             <form method="POST" action="{{ url_for('save_prompts') }}" class="inline-track-form">
+                                <input type="hidden" name="client_id" value="{{ client_route_id }}">
                                 <input type="hidden" name="domain" value="{{ project_domain }}">
                                 <input type="hidden" name="platform" value="{{ selected_platform }}">
                                 <input type="hidden" name="market" value="{{ selected_market }}">
                                 <input type="hidden" name="topic" value="{{ row.topic }}">
                                 <textarea name="prompts" class="hidden-prompt-field">{{- row.sample_prompts|join('\n') -}}</textarea>
 
-                                <button type="submit" class="btn btn-primary btn-sm">
+                                <button type="submit" class="btn btn-secondary btn-sm">
                                     Track
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{{ url_for('add_competitor_topic_to_queue', client_id=client_route_id) }}" class="inline-track-form">
+                                <input type="hidden" name="topic" value="{{ row.topic }}">
+                                <input type="hidden" name="target_query" value="{{ primary_prompt }}">
+                                <input type="hidden" name="content_type" value="service_page">
+                                <input type="hidden" name="best_competitor" value="{{ row.best_competitor }}">
+                                <input type="hidden" name="intent" value="{{ row.intent }}">
+                                <input type="hidden" name="priority" value="{{ row.priority|lower }}">
+                                <input type="hidden" name="sample_prompts" value="{{ row.sample_prompts|join('\n') }}">
+
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    Add to Queue
                                 </button>
                             </form>
                         </td>
@@ -261,7 +335,7 @@
                 <span class="section-kicker">Sources</span>
                 <h2 class="section-title">Domains influencing competitor visibility</h2>
                 <p class="section-copy">
-                    These are the source domains that appear to support competitor mentions more often than yours.
+                    These are suggested source domains that may support competitor visibility more than yours.
                 </p>
             </div>
         </div>
@@ -278,17 +352,23 @@
                         <th>Organic Traffic</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {% for row in source_gaps %}
                     <tr>
                         <td><strong>{{ row.domain }}</strong></td>
-                        <td><span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span></td>
+
+                        <td>
+                            <span class="presence-pill presence-pill-empty">{{ row.your_mentions }}</span>
+                        </td>
+
                         <td>
                             <div class="competitor-cell">
                                 <strong>{{ row.top_competitor }}</strong>
                                 <small>{{ row.comp_mentions }} mentions</small>
                             </div>
                         </td>
+
                         <td>{{ row.urls }}</td>
                         <td>{{ row.prompts }}</td>
                         <td>{{ row.traffic }}</td>
@@ -298,6 +378,7 @@
             </table>
         </div>
     </section>
+
 </div>
 
 <div class="modal-backdrop" id="competitorModalBackdrop"></div>
@@ -309,6 +390,7 @@
                 <span class="section-kicker">Topic Prompts</span>
                 <h3 id="previewTopicTitle">Topic prompts</h3>
             </div>
+
             <button type="button" class="modal-close-btn" data-close-competitor-modal>&times;</button>
         </div>
 
@@ -326,6 +408,7 @@
                 <h3>Track AI prompts</h3>
                 <p>Save prompts from missed competitor topics and start monitoring visibility over time.</p>
             </div>
+
             <button type="button" class="modal-close-btn" data-close-competitor-modal>&times;</button>
         </div>
 
@@ -335,10 +418,12 @@
                     <span>Project</span>
                     <strong>{{ project_domain }}</strong>
                 </div>
+
                 <div class="modal-meta-card">
                     <span>Platform</span>
                     <strong>{{ selected_platform }}</strong>
                 </div>
+
                 <div class="modal-meta-card">
                     <span>Market</span>
                     <strong>{{ selected_market }}</strong>
@@ -358,9 +443,12 @@
         </div>
 
         <div class="app-modal-footer">
-            <button type="button" class="btn btn-secondary" id="cancelTrackingModal">Cancel</button>
+            <button type="button" class="btn btn-secondary" id="cancelTrackingModal">
+                Cancel
+            </button>
 
             <form method="POST" action="{{ url_for('save_prompts') }}" id="trackingForm">
+                <input type="hidden" name="client_id" value="{{ client_route_id }}">
                 <input type="hidden" name="domain" value="{{ project_domain }}">
                 <input type="hidden" name="platform" value="{{ selected_platform }}">
                 <input type="hidden" name="market" value="{{ selected_market }}">
@@ -374,6 +462,84 @@
         </div>
     </div>
 </div>
+
+<style>
+.competitor-form-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.competitor-form-actions .btn {
+    min-height: 48px;
+}
+
+.competitor-run-status,
+.competitor-run-note {
+    margin-top: 18px;
+    padding: 15px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.competitor-run-status {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.competitor-run-note {
+    border: 1px solid #dbe6f3;
+    background: #f8fafc;
+    color: #475569;
+}
+
+.competitor-run-status strong,
+.competitor-run-note strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 900;
+    margin-bottom: 4px;
+}
+
+.competitor-run-status p,
+.competitor-run-note p {
+    margin: 0;
+    color: inherit;
+}
+
+.action-stack-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.inline-track-form {
+    margin: 0;
+}
+
+.hidden-prompt-field {
+    display: none;
+}
+
+.btn-sm {
+    padding: 9px 12px;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .competitor-form-actions,
+    .competitor-form-actions .btn,
+    .action-stack-cell,
+    .action-stack-cell .btn,
+    .inline-track-form {
+        width: 100%;
+    }
+}
+</style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -390,6 +556,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const promptsHidden = document.getElementById("trackingPromptsHidden");
     const trackingForm = document.getElementById("trackingForm");
     const cancelTrackingModal = document.getElementById("cancelTrackingModal");
+
+    const topicFilterInput = document.querySelector('.toolbar-filters input[type="text"]');
+    const volumeFilterSelect = document.querySelector('.toolbar-filters select');
+    const tabButtons = document.querySelectorAll(".table-tab");
+    const tableRows = document.querySelectorAll(".insights-table tbody tr");
 
     function openModal(modal) {
         if (!modal || !backdrop) return;
@@ -410,6 +581,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!previewList) return;
 
         previewList.innerHTML = "";
+
         if (!prompts.length) {
             previewList.innerHTML = '<div class="prompt-preview-item">No prompts available.</div>';
             return;
@@ -425,26 +597,84 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function openTracking(topic, prompts) {
         if (topicInput) topicInput.value = topic || "";
-        if (promptTextarea) promptTextarea.value = prompts.length ? prompts.join("\n") : "";
+        if (promptTextarea) promptTextarea.value = prompts.length ? prompts.join("\\n") : "";
         openModal(trackingModal);
+    }
+
+    function getRowData(row) {
+        const cells = row.querySelectorAll("td");
+        const topic = cells[0]?.innerText.toLowerCase() || "";
+        const aiVolume = cells[3]?.innerText.trim() || "";
+        const priority = cells[5]?.innerText.trim().toLowerCase() || "";
+        return { topic, aiVolume, priority };
+    }
+
+    function parseVolumeToMillions(value) {
+        const v = value.toUpperCase().trim();
+
+        if (v.endsWith("M")) {
+            return parseFloat(v.replace("M", "")) || 0;
+        }
+
+        if (v.endsWith("K")) {
+            return (parseFloat(v.replace("K", "")) || 0) / 1000;
+        }
+
+        return parseFloat(v) || 0;
+    }
+
+    function matchesVolumeFilter(aiVolume, selected) {
+        const volume = parseVolumeToMillions(aiVolume);
+
+        if (selected === "All AI Volume") return true;
+        if (selected === "High AI Volume") return volume >= 5;
+        if (selected === "Medium AI Volume") return volume >= 1 && volume < 5;
+        if (selected === "Low AI Volume") return volume < 1;
+
+        return true;
+    }
+
+    function applyTableFilters() {
+        const activeTab = document.querySelector(".table-tab.active")?.textContent.trim().toLowerCase() || "missing";
+        const topicQuery = (topicFilterInput?.value || "").trim().toLowerCase();
+        const volumeFilter = volumeFilterSelect?.value || "All AI Volume";
+
+        tableRows.forEach((row) => {
+            const { topic, aiVolume, priority } = getRowData(row);
+
+            let matchesTab = true;
+
+            if (activeTab === "missing") matchesTab = true;
+            if (activeTab === "weak") matchesTab = priority === "medium";
+            if (activeTab === "shared") matchesTab = priority === "low";
+            if (activeTab === "strong") matchesTab = false;
+
+            const matchesTopic = !topicQuery || topic.includes(topicQuery);
+            const matchesVolume = matchesVolumeFilter(aiVolume, volumeFilter);
+
+            row.style.display = (matchesTab && matchesTopic && matchesVolume) ? "" : "none";
+        });
     }
 
     document.querySelectorAll(".view-prompts-btn").forEach((btn) => {
         btn.addEventListener("click", function () {
             const topic = this.dataset.topic || "";
             const prompts = (this.dataset.prompts || "").split("||").filter(Boolean);
+
             renderPromptPreview(topic, prompts);
             openModal(previewModal);
         });
     });
 
     const openTrackAll = document.getElementById("open-track-all");
+
     if (openTrackAll) {
         openTrackAll.addEventListener("click", function () {
             const allPrompts = [];
 
             document.querySelectorAll(".view-prompts-btn").forEach((btn) => {
                 const promptSet = (btn.dataset.prompts || "").split("||").filter(Boolean);
+
                 promptSet.forEach((prompt) => {
                     if (!allPrompts.includes(prompt)) {
                         allPrompts.push(prompt);
@@ -463,9 +693,25 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    document.addEventListener("click", function (e) {
-        if (e.target.closest("[data-close-competitor-modal]")) {
-            e.preventDefault();
+    tabButtons.forEach((btn) => {
+        btn.addEventListener("click", function () {
+            tabButtons.forEach((b) => b.classList.remove("active"));
+            this.classList.add("active");
+            applyTableFilters();
+        });
+    });
+
+    if (topicFilterInput) {
+        topicFilterInput.addEventListener("input", applyTableFilters);
+    }
+
+    if (volumeFilterSelect) {
+        volumeFilterSelect.addEventListener("change", applyTableFilters);
+    }
+
+    document.addEventListener("click", function (event) {
+        if (event.target.closest("[data-close-competitor-modal]")) {
+            event.preventDefault();
             closeAllModals();
         }
     });
@@ -486,6 +732,9 @@ document.addEventListener("DOMContentLoaded", function () {
             closeAllModals();
         }
     });
+
+    applyTableFilters();
 });
 </script>
+
 {% endblock %}

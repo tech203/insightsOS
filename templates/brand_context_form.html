@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Context | DarInsights{% endblock %}
+
+{% block content %}
+
+{% set client_route_id = client.id if client.id is defined else client.get('id') %}
+{% set client_name = client.name if client.name is defined else client.get('name', 'Workspace') %}
+
+<div class="page-shell">
+
+    <div class="page-header">
+        <div>
+            <h1>{{ client_name }} · Brand Context</h1>
+            <p>Answer these once so DarInsights can create better query ideas, briefs, and drafts for this workspace.</p>
+        </div>
+
+        <div class="page-header-actions">
+            <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
+                Back to Queue
+            </a>
+        </div>
+    </div>
+
+    <section class="brand-context-layout">
+
+        <main class="brand-context-card">
+            <form method="POST" class="brand-context-form">
+
+                <div class="form-section">
+                    <label>
+                        Who is the target audience?
+                        <textarea name="audience" rows="3" placeholder="Example: SMEs in Singapore looking for affordable chatbot support for customer service."></textarea>
+                    </label>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        What are the main services or products?
+                        <textarea name="services" rows="3" placeholder="Example: AI chatbot setup, WhatsApp automation, customer support automation, website chatbot integration."></textarea>
+                    </label>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        What makes this brand different?
+                        <textarea name="differentiators" rows="3" placeholder="Example: Local Singapore support, fast setup, affordable pricing, practical SME-focused implementation."></textarea>
+                    </label>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        What proof, trust signals, or credentials should be mentioned?
+                        <textarea name="proof" rows="3" placeholder="Example: Years of experience, client results, testimonials, case studies, certifications, local presence."></textarea>
+                    </label>
+                </div>
+
+                <div class="form-section two-col">
+                    <label>
+                        Preferred tone
+                        <input type="text" name="tone" placeholder="Example: Clear, helpful, professional, not too technical">
+                    </label>
+
+                    <label>
+                        Locations served
+                        <input type="text" name="locations" value="{{ client.get('location', '') }}" placeholder="Example: Singapore, Southeast Asia">
+                    </label>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        Anything to avoid?
+                        <textarea name="avoid" rows="3" placeholder="Example: Avoid overpromising, avoid sounding too corporate, avoid saying cheapest."></textarea>
+                    </label>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        Extra notes
+                        <textarea name="extra_notes" rows="4" placeholder="Any additional context the content should always remember.">{{ existing_context }}</textarea>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        Save Brand Context
+                    </button>
+
+                    <a href="{{ url_for('client_query_ideas', client_id=client_route_id) }}" class="btn btn-secondary">
+                        Skip for Now
+                    </a>
+                </div>
+
+            </form>
+        </main>
+
+        <aside class="brand-context-side-card">
+            <span class="section-kicker">Why this matters</span>
+            <h2>Better context gives better briefs</h2>
+            <p>
+                Without brand context, the system can only produce generic content.
+                With brand context, the brief can reflect the client’s audience, offer,
+                tone, proof points, and local relevance.
+            </p>
+
+            <div class="context-checklist">
+                <div>Audience</div>
+                <div>Services</div>
+                <div>Differentiators</div>
+                <div>Trust signals</div>
+                <div>Location</div>
+                <div>Tone</div>
+            </div>
+        </aside>
+
+    </section>
+
+</div>
+
+<style>
+.brand-context-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 24px;
+    align-items: start;
+}
+
+.brand-context-card,
+.brand-context-side-card {
+    background: #ffffff;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 24px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.brand-context-card {
+    padding: 26px;
+}
+
+.brand-context-side-card {
+    padding: 24px;
+}
+
+.brand-context-side-card h2 {
+    margin: 12px 0 0;
+    font-size: 28px;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+}
+
+.brand-context-side-card p {
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.brand-context-form {
+    display: grid;
+    gap: 20px;
+}
+
+.form-section label {
+    display: grid;
+    gap: 8px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.form-section input,
+.form-section textarea {
+    width: 100%;
+    padding: 14px 15px;
+    border-radius: 16px;
+    border: 1px solid #dbe6f3;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 15px;
+    line-height: 1.6;
+    outline: none;
+}
+
+.form-section input:focus,
+.form-section textarea:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 8px;
+}
+
+.context-checklist {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.context-checklist div {
+    padding: 13px 14px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #dbe6f3;
+    color: #334155;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .brand-context-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+
+{% endblock %}

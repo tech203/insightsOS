@@ -1,32 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Content Queue | DarInsights{% endblock %}
 
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Content Queue</h1>
+        <p>Turn missed-query opportunities into briefs, drafts, and published content that improves AI visibility.</p>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 
 {% set queued_count = stats.queued if stats is defined and stats.queued is defined else 0 %}
 {% set in_progress_count = stats.in_progress if stats is defined and stats.in_progress is defined else 0 %}
 {% set ready_count = stats.ready if stats is defined and stats.ready is defined else 0 %}
 {% set published_count = stats.published if stats is defined and stats.published is defined else 0 %}
-{% set total_items = queue_items|length if queue_items else 0 %}
+{% set total_items = total_queue_items if total_queue_items is defined else queue_items|length if queue_items else 0 %}
+{% set active_client_id = selected_client_id if selected_client_id else focused_client.id if focused_client is defined and focused_client else None %}
 
 <div class="content-queue-shell-clean">
-
-    <section class="queue-page-head">
-        <div class="queue-page-copy">
-            <h1>Content Queue</h1>
-            <p>Turn missed-query opportunities into briefs, drafts, and published content that improves AI visibility.</p>
-        </div>
-
-        {% if total_items > 0 %}
-        <div class="queue-page-actions">
-            {% if can_run_audit %}
-            <a href="{{ url_for('start_audit') }}" class="btn btn-secondary">Run Audit</a>
-            {% else %}
-            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">Upgrade to Run Audit</a>
-            {% endif %}
-        </div>
-        {% endif %}
-    </section>
 
     {% if current_user.is_authenticated and current_user.plan == "free" %}
     <section class="queue-upgrade-strip">
@@ -60,7 +53,9 @@
         <div class="tracked-prompt-copy">
             <span class="section-kicker">From Prompt Tracking</span>
             <h2>Turn this tracked prompt into content</h2>
-            <p>Use this missed or weak prompt as the basis for a content brief, then move it into drafting and publishing.</p>
+            <p>
+                Add this missed or weak prompt to the queue first, then generate the brief and draft from the queue.
+            </p>
 
             <div class="tracked-prompt-meta">
                 <div class="tracked-meta-item">
@@ -85,24 +80,14 @@
         </div>
 
         <div class="tracked-prompt-actions">
-            {% if selected_client_id %}
+            {% if active_client_id %}
                 {% if can_generate_brief %}
-                <a href="{{ url_for('generate_client_content_brief', client_id=selected_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="btn btn-primary btn-block">
+                <a href="{{ url_for('generate_client_content_brief', client_id=active_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="btn btn-primary btn-block">
                     Generate Brief
                 </a>
                 {% else %}
                 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
                     Upgrade to Generate Brief
-                </a>
-                {% endif %}
-
-                {% if can_generate_draft %}
-                <a href="{{ url_for('generate_client_content_draft', client_id=selected_client_id, target_query=incoming_query, brand_context=incoming_topic) }}" class="queue-inline-link">
-                    Generate Draft
-                </a>
-                {% else %}
-                <a href="{{ url_for('pricing_page') }}" class="queue-inline-link">
-                    Upgrade to Generate Draft
                 </a>
                 {% endif %}
             {% else %}
@@ -119,17 +104,33 @@
         <span class="section-kicker">Queue Empty</span>
         <h2>No content opportunities yet</h2>
         <p>
-            Run an audit to uncover missed-query opportunities and automatically create briefs and drafts for this workspace.
+            Start by adding brand context, generating query ideas, or running an audit to uncover content opportunities.
         </p>
 
         <div class="empty-actions centered">
-            {% if can_run_audit %}
-            <a href="{{ url_for('start_audit') }}" class="btn btn-primary">Run Audit</a>
-            {% else %}
-            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Upgrade to Run Audit</a>
+            {% if active_client_id %}
+            <a href="{{ url_for('client_brand_context', client_id=active_client_id) }}" class="btn btn-secondary">
+                Brand Context
+            </a>
+
+            <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">
+                Generate Query Ideas
+            </a>
             {% endif %}
 
-            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspaces</a>
+            {% if can_run_audit %}
+            <a href="{{ url_for('start_audit') }}" class="btn btn-secondary">
+                Run Audit
+            </a>
+            {% else %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">
+                Upgrade to Run Audit
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">
+                Open Workspaces
+            </a>
         </div>
     </section>
 
@@ -140,7 +141,7 @@
             <span class="section-kicker">Execution Layer</span>
             <h2>Start with the highest-impact items first</h2>
             <p class="queue-top-copy">
-                Move queued opportunities into briefs, drafts, and publishing without losing momentum.
+                The queue is the main place to generate briefs, drafts, and move content towards publishing.
             </p>
 
             <div class="queue-guidance-card">
@@ -158,11 +159,11 @@
                 </strong>
                 <p>
                     {% if queued_count > 0 %}
-                        There are opportunities waiting to move. The fastest gains usually come from starting the highest-priority queued items.
+                        Review the query, edit if needed, then generate the brief.
                     {% elif in_progress_count > 0 %}
-                        Your next best move is to complete items already being worked on so they do not stall.
+                        Complete items already being worked on so they do not stall.
                     {% elif ready_count > 0 %}
-                        You already have items ready for review or publishing. Shipping them may be your fastest win.
+                        You already have items ready for review or publishing.
                     {% else %}
                         Review the current queue and continue execution.
                     {% endif %}
@@ -241,19 +242,31 @@
     </section>
 
     <section class="queue-workspace-card">
-        <div class="section-head">
+        <div class="section-head queue-section-head-with-action">
             <div>
                 <span class="section-kicker">Queue Overview</span>
                 <h2>Work the queue</h2>
+                <p>Review each item, edit the query if needed, then move it into briefing and drafting.</p>
             </div>
-            <p>Review each item, understand the next action, and push work forward without clutter.</p>
+
+            {% if active_client_id %}
+            <div class="queue-section-actions">
+                <a href="{{ url_for('client_brand_context', client_id=active_client_id) }}" class="btn btn-secondary">
+                    Brand Context
+                </a>
+
+                <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">
+                    Generate Query Ideas
+                </a>
+            </div>
+            {% endif %}
         </div>
 
         <div class="premium-queue-list">
             {% for item in queue_items %}
-            {% set item_status = (item.status or "queued")|lower %}
+            {% set item_status = (item.status or "pending")|lower %}
             {% set item_priority = (item.priority or "medium")|lower %}
-            {% set item_type = item.item_type or "content" %}
+            {% set item_type = item.item_type or "brief" %}
             {% set next_action_obj = item.next_action if item.next_action is mapping else {} %}
             {% set next_action_label = next_action_obj.get('label', 'Review item') %}
             {% set next_action_type = next_action_obj.get('action', '') %}
@@ -264,10 +277,10 @@
                         <span class="status-pill
                             {% if item_status in ['queued', 'pending'] %}status-queued
                             {% elif item_status in ['in_progress', 'in-progress', 'draft_generated'] %}status-progress
-                            {% elif item_status in ['ready', 'brief_generated', 'brief ready'] %}status-ready
+                            {% elif item_status in ['ready', 'brief_generated', 'brief generated', 'brief ready'] %}status-ready
                             {% elif item_status == 'published' %}status-published
                             {% else %}status-neutral{% endif %}">
-                            {{ item.status or "Queued" }}
+                            {{ item.status|replace("_", " ")|title if item.status else "Pending" }}
                         </span>
 
                         <span class="priority-pill
@@ -289,14 +302,14 @@
                     <h3>{{ item.title or item.target_query or "Untitled item" }}</h3>
 
                     {% if item.target_query %}
-                    <p class="query-line"><strong>Target query:</strong> {{ item.target_query }}</p>
+                    <p class="query-line">
+                        <strong>Suggested target query:</strong> {{ item.target_query }}
+                    </p>
                     {% endif %}
 
                     <p class="queue-item-copy">
                         {% if item.content %}
-                            {{ item.content[:240] ~ ('...' if item.content|length > 240 else '') }}
-                        {% elif item.brief %}
-                            {{ item.brief[:240] ~ ('...' if item.brief|length > 240 else '') }}
+                            Saved content exists for this item. Open the brief or draft flow to review the full output.
                         {% else %}
                             This item is in the queue and ready for the next production step.
                         {% endif %}
@@ -320,49 +333,124 @@
                     {% endif %}
                 </div>
 
-                <div class="queue-item-actions">
-                    {% if item.client_id %}
-                        {% if current_user.plan == "free" %}
-                        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Unlock</a>
-                        {% else %}
-                            {% if item_status in ['queued', 'pending', 'brief_generated', 'ready'] %}
-                                {% if item.generate_brief_url %}
-                                <a href="{{ item.generate_brief_url }}" class="btn btn-primary">Generate Brief</a>
-                                {% else %}
-                                <button type="button" class="btn btn-primary" disabled>Generate Brief</button>
-                                {% endif %}
-                            {% endif %}
+<div class="queue-item-actions">
+    {% if item.client_id %}
+        {% if current_user.plan == "free" %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                Unlock
+            </a>
+        {% else %}
 
-                            {% if item.generate_draft_url %}
-                            <a href="{{ item.generate_draft_url }}" class="btn btn-secondary">Generate Draft</a>
-                            {% else %}
-                            <button type="button" class="btn btn-secondary" disabled>Generate Draft</button>
-                            {% endif %}
-                        {% endif %}
-                    {% endif %}
+            {% if item_status in ['brief_generated', 'brief generated', 'brief ready', 'ready'] or item.content %}
+                <a href="{{ url_for('view_queue_brief', item_id=item.id) }}" class="btn btn-primary">
+                    View Brief
+                </a>
+            {% else %}
+                {% if item.generate_brief_url %}
+                    <a href="{{ item.generate_brief_url }}" class="btn btn-primary">
+                        Generate Brief
+                    </a>
+                {% else %}
+                    <button type="button" class="btn btn-primary" disabled>
+                        Generate Brief
+                    </button>
+                {% endif %}
+            {% endif %}
 
-                    {% if item_status in ['draft_generated', 'ready'] and current_user.plan != "free" %}
-                    <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
-                        <input type="hidden" name="status" value="published">
-                        <button type="submit" class="btn btn-secondary">Publish</button>
+            {% if item.generate_draft_url %}
+                <a href="{{ item.generate_draft_url }}" class="btn btn-secondary">
+                    Generate Draft
+                </a>
+            {% else %}
+                <button type="button" class="btn btn-secondary" disabled>
+                    Generate Draft
+                </button>
+            {% endif %}
+
+            <a href="{{ url_for('generate_page_from_queue', item_id=item.id) }}" class="btn btn-secondary">
+                Generate Page
+            </a>
+
+        {% endif %}
+    {% endif %}
+
+    {% if item_status in ['draft_generated', 'draft generated', 'ready'] and current_user.plan != "free" %}
+    <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
+        <input type="hidden" name="status" value="published">
+        <button type="submit" class="btn btn-secondary">Mark Published</button>
+    </form>
+    {% endif %}
+</div>
+
+                <div class="queue-edit-panel">
+                    <details>
+                        <summary>Edit queue item</summary>
+
+                        <form method="POST" action="{{ url_for('edit_content_queue_item', item_id=item.id) }}" class="queue-edit-form">
+                            <label>
+                                Title
+                                <input type="text" name="title" value="{{ item.title or '' }}">
+                            </label>
+
+                            <label>
+                                Suggested target query
+                                <input type="text" name="target_query" value="{{ item.target_query or '' }}" required>
+                            </label>
+
+                            <label>
+                                Content type
+                                <select name="content_type">
+                                    <option value="service_page" {% if item.content_type == 'service_page' %}selected{% endif %}>Service Page</option>
+                                    <option value="blog_post" {% if item.content_type == 'blog_post' %}selected{% endif %}>Blog Post</option>
+                                    <option value="faq_page" {% if item.content_type == 'faq_page' %}selected{% endif %}>FAQ Page</option>
+                                    <option value="comparison_page" {% if item.content_type == 'comparison_page' %}selected{% endif %}>Comparison Page</option>
+                                    <option value="landing_page" {% if item.content_type == 'landing_page' %}selected{% endif %}>Landing Page</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                Priority
+                                <select name="priority">
+                                    <option value="low" {% if item_priority == 'low' %}selected{% endif %}>Low</option>
+                                    <option value="medium" {% if item_priority == 'medium' %}selected{% endif %}>Medium</option>
+                                    <option value="high" {% if item_priority == 'high' %}selected{% endif %}>High</option>
+                                </select>
+                            </label>
+
+                            <div class="queue-edit-actions">
+                                <button type="submit" class="btn btn-secondary">
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </details>
+
+                    <form method="POST"
+                          action="{{ url_for('delete_content_queue_item', item_id=item.id) }}"
+                          onsubmit="return confirm('Delete this queue item? This cannot be undone.');"
+                          class="queue-delete-form">
+                        <button type="submit" class="btn btn-danger">
+                            Delete Item
+                        </button>
                     </form>
-                    {% endif %}
                 </div>
 
                 <div class="queue-item-status-form">
                     <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}">
-                        {% if selected_client_id %}
-                        <input type="hidden" name="client_id" value="{{ selected_client_id }}">
+                        {% if active_client_id %}
+                        <input type="hidden" name="client_id" value="{{ active_client_id }}">
                         {% endif %}
 
                         <label for="status-{{ item.id }}">Update status</label>
+
                         <div class="status-form-row">
                             <select id="status-{{ item.id }}" name="status">
-                                <option value="queued" {% if item_status in ['queued', 'pending'] %}selected{% endif %}>Queued</option>
+                                <option value="pending" {% if item_status in ['queued', 'pending'] %}selected{% endif %}>Queued</option>
                                 <option value="in_progress" {% if item_status in ['in_progress', 'in-progress'] %}selected{% endif %}>In Progress</option>
                                 <option value="brief_generated" {% if item_status == 'brief_generated' %}selected{% endif %}>Brief Generated</option>
                                 <option value="draft_generated" {% if item_status == 'draft_generated' %}selected{% endif %}>Draft Generated</option>
                                 <option value="ready" {% if item_status in ['ready', 'brief ready'] %}selected{% endif %}>Ready</option>
+                                <option value="published" {% if item_status == 'published' %}selected{% endif %}>Published</option>
                             </select>
 
                             <button type="submit" class="btn btn-secondary">Save</button>
@@ -372,13 +460,49 @@
             </article>
             {% endfor %}
 
+            {% if total_pages is defined and total_pages > 1 %}
+            <div class="queue-pagination">
+                <div class="queue-pagination-meta">
+                    Showing page {{ current_page }} of {{ total_pages }}
+                    {% if total_queue_items is defined %}
+                        · {{ total_queue_items }} total items
+                    {% endif %}
+                </div>
+
+                <div class="queue-pagination-actions">
+                    {% if current_page > 1 %}
+                        <a href="{{ url_for('content_queue_page', page=current_page - 1, client_id=active_client_id) }}" class="btn btn-secondary">
+                            Previous
+                        </a>
+                    {% else %}
+                        <button type="button" class="btn btn-secondary" disabled>
+                            Previous
+                        </button>
+                    {% endif %}
+
+                    {% if current_page < total_pages %}
+                        <a href="{{ url_for('content_queue_page', page=current_page + 1, client_id=active_client_id) }}" class="btn btn-secondary">
+                            Next
+                        </a>
+                    {% else %}
+                        <button type="button" class="btn btn-secondary" disabled>
+                            Next
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             {% if current_user.plan == "free" and total_items > 5 %}
             <div class="queue-upgrade-card">
                 <span class="section-kicker">More available</span>
                 <h3>More content opportunities are ready</h3>
                 <p>Upgrade to unlock the full content pipeline and continue execution.</p>
+
                 <div class="queue-upgrade-actions">
-                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">Unlock Full Queue</a>
+                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                        Unlock Full Queue
+                    </a>
                 </div>
             </div>
             {% endif %}
@@ -388,5 +512,142 @@
     {% endif %}
 
 </div>
+
+<style>
+.queue-section-head-with-action {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.queue-section-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.queue-edit-panel {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #e5edf7;
+}
+
+.queue-edit-panel details {
+    border: 1px solid #dbe6f3;
+    border-radius: 18px;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+.queue-edit-panel summary {
+    cursor: pointer;
+    padding: 14px 16px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.queue-edit-form {
+    display: grid;
+    gap: 14px;
+    padding: 0 16px 16px;
+}
+
+.queue-edit-form label {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.queue-edit-form input,
+.queue-edit-form select {
+    width: 100%;
+    padding: 12px 13px;
+    border-radius: 14px;
+    border: 1px solid #dbe6f3;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.queue-edit-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.queue-delete-form {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-danger {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #be123c;
+}
+
+.btn-danger:hover {
+    background: #ffe4e6;
+    color: #9f1239;
+}
+
+.queue-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid #dbe6f3;
+    border-radius: 18px;
+    background: #f8fafc;
+}
+
+.queue-pagination-meta {
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.queue-pagination-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.queue-pagination button[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .queue-section-head-with-action {
+        flex-direction: column;
+    }
+
+    .queue-section-actions,
+    .queue-section-actions .btn,
+    .queue-delete-form,
+    .queue-delete-form .btn,
+    .queue-edit-actions .btn,
+    .queue-pagination-actions,
+    .queue-pagination-actions .btn,
+    .queue-pagination-actions button {
+        width: 100%;
+    }
+
+    .queue-pagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
 
 {% endblock %}

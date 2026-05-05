@@ -191,27 +191,32 @@
         </div>
     </section>
 
-    <section class="workspace-modules-grid">
-        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="workspace-module-card">
-            <strong>Visibility</strong>
-            <p>Review scores, missing prompts, and visibility changes.</p>
-        </a>
+<section class="workspace-modules-grid">
+    <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Visibility</strong>
+        <p>Review scores, missing prompts, and visibility changes.</p>
+    </a>
 
-        <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="workspace-module-card">
-            <strong>Actions</strong>
-            <p>See prioritised recommendations and next moves.</p>
-        </a>
+    <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Actions</strong>
+        <p>See prioritised recommendations and next moves.</p>
+    </a>
 
-        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="workspace-module-card">
-            <strong>Content Queue</strong>
-            <p>Turn missed-query opportunities into briefs and drafts.</p>
-        </a>
+    <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Content Queue</strong>
+        <p>Turn missed-query opportunities into briefs and drafts.</p>
+    </a>
 
-        <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="workspace-module-card">
-            <strong>History</strong>
-            <p>Review past audit runs and progress over time.</p>
-        </a>
-    </section>
+<a href="{{ url_for('website_builder_page', client_id=client.id) }}" class="workspace-module-card">
+    <strong>Website Builder</strong>
+    <p>Generate a full AEO-ready website blueprint, pages, and preview.</p>
+</a>
+
+    <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="workspace-module-card">
+        <strong>History</strong>
+        <p>Review past audit runs and progress over time.</p>
+    </a>
+</section>
 
     <section class="workspace-section-card">
         <div class="section-head compact">

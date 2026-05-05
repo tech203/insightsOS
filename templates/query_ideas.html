@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Query Ideas | DarInsights{% endblock %}
+
+{% block content %}
+
+{% set client_route_id = client.id if client.id is defined else client.get('id') %}
+{% set client_name = client.name if client.name is defined else client.get('name', 'Workspace') %}
+{% set has_brand_context = client.get('notes') if client.get is defined else false %}
+
+<div class="page-shell">
+
+    <div class="page-header">
+        <div>
+            <h1>{{ client_name }} · Query Ideas</h1>
+            <p>Choose useful query ideas and add them to the content queue for briefing and drafting.</p>
+        </div>
+
+        <div class="page-header-actions">
+            <a href="{{ url_for('client_brand_context', client_id=client_route_id) }}" class="btn btn-secondary">
+                Brand Context
+            </a>
+
+            <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
+                Back to Queue
+            </a>
+        </div>
+    </div>
+
+    <section class="query-ideas-hero">
+        <div>
+            <span class="section-kicker">Query Discovery</span>
+            <h2>Suggested search queries</h2>
+            <p>
+                These are AI-assisted query ideas based on the workspace industry, location, and services.
+                Add promising ideas to the content queue before generating briefs or drafts.
+            </p>
+
+            {% if not has_brand_context %}
+            <div class="query-warning-box">
+                Brand context has not been added yet. You can still add queries to the queue, but briefs and drafts may be more generic until brand context is saved.
+            </div>
+            {% endif %}
+        </div>
+
+        <form method="GET" action="{{ url_for('client_query_ideas', client_id=client_route_id) }}" class="query-service-form">
+            <label>
+                Services or topics
+                <input type="text" name="services" value="{{ services }}" placeholder="birthday cake, custom cake, bakery delivery">
+            </label>
+
+            <button type="submit" class="btn btn-primary">
+                Generate Ideas
+            </button>
+        </form>
+    </section>
+
+    <section class="query-flow-note">
+        <div>
+            <span class="section-kicker">Recommended Flow</span>
+            <h2>Add to Queue → Generate Brief → Generate Draft</h2>
+            <p>
+                Query Ideas is only for discovery. The Content Queue should remain the main execution page
+                for generating briefs, drafts, and publishing content.
+            </p>
+        </div>
+    </section>
+
+    <section class="query-ideas-grid">
+        {% for query in query_ideas %}
+        <article class="query-idea-card">
+            <div>
+                <span class="query-status-pill">Suggested · Not validated</span>
+                <h3>{{ query }}</h3>
+                <p>
+                    Add this to the queue if it matches the client’s offer and sounds like something a real customer may search.
+                </p>
+            </div>
+
+            <div class="query-card-actions">
+                <form method="POST" action="{{ url_for('add_query_idea_to_queue', client_id=client_route_id) }}">
+                    <input type="hidden" name="target_query" value="{{ query }}">
+                    <input type="hidden" name="content_type" value="service_page">
+
+                    <button type="submit" class="btn btn-primary">
+                        Add to Queue
+                    </button>
+                </form>
+
+                <a href="https://www.google.com/search?q={{ query|urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                    Check on Google
+                </a>
+            </div>
+        </article>
+        {% else %}
+        <section class="query-empty-card">
+            <span class="section-kicker">No Ideas Yet</span>
+            <h2>Generate query ideas first</h2>
+            <p>
+                Enter services or topics above, then generate suggested search queries for this workspace.
+            </p>
+        </section>
+        {% endfor %}
+    </section>
+
+</div>
+
+<style>
+.query-ideas-hero,
+.query-idea-card,
+.query-flow-note,
+.query-empty-card {
+    background: #ffffff;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 24px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.query-ideas-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 24px;
+    align-items: end;
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+.query-ideas-hero h2,
+.query-flow-note h2,
+.query-empty-card h2 {
+    margin: 12px 0 0;
+    font-size: 34px;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    color: #0f172a;
+}
+
+.query-ideas-hero p,
+.query-idea-card p,
+.query-flow-note p,
+.query-empty-card p {
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.query-warning-box {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 700;
+}
+
+.query-service-form {
+    display: grid;
+    gap: 12px;
+}
+
+.query-service-form label {
+    display: grid;
+    gap: 8px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.query-service-form input {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid #dbe6f3;
+    font-size: 15px;
+}
+
+.query-flow-note {
+    padding: 24px 28px;
+    margin-bottom: 24px;
+}
+
+.query-flow-note h2 {
+    font-size: 26px;
+}
+
+.query-ideas-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.query-idea-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 20px;
+    align-items: center;
+    padding: 22px;
+}
+
+.query-idea-card h3 {
+    margin: 12px 0 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+.query-status-pill {
+    display: inline-flex;
+    width: fit-content;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #c2410c;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.query-card-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.query-card-actions form {
+    margin: 0;
+}
+
+.query-empty-card {
+    padding: 28px;
+}
+
+@media (max-width: 900px) {
+    .query-ideas-hero,
+    .query-idea-card {
+        grid-template-columns: 1fr;
+    }
+
+    .query-card-actions {
+        justify-content: stretch;
+    }
+
+    .query-card-actions .btn,
+    .query-card-actions form,
+    .query-card-actions button {
+        width: 100%;
+    }
+}
+</style>
+
+{% endblock %}

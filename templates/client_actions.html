@@ -79,26 +79,36 @@
                 </a>
 
                 {% elif top_is_query_action and top_target_query %}
-                <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=top_target_query) }}" class="btn btn-primary btn-block">
-                    Generate Brief
-                </a>
-                <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=top_target_query) }}" class="btn btn-secondary btn-block">
-                    Generate Draft
-                </a>
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
-                    Check Competitors
-                </a>
+                <div class="action-item-links action-item-links-split">
+                    <div class="action-main-group">
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=top_target_query) }}" class="btn btn-primary btn-block">
+                            Generate Brief
+                        </a>
+                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=top_target_query) }}" class="btn btn-secondary btn-block">
+                            Generate Draft
+                        </a>
+                    </div>
+
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="action-research-link">
+                        Competitor Research ↗
+                    </a>
+                </div>
 
                 {% else %}
-                <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-block">
-                    Open Content Queue
-                </a>
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    Review Visibility
-                </a>
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
-                    View Competitors
-                </a>
+                <div class="action-item-links action-item-links-split">
+                    <div class="action-main-group">
+                        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-block">
+                            Open Content Queue
+                        </a>
+                        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                            Review Visibility
+                        </a>
+                    </div>
+
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="action-research-link">
+                        Competitor Research ↗
+                    </a>
+                </div>
                 {% endif %}
             {% else %}
                 {% if current_user.plan == "free" %}
@@ -171,29 +181,37 @@
                 <p><strong>Why it matters:</strong> {{ action.support_signal }}</p>
                 {% endif %}
 
-                <div class="action-item-links">
+                <div class="action-item-links action-item-links-split">
                     {% if current_user.plan == "free" %}
-                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-sm">
-                        Unlock
-                    </a>
+                    <div class="action-main-group">
+                        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-sm">
+                            Unlock
+                        </a>
+                    </div>
 
                     {% elif is_query_action and target_query %}
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
-                        Generate Brief
-                    </a>
-                    <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
-                        Generate Draft
-                    </a>
-                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
-                        Check Competitors
+                    <div class="action-main-group">
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
+                            Generate Brief
+                        </a>
+                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
+                            Generate Draft
+                        </a>
+                    </div>
+
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="action-research-link">
+                        Competitor Research ↗
                     </a>
 
                     {% else %}
-                    <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
-                        Open Queue
-                    </a>
-                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="actions-inline-link">
-                        Check Competitors
+                    <div class="action-main-group">
+                        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
+                            Open Queue
+                        </a>
+                    </div>
+
+                    <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="action-research-link">
+                        Competitor Research ↗
                     </a>
                     {% endif %}
                 </div>
@@ -244,21 +262,27 @@
                 <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
                 {% endif %}
 
-                <div class="action-item-links">
+                <div class="action-item-links action-item-links-split">
                     {% if current_user.plan == "free" %}
-                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-sm">
-                        Unlock
-                    </a>
+                    <div class="action-main-group">
+                        <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-sm">
+                            Unlock
+                        </a>
+                    </div>
 
                     {% elif is_query_action and target_query %}
-                    <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
-                        Generate Brief
-                    </a>
+                    <div class="action-main-group">
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
+                            Generate Brief
+                        </a>
+                    </div>
 
                     {% else %}
-                    <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
-                        Open Queue
-                    </a>
+                    <div class="action-main-group">
+                        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary btn-sm">
+                            Open Queue
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
             </article>
