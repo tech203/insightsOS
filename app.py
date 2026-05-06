@@ -1,5 +1,8 @@
+from dotenv import load_dotenv
+load_dotenv()
 import csv
 import os
+from website_page_builder import generate_structured_website_page
 from urllib.parse import urlparse
 from tavily import TavilyClient
 from datetime import datetime
@@ -862,7 +865,6 @@ def build_demo_website_blueprint(client):
         ]
     }
 
-
 def build_generated_site_page(client, blueprint, page_config):
     client_name = blueprint["client_name"]
     page_type = page_config["page_type"]
@@ -922,57 +924,6 @@ def build_generated_site_page(client, blueprint, page_config):
                     {"title": "Specialist support", "description": "Helpful guidance for customers with more specific needs."},
                     {"title": "Ongoing help", "description": "Support designed to make the next step simple and clear."}
                 ]
-            },
-            {
-                "type": "faq",
-                "headline": "Service questions",
-                "items": [
-                    {"question": "How do I know which service I need?", "answer": "Start by identifying your main goal, timeline, and the outcome you want."},
-                    {"question": "Can I speak to someone first?", "answer": "Yes, you can submit an enquiry or book a consultation."}
-                ]
-            }
-        ]
-
-    elif page_type == "about":
-        sections = [
-            {
-                "type": "hero",
-                "eyebrow": "About",
-                "headline": f"About {client_name}",
-                "subtext": f"{client_name} is built around clear advice, helpful service, and trustworthy customer experiences.",
-                "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": "View Services"
-            },
-            {
-                "type": "proof",
-                "headline": "What we stand for",
-                "items": [
-                    "Clear communication",
-                    "Practical guidance",
-                    "Customer-first service",
-                    "Reliable follow-through"
-                ]
-            }
-        ]
-
-    elif page_type == "faq":
-        sections = [
-            {
-                "type": "hero",
-                "eyebrow": "FAQ",
-                "headline": "Frequently asked questions",
-                "subtext": "Helpful answers to common questions customers ask before making a decision.",
-                "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": "Contact Us"
-            },
-            {
-                "type": "faq",
-                "headline": "Common questions",
-                "items": [
-                    {"question": f"What does {client_name} do?", "answer": f"{client_name} provides services related to {blueprint['business_type']}."},
-                    {"question": "How do I get started?", "answer": "You can start by submitting an enquiry or booking a consultation."},
-                    {"question": "Where are you based?", "answer": f"We serve customers in {blueprint['location']} and surrounding areas."}
-                ]
             }
         ]
 
@@ -980,16 +931,11 @@ def build_generated_site_page(client, blueprint, page_config):
         sections = [
             {
                 "type": "hero",
-                "eyebrow": "Contact",
-                "headline": f"Contact {client_name}",
-                "subtext": "Send an enquiry and our team will get back to you.",
-                "primary_cta": "Send Enquiry",
-                "secondary_cta": "View Services"
-            },
-            {
-                "type": "contact",
-                "headline": "Start your enquiry",
-                "body": "Tell us what you need help with and we will respond as soon as possible."
+                "eyebrow": page_config["title"],
+                "headline": f"{page_config['title']} | {client_name}",
+                "subtext": page_config["goal"],
+                "primary_cta": blueprint["primary_cta"],
+                "secondary_cta": blueprint["secondary_cta"]
             }
         ]
 
@@ -1003,6 +949,7 @@ def build_generated_site_page(client, blueprint, page_config):
         },
         "sections": sections
     }
+
 
 @app.route("/content-queue/<item_id>/generate-page")
 @login_required
@@ -1025,83 +972,24 @@ def generate_page_from_queue(item_id):
     client_name = client.get("name", "Business")
     industry = client.get("industry", "service provider")
     location = client.get("location", "Singapore")
-    saved_context = safe_str(item.get("content"))
+    brand_context = safe_str(item.get("content") or client.get("notes") or "")
 
-    page_slug = slugify(target_query) or "generated-page"
+    try:
+        page_json = generate_structured_website_page(
+            client_name=client_name,
+            industry=industry,
+            location=location,
+            target_query=target_query,
+            content_type=content_type,
+            brand_context=brand_context,
+        )
+    except Exception as e:
+        flash(f"AI page generation failed: {str(e)}", "error")
+        return redirect(url_for("content_queue_page", client_id=client_id))
 
-    page_json = {
-        "page_type": content_type,
-        "title": f"{client_name} | {target_query}",
-        "slug": page_slug,
-        "seo": {
-            "title": f"{target_query} | {client_name}",
-            "description": f"Learn about {target_query} from {client_name}, a {industry} in {location}."
-        },
-        "sections": [
-            {
-                "type": "hero",
-                "eyebrow": "AEO Opportunity",
-                "headline": target_query,
-                "subtext": (
-                    f"This page was created from a real AI visibility opportunity for {client_name}. "
-                    f"It is designed to answer what customers are asking about: {target_query}."
-                ),
-                "primary_cta": "Make an Enquiry",
-                "secondary_cta": "View Services"
-            },
-            {
-                "type": "problem",
-                "headline": f"Why people search for {target_query}",
-                "body": (
-                    saved_context if saved_context else
-                    f"Customers searching for '{target_query}' are usually comparing options, looking for trustworthy information, "
-                    f"and trying to decide which {industry} in {location} is suitable for them."
-                )
-            },
-            {
-                "type": "services",
-                "headline": f"How {client_name} can help",
-                "items": [
-                    {
-                        "title": "Clear guidance",
-                        "description": f"We explain {target_query} in simple terms so customers can make confident decisions."
-                    },
-                    {
-                        "title": "Relevant service support",
-                        "description": f"Our content is structured around what people want to know before choosing a {industry}."
-                    },
-                    {
-                        "title": "AI-friendly answers",
-                        "description": "The page is organised with direct answers, FAQs, and trust signals to support AI visibility."
-                    }
-                ]
-            },
-            {
-                "type": "faq",
-                "headline": f"Questions about {target_query}",
-                "items": [
-                    {
-                        "question": f"What should I know about {target_query}?",
-                        "answer": f"You should understand what the service includes, who it is suitable for, expected costs or timelines, and why {client_name} may be a good fit."
-                    },
-                    {
-                        "question": f"How do I choose the right {industry}?",
-                        "answer": "Look for clear explanations, relevant experience, trust signals, and a service provider that answers your specific questions."
-                    },
-                    {
-                        "question": f"Does {client_name} help with this?",
-                        "answer": f"Yes. {client_name} can provide guidance related to {target_query} and help you decide the next step."
-                    }
-                ]
-            },
-            {
-                "type": "cta",
-                "headline": f"Need help with {target_query}?",
-                "body": f"Contact {client_name} to ask a question or request more information.",
-                "button": "Contact Us"
-            }
-        ]
-    }
+    page_json["slug"] = page_json.get("slug") or slugify(target_query) or "generated-page"
+    page_json["title"] = page_json.get("title") or f"{client_name} | {target_query}"
+    page_json["page_type"] = page_json.get("page_type") or content_type
 
     page = GeneratedWebsitePage(
         project_id=None,
@@ -1117,7 +1005,7 @@ def generate_page_from_queue(item_id):
     db.session.add(page)
     db.session.commit()
 
-    flash("Website page generated from content queue opportunity.", "success")
+    flash("AI website page generated successfully.", "success")
     return redirect(url_for("preview_generated_page", page_id=page.id))
 
 @app.route("/client/<client_id>/website-engine/demo")

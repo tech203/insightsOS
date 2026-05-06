@@ -1,0 +1,109 @@
+import json
+import os
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def generate_structured_website_page(
+    client_name,
+    industry,
+    location,
+    target_query,
+    content_type="service_page",
+    brand_context="",
+):
+    prompt = f"""
+You are an expert website strategist and AEO content architect.
+
+Create a structured website page for this business.
+
+Business:
+- Name: {client_name}
+- Industry: {industry}
+- Location: {location}
+- Target query: {target_query}
+- Content type: {content_type}
+- Brand context: {brand_context}
+
+Return ONLY valid JSON.
+
+Use this exact structure:
+{{
+  "page_type": "service_page",
+  "title": "",
+  "slug": "",
+  "seo": {{
+    "title": "",
+    "description": ""
+  }},
+  "sections": [
+    {{
+      "type": "hero",
+      "eyebrow": "",
+      "headline": "",
+      "subtext": "",
+      "primary_cta": "",
+      "secondary_cta": ""
+    }},
+    {{
+      "type": "problem",
+      "headline": "",
+      "body": ""
+    }},
+    {{
+      "type": "services",
+      "headline": "",
+      "items": [
+        {{"title": "", "description": ""}},
+        {{"title": "", "description": ""}},
+        {{"title": "", "description": ""}}
+      ]
+    }},
+    {{
+      "type": "proof",
+      "headline": "",
+      "items": ["", "", "", ""]
+    }},
+    {{
+      "type": "faq",
+      "headline": "",
+      "items": [
+        {{"question": "", "answer": ""}},
+        {{"question": "", "answer": ""}},
+        {{"question": "", "answer": ""}}
+      ]
+    }},
+    {{
+      "type": "cta",
+      "headline": "",
+      "body": "",
+      "button": ""
+    }}
+  ]
+}}
+
+Rules:
+- Do not mention AEO unless relevant to the customer.
+- Do not write generic filler.
+- Make the page sound like a real business website.
+- Make the copy concise, premium, and conversion-focused.
+- Use the target query naturally.
+- Keep all section body text readable, not long essays.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You return only clean valid JSON."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+    )
+
+    raw = response.choices[0].message.content.strip()
+
+    if raw.startswith("```"):
+        raw = raw.replace("```json", "").replace("```", "").strip()
+
+    return json.loads(raw)

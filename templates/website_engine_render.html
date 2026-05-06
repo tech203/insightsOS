@@ -1,81 +1,155 @@
 {% for section in page_json.sections %}
 
     {% if section.type == "hero" %}
-    <section class="panel website-hero">
-        <p class="section-kicker">{{ section.eyebrow }}</p>
-        <h1>{{ section.headline }}</h1>
-        <p class="hero-subtext">{{ section.subtext }}</p>
+    <section style="padding: 100px 20px; background: #0f172a; color: white; text-align: center;">
+        <div style="max-width: 900px; margin: 0 auto;">
+            <p style="opacity: 0.75; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px;">
+                {{ section.eyebrow }}
+            </p>
 
-        <div class="form-actions">
-            <a href="#" class="btn btn-primary">{{ section.primary_cta }}</a>
-            <a href="#" class="btn btn-secondary">{{ section.secondary_cta }}</a>
+            <h1 style="font-size: 42px; line-height: 1.15; margin: 0 0 18px;">
+                {{ section.headline }}
+            </h1>
+
+            <p style="max-width: 640px; margin: 0 auto 28px; line-height: 1.7; opacity: 0.92;">
+                {{ section.subtext }}
+            </p>
+
+            <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                {% if section.primary_cta %}
+                <a href="#" style="background: #6366f1; color: white; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 600;">
+                    {{ section.primary_cta }}
+                </a>
+                {% endif %}
+
+                {% if section.secondary_cta %}
+                <a href="#" style="border: 1px solid rgba(255,255,255,0.45); color: white; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 600;">
+                    {{ section.secondary_cta }}
+                </a>
+                {% endif %}
+            </div>
         </div>
     </section>
     {% endif %}
 
 
     {% if section.type == "problem" %}
-    <section class="panel">
-        <p class="section-kicker">Problem</p>
-        <h2>{{ section.headline }}</h2>
-        <p>{{ section.body }}</p>
+    <section style="padding: 72px 20px; background: white;">
+        <div style="max-width: 900px; margin: 0 auto;">
+            <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; color: #6366f1; font-weight: 700; margin-bottom: 10px;">
+                Why it matters
+            </p>
+
+            <h2 style="font-size: 32px; line-height: 1.2; margin: 0 0 18px; color: #0f172a;">
+                {{ section.headline }}
+            </h2>
+
+            <p style="white-space: pre-line; line-height: 1.75; color: #475569; font-size: 16px;">
+                {{ section.body }}
+            </p>
+        </div>
     </section>
     {% endif %}
 
 
     {% if section.type == "services" %}
-    <section class="panel">
-        <p class="section-kicker">Services</p>
-        <h2>{{ section.headline }}</h2>
+    <section style="padding: 72px 20px; background: #f8fafc;">
+        <div style="max-width: 1080px; margin: 0 auto;">
+            <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; color: #6366f1; font-weight: 700; margin-bottom: 10px;">
+                Services
+            </p>
 
-        <div class="website-card-grid">
-            {% for item in section["items"] %}
-            <div class="website-mini-card">
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
+            <h2 style="font-size: 32px; line-height: 1.2; margin: 0 0 30px; color: #0f172a;">
+                {{ section.headline }}
+            </h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px;">
+                {% for item in section.items %}
+                <div style="padding: 24px; border-radius: 18px; background: white; border: 1px solid #e2e8f0;">
+                    <h3 style="font-size: 19px; margin: 0 0 10px; color: #0f172a;">
+                        {{ item.title }}
+                    </h3>
+
+                    <p style="line-height: 1.65; color: #475569; margin: 0;">
+                        {{ item.description }}
+                    </p>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </section>
     {% endif %}
 
 
     {% if section.type == "proof" %}
-    <section class="panel">
-        <p class="section-kicker">Proof</p>
-        <h2>{{ section.headline }}</h2>
+    <section style="padding: 72px 20px; background: white;">
+        <div style="max-width: 900px; margin: 0 auto;">
+            <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; color: #6366f1; font-weight: 700; margin-bottom: 10px;">
+                Proof
+            </p>
 
-        <ul class="website-check-list">
-            {% for item in section["items"] %}
-            <li>{{ item }}</li>
-            {% endfor %}
-        </ul>
+            <h2 style="font-size: 32px; line-height: 1.2; margin: 0 0 24px; color: #0f172a;">
+                {{ section.headline }}
+            </h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                {% for item in section.items %}
+                <div style="padding: 16px 18px; border-radius: 14px; background: #f8fafc; border: 1px solid #e2e8f0; color: #334155;">
+                    ✓ {{ item }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </section>
     {% endif %}
 
 
     {% if section.type == "faq" %}
-    <section class="panel">
-        <p class="section-kicker">FAQ</p>
-        <h2>{{ section.headline }}</h2>
+    <section style="padding: 72px 20px; background: #f8fafc;">
+        <div style="max-width: 900px; margin: 0 auto;">
+            <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; color: #6366f1; font-weight: 700; margin-bottom: 10px;">
+                FAQ
+            </p>
 
-        <div class="website-faq-list">
-            {% for item in section["items"] %}
-            <div class="website-faq-item">
-                <h3>{{ item.question }}</h3>
-                <p>{{ item.answer }}</p>
+            <h2 style="font-size: 32px; line-height: 1.2; margin: 0 0 30px; color: #0f172a;">
+                {{ section.headline }}
+            </h2>
+
+            <div style="display: grid; gap: 16px;">
+                {% for item in section.items %}
+                <div style="padding: 22px; border-radius: 16px; background: white; border: 1px solid #e2e8f0;">
+                    <h3 style="font-size: 18px; margin: 0 0 8px; color: #0f172a;">
+                        {{ item.question }}
+                    </h3>
+
+                    <p style="line-height: 1.65; color: #475569; margin: 0;">
+                        {{ item.answer }}
+                    </p>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </section>
     {% endif %}
 
 
     {% if section.type == "cta" %}
-    <section class="panel website-cta">
-        <h2>{{ section.headline }}</h2>
-        <p>{{ section.body }}</p>
-        <a href="#" class="btn btn-primary">{{ section.button }}</a>
+    <section style="padding: 86px 20px; text-align: center; background: #1e293b; color: white;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h2 style="font-size: 34px; line-height: 1.2; margin: 0 0 12px;">
+                {{ section.headline }}
+            </h2>
+
+            <p style="line-height: 1.7; opacity: 0.9; margin: 0 auto 26px; max-width: 620px;">
+                {{ section.body }}
+            </p>
+
+            {% if section.button %}
+            <a href="#" style="background: #6366f1; color: white; padding: 13px 22px; border-radius: 10px; text-decoration: none; font-weight: 700; display: inline-block;">
+                {{ section.button }}
+            </a>
+            {% endif %}
+        </div>
     </section>
     {% endif %}
 
