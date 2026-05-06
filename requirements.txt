@@ -54,3 +54,6 @@ weasyprint==68.1
 webencodings==0.5.1
 Werkzeug==3.1.6
 zopfli==0.4.1
+tavily-python
+python-dotenv
+openai
