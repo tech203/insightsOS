@@ -48,6 +48,41 @@
     </section>
     {% endif %}
 
+    <section class="queue-filter-card">
+    <div class="queue-filter-copy">
+        <span class="section-kicker">Workspace Filter</span>
+
+        {% if selected_client %}
+            <h2>{{ selected_client.name }} queue</h2>
+            <p>Showing content opportunities for this workspace only.</p>
+        {% else %}
+            <h2>All workspace queues</h2>
+            <p>Showing content opportunities across all workspaces.</p>
+        {% endif %}
+    </div>
+
+    <form method="GET" action="{{ url_for('content_queue_page') }}" class="queue-filter-form">
+        <label for="client_id">Workspace</label>
+
+        <select id="client_id" name="client_id" onchange="this.form.submit()">
+            <option value="">All Workspaces</option>
+
+            {% for client in clients %}
+            <option value="{{ client.id }}"
+                {% if selected_client_id and selected_client_id|string == client.id|string %}selected{% endif %}>
+                {{ client.name }}
+            </option>
+            {% endfor %}
+        </select>
+
+        {% if selected_client_id %}
+        <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
+            View All
+        </a>
+        {% endif %}
+    </form>
+</section>
+
     {% if incoming_query %}
     <section class="tracked-prompt-action-card">
         <div class="tracked-prompt-copy">
@@ -113,9 +148,15 @@
                 Brand Context
             </a>
 
-            <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">
-                Generate Query Ideas
-            </a>
+            {% if current_user.plan == "free" %}
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                    Upgrade to Generate Query Ideas
+                </a>
+            {% else %}
+                <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">
+                    Generate Query Ideas
+                </a>
+            {% endif %}            
             {% endif %}
 
             {% if can_run_audit %}
@@ -255,10 +296,16 @@
                     Brand Context
                 </a>
 
+            {% if current_user.plan == "free" %}
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                    Upgrade to Generate Query Ideas
+                </a>
+            {% else %}
                 <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">
                     Generate Query Ideas
                 </a>
-            </div>
+            {% endif %}           
+</div>
             {% endif %}
         </div>
 
@@ -367,9 +414,15 @@
                 </button>
             {% endif %}
 
-            <a href="{{ url_for('generate_page_from_queue', item_id=item.id) }}" class="btn btn-secondary">
-                Generate Page
-            </a>
+            {% if current_user.plan == "free" %}
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">
+                    Upgrade to Generate Page
+                </a>
+            {% else %}
+                <a href="{{ url_for('generate_page_from_queue', item_id=item.id) }}" class="btn btn-secondary">
+                    Generate Page
+                </a>
+            {% endif %}
 
         {% endif %}
     {% endif %}
@@ -625,6 +678,71 @@
 .queue-pagination button[disabled] {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+.queue-filter-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    margin-bottom: 18px;
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 22px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.queue-filter-copy h2 {
+    margin: 10px 0 6px;
+    color: #16243c;
+    font-size: 22px;
+    line-height: 1.15;
+}
+
+.queue-filter-copy p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.queue-filter-form {
+    display: grid;
+    gap: 10px;
+}
+
+.queue-filter-form label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #344054;
+}
+
+.queue-filter-form select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid #d8dee9;
+    border-radius: 12px;
+    padding: 0 12px;
+    background: #ffffff;
+    color: #16243c;
+}
+
+@media (min-width: 768px) {
+    .queue-filter-card {
+        flex-direction: row;
+        align-items: end;
+        justify-content: space-between;
+    }
+
+    .queue-filter-form {
+        min-width: 320px;
+        grid-template-columns: minmax(220px, 1fr) auto;
+        align-items: end;
+    }
+
+    .queue-filter-form label {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 768px) {

@@ -1,43 +1,4 @@
-from dotenv import load_dotenv
-load_dotenv()
-import csv
-import os
-from website_page_builder import generate_structured_website_page
-from urllib.parse import urlparse
-from tavily import TavilyClient
-from datetime import datetime
-from flask import (
-    Flask,
-    render_template,
-    abort,
-    jsonify,
-    request,
-    redirect,
-    url_for,
-    flash,
-    session,
-)
-from query_idea_generator import generate_query_ideas
-from action_engine import build_recommended_actions
-
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import (
-    LoginManager,
-    UserMixin,
-    login_user,
-    logout_user,
-    login_required,
-    current_user,
-)
-from werkzeug.security import generate_password_hash, check_password_hash
-import os
-import json
-from datetime import datetime
-
-from audit_runner import run_audit_for_input
-from content_brief_generator import generate_content_brief
-from content_draft_generator import generate_content_draft
-from help_content import HELP_GLOSSARY
+from flask_migrate import Migrate
 from content_queue import (
     add_queue_item,
     get_queue_items,
@@ -48,16 +9,62 @@ from content_queue import (
     update_queue_item_details,
     delete_queue_item,
 )
+from help_content import HELP_GLOSSARY
+from content_draft_generator import generate_content_draft
+from content_brief_generator import generate_content_brief
+from audit_runner import run_audit_for_input
+import json
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+)
+from flask_sqlalchemy import SQLAlchemy
+from action_engine import (
+    build_recommended_actions,
+    build_content_opportunities,
+)
+from query_idea_generator import generate_query_ideas
+from flask import (
+    Flask,
+    render_template,
+    abort,
+    jsonify,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    make_response,
+)
+from datetime import datetime
+from tavily import TavilyClient
+from urllib.parse import urlparse
+from website_page_builder import generate_structured_website_page
+import os
+import csv
+from dotenv import load_dotenv
 
-from flask_migrate import Migrate
+load_dotenv()
+
 
 app = Flask(__name__)
 print("Flask app initialized")
 
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "change-this-to-a-random-secret-key")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///app.db")
+app.config["SECRET_KEY"] = os.getenv(
+    "SECRET_KEY", "change-this-to-a-random-secret-key"
+)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", "sqlite:///app.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads", "workspace_logos")
+app.config["UPLOAD_FOLDER"] = os.path.join(
+    "static", "uploads", "workspace_logos"
+)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 db = SQLAlchemy(app)
@@ -74,6 +81,7 @@ CLIENTS_FILE = os.path.join(DATA_FOLDER, "clients.json")
 # Database models
 # =========================
 
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 
@@ -82,7 +90,9 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     referral_code = db.Column(db.String(50), unique=True, nullable=True)
-    referred_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    referred_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     role = db.Column(db.String(50), default="user")
@@ -109,9 +119,13 @@ class Wallet(db.Model):
     __tablename__ = "wallets"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False
+    )
     balance = db.Column(db.Integer, default=0, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 
 class CreditTransaction(db.Model):
@@ -123,22 +137,30 @@ class CreditTransaction(db.Model):
     amount = db.Column(db.Integer, nullable=False)
     balance_after = db.Column(db.Integer, nullable=False)
     notes = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False
+    )
 
 
 class Referral(db.Model):
     __tablename__ = "referrals"
 
     id = db.Column(db.Integer, primary_key=True)
-    referrer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    referred_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    referrer_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False
+    )
+    referred_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False
+    )
     referral_code = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), default="pending", nullable=False)
     reward_amount_referrer = db.Column(db.Integer, default=0, nullable=False)
     reward_amount_referred = db.Column(db.Integer, default=0, nullable=False)
     qualified_at = db.Column(db.DateTime, nullable=True)
     rewarded_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False
+    )
 
 
 class Client(db.Model):
@@ -146,7 +168,9 @@ class Client(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(255), nullable=False, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
 
     name = db.Column(db.String(255), nullable=False)
     website = db.Column(db.String(500), nullable=False)
@@ -158,19 +182,29 @@ class Client(db.Model):
     notes = db.Column(db.Text, nullable=True)
     logo_filename = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False
+    )
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "slug", name="uq_clients_user_slug"),
     )
+
 
 class PromptTracking(db.Model):
     __tablename__ = "prompt_tracking"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
 
     domain = db.Column(db.String(255), nullable=True, index=True)
     platform = db.Column(db.String(100), nullable=True, index=True)
@@ -184,24 +218,35 @@ class PromptTracking(db.Model):
     mentioned = db.Column(db.String(50), default="No", nullable=False)
     top_competitor = db.Column(db.String(255), nullable=True)
 
-    last_checked = db.Column(db.String(100), default="Just added", nullable=True)
+    last_checked = db.Column(
+        db.String(100), default="Just added", nullable=True
+    )
     change = db.Column(db.String(50), default="New", nullable=True)
 
     prompt_score = db.Column(db.Integer, default=0, nullable=False)
     score_band = db.Column(db.String(50), default="Weak", nullable=True)
-    opportunity_label = db.Column(db.String(100), default="High opportunity", nullable=True)
-    brand_position = db.Column(db.String(100), default="Not mentioned", nullable=True)
+    opportunity_label = db.Column(
+        db.String(100), default="High opportunity", nullable=True
+    )
+    brand_position = db.Column(
+        db.String(100), default="Not mentioned", nullable=True
+    )
     competitor_count = db.Column(db.Integer, default=0, nullable=False)
     source_support = db.Column(db.String(100), default="Low", nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False
+    )
+
 
 class GeneratedWebsiteProject(db.Model):
     __tablename__ = "generated_website_projects"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False
+    )
 
     title = db.Column(db.String(255), nullable=False)
     theme = db.Column(db.String(100), default="professional_services")
@@ -209,16 +254,25 @@ class GeneratedWebsiteProject(db.Model):
 
     blueprint_json = db.Column(db.JSON, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
 
 class GeneratedWebsitePage(db.Model):
     __tablename__ = "generated_website_pages"
 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("generated_website_projects.id"), nullable=True)
+    project_id = db.Column(
+        db.Integer,
+        db.ForeignKey("generated_website_projects.id"),
+        nullable=True,
+    )
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=True
+    )
 
     title = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(220), nullable=False)
@@ -227,7 +281,10 @@ class GeneratedWebsitePage(db.Model):
 
     page_json = db.Column(db.JSON, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -237,6 +294,7 @@ def load_user(user_id):
 # =========================
 # General helpers
 # =========================
+
 
 def build_ai_brief_context(client, target_query, latest_audit=None):
     client_name = safe_str(client.get("name"))
@@ -261,7 +319,9 @@ def build_ai_brief_context(client, target_query, latest_audit=None):
 
         for gap in (latest_audit.get("top_content_gaps") or [])[:3]:
             if isinstance(gap, dict):
-                label = safe_str(gap.get("title") or gap.get("query") or gap.get("label"))
+                label = safe_str(
+                    gap.get("title") or gap.get("query") or gap.get("label")
+                )
                 if label:
                     content_gaps.append(label)
             else:
@@ -269,8 +329,16 @@ def build_ai_brief_context(client, target_query, latest_audit=None):
                 if label:
                     content_gaps.append(label)
 
-    competitor_text = ", ".join(competitor_names) if competitor_names else "relevant competitors in the market"
-    gaps_text = ", ".join(content_gaps) if content_gaps else "clear buying questions, trust signals, and local relevance"
+    competitor_text = (
+        ", ".join(competitor_names)
+        if competitor_names
+        else "relevant competitors in the market"
+    )
+    gaps_text = (
+        ", ".join(content_gaps)
+        if content_gaps
+        else "clear buying questions, trust signals, and local relevance"
+    )
 
     return (
         f"Users searching '{target_query}' are likely looking for a clear and trustworthy answer before deciding what to choose. "
@@ -282,6 +350,7 @@ def build_ai_brief_context(client, target_query, latest_audit=None):
         f"Brand website: {website}. "
         f"{'Additional brand notes: ' + notes if notes else ''}"
     ).strip()
+
 
 def extract_domain_from_url(url):
     if not url:
@@ -332,7 +401,11 @@ def discover_competitors_from_web(client):
                 if own_domain and domain == own_domain:
                     continue
 
-                if "google." in domain or "facebook." in domain or "linkedin." in domain:
+                if (
+                    "google." in domain
+                    or "facebook." in domain
+                    or "linkedin." in domain
+                ):
                     continue
 
                 if domain not in domain_counts:
@@ -349,17 +422,14 @@ def discover_competitors_from_web(client):
             print("Tavily competitor discovery error:", e)
 
     results = sorted(
-        domain_counts.values(),
-        key=lambda x: x["mentions"],
-        reverse=True
+        domain_counts.values(), key=lambda x: x["mentions"], reverse=True
     )
 
     return results[:10]
 
+
 def get_prompt_visibility(client_id, target_query):
-    rows = PromptTracking.query.filter_by(
-        user_id=current_user.id
-    ).all()
+    rows = PromptTracking.query.filter_by(user_id=current_user.id).all()
 
     if not rows:
         return 30  # fallback
@@ -374,10 +444,9 @@ def get_prompt_visibility(client_id, target_query):
     visibility = (mentions / total) * 100
     return int(visibility)
 
+
 def get_competitor_strength(client_id):
-    rows = PromptTracking.query.filter_by(
-        user_id=current_user.id
-    ).all()
+    rows = PromptTracking.query.filter_by(user_id=current_user.id).all()
 
     if not rows:
         return 50
@@ -391,6 +460,7 @@ def get_competitor_strength(client_id):
     strength = (competitor_hits / len(rows)) * 100
     return int(strength)
 
+
 def get_content_score(result):
     if not result:
         return 40
@@ -401,6 +471,7 @@ def get_content_score(result):
 
     return int(length_score)
 
+
 def calculate_aeo_score(visibility=None, competitors=None, content_score=None):
     # fallback defaults
     visibility = visibility or 40
@@ -409,9 +480,9 @@ def calculate_aeo_score(visibility=None, competitors=None, content_score=None):
 
     # weighted scoring
     score = (
-        (visibility * 0.4) +
-        ((100 - competitors) * 0.3) +
-        (content_score * 0.3)
+        (visibility * 0.4)
+        + ((100 - competitors) * 0.3)
+        + (content_score * 0.3)
     )
 
     # classify
@@ -426,8 +497,9 @@ def calculate_aeo_score(visibility=None, competitors=None, content_score=None):
         "score": int(score),
         "opportunity": opportunity,
         "competitor_strength": "High" if competitors > 60 else "Low",
-        "visibility": visibility
+        "visibility": visibility,
     }
+
 
 def auto_detect_competitors_for_client(client_id, user_id):
     client = get_client_by_id(client_id)
@@ -442,7 +514,13 @@ def auto_detect_competitors_for_client(client_id, user_id):
         if not name or name in ["—", "-", "None", "N/A"]:
             return
 
-        key = name.lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/")
+        key = (
+            name.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip("/")
+        )
 
         if not key:
             return
@@ -461,9 +539,11 @@ def auto_detect_competitors_for_client(client_id, user_id):
     audits = get_saved_audits(user_id=user_id)
 
     matched_audits = [
-        audit for audit in audits
+        audit
+        for audit in audits
         if str(audit.get("client_id")) == str(client_id)
-        or normalize_website(audit.get("website", "")) == normalize_website(client.get("website", ""))
+        or normalize_website(audit.get("website", ""))
+        == normalize_website(client.get("website", ""))
     ]
 
     for audit in matched_audits:
@@ -496,15 +576,18 @@ def auto_detect_competitors_for_client(client_id, user_id):
     results = []
 
     for item in competitors.values():
-        results.append({
-            "name": item["name"],
-            "mentions": item["mentions"],
-            "sources": sorted(list(item["sources"])),
-        })
+        results.append(
+            {
+                "name": item["name"],
+                "mentions": item["mentions"],
+                "sources": sorted(list(item["sources"])),
+            }
+        )
 
     results = sorted(results, key=lambda x: x["mentions"], reverse=True)
 
     return results[:10]
+
 
 def demo_website_page_json(client_name="Demo Business"):
     return {
@@ -513,7 +596,7 @@ def demo_website_page_json(client_name="Demo Business"):
         "slug": "ai-visibility-service-page",
         "seo": {
             "title": f"{client_name} | AI Visibility Services",
-            "description": f"Improve how {client_name} appears in AI search answers, ChatGPT recommendations, and customer discovery prompts."
+            "description": f"Improve how {client_name} appears in AI search answers, ChatGPT recommendations, and customer discovery prompts.",
         },
         "sections": [
             {
@@ -522,12 +605,12 @@ def demo_website_page_json(client_name="Demo Business"):
                 "headline": f"Help {client_name} get discovered in AI answers",
                 "subtext": "We identify why your business is missing from AI-generated recommendations and create the content needed to improve visibility.",
                 "primary_cta": "Request an AI Visibility Audit",
-                "secondary_cta": "View Recommendations"
+                "secondary_cta": "View Recommendations",
             },
             {
                 "type": "problem",
                 "headline": "Your customers are searching differently now",
-                "body": "More customers are asking AI tools for recommendations before they visit Google or compare websites. If your business is not mentioned, you may be invisible at the decision stage."
+                "body": "More customers are asking AI tools for recommendations before they visit Google or compare websites. If your business is not mentioned, you may be invisible at the decision stage.",
             },
             {
                 "type": "services",
@@ -535,17 +618,17 @@ def demo_website_page_json(client_name="Demo Business"):
                 "items": [
                     {
                         "title": "AI Answer Visibility",
-                        "description": "Track whether your brand appears in relevant AI-generated answers."
+                        "description": "Track whether your brand appears in relevant AI-generated answers.",
                     },
                     {
                         "title": "Content Gap Fixes",
-                        "description": "Find missing FAQs, service pages, comparison content, and trust signals."
+                        "description": "Find missing FAQs, service pages, comparison content, and trust signals.",
                     },
                     {
                         "title": "AEO-Ready Pages",
-                        "description": "Generate structured pages designed for AI answer engines and human readers."
-                    }
-                ]
+                        "description": "Generate structured pages designed for AI answer engines and human readers.",
+                    },
+                ],
             },
             {
                 "type": "proof",
@@ -554,8 +637,8 @@ def demo_website_page_json(client_name="Demo Business"):
                     "Track prompt visibility over time",
                     "Compare against competitors",
                     "Generate pages from missed opportunities",
-                    "Review and publish updates"
-                ]
+                    "Review and publish updates",
+                ],
             },
             {
                 "type": "faq",
@@ -563,96 +646,135 @@ def demo_website_page_json(client_name="Demo Business"):
                 "items": [
                     {
                         "question": "What is AI visibility?",
-                        "answer": "AI visibility means how often your business appears when users ask AI tools for recommendations, comparisons, or service providers."
+                        "answer": "AI visibility means how often your business appears when users ask AI tools for recommendations, comparisons, or service providers.",
                     },
                     {
                         "question": "How is this different from SEO?",
-                        "answer": "SEO focuses on search engine rankings. AEO focuses on being included and recommended inside AI-generated answers."
+                        "answer": "SEO focuses on search engine rankings. AEO focuses on being included and recommended inside AI-generated answers.",
                     },
                     {
                         "question": "Can this improve my website?",
-                        "answer": "Yes. The system identifies missing content and turns it into website-ready sections or pages."
-                    }
-                ]
+                        "answer": "Yes. The system identifies missing content and turns it into website-ready sections or pages.",
+                    },
+                ],
             },
             {
                 "type": "cta",
                 "headline": "Ready to improve your AI visibility?",
                 "body": "Start with an audit and see where your business is missing from AI answers.",
-                "button": "Start Audit"
-            }
-        ]
+                "button": "Start Audit",
+            },
+        ],
     }
+
 
 @app.route("/client/<client_id>/website-builder")
 @login_required
 def website_builder_page(client_id):
+    if current_user.plan == "free":
+        flash(
+            "Website and page generation is available on Pro and Growth plans.",
+            "info",
+        )
+        return redirect(url_for("pricing_page"))
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
 
-    row = Client.query.filter_by(slug=str(client_id), user_id=current_user.id).first()
+    row = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
     if not row and str(client_id).isdigit():
-        row = Client.query.filter_by(id=int(client_id), user_id=current_user.id).first()
+        row = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
 
     projects = []
     if row:
-        projects = GeneratedWebsiteProject.query.filter_by(
-            user_id=current_user.id,
-            client_id=row.id
-        ).order_by(GeneratedWebsiteProject.created_at.desc()).all()
+        projects = (
+            GeneratedWebsiteProject.query.filter_by(
+                user_id=current_user.id, client_id=row.id
+            )
+            .order_by(GeneratedWebsiteProject.created_at.desc())
+            .all()
+        )
 
     return render_template(
-        "website_builder.html",
-        client=client,
-        projects=projects
+        "website_builder.html", client=client, projects=projects
     )
+
 
 @app.route("/client/<client_id>/competitors/auto-detect")
 @login_required
 def auto_detect_competitors_page(client_id):
+    if current_user.plan == "free":
+        flash(
+            "Automatic competitor discovery is available on Pro and Growth plans.",
+            "info",
+        )
+        return redirect(url_for("pricing_page"))
     client = get_client_by_id(client_id)
 
     if not client:
         abort(404)
 
     detected_competitors = auto_detect_competitors_for_client(
-        client_id=client_id,
-        user_id=current_user.id
+        client_id=client_id, user_id=current_user.id
     )
 
     if not detected_competitors:
-        flash("No competitors found yet. Run an audit or add prompt tracking first, then try auto-detect again.", "warning")
-        return redirect(url_for(
-            "client_competitors_page",
-            client_id=client_id,
-            domain=normalize_website(client.get("website", ""))
-        ))
+        flash(
+            "No competitors found yet. Run an audit or add prompt tracking first, then try auto-detect again.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "client_competitors_page",
+                client_id=client_id,
+                domain=normalize_website(client.get("website", "")),
+            )
+        )
 
     competitor_args = {}
 
     for index, comp in enumerate(detected_competitors[:4], start=1):
         competitor_args[f"competitor_{index}"] = comp["name"]
 
-    flash(f"Auto-filled {len(competitor_args)} competitors from audit/prompt data.", "success")
+    flash(
+        f"Auto-filled {len(competitor_args)} competitors from audit/prompt data.",
+        "success",
+    )
 
-    return redirect(url_for(
-        "client_competitors_page",
-        client_id=client_id,
-        domain=normalize_website(client.get("website", "")),
-        **competitor_args
-    ))
+    return redirect(
+        url_for(
+            "client_competitors_page",
+            client_id=client_id,
+            domain=normalize_website(client.get("website", "")),
+            **competitor_args,
+        )
+    )
+
 
 @app.route("/client/<client_id>/website-builder/generate", methods=["POST"])
 @login_required
 def generate_full_website(client_id):
+    if current_user.plan == "free":
+        flash(
+            "Website and page generation is available on Pro and Growth plans.",
+            "info",
+        )
+        return redirect(url_for("pricing_page"))
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
 
-    row = Client.query.filter_by(slug=str(client_id), user_id=current_user.id).first()
+    row = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
     if not row and str(client_id).isdigit():
-        row = Client.query.filter_by(id=int(client_id), user_id=current_user.id).first()
+        row = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
 
     if not row:
         abort(404)
@@ -665,7 +787,7 @@ def generate_full_website(client_id):
         title=f"{client.get('name')} Website Revamp",
         theme=blueprint["theme"],
         status="draft",
-        blueprint_json=blueprint
+        blueprint_json=blueprint,
     )
 
     db.session.add(project)
@@ -682,7 +804,7 @@ def generate_full_website(client_id):
             slug=page_json["slug"],
             page_type=page_json["page_type"],
             status="draft",
-            page_json=page_json
+            page_json=page_json,
         )
         db.session.add(page)
 
@@ -700,19 +822,25 @@ def preview_website_project(project_id):
     if project.user_id != current_user.id:
         abort(403)
 
-    pages = GeneratedWebsitePage.query.filter_by(
-        project_id=project.id,
-        user_id=current_user.id
-    ).order_by(GeneratedWebsitePage.id.asc()).all()
+    pages = (
+        GeneratedWebsitePage.query.filter_by(
+            project_id=project.id, user_id=current_user.id
+        )
+        .order_by(GeneratedWebsitePage.id.asc())
+        .all()
+    )
 
     return render_template(
         "website_project_preview.html",
         project=project,
         pages=pages,
-        blueprint=project.blueprint_json
+        blueprint=project.blueprint_json,
     )
 
-@app.route("/website-builder/project/<int:project_id>/publish", methods=["POST"])
+
+@app.route(
+    "/website-builder/project/<int:project_id>/publish", methods=["POST"]
+)
 @login_required
 def publish_website_project(project_id):
     project = GeneratedWebsiteProject.query.get_or_404(project_id)
@@ -740,18 +868,19 @@ def public_website_project(project_id):
         abort(404)
 
     page = GeneratedWebsitePage.query.filter_by(
-        project_id=project.id,
-        slug="home",
-        status="published"
+        project_id=project.id, slug="home", status="published"
     ).first()
 
     if not page:
         abort(404)
 
-    pages = GeneratedWebsitePage.query.filter_by(
-        project_id=project.id,
-        status="published"
-    ).order_by(GeneratedWebsitePage.id.asc()).all()
+    pages = (
+        GeneratedWebsitePage.query.filter_by(
+            project_id=project.id, status="published"
+        )
+        .order_by(GeneratedWebsitePage.id.asc())
+        .all()
+    )
 
     return render_template(
         "generated_full_site.html",
@@ -759,7 +888,7 @@ def public_website_project(project_id):
         page=page,
         pages=pages,
         page_json=page.page_json,
-        blueprint=project.blueprint_json
+        blueprint=project.blueprint_json,
     )
 
 
@@ -771,15 +900,16 @@ def public_website_page(project_id, slug):
         abort(404)
 
     page = GeneratedWebsitePage.query.filter_by(
-        project_id=project.id,
-        slug=slug,
-        status="published"
+        project_id=project.id, slug=slug, status="published"
     ).first_or_404()
 
-    pages = GeneratedWebsitePage.query.filter_by(
-        project_id=project.id,
-        status="published"
-    ).order_by(GeneratedWebsitePage.id.asc()).all()
+    pages = (
+        GeneratedWebsitePage.query.filter_by(
+            project_id=project.id, status="published"
+        )
+        .order_by(GeneratedWebsitePage.id.asc())
+        .all()
+    )
 
     return render_template(
         "generated_full_site.html",
@@ -787,8 +917,9 @@ def public_website_page(project_id, slug):
         page=page,
         pages=pages,
         page_json=page.page_json,
-        blueprint=project.blueprint_json
+        blueprint=project.blueprint_json,
     )
+
 
 def build_demo_website_blueprint(client):
     industry = (client.get("industry") or "").lower()
@@ -799,7 +930,11 @@ def build_demo_website_blueprint(client):
         theme = "clinic_wellness"
         style = "calm, clean, reassuring, health-focused"
         functions = ["appointment booking", "contact form", "FAQ schema"]
-    elif "tuition" in industry or "education" in industry or "school" in industry:
+    elif (
+        "tuition" in industry
+        or "education" in industry
+        or "school" in industry
+    ):
         theme = "education_centre"
         style = "friendly, structured, parent-focused, trustworthy"
         functions = ["enquiry form", "programme cards", "FAQ schema"]
@@ -830,40 +965,39 @@ def build_demo_website_blueprint(client):
                 "title": "Home",
                 "slug": "home",
                 "page_type": "home",
-                "goal": "Explain the business clearly and convert visitors into enquiries."
+                "goal": "Explain the business clearly and convert visitors into enquiries.",
             },
             {
                 "title": "Services",
                 "slug": "services",
                 "page_type": "services",
-                "goal": "Show what the business offers and answer buying-intent questions."
+                "goal": "Show what the business offers and answer buying-intent questions.",
             },
             {
                 "title": "About",
                 "slug": "about",
                 "page_type": "about",
-                "goal": "Build trust, credibility, and brand confidence."
+                "goal": "Build trust, credibility, and brand confidence.",
             },
             {
                 "title": "FAQ",
                 "slug": "faq",
                 "page_type": "faq",
-                "goal": "Answer common questions clearly for humans and AI answer engines."
+                "goal": "Answer common questions clearly for humans and AI answer engines.",
             },
             {
                 "title": "Contact",
                 "slug": "contact",
                 "page_type": "contact",
-                "goal": "Make it easy for visitors to enquire."
-            }
+                "goal": "Make it easy for visitors to enquire.",
+            },
         ],
-        "aeo_focus": [
-            f"best {client.get('industry', 'service provider')} in {location}",
-            f"{client_name} services",
-            f"how to choose {client.get('industry', 'a provider')}",
-            f"{client.get('industry', 'service')} cost in {location}"
-        ]
+        "aeo_focus": [f"best {client.get('industry',
+                                             'service provider')} in {location}", f"{client_name} services", f"how to choose {client.get('industry',
+                                                      'a provider')}", f"{client.get('industry',
+                                        'service')} cost in {location}"],
     }
+
 
 def build_generated_site_page(client, blueprint, page_config):
     client_name = blueprint["client_name"]
@@ -877,16 +1011,25 @@ def build_generated_site_page(client, blueprint, page_config):
                 "headline": f"{client_name} helps customers make confident decisions",
                 "subtext": f"A {blueprint['style_direction']} website experience designed to explain services clearly, build trust, and improve AI visibility.",
                 "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": blueprint["secondary_cta"]
+                "secondary_cta": blueprint["secondary_cta"],
             },
             {
                 "type": "services",
                 "headline": "What we help with",
                 "items": [
-                    {"title": "Clear service information", "description": "Pages structured around what customers and AI answer engines need to understand."},
-                    {"title": "Trust-building content", "description": "Proof, FAQs, and decision factors that make the business easier to recommend."},
-                    {"title": "Conversion-ready journeys", "description": "Clear calls-to-action that guide visitors toward enquiry or booking."}
-                ]
+                    {
+                        "title": "Clear service information",
+                        "description": "Pages structured around what customers and AI answer engines need to understand.",
+                    },
+                    {
+                        "title": "Trust-building content",
+                        "description": "Proof, FAQs, and decision factors that make the business easier to recommend.",
+                    },
+                    {
+                        "title": "Conversion-ready journeys",
+                        "description": "Clear calls-to-action that guide visitors toward enquiry or booking.",
+                    },
+                ],
             },
             {
                 "type": "proof",
@@ -895,15 +1038,15 @@ def build_generated_site_page(client, blueprint, page_config):
                     "Clear explanations",
                     "Helpful service guidance",
                     "Trust-focused content",
-                    "Fast enquiry options"
-                ]
+                    "Fast enquiry options",
+                ],
             },
             {
                 "type": "cta",
                 "headline": "Ready to take the next step?",
                 "body": "Get in touch to learn more or request a consultation.",
-                "button": blueprint["primary_cta"]
-            }
+                "button": blueprint["primary_cta"],
+            },
         ]
 
     elif page_type == "services":
@@ -914,17 +1057,26 @@ def build_generated_site_page(client, blueprint, page_config):
                 "headline": f"Services from {client_name}",
                 "subtext": "Explore the key services, what they include, and how to decide what is right for you.",
                 "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": "Read FAQs"
+                "secondary_cta": "Read FAQs",
             },
             {
                 "type": "services",
                 "headline": "Core services",
                 "items": [
-                    {"title": "Main service", "description": "A clear explanation of the primary offer and who it is best for."},
-                    {"title": "Specialist support", "description": "Helpful guidance for customers with more specific needs."},
-                    {"title": "Ongoing help", "description": "Support designed to make the next step simple and clear."}
-                ]
-            }
+                    {
+                        "title": "Main service",
+                        "description": "A clear explanation of the primary offer and who it is best for.",
+                    },
+                    {
+                        "title": "Specialist support",
+                        "description": "Helpful guidance for customers with more specific needs.",
+                    },
+                    {
+                        "title": "Ongoing help",
+                        "description": "Support designed to make the next step simple and clear.",
+                    },
+                ],
+            },
         ]
 
     else:
@@ -935,7 +1087,7 @@ def build_generated_site_page(client, blueprint, page_config):
                 "headline": f"{page_config['title']} | {client_name}",
                 "subtext": page_config["goal"],
                 "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": blueprint["secondary_cta"]
+                "secondary_cta": blueprint["secondary_cta"],
             }
         ]
 
@@ -945,15 +1097,21 @@ def build_generated_site_page(client, blueprint, page_config):
         "slug": page_config["slug"],
         "seo": {
             "title": f"{page_config['title']} | {client_name}",
-            "description": page_config["goal"]
+            "description": page_config["goal"],
         },
-        "sections": sections
+        "sections": sections,
     }
 
 
 @app.route("/content-queue/<item_id>/generate-page")
 @login_required
 def generate_page_from_queue(item_id):
+    if current_user.plan == "free":
+        flash(
+            "Website and page generation is available on Pro and Growth plans.",
+            "info",
+        )
+        return redirect(url_for("pricing_page"))
     item = get_queue_item_by_id(item_id, user_id=current_user.id)
 
     if not item:
@@ -987,8 +1145,12 @@ def generate_page_from_queue(item_id):
         flash(f"AI page generation failed: {str(e)}", "error")
         return redirect(url_for("content_queue_page", client_id=client_id))
 
-    page_json["slug"] = page_json.get("slug") or slugify(target_query) or "generated-page"
-    page_json["title"] = page_json.get("title") or f"{client_name} | {target_query}"
+    page_json["slug"] = (
+        page_json.get("slug") or slugify(target_query) or "generated-page"
+    )
+    page_json["title"] = (
+        page_json.get("title") or f"{client_name} | {target_query}"
+    )
     page_json["page_type"] = page_json.get("page_type") or content_type
 
     page = GeneratedWebsitePage(
@@ -999,7 +1161,7 @@ def generate_page_from_queue(item_id):
         slug=page_json["slug"],
         page_type=page_json["page_type"],
         status="draft",
-        page_json=page_json
+        page_json=page_json,
     )
 
     db.session.add(page)
@@ -1007,6 +1169,7 @@ def generate_page_from_queue(item_id):
 
     flash("AI website page generated successfully.", "success")
     return redirect(url_for("preview_generated_page", page_id=page.id))
+
 
 @app.route("/client/<client_id>/website-engine/demo")
 @login_required
@@ -1016,7 +1179,9 @@ def website_engine_demo(client_id):
     if not client_data:
         abort(404)
 
-    page_json = demo_website_page_json(client_data.get("name", "Demo Business"))
+    page_json = demo_website_page_json(
+        client_data.get("name", "Demo Business")
+    )
 
     page = GeneratedWebsitePage(
         user_id=current_user.id,
@@ -1025,13 +1190,14 @@ def website_engine_demo(client_id):
         slug=page_json["slug"],
         page_type=page_json["page_type"],
         status="draft",
-        page_json=page_json
+        page_json=page_json,
     )
 
     db.session.add(page)
     db.session.commit()
 
     return redirect(url_for("preview_generated_page", page_id=page.id))
+
 
 @app.route("/website-engine/page/<int:page_id>/preview")
 @login_required
@@ -1042,9 +1208,7 @@ def preview_generated_page(page_id):
         abort(403)
 
     return render_template(
-        "website_engine_preview.html",
-        page=page,
-        page_json=page.page_json
+        "website_engine_preview.html", page=page, page_json=page.page_json
     )
 
 
@@ -1060,7 +1224,9 @@ def publish_generated_page(page_id):
     db.session.commit()
 
     flash("Page published successfully.", "success")
-    return redirect(url_for("public_generated_page", page_id=page.id, slug=page.slug))
+    return redirect(
+        url_for("public_generated_page", page_id=page.id, slug=page.slug)
+    )
 
 
 @app.route("/p/<int:page_id>/<slug>")
@@ -1071,16 +1237,29 @@ def public_generated_page(page_id, slug):
         abort(404)
 
     return render_template(
-        "website_engine_public.html",
-        page=page,
-        page_json=page.page_json
+        "website_engine_public.html", page=page, page_json=page.page_json
     )
 
+
 def create_content_opportunities_from_latest_audit(client_id, user_id):
+    """
+    Creates content queue items from the latest saved audit.
+
+    New flow:
+    latest saved audit
+    -> full audit data
+    -> build_recommended_actions()
+    -> build_content_opportunities()
+    -> add clean opportunities to content queue
+
+    Falls back safely if the audit does not contain research_pack yet.
+    """
+
     audits = get_saved_audits(user_id=user_id)
 
     matched = [
-        audit for audit in audits
+        audit
+        for audit in audits
         if str(audit.get("client_id")) == str(client_id)
     ]
 
@@ -1094,48 +1273,97 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
     if not full_data:
         return 0
 
+    client = get_client_by_id(client_id)
+    if not client:
+        return 0
+
+    research_pack = full_data.get("research_pack") or latest.get(
+        "research_pack"
+    )
+
+    query_rows = full_data.get("ai_answer_results", []) or []
+
+    query_analysis = []
+
+    for row in query_rows:
+        query_analysis.append(
+            {
+                "query": row.get("query"),
+                "brand_mentioned": row.get("brand_mentioned", False),
+                "score": row.get("score", 0),
+                "score_delta": row.get("score_delta", 0),
+                "competitors_mentioned": (
+                    row.get("competitors_mentioned")
+                    or row.get("latest_competitors")
+                    or []
+                ),
+            }
+        )
+
+    actions = build_recommended_actions(
+        client_name=client.get("name", ""),
+        website=client.get("website", ""),
+        scores=full_data.get("scores", latest.get("scores", {})),
+        query_analysis=query_analysis,
+        competitor_analysis={
+            "top_competitors": latest.get("top_competitors", [])
+        },
+        site_findings={
+            "technical_issues": full_data.get("technical_issues", [])
+        },
+        research_pack=research_pack,
+    )
+
+    opportunities = build_content_opportunities(actions)
+
+    if not opportunities:
+        return 0
+
+    existing_items = get_queue_items(client_id=client_id, user_id=user_id)
+
+    existing_queries = {
+        (item.get("target_query") or "").strip().lower()
+        for item in existing_items
+    }
+
+    active_limit = get_active_queue_limit(current_user)
+    active_count = get_active_queue_count(client_id, user_id)
+    available_slots = max(0, active_limit - active_count)
+
+    if available_slots <= 0:
+        return 0
+
     created_count = 0
-    ai_rows = full_data.get("ai_answer_results", []) or []
 
-    for row in ai_rows[:12]:
-        query = (row.get("query") or "").strip()
-        brand_mentioned = row.get("brand_mentioned", False)
-
-        if not query or brand_mentioned:
+    for opp in opportunities[:available_slots]:
+        target_query = safe_str(opp.get("target_query"))
+        if not target_query:
             continue
 
-        existing_items = get_queue_items(client_id=client_id, user_id=user_id)
-        already_exists = any(
-            (item.get("target_query") or "").strip().lower() == query.lower()
-            for item in existing_items
-        )
-
-        if already_exists:
+        if target_query.lower() in existing_queries:
             continue
-
-        client = get_client_by_id(client_id)
-        ai_brief_context = build_ai_brief_context(
-            client=client or {},
-            target_query=query,
-            latest_audit=latest,
-        )
 
         add_queue_item(
             client_id=client_id,
-            client_name=latest.get("client_name") or latest.get("website") or "Workspace",
-            target_query=query,
-            content_type="service_page",
+            client_name=client.get("name")
+            or latest.get("client_name")
+            or "Workspace",
+            target_query=target_query,
+            content_type=opp.get("content_type", "service_page"),
             item_type="brief",
-            title=f"Brief: {query}",
-            content=ai_brief_context,
+            title=opp.get("title") or f"Brief: {target_query}",
+            content=opp.get("reason", ""),
             status="pending",
-            priority="high",
-            source="audit",
+            priority=opp.get("priority", "medium"),
+            source="audit_opportunity",
             user_id=user_id,
-        )        
+        )
+
+        existing_queries.add(target_query.lower())
         created_count += 1
 
     return created_count
+
 
 def score_to_opportunity_label(score: float) -> str:
     if score >= 80:
@@ -1212,7 +1440,9 @@ def compute_mvp_prompt_inputs(
     brand_mentioned = mentioned in ["Yes", "Sometimes"]
 
     if mentioned == "Yes":
-        brand_position = 1 if visibility == "High" else 3 if visibility == "Medium" else 5
+        brand_position = (
+            1 if visibility == "High" else 3 if visibility == "Medium" else 5
+        )
     elif mentioned == "Sometimes":
         brand_position = 4
     else:
@@ -1257,10 +1487,11 @@ def apply_prompt_score(row: PromptTracking) -> None:
     row.score_band = result["band"]
     row.opportunity_label = result["opportunity_label"]
 
+
 def ensure_data_dirs():
     os.makedirs(DATA_FOLDER, exist_ok=True)
     os.makedirs(OUTPUTS_FOLDER, exist_ok=True)
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)    
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 
 def load_json_file(filepath):
@@ -1276,12 +1507,14 @@ def safe_load_json(filepath, default):
     except Exception:
         return default
 
+
 def safe_str(value):
     if value is None:
         return ""
     if isinstance(value, str):
         return value.strip()
     return str(value).strip()
+
 
 def normalize_website(url):
     if not url:
@@ -1325,6 +1558,7 @@ def generate_referral_code(name, user_id):
 # Client helpers
 # =========================
 
+
 def serialize_client_row(client):
     return {
         "id": client.slug,
@@ -1338,9 +1572,14 @@ def serialize_client_row(client):
         "owner_type": client.owner_type or "company",
         "notes": client.notes or "",
         "logo_filename": client.logo_filename,
-        "logo_url": url_for("static", filename=f"uploads/workspace_logos/{client.logo_filename}") if client.logo_filename else None,
-        "created_at": client.created_at.isoformat() if client.created_at else None,
-        "updated_at": client.updated_at.isoformat() if client.updated_at else None,
+        "logo_url": url_for("static", filename=f"uploads/workspace_logos/{
+                client.logo_filename}") if client.logo_filename else None,
+        "created_at": (
+            client.created_at.isoformat() if client.created_at else None
+        ),
+        "updated_at": (
+            client.updated_at.isoformat() if client.updated_at else None
+        ),
     }
 
 
@@ -1378,7 +1617,8 @@ def add_client(client_data, user_id):
         website_normalized=normalize_website(website),
         industry=client_data.get("industry", "").strip() or None,
         location=client_data.get("location", "").strip() or None,
-        owner_type=client_data.get("owner_type", "company").strip() or "company",
+        owner_type=client_data.get("owner_type", "company").strip()
+        or "company",
         notes=client_data.get("notes", "").strip() or None,
     )
 
@@ -1421,7 +1661,9 @@ def update_client(client_slug, user_id, client_data):
     row.website_normalized = normalize_website(new_website)
     row.industry = client_data.get("industry", "").strip() or None
     row.location = client_data.get("location", "").strip() or None
-    row.owner_type = client_data.get("owner_type", "company").strip() or "company"
+    row.owner_type = (
+        client_data.get("owner_type", "company").strip() or "company"
+    )
     row.notes = client_data.get("notes", "").strip() or None
 
     db.session.commit()
@@ -1441,6 +1683,7 @@ def delete_client_and_related_queue(client_slug, user_id):
 # =========================
 # Audit helpers
 # =========================
+
 
 def get_matching_full_filename(summary_filename):
     if not summary_filename.endswith("_summary.json"):
@@ -1479,7 +1722,9 @@ def get_saved_audits(user_id=None):
         return []
 
     files = os.listdir(OUTPUTS_FOLDER)
-    summary_files = sorted([f for f in files if f.endswith("_summary.json")], reverse=True)
+    summary_files = sorted(
+        [f for f in files if f.endswith("_summary.json")], reverse=True
+    )
 
     audits = []
     for filename in summary_files:
@@ -1493,51 +1738,70 @@ def get_saved_audits(user_id=None):
                 continue
 
             website = data.get("website", "N/A")
-            audits.append({
-                "filename": filename,
-                "website": website,
-                "website_normalized": normalize_website(website),
-                "client_id": str(data.get("client_id")) if data.get("client_id") is not None else None,
-                "client_name": data.get("client_name"),
-                "audit_type": data.get("audit_type", "N/A"),
-                "saved_at": data.get("saved_at", ""),
-                "verdict": data.get("summary", {}).get("verdict", "N/A"),
-                "opportunity_level": data.get("summary", {}).get("opportunity_level", "N/A"),
-                "normalized_score": data.get("scores", {}).get("normalized_score", 0),
-                "visibility_score": data.get("scores", {}).get("visibility_score", 0),
-                "content_score": data.get("scores", {}).get("content_score", 0),
-                "schema_score": data.get("scores", {}).get("schema_score", 0),
-                "scores": data.get("scores", {}),
-                "summary": data.get("summary", {}),
-                "visibility_snapshot": data.get("visibility_snapshot", {}),
-                "top_competitors": data.get("top_competitors", []),
-                "top_content_gaps": data.get("top_content_gaps", []),
-                "top_recommendations": data.get("top_recommendations", []),
-            })
+            audits.append(
+                {
+                    "filename": filename,
+                    "website": website,
+                    "website_normalized": normalize_website(website),
+                    "client_id": (
+                        str(data.get("client_id"))
+                        if data.get("client_id") is not None
+                        else None
+                    ),
+                    "client_name": data.get("client_name"),
+                    "audit_type": data.get("audit_type", "N/A"),
+                    "saved_at": data.get("saved_at", ""),
+                    "verdict": data.get("summary", {}).get("verdict", "N/A"),
+                    "opportunity_level": data.get("summary", {}).get(
+                        "opportunity_level", "N/A"
+                    ),
+                    "normalized_score": data.get("scores", {}).get(
+                        "normalized_score", 0
+                    ),
+                    "visibility_score": data.get("scores", {}).get(
+                        "visibility_score", 0
+                    ),
+                    "content_score": data.get("scores", {}).get(
+                        "content_score", 0
+                    ),
+                    "schema_score": data.get("scores", {}).get(
+                        "schema_score", 0
+                    ),
+                    "scores": data.get("scores", {}),
+                    "summary": data.get("summary", {}),
+                    "visibility_snapshot": data.get("visibility_snapshot", {}),
+                    "top_competitors": data.get("top_competitors", []),
+                    "top_content_gaps": data.get("top_content_gaps", []),
+                    "top_recommendations": data.get("top_recommendations", []),
+                }
+            )
         except Exception as e:
-            audits.append({
-                "filename": filename,
-                "website": "Error reading file",
-                "website_normalized": "",
-                "client_id": None,
-                "client_name": None,
-                "audit_type": "N/A",
-                "saved_at": "",
-                "verdict": str(e),
-                "opportunity_level": "N/A",
-                "normalized_score": 0,
-                "visibility_score": 0,
-                "content_score": 0,
-                "schema_score": 0,
-                "scores": {},
-                "summary": {},
-                "visibility_snapshot": {},
-                "top_competitors": [],
-                "top_content_gaps": [],
-                "top_recommendations": [],
-            })
+            audits.append(
+                {
+                    "filename": filename,
+                    "website": "Error reading file",
+                    "website_normalized": "",
+                    "client_id": None,
+                    "client_name": None,
+                    "audit_type": "N/A",
+                    "saved_at": "",
+                    "verdict": str(e),
+                    "opportunity_level": "N/A",
+                    "normalized_score": 0,
+                    "visibility_score": 0,
+                    "content_score": 0,
+                    "schema_score": 0,
+                    "scores": {},
+                    "summary": {},
+                    "visibility_snapshot": {},
+                    "top_competitors": [],
+                    "top_content_gaps": [],
+                    "top_recommendations": [],
+                }
+            )
 
     return audits
+
 
 def filter_audits(audits, search_term="", audit_type="all"):
     results = audits
@@ -1545,7 +1809,8 @@ def filter_audits(audits, search_term="", audit_type="all"):
     if search_term:
         q = search_term.strip().lower()
         results = [
-            audit for audit in results
+            audit
+            for audit in results
             if q in audit.get("website", "").lower()
             or q in audit.get("verdict", "").lower()
             or q in audit.get("opportunity_level", "").lower()
@@ -1553,7 +1818,11 @@ def filter_audits(audits, search_term="", audit_type="all"):
         ]
 
     if audit_type and audit_type != "all":
-        results = [audit for audit in results if audit.get("audit_type", "").lower() == audit_type.lower()]
+        results = [
+            audit
+            for audit in results
+            if audit.get("audit_type", "").lower() == audit_type.lower()
+        ]
 
     return results
 
@@ -1579,6 +1848,7 @@ def sort_audits(audits, sort_by="saved_at", order="desc"):
 # Comparison + actions
 # =========================
 
+
 def compare_audits(latest_audit, previous_audit):
     if not latest_audit or not previous_audit:
         return None
@@ -1586,10 +1856,22 @@ def compare_audits(latest_audit, previous_audit):
     def delta(current, previous):
         return round((current or 0) - (previous or 0), 2)
 
-    normalized_delta = delta(latest_audit.get("normalized_score", 0), previous_audit.get("normalized_score", 0))
-    visibility_delta = delta(latest_audit.get("visibility_score", 0), previous_audit.get("visibility_score", 0))
-    content_delta = delta(latest_audit.get("content_score", 0), previous_audit.get("content_score", 0))
-    schema_delta = delta(latest_audit.get("schema_score", 0), previous_audit.get("schema_score", 0))
+    normalized_delta = delta(
+        latest_audit.get("normalized_score", 0),
+        previous_audit.get("normalized_score", 0),
+    )
+    visibility_delta = delta(
+        latest_audit.get("visibility_score", 0),
+        previous_audit.get("visibility_score", 0),
+    )
+    content_delta = delta(
+        latest_audit.get("content_score", 0),
+        previous_audit.get("content_score", 0),
+    )
+    schema_delta = delta(
+        latest_audit.get("schema_score", 0),
+        previous_audit.get("schema_score", 0),
+    )
 
     if normalized_delta > 0:
         overall_change = "improved"
@@ -1606,7 +1888,8 @@ def compare_audits(latest_audit, previous_audit):
         "content_delta": content_delta,
         "schema_delta": schema_delta,
         "overall_change": overall_change,
-        "verdict_changed": latest_audit.get("verdict") != previous_audit.get("verdict"),
+        "verdict_changed": latest_audit.get("verdict")
+        != previous_audit.get("verdict"),
     }
 
 
@@ -1627,7 +1910,9 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
         return empty_response
 
     latest_full = read_full_audit_data(latest_summary_audit.get("filename"))
-    previous_full = read_full_audit_data(previous_summary_audit.get("filename"))
+    previous_full = read_full_audit_data(
+        previous_summary_audit.get("filename")
+    )
 
     if not latest_full or not previous_full:
         return empty_response
@@ -1635,8 +1920,12 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
     latest_rows = latest_full.get("ai_answer_results", [])
     previous_rows = previous_full.get("ai_answer_results", [])
 
-    latest_map = {row.get("query", ""): row for row in latest_rows if row.get("query")}
-    previous_map = {row.get("query", ""): row for row in previous_rows if row.get("query")}
+    latest_map = {
+        row.get("query", ""): row for row in latest_rows if row.get("query")
+    }
+    previous_map = {
+        row.get("query", ""): row for row in previous_rows if row.get("query")
+    }
 
     all_queries = sorted(set(latest_map.keys()) | set(previous_map.keys()))
     comparisons = []
@@ -1664,7 +1953,10 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
             change_type = "declined"
             declined += 1
         else:
-            if latest_brand != previous_brand or latest_position != previous_position:
+            if (
+                latest_brand != previous_brand
+                or latest_position != previous_position
+            ):
                 change_type = "changed"
                 changed += 1
             else:
@@ -1674,19 +1966,27 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
         if not latest_brand:
             missed_brand_mentions += 1
 
-        comparisons.append({
-            "query": query,
-            "latest_brand_mentioned": latest_brand,
-            "previous_brand_mentioned": previous_brand,
-            "latest_brand_position": latest_position,
-            "previous_brand_position": previous_position,
-            "latest_score": latest_score,
-            "previous_score": previous_score,
-            "score_delta": score_delta,
-            "change_type": change_type,
-            "latest_competitors": latest_row.get("latest_competitors", latest_row.get("competitors_mentioned", [])),
-            "previous_competitors": previous_row.get("previous_competitors", previous_row.get("competitors_mentioned", [])),
-        })
+        comparisons.append(
+            {
+                "query": query,
+                "latest_brand_mentioned": latest_brand,
+                "previous_brand_mentioned": previous_brand,
+                "latest_brand_position": latest_position,
+                "previous_brand_position": previous_position,
+                "latest_score": latest_score,
+                "previous_score": previous_score,
+                "score_delta": score_delta,
+                "change_type": change_type,
+                "latest_competitors": latest_row.get(
+                    "latest_competitors",
+                    latest_row.get("competitors_mentioned", []),
+                ),
+                "previous_competitors": previous_row.get(
+                    "previous_competitors",
+                    previous_row.get("competitors_mentioned", []),
+                ),
+            }
+        )
 
     return {
         "rows": comparisons,
@@ -1700,6 +2000,7 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
         },
     }
 
+
 def build_client_views():
     clients = load_clients(user_id=current_user.id)
     audits = get_saved_audits(user_id=current_user.id)
@@ -1707,13 +2008,19 @@ def build_client_views():
     client_views = []
 
     for client in clients:
-        client_id_str = str(client.get("id")) if client.get("id") is not None else ""
+        client_id_str = (
+            str(client.get("id")) if client.get("id") is not None else ""
+        )
         client_website_norm = client.get("website_normalized") or ""
 
         matched_audits = [
-            audit for audit in audits
+            audit
+            for audit in audits
             if (
-                (audit.get("client_id") and str(audit.get("client_id")) == client_id_str)
+                (
+                    audit.get("client_id")
+                    and str(audit.get("client_id")) == client_id_str
+                )
                 or (
                     not audit.get("client_id")
                     and audit.get("website_normalized") == client_website_norm
@@ -1721,12 +2028,18 @@ def build_client_views():
             )
         ]
 
-        matched_audits = sort_audits(matched_audits, sort_by="saved_at", order="desc")
+        matched_audits = sort_audits(
+            matched_audits, sort_by="saved_at", order="desc"
+        )
         latest_audit = matched_audits[0] if matched_audits else None
         previous_audit = matched_audits[1] if len(matched_audits) > 1 else None
         comparison = compare_audits(latest_audit, previous_audit)
-        query_comparison = build_query_level_comparison(latest_audit, previous_audit)
-        query_rows = query_comparison.get("rows", []) if query_comparison else []
+        query_comparison = build_query_level_comparison(
+            latest_audit, previous_audit
+        )
+        query_rows = (
+            query_comparison.get("rows", []) if query_comparison else []
+        )
 
         recommended_actions = build_recommended_actions(
             client_name=client.get("name", ""),
@@ -1735,7 +2048,9 @@ def build_client_views():
             query_analysis=[
                 {
                     "query": row.get("query"),
-                    "brand_mentioned": row.get("latest_brand_mentioned", False),
+                    "brand_mentioned": row.get(
+                        "latest_brand_mentioned", False
+                    ),
                     "score": row.get("latest_score", 0),
                     "score_delta": row.get("score_delta", 0),
                     "competitors_mentioned": row.get("latest_competitors", []),
@@ -1751,48 +2066,53 @@ def build_client_views():
             },
             site_findings={},
         )
-        client_views.append({
-            **client,
-            "audit_count": len(matched_audits),
-            "latest_audit": latest_audit,
-            "previous_audit": previous_audit,
-            "comparison": comparison,
-            "query_comparison": query_comparison,
-            "recommended_actions": recommended_actions,
-            "audits": matched_audits,
-            "benchmark_items": [],
-            "market_voice": None,
-        })
+        client_views.append(
+            {
+                **client,
+                "audit_count": len(matched_audits),
+                "latest_audit": latest_audit,
+                "previous_audit": previous_audit,
+                "comparison": comparison,
+                "query_comparison": query_comparison,
+                "recommended_actions": recommended_actions,
+                "audits": matched_audits,
+                "benchmark_items": [],
+                "market_voice": None,
+            }
+        )
     return client_views
+
 
 def get_client_by_id(client_id):
     print("LOOKUP client_id:", client_id)
 
     row = Client.query.filter_by(
-        slug=str(client_id),
-        user_id=current_user.id
+        slug=str(client_id), user_id=current_user.id
     ).first()
 
     if not row and str(client_id).isdigit():
         row = Client.query.filter_by(
-            id=int(client_id),
-            user_id=current_user.id
+            id=int(client_id), user_id=current_user.id
         ).first()
 
     if not row:
         return None
 
     all_clients = build_client_views()
-    full_client = next((c for c in all_clients if c.get("id") == row.slug), None)
+    full_client = next(
+        (c for c in all_clients if c.get("id") == row.slug), None
+    )
 
     if full_client:
         return full_client
 
     return serialize_client_row(row)
 
+
 # =========================
 # Credits
 # =========================
+
 
 def refund_credits(user, amount, tx_type="refund", notes=""):
     if user_has_unlimited_credits(user):
@@ -1825,6 +2145,7 @@ def refund_credits(user, amount, tx_type="refund", notes=""):
     db.session.commit()
     return True
 
+
 def user_has_unlimited_credits(user):
     if not user:
         return False
@@ -1833,6 +2154,55 @@ def user_has_unlimited_credits(user):
         return True
 
     return user.role == "admin" or user.plan == "dev_unlimited"
+
+
+def get_active_queue_limit(user):
+    """
+    Controls how many active content queue items each plan can have.
+    Published/archived items do not count.
+    """
+    if not user:
+        return 3
+
+    if user_has_unlimited_credits(user):
+        return 999
+
+    plan = getattr(user, "plan", "free") or "free"
+
+    limits = {
+        "free": 3,
+        "pro": 10,
+        "growth": 25,
+        "dev_unlimited": 999,
+    }
+
+    return limits.get(plan, 3)
+
+
+def is_active_queue_status(status):
+    """
+    Active queue items are still being worked on.
+    Published/archived/deleted items do not count against the queue limit.
+    """
+    status = (status or "").strip().lower()
+
+    return status not in [
+        "published",
+        "archived",
+        "deleted",
+    ]
+
+
+def get_active_queue_count(client_id, user_id):
+    items = get_queue_items(
+        client_id=client_id,
+        user_id=user_id,
+    )
+
+    return len(
+        [item for item in items if is_active_queue_status(item.get("status"))]
+    )
+
 
 def get_view_mode(user):
     forced_mode = session.get("dev_view_mode")
@@ -1850,15 +2220,14 @@ def get_view_mode(user):
 
     return "single"
 
+
 @app.route("/dev/view-mode/<mode>")
 @login_required
 def dev_set_view_mode(mode):
-    is_internal_user = (
-        current_user.is_authenticated and (
-            current_user.email == "pypteltd@gmail.com"
-            or getattr(current_user, "role", "") == "admin"
-            or getattr(current_user, "plan", "") == "dev_unlimited"
-        )
+    is_internal_user = current_user.is_authenticated and (
+        current_user.email == "pypteltd@gmail.com"
+        or getattr(current_user, "role", "") == "admin"
+        or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
     if not is_internal_user:
@@ -1874,14 +2243,20 @@ def dev_set_view_mode(mode):
 
     return redirect(request.referrer or url_for("settings_preferences"))
 
+
 def require_internal_access():
     if not current_user.is_authenticated:
         abort(403)
 
-    if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com":
+    if (
+        current_user.role == "admin"
+        or current_user.plan == "dev_unlimited"
+        or current_user.email == "pypteltd@gmail.com"
+    ):
         return
 
     abort(403)
+
 
 def spend_credits(user, amount, tx_type="usage", notes=""):
     wallet = user.wallet
@@ -1914,6 +2289,7 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     db.session.commit()
     return True
 
+
 def has_enough_credits(user, amount):
     if user_has_unlimited_credits(user):
         return True
@@ -1923,34 +2299,46 @@ def has_enough_credits(user, amount):
 
     return user.wallet.balance >= amount
 
+
 def award_referral_if_qualified(user):
-    referral = Referral.query.filter_by(referred_user_id=user.id, status="pending").first()
+    referral = Referral.query.filter_by(
+        referred_user_id=user.id, status="pending"
+    ).first()
     if not referral:
         return False
 
     referrer = User.query.get(referral.referrer_user_id)
     referred_user = User.query.get(referral.referred_user_id)
 
-    if not referrer or not referrer.wallet or not referred_user or not referred_user.wallet:
+    if (
+        not referrer
+        or not referrer.wallet
+        or not referred_user
+        or not referred_user.wallet
+    ):
         return False
 
     referrer.wallet.balance += referral.reward_amount_referrer
-    db.session.add(CreditTransaction(
-        user_id=referrer.id,
-        type="referral_bonus",
-        amount=referral.reward_amount_referrer,
-        balance_after=referrer.wallet.balance,
-        notes=f"Referral reward for user {referred_user.email}",
-    ))
+    db.session.add(
+        CreditTransaction(
+            user_id=referrer.id,
+            type="referral_bonus",
+            amount=referral.reward_amount_referrer,
+            balance_after=referrer.wallet.balance,
+            notes=f"Referral reward for user {referred_user.email}",
+        )
+    )
 
     referred_user.wallet.balance += referral.reward_amount_referred
-    db.session.add(CreditTransaction(
-        user_id=referred_user.id,
-        type="referral_bonus",
-        amount=referral.reward_amount_referred,
-        balance_after=referred_user.wallet.balance,
-        notes="Referral bonus after qualification",
-    ))
+    db.session.add(
+        CreditTransaction(
+            user_id=referred_user.id,
+            type="referral_bonus",
+            amount=referral.reward_amount_referred,
+            balance_after=referred_user.wallet.balance,
+            notes="Referral bonus after qualification",
+        )
+    )
 
     referral.status = "rewarded"
     referral.qualified_at = datetime.utcnow()
@@ -1976,9 +2364,11 @@ def get_focused_client_for_user(user):
     clients_sorted = sorted(clients, key=sort_key, reverse=True)
     return clients_sorted[0]
 
+
 # =========================
 # Routes
 # =========================
+
 
 @app.route("/content-queue/<item_id>/brief")
 @login_required
@@ -2014,7 +2404,9 @@ def view_queue_brief(item_id):
         "target_query": item.get("target_query", ""),
         "content_type": item.get("content_type", "service_page"),
         "brief": brief.get("brief_text") or brief.get("brief") or saved_brief,
-        "brief_text": brief.get("brief_text") or brief.get("brief") or saved_brief,
+        "brief_text": brief.get("brief_text")
+        or brief.get("brief")
+        or saved_brief,
         "search_intent": brief.get("search_intent", ""),
         "recommended_angle": brief.get("recommended_angle", ""),
         "primary_keywords": brief.get("primary_keywords", []),
@@ -2044,6 +2436,7 @@ def view_queue_brief(item_id):
         brand_context=item.get("brand_context", ""),
     )
 
+
 @app.route("/interest", methods=["POST"])
 def collect_interest():
     email = request.form.get("email", "").strip().lower()
@@ -2062,21 +2455,14 @@ def collect_interest():
         writer = csv.writer(f)
 
         if not file_exists:
-            writer.writerow([
-                "created_at",
-                "email",
-                "company",
-                "use_case"
-            ])
+            writer.writerow(["created_at", "email", "company", "use_case"])
 
-        writer.writerow([
-            datetime.utcnow().isoformat(),
-            email,
-            company,
-            use_case
-        ])
+        writer.writerow(
+            [datetime.utcnow().isoformat(), email, company, use_case]
+        )
 
     return redirect("/?interest=success#early-access")
+
 
 @app.route("/client/<client_id>/query-ideas")
 @login_required
@@ -2088,16 +2474,10 @@ def client_query_ideas(client_id):
 
     service_text = request.args.get("services", "").strip()
 
-    services = [
-        s.strip()
-        for s in service_text.split(",")
-        if s.strip()
-    ]
+    services = [s.strip() for s in service_text.split(",") if s.strip()]
 
     if not services:
-        services = [
-            client.get("industry", "")
-        ]
+        services = [client.get("industry", "")]
 
     query_ideas = generate_query_ideas(
         industry=client.get("industry", ""),
@@ -2112,20 +2492,24 @@ def client_query_ideas(client_id):
         services=", ".join(services),
     )
 
+
 @app.route("/help")
 @login_required
 def help_page():
     return render_template("help.html", glossary=HELP_GLOSSARY)
+
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
     return redirect(url_for("index"))
 
+
 @app.route("/pricing")
 @login_required
 def pricing_page():
     return render_template("pricing.html")
+
 
 @app.route("/")
 @login_required
@@ -2138,7 +2522,9 @@ def index():
     sort_by = request.args.get("sort", "saved_at").strip()
     order = request.args.get("order", "desc").strip().lower()
 
-    audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
+    audits = filter_audits(
+        all_audits, search_term=search_term, audit_type=audit_type
+    )
     audits = sort_audits(audits, sort_by=sort_by, order=order)
 
     view_mode = get_view_mode(current_user)
@@ -2167,10 +2553,18 @@ def index():
             if score is not None:
                 client_scores.append(score)
 
-        overall_score = round(sum(client_scores) / len(client_scores), 1) if client_scores else 0
+        overall_score = (
+            round(sum(client_scores) / len(client_scores), 1)
+            if client_scores
+            else 0
+        )
 
-    total_prompts = sum(len(client.get("tracked_prompts", []) or []) for client in clients)
-    mentioned_count = sum(client.get("mentioned_count", 0) or 0 for client in clients)
+    total_prompts = sum(
+        len(client.get("tracked_prompts", []) or []) for client in clients
+    )
+    mentioned_count = sum(
+        client.get("mentioned_count", 0) or 0 for client in clients
+    )
 
     return render_template(
         "dashboard.html",
@@ -2193,13 +2587,24 @@ def index():
         selected_order=order,
     )
 
+
 @app.route("/dev/set-plan/<plan>")
 @login_required
 def dev_set_plan(plan):
-    if current_user.email != "pypteltd@gmail.com" and current_user.role != "admin":
+    if (
+        current_user.email != "pypteltd@gmail.com"
+        and current_user.role != "admin"
+    ):
         abort(403)
 
-    allowed_plans = ["free", "starter", "pro", "growth", "agency", "dev_unlimited"]
+    allowed_plans = [
+        "free",
+        "starter",
+        "pro",
+        "growth",
+        "agency",
+        "dev_unlimited",
+    ]
     if plan not in allowed_plans:
         abort(404)
 
@@ -2209,10 +2614,6 @@ def dev_set_plan(plan):
     flash(f"Plan changed to {plan}.", "success")
     return redirect(request.referrer or url_for("index"))
 
-from flask import make_response
-
-from datetime import datetime
-from flask import render_template, make_response
 
 @app.route("/client/<client_id>/export-pdf")
 @login_required
@@ -2236,7 +2637,8 @@ def export_client_audit_pdf(client_id):
         "name": getattr(current_user, "agency_name", None) or "Your Agency",
         "logo_url": getattr(current_user, "agency_logo_url", None),
         "website": getattr(current_user, "agency_website", None),
-        "tagline": getattr(current_user, "agency_tagline", None) or "AI Visibility & Content Strategy",
+        "tagline": getattr(current_user, "agency_tagline", None)
+        or "AI Visibility & Content Strategy",
         "footer_text": getattr(current_user, "agency_footer", None),
         "disclaimer": getattr(current_user, "agency_disclaimer", None),
     }
@@ -2259,9 +2661,12 @@ def export_client_audit_pdf(client_id):
     # 🔹 SIMPLE VERSION (download HTML first)
     response = make_response(html)
     response.headers["Content-Type"] = "text/html"
-    response.headers["Content-Disposition"] = f"attachment; filename={client.get('name','report')}_audit.html"
+    response.headers["Content-Disposition"] = f"attachment; filename={
+        client.get(
+            'name', 'report')}_audit.html"
 
     return response
+
 
 @app.route("/clients")
 @login_required
@@ -2270,7 +2675,9 @@ def clients_page():
     focused_client = get_focused_client_for_user(current_user)
 
     if view_mode == "single" and focused_client:
-        return redirect(url_for("client_detail", client_id=focused_client["id"]))
+        return redirect(
+            url_for("client_detail", client_id=focused_client["id"])
+        )
 
     return render_template(
         "clients.html",
@@ -2279,6 +2686,7 @@ def clients_page():
         focused_client=focused_client,
     )
 
+
 @app.route("/client/<client_id>/report")
 @login_required
 def report_page(client_id):
@@ -2286,6 +2694,7 @@ def report_page(client_id):
     if not client:
         abort(404)
     return render_template("report_page.html", client=client)
+
 
 def get_workspace_limit(user):
     if not user:
@@ -2304,6 +2713,7 @@ def get_workspace_limit(user):
 
     return limits.get(user.plan, 1)
 
+
 def get_workspace_count(user_id):
     return Client.query.filter_by(user_id=user_id).count()
 
@@ -2317,6 +2727,7 @@ def can_create_workspace(user):
 
     return count < limit, limit, count
 
+
 @app.route("/create-checkout-session")
 @login_required
 def create_checkout_session():
@@ -2324,16 +2735,18 @@ def create_checkout_session():
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             mode="payment",  # simple one-time payment
-            line_items=[{
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {
-                        "name": "DarInsights Pro Upgrade",
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": "DarInsights Pro Upgrade",
+                        },
+                        "unit_amount": 2900,  # $29.00
                     },
-                    "unit_amount": 2900,  # $29.00
-                },
-                "quantity": 1,
-            }],
+                    "quantity": 1,
+                }
+            ],
             success_url=url_for("payment_success", _external=True),
             cancel_url=url_for("pricing_page", _external=True),
         )
@@ -2343,6 +2756,7 @@ def create_checkout_session():
     except Exception as e:
         return str(e)
 
+
 @app.route("/payment-success")
 @login_required
 def payment_success():
@@ -2351,6 +2765,7 @@ def payment_success():
 
     flash("Upgrade successful! You now have full access 🚀", "success")
     return redirect(url_for("dashboard"))
+
 
 @app.route("/clients/new", methods=["GET", "POST"])
 @login_required
@@ -2415,6 +2830,7 @@ def create_client():
         client=None,
     )
 
+
 @app.route("/client/<client_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_client(client_id):
@@ -2439,14 +2855,18 @@ def edit_client(client_id):
                 client=client,
             )
 
-        updated_client = update_client(client_id, current_user.id, {
-            "name": name,
-            "website": website,
-            "industry": industry,
-            "location": location,
-            "owner_type": owner_type,
-            "notes": notes,
-        })
+        updated_client = update_client(
+            client_id,
+            current_user.id,
+            {
+                "name": name,
+                "website": website,
+                "industry": industry,
+                "location": location,
+                "owner_type": owner_type,
+                "notes": notes,
+            },
+        )
 
         if not updated_client:
             return render_template(
@@ -2458,7 +2878,9 @@ def edit_client(client_id):
             )
 
         flash("Client updated successfully.")
-        return redirect(url_for("client_detail", client_id=updated_client["id"]))
+        return redirect(
+            url_for("client_detail", client_id=updated_client["id"])
+        )
 
     return render_template(
         "client_form.html",
@@ -2468,18 +2890,17 @@ def edit_client(client_id):
         client=client,
     )
 
+
 @app.route("/client/<client_id>/brand-context", methods=["GET", "POST"])
 @login_required
 def client_brand_context(client_id):
     row = Client.query.filter_by(
-        slug=str(client_id),
-        user_id=current_user.id
+        slug=str(client_id), user_id=current_user.id
     ).first()
 
     if not row and str(client_id).isdigit():
         row = Client.query.filter_by(
-            id=int(client_id),
-            user_id=current_user.id
+            id=int(client_id), user_id=current_user.id
         ).first()
 
     if not row:
@@ -2524,7 +2945,10 @@ Additional notes:
         row.notes = brand_context
         db.session.commit()
 
-        flash("Brand context saved. Future briefs and drafts will use this workspace context.", "success")
+        flash(
+            "Brand context saved. Future briefs and drafts will use this workspace context.",
+            "success",
+        )
         return redirect(url_for("client_query_ideas", client_id=row.slug))
 
     client = serialize_client_row(row)
@@ -2534,6 +2958,7 @@ Additional notes:
         client=client,
         existing_context=row.notes or "",
     )
+
 
 @app.route("/client/<client_id>/delete", methods=["POST"])
 @login_required
@@ -2567,15 +2992,21 @@ def signup():
         referral_code = request.form.get("referral_code", "").strip()
 
         if not name or not email or not password:
-            return render_template("signup.html", error="All fields are required.")
+            return render_template(
+                "signup.html", error="All fields are required."
+            )
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            return render_template("signup.html", error="Email already registered.")
+            return render_template(
+                "signup.html", error="Email already registered."
+            )
 
         referrer = None
         if referral_code:
-            referrer = User.query.filter_by(referral_code=referral_code).first()
+            referrer = User.query.filter_by(
+                referral_code=referral_code
+            ).first()
 
         user = User(
             name=name,
@@ -2620,8 +3051,6 @@ def signup():
     return render_template("signup.html", error=None)
 
 
-from flask import session
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -2634,7 +3063,9 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if not user or not check_password_hash(user.password_hash, password):
-            return render_template("login.html", error="Invalid email or password.")
+            return render_template(
+                "login.html", error="Invalid email or password."
+            )
 
         session.pop("_flashes", None)
         login_user(user)
@@ -2642,6 +3073,7 @@ def login():
         return redirect(url_for("index"))
 
     return render_template("login.html", error=None)
+
 
 @app.route("/logout")
 @login_required
@@ -2688,7 +3120,10 @@ def run_client_audit(client_id):
             )
 
         if not has_enough_credits(current_user, 1):
-            flash("You don’t have enough credits to run another audit.", "warning")
+            flash(
+                "You don’t have enough credits to run another audit.",
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
         if not spend_credits(current_user, 1, notes="Client audit run"):
@@ -2713,13 +3148,21 @@ def run_client_audit(client_id):
             )
 
             if created_count > 0:
-                flash(f"Audit completed successfully. {created_count} content opportunities added to the queue.", "success")
+                flash(
+                    f"Audit completed successfully. {created_count} content opportunities added to the queue.",
+                    "success",
+                )
             else:
-                flash("Audit completed successfully. No new content opportunities were added.", "success")
+                flash(
+                    "Audit completed successfully. No new content opportunities were added.",
+                    "success",
+                )
 
             return redirect(url_for("client_detail", client_id=client_id))
         except Exception as e:
-            refund_credits(current_user, 1, notes="Refund for failed client audit")
+            refund_credits(
+                current_user, 1, notes="Refund for failed client audit"
+            )
             flash(f"Audit failed: {str(e)}", "error")
             return redirect(url_for("client_detail", client_id=client_id))
 
@@ -2743,24 +3186,27 @@ def run_client_audit(client_id):
         view_mode=view_mode,
     )
 
+
 @app.route("/generate-content/<int:prompt_id>")
 @login_required
 def generate_content_from_prompt(prompt_id):
     row = PromptTracking.query.filter_by(
-        id=prompt_id,
-        user_id=current_user.id
+        id=prompt_id, user_id=current_user.id
     ).first()
 
     if not row:
         flash("Prompt not found.", "warning")
         return redirect(url_for("prompt_management_page"))
 
-    return redirect(url_for(
-        "content_queue_page",
-        query=row.prompt,
-        topic=row.topic,
-        source="prompt_tracking"
-    ))
+    return redirect(
+        url_for(
+            "content_queue_page",
+            query=row.prompt,
+            topic=row.topic,
+            source="prompt_tracking",
+        )
+    )
+
 
 @app.route("/client/<client_id>/content-brief", methods=["GET", "POST"])
 @login_required
@@ -2775,7 +3221,10 @@ def generate_client_content_brief(client_id):
 
     if request.method == "POST":
         target_query = safe_str(request.form.get("target_query"))
-        content_type = safe_str(request.form.get("content_type", "service_page")) or "service_page"
+        content_type = (
+            safe_str(request.form.get("content_type", "service_page"))
+            or "service_page"
+        )
         brand_context = safe_str(request.form.get("brand_context"))
 
         if not target_query:
@@ -2783,14 +3232,19 @@ def generate_client_content_brief(client_id):
                 "content_brief_form.html",
                 client=client,
                 error="Target query is required.",
-                form_data=request.form
+                form_data=request.form,
             )
 
         if not has_enough_credits(current_user, 1):
-            flash("You don’t have enough credits to generate another brief.", "warning")
+            flash(
+                "You don’t have enough credits to generate another brief.",
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(current_user, 1, notes="Content brief generation"):
+        if not spend_credits(
+            current_user, 1, notes="Content brief generation"
+        ):
             flash("Unable to deduct credits for brief generation.", "warning")
             return redirect(url_for("pricing_page"))
 
@@ -2807,37 +3261,55 @@ def generate_client_content_brief(client_id):
 
             flash("Content brief generated successfully.")
 
-            tracked_rows = PromptTracking.query.filter_by(
-                user_id=current_user.id
-            ).filter(
-                PromptTracking.prompt.ilike(f"%{target_query}%")
-            ).all()
+            tracked_rows = (
+                PromptTracking.query.filter_by(user_id=current_user.id)
+                .filter(PromptTracking.prompt.ilike(f"%{target_query}%"))
+                .all()
+            )
 
-            top_competitors = list(set([
-                row.top_competitor
-                for row in tracked_rows
-                if row.top_competitor and row.top_competitor != "—"
-            ]))[:3]
+            top_competitors = list(
+                set(
+                    [
+                        row.top_competitor
+                        for row in tracked_rows
+                        if row.top_competitor and row.top_competitor != "—"
+                    ]
+                )
+            )[:3]
 
             if tracked_rows:
                 total_rows = len(tracked_rows)
 
                 visible_rows = [
-                    row for row in tracked_rows
+                    row
+                    for row in tracked_rows
                     if (row.mentioned or "").strip() in ["Yes", "Sometimes"]
                 ]
-                visibility = int((len(visible_rows) / total_rows) * 100) if total_rows > 0 else 30
+                visibility = (
+                    int((len(visible_rows) / total_rows) * 100)
+                    if total_rows > 0
+                    else 30
+                )
 
                 competitor_rows = [
-                    row for row in tracked_rows
+                    row
+                    for row in tracked_rows
                     if row.top_competitor and row.top_competitor != "—"
                 ]
-                competitors = int((len(competitor_rows) / total_rows) * 100) if total_rows > 0 else 50
+                competitors = (
+                    int((len(competitor_rows) / total_rows) * 100)
+                    if total_rows > 0
+                    else 50
+                )
             else:
                 visibility = 30
                 competitors = 50
 
-            brief_text = result.get("brief", "") if isinstance(result, dict) else str(result)
+            brief_text = (
+                result.get("brief", "")
+                if isinstance(result, dict)
+                else str(result)
+            )
             content_score = min(max(int(len(brief_text) / 12), 20), 100)
 
             aeo = calculate_aeo_score(
@@ -2856,30 +3328,39 @@ def generate_client_content_brief(client_id):
             )
 
         except Exception as e:
-            refund_credits(current_user, 1, notes="Refund for failed content brief generation")
+            refund_credits(
+                current_user,
+                1,
+                notes="Refund for failed content brief generation",
+            )
             return render_template(
                 "content_brief_form.html",
                 client=client,
                 error=f"Brief generation failed: {str(e)}",
-                form_data=request.form
+                form_data=request.form,
             )
 
     prefill_query = safe_str(request.args.get("target_query"))
-    prefill_content_type = safe_str(request.args.get("content_type")) or "service_page"
+    prefill_content_type = (
+        safe_str(request.args.get("content_type")) or "service_page"
+    )
     prefill_context = safe_str(request.args.get("brand_context"))
 
     form_data = {
         "target_query": prefill_query if prefill_query else default_query,
         "content_type": prefill_content_type,
-        "brand_context": prefill_context if prefill_context else client.get("notes", ""),
+        "brand_context": (
+            prefill_context if prefill_context else client.get("notes", "")
+        ),
     }
 
     return render_template(
         "content_brief_form.html",
         client=client,
         error=None,
-        form_data=form_data
+        form_data=form_data,
     )
+
 
 @app.route("/generate-brief/<item_id>")
 @login_required
@@ -2895,12 +3376,14 @@ def generate_brief_from_queue(item_id):
     row = None
     if client_slug:
         row = Client.query.filter_by(
-            slug=client_slug,
-            user_id=current_user.id
+            slug=client_slug, user_id=current_user.id
         ).first()
 
     if not row:
-        flash("This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.", "warning")
+        flash(
+            "This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.",
+            "warning",
+        )
         return redirect(url_for("content_queue_page"))
 
     client = get_client_by_id(row.slug)
@@ -2926,13 +3409,16 @@ def generate_brief_from_queue(item_id):
             user_id=current_user.id,
         )
 
-    return redirect(url_for(
-        "generate_client_content_brief",
-        client_id=row.slug,
-        target_query=target_query,
-        content_type=content_type,
-        brand_context=brand_context,
-    ))
+    return redirect(
+        url_for(
+            "generate_client_content_brief",
+            client_id=row.slug,
+            target_query=target_query,
+            content_type=content_type,
+            brand_context=brand_context,
+        )
+    )
+
 
 @app.route("/generate-draft/<item_id>")
 @login_required
@@ -2948,12 +3434,14 @@ def generate_draft_from_queue(item_id):
     row = None
     if client_slug:
         row = Client.query.filter_by(
-            slug=client_slug,
-            user_id=current_user.id
+            slug=client_slug, user_id=current_user.id
         ).first()
 
     if not row:
-        flash("This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.", "warning")
+        flash(
+            "This queue item is linked to an old or missing workspace. Please recreate it from the current workspace.",
+            "warning",
+        )
         return redirect(url_for("content_queue_page"))
 
     target_query = safe_str(item.get("target_query"))
@@ -2961,14 +3449,17 @@ def generate_draft_from_queue(item_id):
     brief_context = safe_str(item.get("content") or item.get("brief") or "")
     brand_context = safe_str(item.get("brand_context") or "")
 
-    return redirect(url_for(
-        "generate_client_content_draft",
-        client_id=row.slug,
-        target_query=target_query,
-        content_type=content_type,
-        brief_context=brief_context,
-        brand_context=brand_context,
-    ))
+    return redirect(
+        url_for(
+            "generate_client_content_draft",
+            client_id=row.slug,
+            target_query=target_query,
+            content_type=content_type,
+            brief_context=brief_context,
+            brand_context=brand_context,
+        )
+    )
+
 
 @app.route("/client/<client_id>/query-ideas/add", methods=["POST"])
 @login_required
@@ -3004,7 +3495,7 @@ def add_query_idea_to_queue(client_id):
 
     flash("Query added to the content queue.", "success")
     return redirect(url_for("content_queue_page", client_id=client_real_id))
-        
+
 
 @app.route("/content-queue/<item_id>/delete", methods=["POST"])
 @login_required
@@ -3028,6 +3519,7 @@ def delete_content_queue_item(item_id):
         flash("Could not delete queue item.", "error")
 
     return redirect(url_for("content_queue_page", client_id=client_id))
+
 
 @app.route("/content-queue/<item_id>/edit", methods=["POST"])
 @login_required
@@ -3058,6 +3550,7 @@ def edit_content_queue_item(item_id):
     flash("Queue item updated.", "success")
     return redirect(url_for("content_queue_page", client_id=client_id))
 
+
 @app.route("/client/<client_id>/content-draft", methods=["GET", "POST"])
 @login_required
 def generate_client_content_draft(client_id):
@@ -3074,15 +3567,28 @@ def generate_client_content_draft(client_id):
 
         if action_mode == "prefill":
             form_data = {
-                "target_query": safe_str(request.form.get("target_query")) or default_query,
-                "content_type": safe_str(request.form.get("content_type", "service_page")) or "service_page",
+                "target_query": safe_str(request.form.get("target_query"))
+                or default_query,
+                "content_type": safe_str(
+                    request.form.get("content_type", "service_page")
+                )
+                or "service_page",
                 "brief_context": safe_str(request.form.get("brief_context")),
-                "brand_context": safe_str(request.form.get("brand_context")) or client.get("notes", ""),
+                "brand_context": safe_str(request.form.get("brand_context"))
+                or client.get("notes", ""),
             }
-            return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
+            return render_template(
+                "content_draft_form.html",
+                client=client,
+                error=None,
+                form_data=form_data,
+            )
 
         target_query = safe_str(request.form.get("target_query"))
-        content_type = safe_str(request.form.get("content_type", "service_page")) or "service_page"
+        content_type = (
+            safe_str(request.form.get("content_type", "service_page"))
+            or "service_page"
+        )
         brief_context = safe_str(request.form.get("brief_context"))
         brand_context = safe_str(request.form.get("brand_context"))
 
@@ -3095,13 +3601,18 @@ def generate_client_content_draft(client_id):
             )
 
         if not has_enough_credits(current_user, 2):
-            flash("You don’t have enough credits to generate another draft.", "warning")
+            flash(
+                "You don’t have enough credits to generate another draft.",
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(current_user, 2, notes="Content draft generation"):
+        if not spend_credits(
+            current_user, 2, notes="Content draft generation"
+        ):
             flash("Unable to deduct credits for draft generation.", "warning")
             return redirect(url_for("pricing_page"))
-        
+
         try:
             result = generate_content_draft(
                 client_name=client.get("name", ""),
@@ -3114,10 +3625,16 @@ def generate_client_content_draft(client_id):
                 brand_context=brand_context,
             )
             flash("Content draft generated successfully.")
-            return render_template("content_draft_result.html", client=client, result=result)
+            return render_template(
+                "content_draft_result.html", client=client, result=result
+            )
 
         except Exception as e:
-            refund_credits(current_user, 2, notes="Refund for failed content draft generation")
+            refund_credits(
+                current_user,
+                2,
+                notes="Refund for failed content draft generation",
+            )
             return render_template(
                 "content_draft_form.html",
                 client=client,
@@ -3133,9 +3650,19 @@ def generate_client_content_draft(client_id):
         "target_query": prefill_query if prefill_query else default_query,
         "content_type": "service_page",
         "brief_context": prefill_brief_context,
-        "brand_context": prefill_brand_context if prefill_brand_context else client.get("notes", ""),
+        "brand_context": (
+            prefill_brand_context
+            if prefill_brand_context
+            else client.get("notes", "")
+        ),
     }
-    return render_template("content_draft_form.html", client=client, error=None, form_data=form_data)
+    return render_template(
+        "content_draft_form.html",
+        client=client,
+        error=None,
+        form_data=form_data,
+    )
+
 
 @app.route("/audit/<summary_filename>")
 @login_required
@@ -3146,13 +3673,18 @@ def audit_summary(summary_filename):
 
     summary_data = load_json_file(summary_path)
     full_filename = get_matching_full_filename(summary_filename)
-    return render_template("audit_summary.html", summary_filename=summary_filename, full_filename=full_filename, data=summary_data)
+    return render_template(
+        "audit_summary.html",
+        summary_filename=summary_filename,
+        full_filename=full_filename,
+        data=summary_data,
+    )
 
 
 @app.route("/audit/<summary_filename>/full")
 @login_required
 def audit_full(summary_filename):
-    require_internal_access()   # 👈 ADD THIS LINE
+    require_internal_access()  # 👈 ADD THIS LINE
 
     full_path = get_full_path(summary_filename)
     if not full_path:
@@ -3160,7 +3692,12 @@ def audit_full(summary_filename):
 
     full_data = load_json_file(full_path)
     full_filename = get_matching_full_filename(summary_filename)
-    return render_template("audit_full.html", summary_filename=summary_filename, full_filename=full_filename, data=full_data)
+    return render_template(
+        "audit_full.html",
+        summary_filename=summary_filename,
+        full_filename=full_filename,
+        data=full_data,
+    )
 
 
 @app.route("/client/<client_id>/visibility")
@@ -3185,13 +3722,16 @@ def client_visibility_page(client_id):
         query_summary=query_summary,
     )
 
+
 @app.route("/prompt-detail")
 @login_required
 def prompt_detail_page():
     prompt_text = request.args.get("prompt", "").strip()
     project_domain = request.args.get("domain", "supportfast.ai").strip()
     selected_platform = request.args.get("platform", "ChatGPT").strip()
-    selected_market = request.args.get("market", "United States (English)").strip()
+    selected_market = request.args.get(
+        "market", "United States (English)"
+    ).strip()
     tracked_topic = request.args.get("topic", "Tracked prompts").strip()
 
     row = None
@@ -3218,11 +3758,10 @@ def prompt_detail_page():
             "Add stronger entity and trust signals to relevant pages",
             "Compare your answer coverage against the competitor being cited",
         ]
-        ai_answer = (
-            f"Current tracked visibility for this prompt is {row.visibility}. "
-            f"Your brand mention status is {row.mentioned}. "
-            f"Top competitor currently associated with this prompt is {row.top_competitor or 'unknown'}."
-        )
+        ai_answer = f"Current tracked visibility for this prompt is {
+                row.visibility}. " f"Your brand mention status is {
+                row.mentioned}. " f"Top competitor currently associated with this prompt is {
+                row.top_competitor or 'unknown'}."
     else:
         visibility = "Low"
         brand_mentioned = "No"
@@ -3258,6 +3797,7 @@ def prompt_detail_page():
         ai_answer=ai_answer,
     )
 
+
 @app.route("/save-prompts", methods=["POST"])
 @login_required
 def save_prompts():
@@ -3283,7 +3823,9 @@ def save_prompts():
     if not prompt_list:
         flash("No prompts entered.", "warning")
         if client_id:
-            return redirect(url_for("position_tracking_page", client_id=client_id))
+            return redirect(
+                url_for("position_tracking_page", client_id=client_id)
+            )
         return redirect(url_for("position_tracking_page"))
 
     def guess_competitor(prompt: str) -> str:
@@ -3352,6 +3894,7 @@ def save_prompts():
 
     return redirect(url_for("position_tracking_page", **redirect_args))
 
+
 @app.route("/client/<client_id>/competitors")
 @login_required
 def client_competitors_page(client_id):
@@ -3359,6 +3902,14 @@ def client_competitors_page(client_id):
 
     if not client:
         abort(404)
+
+    # Free users can see audit + limited queue, but competitor analysis is
+    # locked
+    if current_user.plan == "free":
+        flash(
+            "Competitor analysis is available on Pro and Growth plans.", "info"
+        )
+        return redirect(url_for("pricing_page"))
 
     domain = request.args.get("domain", "").strip()
     competitor_1 = request.args.get("competitor_1", "").strip()
@@ -3374,7 +3925,8 @@ def client_competitors_page(client_id):
     )
 
     competitors = [
-        c for c in [
+        c
+        for c in [
             competitor_1,
             competitor_2,
             competitor_3,
@@ -3393,11 +3945,7 @@ def client_competitors_page(client_id):
         ]
 
     analysis_has_run = bool(
-        domain
-        or competitor_1
-        or competitor_2
-        or competitor_3
-        or competitor_4
+        domain or competitor_1 or competitor_2 or competitor_3 or competitor_4
     )
 
     return render_template(
@@ -3410,6 +3958,7 @@ def client_competitors_page(client_id):
         analysis_has_run=analysis_has_run,
     )
 
+
 @app.route("/client/<client_id>/actions")
 @login_required
 def client_actions_page(client_id):
@@ -3418,7 +3967,10 @@ def client_actions_page(client_id):
         abort(404)
     return render_template("client_actions.html", client=client)
 
-@app.route("/client/<client_id>/competitor-topic/add-to-queue", methods=["POST"])
+
+@app.route(
+    "/client/<client_id>/competitor-topic/add-to-queue", methods=["POST"]
+)
 @login_required
 def add_competitor_topic_to_queue(client_id):
     client = get_client_by_id(client_id)
@@ -3439,7 +3991,9 @@ def add_competitor_topic_to_queue(client_id):
 
     if not target_query:
         flash("No competitor opportunity was selected.", "error")
-        return redirect(url_for("client_competitors_page", client_id=client_id))
+        return redirect(
+            url_for("client_competitors_page", client_id=client_id)
+        )
 
     if priority not in ["low", "medium", "high"]:
         priority = "medium"
@@ -3483,6 +4037,7 @@ Create a page or section that directly answers the selected prompt, explains the
     flash("Competitor opportunity added to the content queue.", "success")
     return redirect(url_for("content_queue_page", client_id=client.get("id")))
 
+
 @app.route("/client/<client_id>/history")
 @login_required
 def client_history_page(client_id):
@@ -3490,6 +4045,7 @@ def client_history_page(client_id):
     if not client:
         abort(404)
     return render_template("client_history.html", client=client)
+
 
 @app.route("/position-tracking")
 @login_required
@@ -3532,28 +4088,42 @@ def position_tracking_page():
 
     tracked_prompts = []
     for row in rows:
-        tracked_prompts.append({
-            "id": row.id,
-            "prompt": row.prompt,
-            "status": row.status,
-            "visibility": row.visibility,
-            "mentioned": row.mentioned,
-            "top_competitor": row.top_competitor or "—",
-            "last_checked": row.last_checked,
-            "change": row.change,
-            "prompt_score": row.prompt_score,
-            "score_band": row.score_band,
-            "opportunity_label": row.opportunity_label,
-            "brand_position": row.brand_position,
-            "competitor_count": row.competitor_count,
-            "source_support": row.source_support,
-        })
+        tracked_prompts.append(
+            {
+                "id": row.id,
+                "prompt": row.prompt,
+                "status": row.status,
+                "visibility": row.visibility,
+                "mentioned": row.mentioned,
+                "top_competitor": row.top_competitor or "—",
+                "last_checked": row.last_checked,
+                "change": row.change,
+                "prompt_score": row.prompt_score,
+                "score_band": row.score_band,
+                "opportunity_label": row.opportunity_label,
+                "brand_position": row.brand_position,
+                "competitor_count": row.competitor_count,
+                "source_support": row.source_support,
+            }
+        )
 
-    mentioned_count = sum(1 for row in tracked_prompts if row["mentioned"] == "Yes")
-    partial_count = sum(1 for row in tracked_prompts if row["mentioned"] == "Sometimes")
-    low_visibility_count = sum(1 for row in tracked_prompts if row["visibility"] == "Low")
-    highest_competitor = tracked_prompts[0]["top_competitor"] if tracked_prompts else "—"
-    best_next_move = "Build content for missing prompts" if low_visibility_count > 0 else "Keep tracking visibility"
+    mentioned_count = sum(
+        1 for row in tracked_prompts if row["mentioned"] == "Yes"
+    )
+    partial_count = sum(
+        1 for row in tracked_prompts if row["mentioned"] == "Sometimes"
+    )
+    low_visibility_count = sum(
+        1 for row in tracked_prompts if row["visibility"] == "Low"
+    )
+    highest_competitor = (
+        tracked_prompts[0]["top_competitor"] if tracked_prompts else "—"
+    )
+    best_next_move = (
+        "Build content for missing prompts"
+        if low_visibility_count > 0
+        else "Keep tracking visibility"
+    )
 
     return render_template(
         "position_tracking.html",
@@ -3574,6 +4144,7 @@ def position_tracking_page():
         highest_competitor=highest_competitor,
         best_next_move=best_next_move,
     )
+
 
 @app.route("/content")
 @app.route("/content-queue")
@@ -3604,12 +4175,10 @@ def content_queue_page():
 
         if item.get("id"):
             item["generate_brief_url"] = url_for(
-                "generate_brief_from_queue",
-                item_id=item["id"]
+                "generate_brief_from_queue", item_id=item["id"]
             )
             item["generate_draft_url"] = url_for(
-                "generate_draft_from_queue",
-                item_id=item["id"]
+                "generate_draft_from_queue", item_id=item["id"]
             )
         else:
             item["generate_brief_url"] = None
@@ -3617,34 +4186,57 @@ def content_queue_page():
 
     # Stats should use ALL filtered items, not only the current page
     stats = {
-        "queued": len([
-            i for i in items
-            if (i.get("status") or "").lower() in ["queued", "pending"]
-        ]),
-        "in_progress": len([
-            i for i in items
-            if (i.get("status") or "").lower() in ["in_progress", "in-progress", "draft_generated"]
-        ]),
-        "ready": len([
-            i for i in items
-            if (i.get("status") or "").lower() in ["ready", "brief_generated", "brief generated", "brief ready"]
-        ]),
-        "published": len([
-            i for i in items
-            if (i.get("status") or "").lower() == "published"
-        ]),
+        "queued": len(
+            [
+                i
+                for i in items
+                if (i.get("status") or "").lower() in ["queued", "pending"]
+            ]
+        ),
+        "in_progress": len(
+            [
+                i
+                for i in items
+                if (i.get("status") or "").lower()
+                in ["in_progress", "in-progress", "draft_generated"]
+            ]
+        ),
+        "ready": len(
+            [
+                i
+                for i in items
+                if (i.get("status") or "").lower()
+                in [
+                    "ready",
+                    "brief_generated",
+                    "brief generated",
+                    "brief ready",
+                ]
+            ]
+        ),
+        "published": len(
+            [
+                i
+                for i in items
+                if (i.get("status") or "").lower() == "published"
+            ]
+        ),
     }
 
     selected_client = None
     if selected_client_id:
         selected_client = next(
-            (client for client in clients if str(client.get("id")) == str(selected_client_id)),
-            None
+            (
+                client
+                for client in clients
+                if str(client.get("id")) == str(selected_client_id)
+            ),
+            None,
         )
 
     # Pagination
     page = request.args.get("page", 1, type=int)
-    per_page = 20
+    per_page = 10
 
     total_queue_items = len(items)
     total_pages = max((total_queue_items + per_page - 1) // per_page, 1)
@@ -3669,17 +4261,23 @@ def content_queue_page():
         per_page=per_page,
         selected_client_id=selected_client_id,
         selected_client=selected_client,
+        clients=clients,
+        focused_client=get_focused_client_for_user(current_user),
+        view_mode=view_mode,
         stats=stats,
         incoming_query=incoming_query,
         incoming_topic=incoming_topic,
         incoming_source=incoming_source,
     )
 
+
 @app.route("/content-queue/<item_id>/status", methods=["POST"])
 @login_required
 def update_content_queue_status(item_id):
     new_status = request.form.get("status", "pending").strip()
-    item = update_queue_item_status(item_id, new_status, user_id=current_user.id)
+    item = update_queue_item_status(
+        item_id, new_status, user_id=current_user.id
+    )
 
     if not item:
         abort(404)
@@ -3690,6 +4288,7 @@ def update_content_queue_status(item_id):
     if client_id:
         return redirect(url_for("content_queue_page", client_id=client_id))
     return redirect(url_for("content_queue_page"))
+
 
 @app.route("/client/<client_id>/save-brief", methods=["POST"])
 @login_required
@@ -3728,7 +4327,7 @@ def save_generated_draft(client_id):
         abort(404)
 
     target_query = safe_str(request.form.get("target_query"))
-    content_type = safe_str(request.form.get("content_type"))    
+    content_type = safe_str(request.form.get("content_type"))
     draft_text = request.form.get("draft_text", "").strip()
     title = f"Draft: {target_query}" if target_query else "Content Draft"
 
@@ -3749,9 +4348,11 @@ def save_generated_draft(client_id):
     flash("Draft saved to content queue.")
     return redirect(url_for("content_queue_page", client_id=client.get("id")))
 
+
 # =========================
 # API routes
 # =========================
+
 
 @app.route("/api/audits")
 @login_required
@@ -3762,10 +4363,14 @@ def api_audits():
     sort_by = request.args.get("sort", "saved_at").strip()
     order = request.args.get("order", "desc").strip().lower()
 
-    audits = filter_audits(all_audits, search_term=search_term, audit_type=audit_type)
+    audits = filter_audits(
+        all_audits, search_term=search_term, audit_type=audit_type
+    )
     audits = sort_audits(audits, sort_by=sort_by, order=order)
 
-    return jsonify({"count": len(audits), "total_count": len(all_audits), "items": audits})
+    return jsonify(
+        {"count": len(audits), "total_count": len(all_audits), "items": audits}
+    )
 
 
 @app.route("/api/clients")
@@ -3774,20 +4379,21 @@ def api_clients():
     clients = build_client_views()
     return jsonify({"count": len(clients), "items": clients})
 
+
 @app.route("/content/brief/new")
 @login_required
-
 def generate_content_brief_page():
     return redirect(url_for("content_queue_page"))
 
+
 @app.route("/api/client/<client_id>")
 @login_required
-
 def api_client_detail(client_id):
     client = get_client_by_id(client_id)
     if not client:
         return jsonify({"error": "Client not found"}), 404
     return jsonify(client)
+
 
 @app.route("/client/<client_id>/presentation")
 @login_required
@@ -3800,7 +4406,9 @@ def client_presentation_page(client_id):
     can_use_presentation_mode = view_mode in ["multi", "admin"]
 
     if not can_use_presentation_mode:
-        flash("Presentation mode is available for agency workspaces.", "warning")
+        flash(
+            "Presentation mode is available for agency workspaces.", "warning"
+        )
         return redirect(url_for("client_detail", client_id=client_id))
 
     return render_template(
@@ -3809,14 +4417,14 @@ def client_presentation_page(client_id):
         can_use_presentation_mode=can_use_presentation_mode,
     )
 
+
 @app.route("/client/<client_id>/growth-plan")
 @login_required
 def client_growth_plan(client_id):
 
     # 🔥 DIRECT DB lookup instead of view builder
     row = Client.query.filter_by(
-        slug=client_id,
-        user_id=current_user.id
+        slug=client_id, user_id=current_user.id
     ).first()
 
     if not row:
@@ -3854,7 +4462,8 @@ def client_growth_plan(client_id):
         summary=summary,
         audit_count=full_client.get("audit_count", 0),
     )
-        
+
+
 @app.route("/start-audit")
 @login_required
 def start_audit():
@@ -3873,6 +4482,7 @@ def start_audit():
         return redirect(url_for("new_audit", client_id=clients[0]["id"]))
 
     return redirect(url_for("clients_page"))
+
 
 @app.route("/audit/new", methods=["GET", "POST"])
 @login_required
@@ -3905,7 +4515,11 @@ def new_audit():
             return render_template(
                 "new_audit.html",
                 clients=clients,
-                preselected_client_id=str(focused_client["id"]) if (view_mode == "single" and focused_client) else (clients[0]["id"] if len(clients) == 1 else None),
+                preselected_client_id=(
+                    str(focused_client["id"])
+                    if (view_mode == "single" and focused_client)
+                    else (clients[0]["id"] if len(clients) == 1 else None)
+                ),
                 form_data=request.form,
                 error="Please choose a workspace.",
                 view_mode=view_mode,
@@ -3915,14 +4529,21 @@ def new_audit():
             return render_template(
                 "new_audit.html",
                 clients=clients,
-                preselected_client_id=str(focused_client["id"]) if (view_mode == "single" and focused_client) else (clients[0]["id"] if len(clients) == 1 else None),
+                preselected_client_id=(
+                    str(focused_client["id"])
+                    if (view_mode == "single" and focused_client)
+                    else (clients[0]["id"] if len(clients) == 1 else None)
+                ),
                 form_data=request.form,
                 error="Website, industry, and location are required.",
                 view_mode=view_mode,
             )
 
         if not has_enough_credits(current_user, 1):
-            flash("You don’t have enough credits to run another audit.", "warning")
+            flash(
+                "You don’t have enough credits to run another audit.",
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
         if not spend_credits(current_user, 1, notes="New audit run"):
@@ -3958,9 +4579,11 @@ def new_audit():
                 )
 
             return redirect(url_for("client_detail", client_id=client_id))
-                
+
         except Exception as e:
-            refund_credits(current_user, 1, notes="Refund for failed new audit")
+            refund_credits(
+                current_user, 1, notes="Refund for failed new audit"
+            )
             return render_template(
                 "new_audit.html",
                 clients=clients,
@@ -3974,7 +4597,9 @@ def new_audit():
     preselected_client_id = None
 
     if requested_client_id:
-        prefilled_client = next((c for c in clients if str(c["id"]) == requested_client_id), None)
+        prefilled_client = next(
+            (c for c in clients if str(c["id"]) == requested_client_id), None
+        )
         if prefilled_client:
             preselected_client_id = str(prefilled_client["id"])
 
@@ -3988,10 +4613,18 @@ def new_audit():
 
     form_data = {
         "client_id": preselected_client_id or "",
-        "website": prefilled_client.get("website", "") if prefilled_client else "",
-        "industry": prefilled_client.get("industry", "") if prefilled_client else "",
-        "location": prefilled_client.get("location", "") if prefilled_client else "",
-        "topic": prefilled_client.get("industry", "") if prefilled_client else "",
+        "website": (
+            prefilled_client.get("website", "") if prefilled_client else ""
+        ),
+        "industry": (
+            prefilled_client.get("industry", "") if prefilled_client else ""
+        ),
+        "location": (
+            prefilled_client.get("location", "") if prefilled_client else ""
+        ),
+        "topic": (
+            prefilled_client.get("industry", "") if prefilled_client else ""
+        ),
         "audit_type": "quick",
         "notes": "",
     }
@@ -4005,6 +4638,7 @@ def new_audit():
         view_mode=view_mode,
     )
 
+
 @app.route("/api/audit/<summary_filename>/full")
 @login_required
 def api_audit_full(summary_filename):
@@ -4016,12 +4650,19 @@ def api_audit_full(summary_filename):
 
     full_data = load_json_file(full_path)
     full_filename = get_matching_full_filename(summary_filename)
-    return jsonify({"summary_filename": summary_filename, "full_filename": full_filename, "data": full_data})
+    return jsonify(
+        {
+            "summary_filename": summary_filename,
+            "full_filename": full_filename,
+            "data": full_data,
+        }
+    )
 
 
 # =========================
 # Template helpers
 # =========================
+
 
 @app.template_filter("pretty_datetime")
 def pretty_datetime(value):
@@ -4032,7 +4673,6 @@ def pretty_datetime(value):
         return dt.strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         return value
-
 
 
 @app.context_processor
@@ -4054,7 +4694,9 @@ def inject_template_globals():
 
         workspace_count = get_workspace_count(current_user.id)
         workspace_limit = get_workspace_limit(current_user)
-        can_add_workspace = workspace_limit is None or workspace_count < workspace_limit
+        can_add_workspace = (
+            workspace_limit is None or workspace_count < workspace_limit
+        )
         focused_client = get_focused_client_for_user(current_user)
 
         if has_unlimited_credits:
@@ -4076,33 +4718,30 @@ def inject_template_globals():
         "can_add_workspace": can_add_workspace,
         "focused_client": focused_client,
         "can_run_audit": (
-            current_user.is_authenticated and (
-                has_unlimited_credits or credit_balance_numeric >= 1
-            )
+            current_user.is_authenticated
+            and (has_unlimited_credits or credit_balance_numeric >= 1)
         ),
         "can_generate_brief": (
-            current_user.is_authenticated and (
-                has_unlimited_credits or credit_balance_numeric >= 1
-            )
+            current_user.is_authenticated
+            and (has_unlimited_credits or credit_balance_numeric >= 1)
         ),
         "can_generate_draft": (
-            current_user.is_authenticated and (
-                has_unlimited_credits or credit_balance_numeric >= 2
-            )
+            current_user.is_authenticated
+            and (has_unlimited_credits or credit_balance_numeric >= 2)
         ),
     }
+
 
 @app.route("/aeo-agency")
 def aeo_agency_page():
     return render_template("landing_aeo.html")
 
+
 def render_settings_section(section, **extra_context):
-    is_internal_user = (
-        current_user.is_authenticated and (
-            current_user.email == "pypteltd@gmail.com"
-            or getattr(current_user, "role", "") == "admin"
-            or getattr(current_user, "plan", "") == "dev_unlimited"
-        )
+    is_internal_user = current_user.is_authenticated and (
+        current_user.email == "pypteltd@gmail.com"
+        or getattr(current_user, "role", "") == "admin"
+        or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
     context = {
@@ -4112,13 +4751,12 @@ def render_settings_section(section, **extra_context):
     }
     context.update(extra_context)
 
+
 def render_settings_section(section, **extra_context):
-    is_internal_user = (
-        current_user.is_authenticated and (
-            current_user.email == "pypteltd@gmail.com"
-            or getattr(current_user, "role", "") == "admin"
-            or getattr(current_user, "plan", "") == "dev_unlimited"
-        )
+    is_internal_user = current_user.is_authenticated and (
+        current_user.email == "pypteltd@gmail.com"
+        or getattr(current_user, "role", "") == "admin"
+        or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
     context = {
@@ -4130,40 +4768,48 @@ def render_settings_section(section, **extra_context):
 
     return render_template("settings.html", **context)
 
+
 @app.route("/settings")
 @login_required
 def settings_page():
     return render_settings_section("profile")
+
 
 @app.route("/settings/account")
 @login_required
 def settings_account():
     return render_settings_section("account")
 
+
 @app.route("/settings/billing")
 @login_required
 def settings_billing():
     return render_settings_section("billing")
+
 
 @app.route("/settings/credits")
 @login_required
 def settings_credits():
     return render_settings_section("credits")
 
+
 @app.route("/settings/referrals")
 @login_required
 def settings_referrals():
     return render_settings_section("referrals")
+
 
 @app.route("/settings/preferences")
 @login_required
 def settings_preferences():
     return render_settings_section("preferences")
 
+
 @app.route("/settings/team")
 @login_required
 def settings_team():
     return render_settings_section("team")
+
 
 if __name__ == "__main__":
     ensure_data_dirs()

@@ -10,6 +10,7 @@
     </div>
 </div>
 {% endblock %}
+
 {% block content %}
 {% set fd = form_data if form_data is defined and form_data else {} %}
 
@@ -68,9 +69,10 @@
                                 <label for="website">Website</label>
                                 <input
                                     id="website"
-                                    type="text"
+                                    type="url"
                                     name="website"
                                     value="{{ fd.get('website', '') }}"
+                                    placeholder="https://example.com"
                                     required
                                 >
                             </div>
@@ -82,6 +84,7 @@
                                     type="text"
                                     name="industry"
                                     value="{{ fd.get('industry', '') }}"
+                                    placeholder="e.g. ice cream and confectionery e-commerce"
                                     required
                                 >
                             </div>
@@ -93,6 +96,7 @@
                                     type="text"
                                     name="location"
                                     value="{{ fd.get('location', '') }}"
+                                    placeholder="e.g. Singapore"
                                     required
                                 >
                             </div>
@@ -106,7 +110,18 @@
                             </div>
                         </div>
 
-                        <input type="hidden" name="topic" value="{{ fd.get('topic', '') }}">
+                        <div class="form-field form-field-full">
+                            <label for="topic">Audit Focus / Topic</label>
+                            <textarea
+                                id="topic"
+                                name="topic"
+                                rows="3"
+                                placeholder="e.g. White Rabbit ice cream, milk candy, party packages, merchandise, gift bundles"
+                            >{{ fd.get('topic', '') }}</textarea>
+                            <small class="form-help">
+                                Optional. Use this to focus the audit on specific services, products, or buying-intent topics.
+                            </small>
+                        </div>
 
                         <div class="audit-form-actions-clean">
                             <button type="submit" class="btn btn-primary" id="runAuditBtn">Run Audit</button>
@@ -282,6 +297,14 @@
     flex-direction: column;
     gap: 10px;
     padding-top: 4px;
+}
+
+.form-help {
+    display: block;
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .audit-side-column {
