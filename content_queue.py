@@ -7,6 +7,7 @@ QUEUE_FILE = os.path.join("data", "content_queue.json")
 
 VALID_STATUSES = {
     "pending",
+    "in_progress",
     "brief_generated",
     "draft_generated",
     "ready",
@@ -17,7 +18,14 @@ VALID_ITEM_TYPES = {"brief", "draft"}
 
 VALID_PRIORITIES = {"low", "medium", "high"}
 
-VALID_SOURCES = {"manual", "audit", "query_ideas", "competitor_research"}
+VALID_SOURCES = {
+    "manual",
+    "audit",
+    "audit_opportunity",
+    "query_ideas",
+    "competitor_research",
+    "prompt_tracking",
+}
 
 
 def _ensure_data_dir():
@@ -74,6 +82,15 @@ def _normalize_source(source):
     return value if value in VALID_SOURCES else "manual"
 
 
+def _normalize_int(value, default=0):
+    try:
+        if value is None:
+            return default
+        return int(round(float(value)))
+    except Exception:
+        return default
+
+
 def _normalize_item(raw):
     created_at = raw.get("created_at", _now_iso())
 
@@ -89,6 +106,11 @@ def _normalize_item(raw):
         "status": _normalize_status(raw.get("status", "pending")),
         "priority": _normalize_priority(raw.get("priority", "medium")),
         "source": _normalize_source(raw.get("source", "manual")),
+        "credits_required": _normalize_int(raw.get("credits_required")),
+        "execution_type": _normalize_text(
+            raw.get("execution_type"), "ai_executable"
+        ),
+        "source_action_title": _normalize_text(raw.get("source_action_title")),
         "user_id": raw.get("user_id"),
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
@@ -121,6 +143,9 @@ def add_queue_item(
     status="pending",
     priority="medium",
     source="manual",
+    credits_required=0,
+    execution_type="ai_executable",
+    source_action_title="",
     user_id=None,
 ):
     items = load_queue_items()
@@ -137,6 +162,11 @@ def add_queue_item(
         "status": _normalize_status(status),
         "priority": _normalize_priority(priority),
         "source": _normalize_source(source),
+        "credits_required": _normalize_int(credits_required),
+        "execution_type": _normalize_text(
+            execution_type, "ai_executable"
+        ),
+        "source_action_title": _normalize_text(source_action_title),
         "user_id": user_id,
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
@@ -225,6 +255,9 @@ def update_queue_item_content(
     status=None,
     priority=None,
     source=None,
+    credits_required=None,
+    execution_type=None,
+    source_action_title=None,
     user_id=None,
 ):
     items = load_queue_items()
@@ -250,6 +283,17 @@ def update_queue_item_content(
 
         if source is not None:
             item["source"] = _normalize_source(source)
+
+        if credits_required is not None:
+            item["credits_required"] = _normalize_int(credits_required)
+
+        if execution_type is not None:
+            item["execution_type"] = _normalize_text(
+                execution_type, "ai_executable"
+            )
+
+        if source_action_title is not None:
+            item["source_action_title"] = _normalize_text(source_action_title)
 
         item["updated_at"] = _now_iso()
         updated_item = item
@@ -374,6 +418,9 @@ def create_queue_item_from_audit_opportunity(client_id, client_name, opportunity
         status="pending",
         priority=opportunity.get("priority", "medium"),
         source="audit",
+        credits_required=opportunity.get("credits_required", 0),
+        execution_type=opportunity.get("execution_type", "ai_executable"),
+        source_action_title=opportunity.get("source_action_title", ""),
         user_id=user_id,
     )
 

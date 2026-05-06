@@ -28,6 +28,7 @@ from action_engine import (
     build_recommended_actions,
     build_content_opportunities,
 )
+from next_action_engine import build_next_best_action
 from query_idea_generator import generate_query_ideas
 from flask import (
     Flask,
@@ -1356,6 +1357,9 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
             status="pending",
             priority=opp.get("priority", "medium"),
             source="audit_opportunity",
+            credits_required=opp.get("credits_required", 0),
+            execution_type=opp.get("execution_type", "ai_executable"),
+            source_action_title=opp.get("source_action_title", ""),
             user_id=user_id,
         )
 
@@ -1549,6 +1553,237 @@ def slugify(text):
     return slug.strip("-")
 
 
+def pdf_filename(label, fallback="darinsights-report"):
+    slug = slugify(label) or fallback
+    return f"{slug}.pdf"
+
+
+def _pdf_escape(text):
+    return (
+        safe_str(text)
+        .replace("\\", "\\\\")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+    )
+
+
+def _wrap_pdf_line(text, max_chars=92):
+    words = safe_str(text).split()
+    if not words:
+        return [""]
+
+    lines = []
+    current = ""
+
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if len(candidate) <= max_chars:
+            current = candidate
+            continue
+
+        if current:
+            lines.append(current)
+        current = word
+
+    if current:
+        lines.append(current)
+
+    return lines
+
+
+def build_simple_pdf(lines):
+    wrapped_lines = []
+    for line in lines:
+        wrapped_lines.extend(_wrap_pdf_line(line))
+
+    pages = []
+    page_lines = []
+    for line in wrapped_lines:
+        page_lines.append(line)
+        if len(page_lines) >= 42:
+            pages.append(page_lines)
+            page_lines = []
+    if page_lines:
+        pages.append(page_lines)
+    if not pages:
+        pages = [["DarInsights Report"]]
+
+    objects = []
+    pages_kids = []
+
+    def add_object(body):
+        objects.append(body)
+        return len(objects)
+
+    font_obj = add_object("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    for page in pages:
+        y = 790
+        content_lines = ["BT", "/F1 11 Tf", "14 TL"]
+        content_lines.append(f"50 {y} Td")
+
+        for index, line in enumerate(page):
+            if index > 0:
+                content_lines.append("T*")
+            content_lines.append(f"({_pdf_escape(line)}) Tj")
+
+        content_lines.append("ET")
+        stream = "\n".join(content_lines).encode("utf-8")
+        content_obj = add_object(
+            f"<< /Length {len(stream)} >>\nstream\n"
+            f"{stream.decode('utf-8')}\nendstream"
+        )
+        page_obj = add_object(
+            "<< /Type /Page /Parent 0 0 R /MediaBox [0 0 595 842] "
+            f"/Resources << /Font << /F1 {font_obj} 0 R >> >> "
+            f"/Contents {content_obj} 0 R >>"
+        )
+        pages_kids.append(page_obj)
+
+    pages_obj_body = (
+        f"<< /Type /Pages /Kids [{' '.join(f'{kid} 0 R' for kid in pages_kids)}] "
+        f"/Count {len(pages_kids)} >>"
+    )
+    pages_obj = add_object(pages_obj_body)
+
+    for page_obj in pages_kids:
+        objects[page_obj - 1] = objects[page_obj - 1].replace(
+            "/Parent 0 0 R", f"/Parent {pages_obj} 0 R"
+        )
+
+    catalog_obj = add_object(f"<< /Type /Catalog /Pages {pages_obj} 0 R >>")
+
+    output = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+
+    for index, body in enumerate(objects, start=1):
+        offsets.append(len(output))
+        output.extend(f"{index} 0 obj\n{body}\nendobj\n".encode("utf-8"))
+
+    xref_offset = len(output)
+    output.extend(f"xref\n0 {len(objects) + 1}\n".encode("utf-8"))
+    output.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        output.extend(f"{offset:010d} 00000 n \n".encode("utf-8"))
+
+    output.extend(
+        (
+            "trailer\n"
+            f"<< /Size {len(objects) + 1} /Root {catalog_obj} 0 R >>\n"
+            "startxref\n"
+            f"{xref_offset}\n"
+            "%%EOF\n"
+        ).encode("utf-8")
+    )
+    return bytes(output)
+
+
+def render_pdf_response(html, filename, fallback_lines=None):
+    pdf_bytes = None
+
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(
+            string=html,
+            base_url=request.url_root,
+        ).write_pdf()
+    except Exception:
+        pdf_bytes = build_simple_pdf(
+            fallback_lines or ["DarInsights Report", "PDF export generated."]
+        )
+
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename={filename}"
+    )
+    return response
+
+
+def audit_summary_pdf_lines(summary_data, summary_filename, report_date):
+    scores = summary_data.get("scores", {}) if summary_data else {}
+    summary = summary_data.get("summary", {}) if summary_data else {}
+
+    return [
+        "DarInsights Audit Summary",
+        f"Report date: {report_date}",
+        f"Website: {summary_data.get('website', 'Unknown Website')}",
+        f"Client: {summary_data.get('client_name', 'Unassigned')}",
+        f"Audit type: {summary_data.get('audit_type', 'Audit')}",
+        "",
+        f"AEO score: {scores.get('normalized_score', summary_data.get('normalized_score', 'Not measured'))}",
+        f"Visibility: {scores.get('visibility_score', summary_data.get('visibility_score', 'Not measured'))}",
+        f"Content: {scores.get('content_score', summary_data.get('content_score', 'Not measured'))}",
+        f"Schema: {scores.get('schema_score', summary_data.get('schema_score', 'Not measured'))}",
+        f"Opportunity level: {summary.get('opportunity_level', summary_data.get('opportunity_level', 'N/A'))}",
+        "",
+        "Verdict",
+        summary.get("verdict", summary_data.get("verdict", "Audit completed.")),
+        "",
+        "Biggest opportunity",
+        summary.get(
+            "biggest_opportunity",
+            "Improve content coverage for high-intent customer questions.",
+        ),
+        "",
+        "Biggest problem",
+        summary.get(
+            "biggest_problem",
+            "The brand is not appearing strongly enough in important AI answer scenarios.",
+        ),
+        "",
+        "Recommended next actions",
+        *[
+            f"{index}. {action}"
+            for index, action in enumerate(
+                summary.get("top_3_actions", []) or [
+                    "Improve brand visibility in AI answer scenarios.",
+                    "Expand content coverage around high-intent customer questions.",
+                    "Create structured FAQ, comparison, and service content.",
+                ],
+                start=1,
+            )
+        ],
+        "",
+        f"Summary file: {summary_filename}",
+    ]
+
+
+def client_audit_pdf_lines(client, latest, recommended_actions, report_date):
+    lines = [
+        "DarInsights Client Audit Report",
+        f"Report date: {report_date}",
+        f"Client: {client.get('name', 'Workspace')}",
+        f"Website: {client.get('website', 'N/A')}",
+        "",
+        f"Overall score: {latest.get('normalized_score', 'Not measured')}",
+        f"Visibility: {latest.get('visibility_score', 'Not measured')}",
+        f"Content: {latest.get('content_score', 'Not measured')}",
+        f"Opportunity level: {latest.get('opportunity_level', 'N/A')}",
+        "",
+        "Recommended next actions",
+    ]
+
+    for index, action in enumerate(recommended_actions[:5], start=1):
+        if isinstance(action, dict):
+            title = action.get("title", "Recommended action")
+            detail = action.get("recommended_action") or action.get(
+                "recommended_fix", ""
+            )
+            lines.append(f"{index}. {title}. {detail}")
+        else:
+            lines.append(f"{index}. {action}")
+
+    if not recommended_actions:
+        lines.extend([
+            "1. Review visibility and content gaps from the latest audit.",
+            "2. Generate a focused content brief for the top missed query.",
+            "3. Re-audit after updates are published.",
+        ])
+
+    return lines
+
+
 def generate_referral_code(name, user_id):
     base = slugify(name) or "user"
     return f"{base}-{user_id}"
@@ -1686,12 +1921,25 @@ def delete_client_and_related_queue(client_slug, user_id):
 
 
 def get_matching_full_filename(summary_filename):
+    if summary_filename.endswith("_full.json"):
+        return summary_filename
     if not summary_filename.endswith("_summary.json"):
         return None
     return summary_filename.replace("_summary.json", "_full.json")
 
 
+def get_matching_summary_filename(audit_filename):
+    if audit_filename.endswith("_summary.json"):
+        return audit_filename
+    if audit_filename.endswith("_full.json"):
+        return audit_filename.replace("_full.json", "_summary.json")
+    return None
+
+
 def get_summary_path(summary_filename):
+    summary_filename = get_matching_summary_filename(summary_filename)
+    if not summary_filename:
+        return None
     if not summary_filename.endswith("_summary.json"):
         return None
     summary_path = os.path.join(OUTPUTS_FOLDER, summary_filename)
@@ -2365,6 +2613,43 @@ def get_focused_client_for_user(user):
     return clients_sorted[0]
 
 
+def resolve_next_action_urls(next_action):
+    if not next_action:
+        return None
+
+    resolved = dict(next_action)
+
+    for key in ["primary", "secondary"]:
+        target = resolved.get(key)
+        if not target:
+            continue
+
+        endpoint = target.get("endpoint")
+        params = target.get("params") or {}
+
+        try:
+            target["url"] = url_for(endpoint, **params)
+        except Exception:
+            target["url"] = url_for("index")
+
+    return resolved
+
+
+def build_resolved_next_action(client=None, queue_items=None, **context):
+    wallet_balance = 0
+    if current_user.is_authenticated and current_user.wallet:
+        wallet_balance = current_user.wallet.balance
+
+    action = build_next_best_action(
+        client=client,
+        queue_items=queue_items,
+        user_plan=getattr(current_user, "plan", "free"),
+        credit_balance=wallet_balance,
+        **context,
+    )
+    return resolve_next_action_urls(action)
+
+
 # =========================
 # Routes
 # =========================
@@ -2565,6 +2850,22 @@ def index():
     mentioned_count = sum(
         client.get("mentioned_count", 0) or 0 for client in clients
     )
+    next_action_client = focused_client or (clients[0] if clients else None)
+    next_action_queue_items = []
+
+    if next_action_client:
+        next_action_queue_items = get_queue_items(
+            client_id=next_action_client.get("id"),
+            user_id=current_user.id,
+        )
+
+    next_best_action = build_resolved_next_action(
+        client=next_action_client,
+        queue_items=next_action_queue_items,
+        has_clients=bool(clients),
+        total_audits=len(all_audits),
+        total_prompts=total_prompts,
+    )
 
     return render_template(
         "dashboard.html",
@@ -2581,6 +2882,7 @@ def index():
         total_audits=len(all_audits),
         total_prompts=total_prompts,
         mentioned_count=mentioned_count,
+        next_best_action=next_best_action,
         search_term=search_term,
         selected_type=audit_type,
         selected_sort=sort_by,
@@ -2644,6 +2946,7 @@ def export_client_audit_pdf(client_id):
     }
 
     # 🔹 Render HTML
+    report_date = datetime.utcnow().strftime("%d %b %Y")
     html = render_template(
         "client_audit_pdf.html",
         client=client,
@@ -2652,20 +2955,20 @@ def export_client_audit_pdf(client_id):
         top_action=top_action,
         question_rows=question_rows,
         missing_rows=missing_rows,
-        report_date=datetime.utcnow().strftime("%d %b %Y"),
+        report_date=report_date,
         agency=agency,
         executive_summary=client.get("executive_summary"),
         competitor_notes=client.get("competitor_notes"),
     )
 
-    # 🔹 SIMPLE VERSION (download HTML first)
-    response = make_response(html)
-    response.headers["Content-Type"] = "text/html"
-    response.headers["Content-Disposition"] = f"attachment; filename={
-        client.get(
-            'name', 'report')}_audit.html"
-
-    return response
+    filename = pdf_filename(f"{client.get('name', 'report')} audit report")
+    return render_pdf_response(
+        html,
+        filename,
+        fallback_lines=client_audit_pdf_lines(
+            client, latest, recommended_actions, report_date
+        ),
+    )
 
 
 @app.route("/clients")
@@ -2977,7 +3280,21 @@ def client_detail(client_id):
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
-    return render_template("client_detail.html", client=client)
+    queue_items = get_queue_items(
+        client_id=client.get("id"), user_id=current_user.id
+    )
+    next_best_action = build_resolved_next_action(
+        client=client,
+        queue_items=queue_items,
+        has_clients=True,
+        total_audits=client.get("audit_count", 0),
+        total_prompts=len(client.get("tracked_prompts", []) or []),
+    )
+    return render_template(
+        "client_detail.html",
+        client=client,
+        next_best_action=next_best_action,
+    )
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -3671,6 +3988,7 @@ def audit_summary(summary_filename):
     if not summary_path:
         abort(404)
 
+    summary_filename = get_matching_summary_filename(summary_filename)
     summary_data = load_json_file(summary_path)
     full_filename = get_matching_full_filename(summary_filename)
     return render_template(
@@ -3678,6 +3996,36 @@ def audit_summary(summary_filename):
         summary_filename=summary_filename,
         full_filename=full_filename,
         data=summary_data,
+    )
+
+
+@app.route("/audit/<summary_filename>/pdf")
+@login_required
+def audit_summary_pdf(summary_filename):
+    summary_path = get_summary_path(summary_filename)
+    if not summary_path:
+        abort(404)
+
+    summary_filename = get_matching_summary_filename(summary_filename)
+    summary_data = load_json_file(summary_path)
+    full_filename = get_matching_full_filename(summary_filename)
+    report_date = datetime.utcnow().strftime("%d %b %Y")
+    html = render_template(
+        "audit_summary_pdf.html",
+        summary_filename=summary_filename,
+        full_filename=full_filename,
+        data=summary_data,
+        report_date=report_date,
+    )
+
+    website = summary_data.get("website") or summary_data.get("client_name")
+    filename = pdf_filename(f"{website or 'audit'} summary")
+    return render_pdf_response(
+        html,
+        filename,
+        fallback_lines=audit_summary_pdf_lines(
+            summary_data, summary_filename, report_date
+        ),
     )
 
 
@@ -3690,6 +4038,7 @@ def audit_full(summary_filename):
     if not full_path:
         abort(404)
 
+    summary_filename = get_matching_summary_filename(summary_filename)
     full_data = load_json_file(full_path)
     full_filename = get_matching_full_filename(summary_filename)
     return render_template(
@@ -3965,7 +4314,21 @@ def client_actions_page(client_id):
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
-    return render_template("client_actions.html", client=client)
+    queue_items = get_queue_items(
+        client_id=client.get("id"), user_id=current_user.id
+    )
+    next_best_action = build_resolved_next_action(
+        client=client,
+        queue_items=queue_items,
+        has_clients=True,
+        total_audits=client.get("audit_count", 0),
+        total_prompts=len(client.get("tracked_prompts", []) or []),
+    )
+    return render_template(
+        "client_actions.html",
+        client=client,
+        next_best_action=next_best_action,
+    )
 
 
 @app.route(
@@ -4443,6 +4806,16 @@ def client_growth_plan(client_id):
     latest_audit = full_client.get("latest_audit")
     actions = full_client.get("recommended_actions", [])
     comparison = full_client.get("comparison")
+    queue_items = get_queue_items(
+        client_id=full_client.get("id"), user_id=current_user.id
+    )
+    next_best_action = build_resolved_next_action(
+        client=full_client,
+        queue_items=queue_items,
+        has_clients=True,
+        total_audits=full_client.get("audit_count", 0),
+        total_prompts=len(full_client.get("tracked_prompts", []) or []),
+    )
 
     # summary logic
     if comparison:
@@ -4461,6 +4834,7 @@ def client_growth_plan(client_id):
         actions=actions,
         summary=summary,
         audit_count=full_client.get("audit_count", 0),
+        next_best_action=next_best_action,
     )
 
 

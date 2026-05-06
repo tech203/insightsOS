@@ -37,6 +37,7 @@
 {% set top_action_title = top_action.title if top_action and top_action.title else "" %}
 {% set top_is_query_action = top_action_title.startswith("Target missed query:") %}
 {% set top_target_query = top_action_title.replace("Target missed query:", "", 1).strip() if top_is_query_action else "" %}
+{% set top_action_copy = (top_action.recommended_action or top_action.recommended_fix) if top_action else "" %}
 
 <div class="actions-shell-clean">
 
@@ -57,14 +58,25 @@
         <div class="actions-top-copy">
             <span class="section-kicker">Top Priority</span>
 
-            {% if top_action %}
+            {% if next_best_action %}
+                <h2>{{ next_best_action.title }}</h2>
+                <p>{{ next_best_action.reason }}</p>
+                <div class="action-meta-row">
+                    <span>{{ next_best_action.mode|replace("_", " ")|title }}</span>
+                    <span>{{ next_best_action.credits_required or 0 }} credits</span>
+                </div>
+            {% elif top_action %}
                 {% if top_is_query_action and top_target_query %}
                 <h2>{{ top_target_query }}</h2>
                 <p>Create a content brief for this missed query and move it into drafting.</p>
                 {% else %}
                 <h2>{{ top_action.title }}</h2>
-                <p>{{ top_action.recommended_action or "This is the clearest next move based on your latest audit." }}</p>
+                <p>{{ top_action_copy or "This is the clearest next move based on your latest audit." }}</p>
                 {% endif %}
+                <div class="action-meta-row">
+                    <span>{{ "Assisted" if top_action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}</span>
+                    <span>{{ top_action.credits_required or 0 }} credits</span>
+                </div>
             {% else %}
                 <h2>No action plan yet</h2>
                 <p>Run an audit first to generate recommended actions and prioritised next steps.</p>
@@ -72,7 +84,20 @@
         </div>
 
         <div class="actions-top-actions">
-            {% if top_action %}
+            {% if next_best_action %}
+                <div class="action-item-links action-item-links-split">
+                    <div class="action-main-group">
+                        <a href="{{ next_best_action.primary.url }}" class="btn btn-primary btn-block">
+                            {{ next_best_action.label }}
+                        </a>
+                        {% if next_best_action.secondary and next_best_action.secondary.url %}
+                        <a href="{{ next_best_action.secondary.url }}" class="btn btn-secondary btn-block">
+                            {{ next_best_action.secondary_label or "Review First" }}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% elif top_action %}
                 {% if current_user.plan == "free" %}
                 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
                     Upgrade to Continue
@@ -84,8 +109,8 @@
                         <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=top_target_query) }}" class="btn btn-primary btn-block">
                             Generate Brief
                         </a>
-                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=top_target_query) }}" class="btn btn-secondary btn-block">
-                            Generate Draft
+                        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
+                            Open Queue
                         </a>
                     </div>
 
@@ -101,7 +126,7 @@
                             Open Content Queue
                         </a>
                         <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                            Review Visibility
+                            Review Signals
                         </a>
                     </div>
 
@@ -175,11 +200,18 @@
 
                 {% if action.recommended_action %}
                 <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
+                {% elif action.recommended_fix %}
+                <p><strong>What to do:</strong> {{ action.recommended_fix }}</p>
                 {% endif %}
 
                 {% if action.support_signal %}
                 <p><strong>Why it matters:</strong> {{ action.support_signal }}</p>
                 {% endif %}
+
+                <div class="action-meta-row">
+                    <span>{{ "Assisted" if action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}</span>
+                    <span>{{ action.credits_required or 0 }} credits</span>
+                </div>
 
                 <div class="action-item-links action-item-links-split">
                     {% if current_user.plan == "free" %}
@@ -194,8 +226,8 @@
                         <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=target_query) }}" class="btn btn-primary btn-sm">
                             Generate Brief
                         </a>
-                        <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=target_query) }}" class="btn btn-secondary btn-sm">
-                            Generate Draft
+                        <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-secondary btn-sm">
+                            Open Queue
                         </a>
                     </div>
 
@@ -260,7 +292,14 @@
 
                 {% if action.recommended_action %}
                 <p><strong>What to do:</strong> {{ action.recommended_action }}</p>
+                {% elif action.recommended_fix %}
+                <p><strong>What to do:</strong> {{ action.recommended_fix }}</p>
                 {% endif %}
+
+                <div class="action-meta-row">
+                    <span>{{ "Assisted" if action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}</span>
+                    <span>{{ action.credits_required or 0 }} credits</span>
+                </div>
 
                 <div class="action-item-links action-item-links-split">
                     {% if current_user.plan == "free" %}

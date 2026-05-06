@@ -378,6 +378,16 @@
                         <strong>{{ item.source|replace("_", " ")|title }}</strong>
                     </div>
                     {% endif %}
+
+                    <div class="meta-block">
+                        <span>Mode</span>
+                        <strong>{{ "Assisted" if item.execution_type == "manual_or_ai_assisted" else "AI-assisted" }}</strong>
+                    </div>
+
+                    <div class="meta-block">
+                        <span>Credits</span>
+                        <strong>{{ item.credits_required or 0 }}</strong>
+                    </div>
                 </div>
 
 <div class="queue-item-actions">
@@ -388,50 +398,38 @@
             </a>
         {% else %}
 
-            {% if item_status in ['brief_generated', 'brief generated', 'brief ready', 'ready'] or item.content %}
-                <a href="{{ url_for('view_queue_brief', item_id=item.id) }}" class="btn btn-primary">
-                    View Brief
+            {% if item_status in ['queued', 'pending'] %}
+                <a href="{{ item.generate_brief_url }}" class="btn btn-primary">
+                    Generate Brief
                 </a>
-            {% else %}
-                {% if item.generate_brief_url %}
-                    <a href="{{ item.generate_brief_url }}" class="btn btn-primary">
-                        Generate Brief
-                    </a>
-                {% else %}
-                    <button type="button" class="btn btn-primary" disabled>
-                        Generate Brief
-                    </button>
-                {% endif %}
-            {% endif %}
-
-            {% if item.generate_draft_url %}
-                <a href="{{ item.generate_draft_url }}" class="btn btn-secondary">
+            {% elif item_status in ['brief_generated', 'brief generated', 'brief ready'] %}
+                <a href="{{ item.generate_draft_url }}" class="btn btn-primary">
                     Generate Draft
                 </a>
-            {% else %}
-                <button type="button" class="btn btn-secondary" disabled>
-                    Generate Draft
+            {% elif item_status in ['draft_generated', 'draft generated', 'ready'] %}
+                <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
+                    <input type="hidden" name="status" value="published">
+                    <button type="submit" class="btn btn-primary">Mark Published</button>
+                </form>
+            {% elif item_status == 'published' %}
+                <button type="button" class="btn btn-primary" disabled>
+                    Published
                 </button>
             {% endif %}
 
-            {% if current_user.plan == "free" %}
-                <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary">
-                    Upgrade to Generate Page
+            {% if item.content or item_status in ['brief_generated', 'brief generated', 'brief ready', 'draft_generated', 'draft generated', 'ready', 'published'] %}
+                <a href="{{ url_for('view_queue_brief', item_id=item.id) }}" class="btn btn-secondary">
+                    View Brief
                 </a>
-            {% else %}
+            {% endif %}
+
+            {% if item_status in ['brief_generated', 'brief generated', 'brief ready', 'draft_generated', 'draft generated', 'ready'] %}
                 <a href="{{ url_for('generate_page_from_queue', item_id=item.id) }}" class="btn btn-secondary">
                     Generate Page
                 </a>
             {% endif %}
 
         {% endif %}
-    {% endif %}
-
-    {% if item_status in ['draft_generated', 'draft generated', 'ready'] and current_user.plan != "free" %}
-    <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
-        <input type="hidden" name="status" value="published">
-        <button type="submit" class="btn btn-secondary">Mark Published</button>
-    </form>
     {% endif %}
 </div>
 

@@ -7,39 +7,61 @@
     <section class="panel">
         <div class="section-header">
             <div>
-                <p class="section-kicker">Full Website Builder</p>
-                <h1>{{ client.name }} Website OS</h1>
+                <p class="section-kicker">Landing Page Engine</p>
+                <h1>{{ client.name }} Page Builder</h1>
                 <p class="muted">
-                    Generate a complete AEO-ready website blueprint, pages, and functional structure.
+                    Turn audit opportunities into AEO-ready landing pages, then preview and approve before publishing.
                 </p>
             </div>
 
-            <form method="POST" action="{{ url_for('generate_full_website', client_id=client.id) }}">
-                <button type="submit" class="btn btn-primary">
-                    Generate Full Website
-                </button>
-            </form>
+            <div class="report-action-buttons">
+                <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">
+                    Choose Opportunity
+                </a>
+
+                <form method="POST" action="{{ url_for('generate_full_website', client_id=client.id) }}">
+                    <button type="submit" class="btn btn-secondary">
+                        Generate Full Website
+                    </button>
+                </form>
+            </div>
         </div>
     </section>
 
     <section class="panel">
-        <h2>What this creates</h2>
+        <h2>Guided page workflow</h2>
 
         <div class="website-card-grid">
             <div class="website-mini-card">
-                <h3>Website Blueprint</h3>
-                <p>Business type, style direction, sitemap, AEO topics, and recommended functions.</p>
+                <h3>1. Start from an audit opportunity</h3>
+                <p>Use queued missed queries, FAQ gaps, comparison topics, or service-page opportunities from the latest audit.</p>
             </div>
 
             <div class="website-mini-card">
-                <h3>Multi-page Website</h3>
-                <p>Home, Services, About, FAQ, and Contact pages generated as one site.</p>
+                <h3>2. Generate a focused page</h3>
+                <p>Create a landing page, service page, FAQ page, or comparison page with AEO-ready sections and metadata.</p>
             </div>
 
             <div class="website-mini-card">
-                <h3>Functional Modules</h3>
-                <p>Lead forms, booking CTAs, WhatsApp, FAQ schema, and ecommerce-ready sections later.</p>
+                <h3>3. Preview before publishing</h3>
+                <p>Review the generated page as a draft first. Publish only after the output is approved.</p>
             </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <p class="section-kicker">Current Best Path</p>
+                <h2>Generate pages from the content queue</h2>
+                <p class="muted">
+                    The queue connects audit findings to execution. Open a queued item, generate the brief or draft if needed, then use Generate Page.
+                </p>
+            </div>
+
+            <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-primary">
+                Open Page Opportunities
+            </a>
         </div>
     </section>
 

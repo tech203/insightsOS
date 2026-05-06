@@ -164,7 +164,7 @@
                         <span class="priority-chip {{ action.priority }}">{{ action.priority|capitalize }}</span>
                         <h3>{{ action.title }}</h3>
                     </div>
-                    <p>{{ action.recommended_action }}</p>
+                    <p>{{ action.recommended_action or action.recommended_fix }}</p>
                 </div>
                 {% endfor %}
             </div>

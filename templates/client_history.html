@@ -49,6 +49,9 @@
             <a href="{{ url_for('audit_summary', summary_filename=latest.filename) }}" class="btn btn-primary btn-block">
                 Open Latest Summary
             </a>
+            <a href="{{ url_for('audit_summary_pdf', summary_filename=latest.filename) }}" class="btn btn-secondary btn-block">
+                Export Latest PDF
+            </a>
             {% else %}
             <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
                 Run First Audit
@@ -134,6 +137,53 @@
         {% set visible_audits = client.audits[:8] %}
         {% set remaining_audits = client.audits[8:] %}
 
+        <div class="history-compact-list">
+            {% for audit in visible_audits %}
+            <article class="history-compact-row">
+                <div class="history-compact-main">
+                    <div class="history-compact-top">
+                        <strong class="history-compact-date">{{ audit.saved_at|pretty_datetime }}</strong>
+
+                        <div class="history-compact-pills">
+                            <span class="history-type-pill">{{ audit.audit_type|capitalize }}</span>
+                            {% if audit.opportunity_level %}
+                            <span class="history-meta-pill">{{ audit.opportunity_level }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="history-compact-metrics">
+                        <span>N <strong>{{ audit.normalized_score }}</strong></span>
+                        <span>V <strong>{{ audit.visibility_score }}</strong></span>
+                        <span>C <strong>{{ audit.content_score }}</strong></span>
+                        <span>S <strong>{{ audit.schema_score }}</strong></span>
+                    </div>
+                </div>
+
+                <div class="history-compact-actions">
+                    <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-primary btn-sm">
+                        Open Summary
+                    </a>
+                    <a href="{{ url_for('audit_summary_pdf', summary_filename=audit.filename) }}" class="btn btn-secondary btn-sm">
+                        PDF
+                    </a>
+                    {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" %}
+                    <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="history-inline-link">
+                        Full report
+                    </a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% if remaining_audits %}
+        <div class="history-more-wrap">
+            <button type="button" class="btn btn-secondary" onclick="toggleAuditHistory()" id="history-toggle-btn">
+                Show Older Audits
+            </button>
+        </div>
+
         <div class="history-compact-list history-hidden-list" id="history-hidden-list">
             {% for audit in remaining_audits %}
             <article class="history-compact-row">
@@ -161,6 +211,9 @@
                     <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-primary btn-sm">
                         Open Summary
                     </a>
+                    <a href="{{ url_for('audit_summary_pdf', summary_filename=audit.filename) }}" class="btn btn-secondary btn-sm">
+                        PDF
+                    </a>
                     {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" %}
                     <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="history-inline-link">
                         Full report
@@ -169,49 +222,6 @@
                 </div>
             </article>
             {% endfor %}
-        </div>
-                {% if remaining_audits %}
-                <div class="history-more-wrap">
-                    <button type="button" class="btn btn-secondary" onclick="toggleAuditHistory()" id="history-toggle-btn">
-                        Show More History
-                    </button>
-                </div>
-
-                <div class="history-compact-list history-hidden-list" id="history-hidden-list">
-                    {% for audit in remaining_audits %}
-                    <article class="history-compact-row">
-                        <div class="history-compact-main">
-                            <div class="history-compact-top">
-                                <strong class="history-compact-date">{{ audit.saved_at|pretty_datetime }}</strong>
-
-                                <div class="history-compact-pills">
-                                    <span class="history-type-pill">{{ audit.audit_type|capitalize }}</span>
-                                    {% if audit.opportunity_level %}
-                                    <span class="history-meta-pill">{{ audit.opportunity_level }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="history-compact-metrics">
-                                <span>N <strong>{{ audit.normalized_score }}</strong></span>
-                            <span>V <strong>{{ audit.visibility_score }}</strong></span>
-                            <span>C <strong>{{ audit.content_score }}</strong></span>
-                            <span>S <strong>{{ audit.schema_score }}</strong></span>
-                            </div>
-                        </div>
-
-                            <div class="history-compact-actions">
-                                <a href="{{ url_for('audit_summary', summary_filename=audit.filename) }}" class="btn btn-primary btn-sm">
-                                    Open Summary
-                                </a>
-                                {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" %}
-                                <a href="{{ url_for('audit_full', summary_filename=audit.filename) }}" class="history-inline-link">
-                                    Full report
-                                </a>
-                                {% endif %}
-                            </div>
-                    </article>
-                    {% endfor %}
         </div>
         {% endif %}
 
@@ -236,9 +246,9 @@ function toggleAuditHistory() {
     hiddenList.classList.toggle("is-open");
 
     if (hiddenList.classList.contains("is-open")) {
-        toggleBtn.textContent = "Show Less History";
+        toggleBtn.textContent = "Hide Older Audits";
     } else {
-        toggleBtn.textContent = "Show More History";
+        toggleBtn.textContent = "Show Older Audits";
     }
 }
 </script>

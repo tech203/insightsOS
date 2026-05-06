@@ -6,11 +6,12 @@
 
 {% block content %}
 
-{% set score = latest_score or 68 %}
-{% set vis = visibility_score or 72 %}
-{% set cont = content_score or 61 %}
-{% set ent = entity_score or 57 %}
-{% set trust = trust_score or 66 %}
+{% set score = latest_score if latest_score is defined and latest_score is not none else none %}
+{% set vis = visibility_score if visibility_score is defined and visibility_score is not none else none %}
+{% set cont = content_score if content_score is defined and content_score is not none else none %}
+{% set ent = entity_score if entity_score is defined and entity_score is not none else none %}
+{% set trust = trust_score if trust_score is defined and trust_score is not none else none %}
+{% set has_score = score is not none %}
 
 <div class="page-shell">
 
@@ -46,15 +47,17 @@
             <div class="muted">Visibility Score</div>
 
             <div style="font-size:48px; font-weight:800; margin-top:6px;">
-                {{ score }}
+                {{ score if has_score else "—" }}
             </div>
 
             <div style="margin-top:12px; height:8px; background:#eef2f7; border-radius:999px;">
-                <div style="width: {{ score }}%; height:100%; background: var(--accent); border-radius:999px;"></div>
+                <div style="width: {{ score if has_score else 0 }}%; height:100%; background: var(--accent); border-radius:999px;"></div>
             </div>
 
             <p class="muted" style="margin-top:12px;">
-                {% if score >= 80 %}
+                {% if not has_score %}
+                    Run an audit to create the first visibility baseline.
+                {% elif score >= 80 %}
                     Strong visibility foundation.
                 {% elif score >= 60 %}
                     Moderate visibility with clear opportunities.
@@ -70,19 +73,19 @@
             <div class="grid-2" style="margin-top:16px;">
                 <div>
                     <div class="muted">Visibility</div>
-                    <strong>{{ vis }}</strong>
+                    <strong>{{ vis if vis is not none else "—" }}</strong>
                 </div>
                 <div>
                     <div class="muted">Content</div>
-                    <strong>{{ cont }}</strong>
+                    <strong>{{ cont if cont is not none else "—" }}</strong>
                 </div>
                 <div>
                     <div class="muted">Entity</div>
-                    <strong>{{ ent }}</strong>
+                    <strong>{{ ent if ent is not none else "—" }}</strong>
                 </div>
                 <div>
                     <div class="muted">Trust</div>
-                    <strong>{{ trust }}</strong>
+                    <strong>{{ trust if trust is not none else "—" }}</strong>
                 </div>
             </div>
         </div>
@@ -95,9 +98,11 @@
         <div class="badge badge-primary">Do this first</div>
 
         <h2 class="section-title" style="margin-top:10px;">
-            {% if cont < vis %}
+            {% if not has_score %}
+                Run a first audit
+            {% elif cont is not none and vis is not none and cont < vis %}
                 Improve content coverage
-            {% elif ent < 60 %}
+            {% elif ent is not none and ent < 60 %}
                 Strengthen entity clarity
             {% else %}
                 Run a fresh audit
@@ -105,9 +110,11 @@
         </h2>
 
         <p class="muted">
-            {% if cont < vis %}
+            {% if not has_score %}
+                Start with a real baseline so the next recommendation is based on measured visibility signals.
+            {% elif cont is not none and vis is not none and cont < vis %}
                 Your content is limiting your visibility. Creating targeted pages will drive the fastest gains.
-            {% elif ent < 60 %}
+            {% elif ent is not none and ent < 60 %}
                 Your brand signals are weak. Strengthening entity clarity will improve AI understanding.
             {% else %}
                 A fresh audit will reveal new opportunities.

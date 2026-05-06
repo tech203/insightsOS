@@ -28,6 +28,15 @@
 
 <div class="audit-full-shell">
 
+    {% set report_action_kicker = "Deep Inspection" %}
+    {% set report_action_title = "Validate details, then return to the client-ready report" %}
+    {% set report_action_copy = "Use this page for QA and debugging. The summary report is the cleaner view for sharing and execution." %}
+    {% set report_primary_url = url_for('audit_summary', summary_filename=summary_filename) %}
+    {% set report_primary_label = "Back to Summary" %}
+    {% set report_pdf_url = url_for('audit_summary_pdf', summary_filename=summary_filename) %}
+    {% set report_client_url = url_for('client_detail', client_id=data.client_id) if data.client_id else none %}
+    {% include "partials/report_actions.html" %}
+
     <section class="audit-full-hero">
         <div class="audit-full-hero-main">
             <div class="audit-full-badge-row">

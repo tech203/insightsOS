@@ -14,6 +14,9 @@
             <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-primary">
                 View Audit
             </a>
+            <a href="{{ url_for('export_client_audit_pdf', client_id=client.id) }}" class="btn btn-secondary">
+                Export PDF
+            </a>
         {% else %}
             {% if current_user.is_authenticated and current_user.plan != "free" %}
             <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">
@@ -131,62 +134,32 @@
         <div class="workspace-next-copy">
             <span class="section-kicker">Next Best Step</span>
 
-            <h3>
-                {% if not has_audit %}
-                    Run your first audit
-                {% elif missing_rows %}
-                    Turn missing queries into content
-                {% elif top_action %}
-                    {{ top_action.title }}
-                {% else %}
-                    Review visibility and actions
-                {% endif %}
-            </h3>
+            <h3>{{ next_best_action.title if next_best_action else "Review visibility and actions" }}</h3>
 
-            <p>
-                {% if not has_audit %}
-                    Start with an audit to generate scores, findings, and the next best actions for this workspace.
-                {% elif missing_rows %}
-                    Your brand is still missing from important queries. The fastest next move is to turn those gaps into briefs and drafts.
-                {% elif top_action %}
-                    This is the highest-priority recommendation from your latest audit.
-                {% else %}
-                    Review the latest signals, then move into actions and content execution.
-                {% endif %}
-            </p>
+            <p>{{ next_best_action.reason if next_best_action else "Review the latest signals, then move into actions and content execution." }}</p>
+
+            {% if next_best_action %}
+            <div class="action-meta-row">
+                <span>{{ next_best_action.mode|replace("_", " ")|title }}</span>
+                <span>{{ next_best_action.credits_required or 0 }} credits</span>
+            </div>
+            {% endif %}
         </div>
 
         <div class="workspace-next-actions">
-            {% if not has_audit %}
-                {% if current_user.is_authenticated and current_user.plan != "free" %}
-                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
-                    Run First Audit
-                </a>
-                {% else %}
-                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
-                    Upgrade to Continue
+            {% if next_best_action %}
+            <a href="{{ next_best_action.primary.url }}" class="btn btn-primary btn-block">
+                {{ next_best_action.label }}
+            </a>
+                {% if next_best_action.secondary and next_best_action.secondary.url %}
+                <a href="{{ next_best_action.secondary.url }}" class="btn btn-secondary btn-block">
+                    {{ next_best_action.secondary_label or "Review First" }}
                 </a>
                 {% endif %}
-
-                <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    Edit Workspace
-                </a>
-
-            {% elif missing_rows %}
-                <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=first_missing_query) }}" class="btn btn-primary btn-block">
-                    Generate Brief
-                </a>
-                <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=first_missing_query) }}" class="btn btn-secondary btn-block">
-                    Generate Draft
-                </a>
-
             {% else %}
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary btn-block">
-                    Open Action Plan
-                </a>
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary btn-block">
-                    View Visibility
-                </a>
+            <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="btn btn-primary btn-block">
+                Open Action Plan
+            </a>
             {% endif %}
         </div>
     </section>

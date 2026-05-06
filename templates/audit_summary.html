@@ -9,6 +9,8 @@
 <a href="{{ url_for('client_detail', client_id=data.get('client_id')) }}" class="btn btn-secondary">Open Client</a>
 {% endif %}
 
+<a href="{{ url_for('audit_summary_pdf', summary_filename=summary_filename) }}" class="btn btn-primary">Export PDF</a>
+
 {% if full_filename %}
 <a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
 {% endif %}
@@ -53,6 +55,17 @@
 {% endif %}
 
 <div class="audit-summary-shell">
+
+    {% set report_action_kicker = "Client-Ready Report" %}
+    {% set report_action_title = "Share the audit, then move into execution" %}
+    {% set report_action_copy = "Export a clean PDF for stakeholders or continue into the recommended workflow from this audit." %}
+    {% set report_primary_url = url_for('content_queue_page', client_id=data.get('client_id')) if data.get('client_id') and can_execute else (url_for('pricing_page') if data.get('client_id') else url_for('content_queue_page')) %}
+    {% set report_primary_label = "Start Execution" if can_execute else ("Unlock Execution" if data.get('client_id') else "Open Queue") %}
+    {% set report_pdf_url = url_for('audit_summary_pdf', summary_filename=summary_filename) %}
+    {% set report_secondary_url = url_for('audit_full', summary_filename=summary_filename) if full_filename else none %}
+    {% set report_secondary_label = "Open Full Audit" %}
+    {% set report_client_url = url_for('client_detail', client_id=data.get('client_id')) if data.get('client_id') else none %}
+    {% include "partials/report_actions.html" %}
 
     <section class="audit-summary-hero">
         <div class="audit-summary-hero-main">

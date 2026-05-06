@@ -130,13 +130,16 @@ def _make_action(
     if final_credits is None:
         final_credits = _credit_cost_for(category, suggested_content_type)
 
+    clean_recommended_fix = _clean_text(recommended_fix)
+
     return {
         "category": category,
         "priority": final_priority,
         "title": _clean_text(title),
         "issue": _clean_text(issue),
         "why_it_matters": _clean_text(why_it_matters),
-        "recommended_fix": _clean_text(recommended_fix),
+        "recommended_fix": clean_recommended_fix,
+        "recommended_action": clean_recommended_fix,
         "linked_query": _clean_text(linked_query),
         "suggested_content_type": suggested_content_type,
         "support_signal": _clean_text(support_signal),

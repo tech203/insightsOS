@@ -1,0 +1,33 @@
+<section class="report-action-bar no-print">
+    <div class="report-action-copy">
+        <span class="section-kicker">{{ report_action_kicker or "Report Workflow" }}</span>
+        <h2>{{ report_action_title or "Use this report" }}</h2>
+        <p>{{ report_action_copy or "Review the result, export it for sharing, then move into the next execution step." }}</p>
+    </div>
+
+    <div class="report-action-buttons">
+        {% if report_primary_url %}
+        <a href="{{ report_primary_url }}" class="btn btn-primary">
+            {{ report_primary_label or "Continue" }}
+        </a>
+        {% endif %}
+
+        {% if report_pdf_url %}
+        <a href="{{ report_pdf_url }}" class="btn btn-secondary">
+            Export PDF
+        </a>
+        {% endif %}
+
+        {% if report_secondary_url %}
+        <a href="{{ report_secondary_url }}" class="btn btn-secondary">
+            {{ report_secondary_label or "Open Details" }}
+        </a>
+        {% endif %}
+
+        {% if report_client_url %}
+        <a href="{{ report_client_url }}" class="report-inline-link">
+            Open Workspace
+        </a>
+        {% endif %}
+    </div>
+</section>

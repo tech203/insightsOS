@@ -18351,3 +18351,120 @@ a.btn {
         font-size: 10px !important;
     }
 }
+
+/* Guided action metadata */
+.action-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.action-meta-row span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 6px 10px;
+    border: 1px solid #dbe6f3;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.execution-card-recommended {
+    border-color: #7b61ff !important;
+    background: #f8f6ff !important;
+}
+
+@media (max-width: 640px) {
+    .action-meta-row span {
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
+/* Reporting workflow actions */
+.report-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 20px 22px;
+    border: 1px solid #dbe6f3;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.report-action-copy {
+    min-width: 0;
+}
+
+.report-action-copy h2 {
+    margin: 8px 0 6px;
+    color: #16243c;
+    font-size: 22px;
+    line-height: 1.2;
+}
+
+.report-action-copy p {
+    max-width: 760px;
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.report-action-buttons {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.report-inline-link {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.report-inline-link:hover {
+    color: #16243c;
+}
+
+@media (max-width: 768px) {
+    .report-action-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 18px;
+    }
+
+    .report-action-buttons,
+    .report-action-buttons .btn,
+    .report-action-buttons .report-inline-link {
+        width: 100%;
+    }
+
+    .report-action-buttons .report-inline-link {
+        display: inline-flex;
+        justify-content: center;
+        min-height: 42px;
+        align-items: center;
+    }
+}
+
+@media print {
+    .no-print,
+    .report-action-bar,
+    .page-header-actions,
+    .mobile-topbar,
+    .app-sidebar {
+        display: none !important;
+    }
+}

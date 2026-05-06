@@ -269,40 +269,28 @@
     <section class="dashboard-next-v3">
         <div class="dashboard-section-head">
             <h2>Recommended next step</h2>
-            <p>Keep the main task visible so users know where to go next.</p>
+            <p>One guided next action based on the current account state.</p>
         </div>
 
         <div class="dashboard-next-card">
-            {% if total_audits == 0 %}
-                <span class="dashboard-next-kicker">Start Here</span>
-                <h3>Run an audit to generate your first visibility report</h3>
-                <p>
-                    Once the first audit is completed, this dashboard will become more useful with actual findings,
-                    priorities, prompt coverage, and workspace recommendations.
-                </p>
-                <div class="dashboard-next-actions">
-                    <a href="{{ url_for('new_audit') }}" class="btn btn-primary">Run Audit</a>
+            {% if next_best_action %}
+                <span class="dashboard-next-kicker">{{ next_best_action.stage|replace("_", " ")|title }}</span>
+                <h3>{{ next_best_action.title }}</h3>
+                <p>{{ next_best_action.reason }}</p>
+                <div class="action-meta-row">
+                    <span>{{ next_best_action.mode|replace("_", " ")|title }}</span>
+                    <span>{{ next_best_action.credits_required or 0 }} credits</span>
                 </div>
-
-            {% elif total_prompts == 0 %}
-                <span class="dashboard-next-kicker">Coverage Gap</span>
-                <h3>Expand prompt tracking after reviewing the audit</h3>
-                <p>
-                    You already have audit data. The next step is to build tracked prompts so you can monitor how AI
-                    answers change over time and where competitors appear.
-                </p>
                 <div class="dashboard-next-actions">
-                    {% if view_mode == "single" and primary_client %}
-                        <a href="{{ url_for('position_tracking_page', client_id=primary_client.id) }}" class="btn btn-primary">
-                            Open Prompt Tracking
-                        </a>
-                    {% else %}
-                        <a href="{{ url_for('clients_page') }}" class="btn btn-primary">
-                            Open Workspaces
-                        </a>
+                    <a href="{{ next_best_action.primary.url }}" class="btn btn-primary">
+                        {{ next_best_action.label }}
+                    </a>
+                    {% if next_best_action.secondary and next_best_action.secondary.url %}
+                    <a href="{{ next_best_action.secondary.url }}" class="btn btn-secondary">
+                        {{ next_best_action.secondary_label or "Review First" }}
+                    </a>
                     {% endif %}
                 </div>
-
             {% else %}
                 <span class="dashboard-next-kicker">Operations Focus</span>
                 <h3>Review the latest audit</h3>

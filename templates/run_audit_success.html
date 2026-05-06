@@ -18,6 +18,19 @@
 
 <div class="audit-complete-shell">
 
+    {% if result and result.summary_filename is defined %}
+        {% set report_action_kicker = "Audit Report Ready" %}
+        {% set report_action_title = "Export the report or continue into execution" %}
+        {% set report_action_copy = "The audit is saved. Review the summary, export a PDF for sharing, or open the execution queue created from the audit opportunities." %}
+        {% set report_primary_url = url_for('audit_summary', summary_filename=result.summary_filename) %}
+        {% set report_primary_label = "Open Summary" %}
+        {% set report_pdf_url = url_for('audit_summary_pdf', summary_filename=result.summary_filename) %}
+        {% set report_secondary_url = url_for('content_queue_page', client_id=client.id) %}
+        {% set report_secondary_label = "Open Queue" %}
+        {% set report_client_url = url_for('client_detail', client_id=client.id) %}
+        {% include "partials/report_actions.html" %}
+    {% endif %}
+
     <section class="audit-complete-hero">
         <div class="audit-complete-hero-copy">
             <div class="hero-badge-row">
@@ -86,13 +99,15 @@
             </div>
 
             <div class="card-actions">
+                {% if result and result.summary_filename is defined %}
+                <a href="{{ url_for('audit_summary', summary_filename=result.summary_filename) }}" class="btn btn-primary">Open Summary</a>
+                <a href="{{ url_for('audit_summary_pdf', summary_filename=result.summary_filename) }}" class="btn btn-secondary">Export PDF</a>
+                {% endif %}
+
+                <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-secondary">Open Queue</a>
                 <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Open Visibility</a>
 
                 {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com" %}
-                    {% if result and result.summary_filename is defined %}
-                    <a href="{{ url_for('audit_summary', summary_filename=result.summary_filename) }}" class="btn btn-secondary">Open Summary</a>
-                    {% endif %}
-
                     {% if result and result.full_filename is defined %}
                     <a href="{{ url_for('audit_full', summary_filename=result.full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
                     {% endif %}
@@ -150,6 +165,11 @@
                 <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="audit-step-card is-draft">
                     <strong>Generate Draft</strong>
                     <p>Move straight into content production while the audit findings are fresh.</p>
+                </a>
+
+                <a href="{{ url_for('website_builder_page', client_id=client.id) }}" class="audit-step-card is-actions">
+                    <strong>Landing Pages</strong>
+                    <p>Turn queued opportunities into AI-generated pages that can be previewed before publishing.</p>
                 </a>
 
                 <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="audit-step-card is-history">

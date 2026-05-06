@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Audit Summary PDF</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 14mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #172033;
+            font-size: 12px;
+            line-height: 1.5;
+            background: #ffffff;
+        }
+
+        .report {
+            width: 100%;
+        }
+
+        .topbar {
+            display: table;
+            width: 100%;
+            border-bottom: 1px solid #e6eaf2;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+        }
+
+        .topbar-left,
+        .topbar-right {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        .topbar-right {
+            text-align: right;
+            color: #667085;
+            font-size: 11px;
+        }
+
+        .brand {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .kicker {
+            display: inline-block;
+            margin-bottom: 10px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #fff2ea;
+            color: #e83256;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.12;
+        }
+
+        h2 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0;
+        }
+
+        .muted {
+            color: #667085;
+        }
+
+        .hero {
+            display: table;
+            width: calc(100% + 14px);
+            margin-left: -14px;
+            border-spacing: 14px 0;
+            margin-bottom: 18px;
+        }
+
+        .hero-main,
+        .hero-side {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        .hero-main {
+            width: 68%;
+        }
+
+        .hero-side {
+            width: 32%;
+        }
+
+        .card {
+            border: 1px solid #e6eaf2;
+            border-radius: 14px;
+            padding: 16px;
+            background: #ffffff;
+            page-break-inside: avoid;
+        }
+
+        .score-card {
+            background: #fff8f4;
+            border-color: #ffd8c6;
+        }
+
+        .score-label {
+            color: #667085;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .score-value {
+            margin-top: 8px;
+            color: #e83256;
+            font-size: 46px;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .score-band {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .verdict {
+            margin-top: 14px;
+            color: #344054;
+            font-size: 13px;
+        }
+
+        .grid-4 {
+            display: table;
+            width: calc(100% + 10px);
+            margin-left: -10px;
+            border-spacing: 10px 0;
+            margin: 18px 0;
+        }
+
+        .metric {
+            display: table-cell;
+            width: 25%;
+            border: 1px solid #e6eaf2;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+        }
+
+        .metric span {
+            display: block;
+            color: #667085;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 17px;
+        }
+
+        .section {
+            margin-top: 18px;
+            page-break-inside: avoid;
+        }
+
+        .summary-grid {
+            display: table;
+            width: calc(100% + 12px);
+            margin-left: -12px;
+            border-spacing: 12px 0;
+        }
+
+        .summary-item {
+            display: table-cell;
+            width: 50%;
+            border: 1px solid #e6eaf2;
+            border-radius: 12px;
+            padding: 14px;
+            background: #f8fafc;
+        }
+
+        .summary-item span,
+        .action-row span {
+            display: block;
+            margin-bottom: 6px;
+            color: #667085;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .actions {
+            display: grid;
+            gap: 9px;
+        }
+
+        .action-row {
+            border: 1px solid #e6eaf2;
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: #ffffff;
+        }
+
+        .footer {
+            margin-top: 22px;
+            padding-top: 12px;
+            border-top: 1px solid #e6eaf2;
+            color: #667085;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+{% set scores = data.get('scores', {}) if data else {} %}
+{% set summary = data.get('summary', {}) if data else {} %}
+{% set normalized = scores.get('normalized_score', data.get('normalized_score', 0))|float %}
+{% set visibility = scores.get('visibility_score', data.get('visibility_score', 0))|float %}
+{% set content = scores.get('content_score', data.get('content_score', 0))|float %}
+{% set schema = scores.get('schema_score', data.get('schema_score', 0))|float %}
+{% set verdict = summary.get('verdict', data.get('verdict', 'Audit completed.')) %}
+{% set opportunity = summary.get('opportunity_level', data.get('opportunity_level', 'High')) %}
+{% set biggest_opportunity = summary.get('biggest_opportunity', 'Improve content coverage for high-intent customer questions.') %}
+{% set biggest_problem = summary.get('biggest_problem', 'The brand is not appearing strongly enough in important AI answer scenarios.') %}
+{% set top_actions = summary.get('top_3_actions', []) %}
+{% if normalized >= 70 %}
+    {% set score_band = "Strong visibility foundation" %}
+{% elif normalized >= 40 %}
+    {% set score_band = "Developing visibility foundation" %}
+{% else %}
+    {% set score_band = "Early-stage visibility foundation" %}
+{% endif %}
+
+<main class="report">
+    <header class="topbar">
+        <div class="topbar-left">
+            <p class="brand">DarInsights</p>
+            <p class="muted">AI visibility audit summary</p>
+        </div>
+        <div class="topbar-right">
+            <p>{{ report_date }}</p>
+            <p>{{ data.get('audit_type', 'Audit')|title }}</p>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-main">
+            <span class="kicker">Saved Audit</span>
+            <h1>{{ data.get('website', 'Unknown Website') }}</h1>
+            <p class="verdict">{{ verdict }}</p>
+        </div>
+        <div class="hero-side">
+            <div class="card score-card">
+                <div class="score-label">AEO Score</div>
+                <div class="score-value">{{ normalized|round(1) }}</div>
+                <div class="score-band">{{ score_band }}</div>
+                <p class="muted" style="margin-top: 8px;">Opportunity: {{ opportunity }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-4">
+        <div class="metric">
+            <span>Visibility</span>
+            <strong>{{ visibility|round(1) if visibility > 0 else "Not measured" }}</strong>
+        </div>
+        <div class="metric">
+            <span>Content</span>
+            <strong>{{ content|round(1) if content > 0 else "Not measured" }}</strong>
+        </div>
+        <div class="metric">
+            <span>Schema</span>
+            <strong>{{ schema|round(1) if schema > 0 else "Not measured" }}</strong>
+        </div>
+        <div class="metric">
+            <span>Opportunity</span>
+            <strong>{{ opportunity }}</strong>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>What This Means</h2>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span>Biggest Opportunity</span>
+                <strong>{{ biggest_opportunity }}</strong>
+            </div>
+            <div class="summary-item">
+                <span>Biggest Problem</span>
+                <strong>{{ biggest_problem }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>Recommended Next Actions</h2>
+        <div class="actions">
+            {% if top_actions %}
+                {% for action in top_actions %}
+                <div class="action-row">
+                    <span>Action {{ loop.index }}</span>
+                    <p>{{ action }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="action-row">
+                    <span>Action 1</span>
+                    <p>Improve brand visibility in AI answer scenarios.</p>
+                </div>
+                <div class="action-row">
+                    <span>Action 2</span>
+                    <p>Expand content coverage around high-intent customer questions.</p>
+                </div>
+                <div class="action-row">
+                    <span>Action 3</span>
+                    <p>Create structured FAQ, comparison, and service content to close visibility gaps.</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="section card">
+        <h2>Audit Context</h2>
+        <p><strong>Client:</strong> {{ data.get('client_name', 'Unassigned') }}</p>
+        <p><strong>Summary file:</strong> {{ summary_filename }}</p>
+        <p><strong>Full file:</strong> {{ full_filename or "Not available" }}</p>
+    </section>
+
+    <footer class="footer">
+        DarInsights helps businesses improve discoverability, marketing execution, and AI search visibility with human-controlled AI workflows.
+    </footer>
+</main>
+</body>
+</html>
