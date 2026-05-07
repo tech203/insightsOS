@@ -7,6 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    {% for schema_item in page_json.schema_json or [] %}
+    <script type="application/ld+json">{{ schema_item|tojson }}</script>
+    {% endfor %}
 </head>
 
 <body class="generated-site-body theme-{{ project.theme }}">

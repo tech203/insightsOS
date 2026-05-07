@@ -1574,6 +1574,7 @@ def build_generated_site_page(client, blueprint, page_config):
     page_type = page_config.get("page_type", "home")
 
     business_type = blueprint.get("business_type", "Business")
+    location = blueprint.get("location") or client.get("location") or "Singapore"
     primary_cta = blueprint.get("primary_cta", "Enquire Now")
     secondary_cta = blueprint.get("secondary_cta", "View Services")
 
@@ -1711,6 +1712,93 @@ def build_generated_site_page(client, blueprint, page_config):
                     ))
                 ],
             },
+            {
+                "type": "faq",
+                "headline": "Product questions",
+                "items": build_page_faq_items(
+                    client_name,
+                    business_type,
+                    location,
+                    is_food_or_ecommerce,
+                ),
+            },
+        ]
+
+    elif page_type == "about":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "About",
+                "headline": f"About {client_name}",
+                "subtext": page_config.get(
+                    "goal",
+                    "Build trust, credibility, and brand confidence.",
+                ),
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
+            },
+            {
+                "type": "proof",
+                "headline": "What makes the brand easy to trust",
+                "items": [
+                    f"Clear {business_type} information for customers in {location}",
+                    "Helpful product and service guidance",
+                    "AI-answer-friendly content structure",
+                    "Simple paths to browse, enquire, or buy",
+                ],
+            },
+            {
+                "type": "cta",
+                "headline": f"Get to know {client_name}",
+                "body": "Explore the products, story, and next steps customers need before making a decision.",
+                "button": secondary_cta,
+            },
+        ]
+
+    elif page_type == "faq":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "FAQ",
+                "headline": f"Questions about {client_name}",
+                "subtext": page_config.get(
+                    "goal",
+                    "Answer common questions clearly for humans and AI answer engines.",
+                ),
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
+            },
+            {
+                "type": "faq",
+                "headline": "Common questions",
+                "items": build_page_faq_items(
+                    client_name,
+                    business_type,
+                    location,
+                    is_food_or_ecommerce,
+                ),
+            },
+        ]
+
+    elif page_type == "contact":
+        sections = [
+            {
+                "type": "hero",
+                "eyebrow": "Contact",
+                "headline": f"Contact {client_name}",
+                "subtext": page_config.get(
+                    "goal",
+                    "Make it easy for visitors to enquire.",
+                ),
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
+            },
+            {
+                "type": "cta",
+                "headline": "Ready to take the next step?",
+                "body": f"Contact {client_name} to ask questions, explore options, or continue your buying journey in {location}.",
+                "button": primary_cta,
+            },
         ]
 
     else:
@@ -1725,7 +1813,7 @@ def build_generated_site_page(client, blueprint, page_config):
             }
         ]
 
-    return {
+    page_json = {
         "page_type": page_type,
         "title": f"{client_name} | {page_config.get('title', 'Home')}",
         "slug": page_config.get("slug", "home"),
@@ -1735,6 +1823,158 @@ def build_generated_site_page(client, blueprint, page_config):
         },
         "sections": sections,
     }
+
+    return enrich_generated_page_json(client, blueprint, page_json)
+
+
+def build_page_faq_items(client_name, business_type, location, is_food_or_ecommerce):
+    if is_food_or_ecommerce:
+        return [
+            {
+                "question": f"What can customers find from {client_name}?",
+                "answer": f"Customers can discover products, sweet treats, confectionery, and related information from {client_name}.",
+            },
+            {
+                "question": f"Where is {client_name} based?",
+                "answer": f"{client_name} serves customers in {location}.",
+            },
+            {
+                "question": "How should visitors choose what to buy?",
+                "answer": "Visitors should compare product details, flavour preferences, gifting needs, and ordering information before choosing.",
+            },
+        ]
+
+    return [
+        {
+            "question": f"What does {client_name} help with?",
+            "answer": f"{client_name} helps customers understand {business_type} options and take the right next step.",
+        },
+        {
+            "question": f"Where does {client_name} operate?",
+            "answer": f"{client_name} serves customers in {location}.",
+        },
+        {
+            "question": "How can visitors get started?",
+            "answer": "Visitors can review the page information, compare options, and use the primary call-to-action to enquire.",
+        },
+    ]
+
+
+def enrich_generated_page_json(client, blueprint, page_json):
+    client_name = blueprint.get("client_name") or client.get("name") or "Business"
+    location = blueprint.get("location") or client.get("location") or "Singapore"
+    business_type = blueprint.get("business_type") or client.get("industry") or "Business"
+    page_title = page_json.get("title") or client_name
+    page_slug = page_json.get("slug") or "home"
+    seo = page_json.get("seo") or {}
+    description = seo.get("description") or seo.get("meta_description") or ""
+
+    page_json["semantic_profile"] = {
+        "entity_name": client_name,
+        "entity_type": business_type,
+        "location": location,
+        "page_intent": page_json.get("page_type", "page"),
+        "aeo_focus": blueprint.get("aeo_focus") or [],
+    }
+    page_json["schema_json"] = build_generated_page_schema(
+        client_name=client_name,
+        business_type=business_type,
+        location=location,
+        page_title=page_title,
+        page_slug=page_slug,
+        description=description,
+        sections=page_json.get("sections") or [],
+    )
+
+    return page_json
+
+
+def build_generated_page_schema(
+    client_name,
+    business_type,
+    location,
+    page_title,
+    page_slug,
+    description,
+    sections,
+):
+    page_url = f"/{page_slug}"
+    schema_items = [
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": client_name,
+            "description": description,
+            "areaServed": location,
+            "knowsAbout": business_type,
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": page_title,
+            "url": page_url,
+            "description": description,
+            "about": {
+                "@type": "Thing",
+                "name": business_type,
+            },
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "/home",
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": page_title,
+                    "item": page_url,
+                },
+            ],
+        },
+    ]
+
+    faq_schema = build_faq_schema_from_sections(sections)
+    if faq_schema:
+        schema_items.append(faq_schema)
+
+    return schema_items
+
+
+def build_faq_schema_from_sections(sections):
+    faq_items = []
+    for section in sections or []:
+        if section.get("type") != "faq":
+            continue
+        for item in section.get("items") or section.get("questions") or []:
+            question = item.get("question")
+            answer = item.get("answer")
+            if question and answer:
+                faq_items.append(
+                    {
+                        "@type": "Question",
+                        "name": question,
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": answer,
+                        },
+                    }
+                )
+
+    if not faq_items:
+        return None
+
+    return {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": faq_items,
+    }
+
 
 @app.route("/content-queue/<item_id>/generate-page")
 @login_required
@@ -1785,6 +2025,16 @@ def generate_page_from_queue(item_id):
         page_json.get("title") or f"{client_name} | {target_query}"
     )
     page_json["page_type"] = page_json.get("page_type") or content_type
+    page_json = enrich_generated_page_json(
+        client,
+        {
+            "client_name": client_name,
+            "business_type": industry,
+            "location": location,
+            "aeo_focus": [target_query],
+        },
+        page_json,
+    )
 
     page = GeneratedWebsitePage(
         project_id=None,

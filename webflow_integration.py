@@ -503,11 +503,15 @@ def _escape_html(value):
 
 
 def build_faq_schema(page_json):
+    existing_schema = page_json.get("schema_json") or []
+    for schema_item in existing_schema:
+        if isinstance(schema_item, dict) and schema_item.get("@type") == "FAQPage":
+            return json.dumps(schema_item, ensure_ascii=False)
+
     faq_items = []
     for section in page_json.get("sections") or []:
-        questions = section.get("questions") or []
         if section.get("type") == "faq":
-            for item in questions:
+            for item in section.get("items") or section.get("questions") or []:
                 question = item.get("question")
                 answer = item.get("answer")
                 if question and answer:
