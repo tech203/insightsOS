@@ -14,11 +14,66 @@
                 </p>
             </div>
 
-            <form method="POST" action="{{ url_for('publish_website_project', project_id=project.id) }}">
-                <button type="submit" class="btn btn-primary">
-                    Publish Website
-                </button>
-            </form>
+            <div class="button-row">
+                <form method="POST" action="{{ url_for('verify_website_project_webflow', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-secondary" {% if not webflow_enabled %}disabled{% endif %}>
+                        Verify Publishing Setup
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('export_website_project_to_webflow', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-secondary" {% if not webflow_enabled %}disabled{% endif %}>
+                        Sync Website Draft
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('publish_website_project', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-primary">
+                        Publish Website
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if not webflow_enabled %}
+        <p class="muted">
+            Publishing setup is incomplete. Add real values for {{ webflow_status.missing|join(", ") }}.
+            Placeholder values like "..." are treated as not configured.
+        </p>
+        {% elif blueprint.webflow_connection %}
+        <p class="muted">
+            Publishing setup verified: {{ blueprint.webflow_connection.collection_name }} ·
+            {{ blueprint.webflow_connection.verified_at }}
+        </p>
+        {% else %}
+        <p class="muted">
+            Publishing configuration detected. Verify the setup before syncing approved pages.
+        </p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <h2>MVP Readiness</h2>
+                <p class="muted">
+                    {{ mvp_readiness.completed }} of {{ mvp_readiness.total }} core checks complete.
+                </p>
+            </div>
+            <div class="score-pill">
+                {{ mvp_readiness.percent }}%
+            </div>
+        </div>
+
+        <div class="premium-queue-list">
+            {% for check in mvp_readiness.checks %}
+            <article class="premium-queue-item-card">
+                <div class="queue-item-main">
+                    <h3>{{ "Done" if check.done else "Pending" }} · {{ check.label }}</h3>
+                    <p>{{ check.detail }}</p>
+                </div>
+            </article>
+            {% endfor %}
         </div>
     </section>
 
@@ -44,6 +99,24 @@
     </section>
 
     <section class="panel">
+        <h2>Publishing Field Map</h2>
+        <p class="muted">
+            DarInsights will send approved page intelligence into these publishing fields.
+        </p>
+
+        <div class="premium-queue-list">
+            {% for internal_key, field_slug in webflow_status.field_map.items() %}
+            <article class="premium-queue-item-card">
+                <div class="queue-item-main">
+                    <h3>{{ field_slug }}</h3>
+                    <p>{{ internal_key|replace("_", " ")|title }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel">
         <h2>Generated Pages</h2>
 
         <div class="premium-queue-list">
@@ -52,10 +125,202 @@
                 <div class="queue-item-main">
                     <h3>{{ site_page.title }}</h3>
                     <p>/{{ site_page.slug }} · {{ site_page.page_type|title }}</p>
+                    {% if site_page.page_json.webflow %}
+                    <p class="muted">
+                        Publishing sync {{ site_page.page_json.webflow.last_action or "completed" }} ·
+                        {{ site_page.page_json.webflow.exported_at }}
+                    </p>
+                    {% if site_page.page_json.webflow.live_url %}
+                    <a href="{{ site_page.page_json.webflow.live_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                        View Live Page
+                    </a>
+                    {% endif %}
+                    {% endif %}
                 </div>
             </article>
             {% endfor %}
         </div>
+    </section>
+
+    {% if blueprint.webflow_export %}
+    <section class="panel">
+        <h2>Publishing Sync</h2>
+        <p class="muted">
+            Last synced {{ blueprint.webflow_export.exported_at }} ·
+            {{ blueprint.webflow_export.pages|length }} page(s)
+            {% if blueprint.webflow_export.published %}published{% else %}staged as drafts{% endif %}.
+        </p>
+        {% if blueprint.webflow_export.site_base_url %}
+        <p class="muted">
+            Live base URL: {{ blueprint.webflow_export.site_base_url }}
+        </p>
+        {% endif %}
+        {% if blueprint.webflow_export.schema and not blueprint.webflow_export.schema.valid %}
+        <p class="muted">
+            Missing fields: {{ blueprint.webflow_export.schema.missing_fields|join(", ") }}
+        </p>
+        {% endif %}
+
+        <div class="premium-queue-list">
+            {% for synced_page in blueprint.webflow_export.pages %}
+            <article class="premium-queue-item-card">
+                <div class="queue-item-main">
+                    <h3>{{ synced_page.slug }}</h3>
+                    <p>{{ synced_page.action|title }} · {{ "Live URL ready" if synced_page.live_url else "Live URL unavailable" }}</p>
+                    {% if synced_page.live_url %}
+                    <a href="{{ synced_page.live_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                        Open
+                    </a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <h2>Track & Improve</h2>
+                <p class="muted">{{ post_publish_tracking.summary }}</p>
+            </div>
+            <div class="button-row">
+                <form method="POST" action="{{ url_for('start_website_project_tracking', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-secondary" {% if not post_publish_tracking.exported_at %}disabled{% endif %}>
+                        Start Tracking
+                    </button>
+                </form>
+                <a href="{{ url_for('run_client_audit', client_id=post_publish_tracking.client_route_id) }}" class="btn btn-primary">
+                    Run Re-audit
+                </a>
+            </div>
+        </div>
+
+        <div class="website-card-grid">
+            <div class="website-mini-card">
+                <h3>Status</h3>
+                <p>{{ post_publish_tracking.status|replace("_", " ")|title }}</p>
+            </div>
+            <div class="website-mini-card">
+                <h3>Last Export</h3>
+                <p>{{ post_publish_tracking.exported_at or "Not exported yet" }}</p>
+            </div>
+            <div class="website-mini-card">
+                <h3>
+                    {% if post_publish_tracking.re_audited_after_export %}
+                    Post-Publish Audit
+                    {% else %}
+                    Baseline Audit
+                    {% endif %}
+                </h3>
+                <p>{{ post_publish_tracking.latest_audit_at or "No matching audit yet" }}</p>
+            </div>
+        </div>
+
+        {% if post_publish_tracking.re_audited_after_export %}
+        <div class="button-row">
+            <a href="{{ url_for('client_growth_plan', client_id=post_publish_tracking.client_route_id) }}" class="btn btn-secondary">
+                Review Growth Plan
+            </a>
+            <a href="{{ url_for('content_queue_page', client_id=post_publish_tracking.client_route_id) }}" class="btn btn-secondary">
+                Open Improvement Queue
+            </a>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <h2>Post-Publish Impact</h2>
+                <p class="muted">{{ impact_report.summary }}</p>
+            </div>
+            <div class="score-pill">
+                {{ impact_report.status|replace("_", " ")|title }}
+            </div>
+        </div>
+
+        {% if impact_report.before and not impact_report.after %}
+        <div class="website-card-grid">
+            <div class="website-mini-card">
+                <h3>Baseline audit</h3>
+                <p>{{ impact_report.before.saved_at }}</p>
+            </div>
+            <div class="website-mini-card">
+                <h3>Baseline verdict</h3>
+                <p>{{ impact_report.before.verdict }}</p>
+            </div>
+            <div class="website-mini-card">
+                <h3>Next measurement</h3>
+                <p>Run a fresh audit after the live pages are published and indexed.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="website-card-grid">
+            {% for row in impact_report.score_rows %}
+            <div class="website-mini-card">
+                <h3>{{ row.label }}</h3>
+                <p>
+                    Before: {{ row.before if row.before is not none else "—" }} ·
+                    After: {{ row.after if row.after is not none else "—" }}
+                </p>
+                <p class="muted">
+                    Delta:
+                    {% if row.delta is not none %}
+                        {{ "+" if row.delta > 0 else "" }}{{ row.delta }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if impact_report.after %}
+        <div class="website-card-grid">
+            <div class="website-mini-card">
+                <h3>Latest verdict</h3>
+                <p>{{ impact_report.after.verdict }}</p>
+            </div>
+            <div class="website-mini-card">
+                <h3>Opportunity level</h3>
+                <p>{{ impact_report.after.opportunity_level }}</p>
+            </div>
+            <div class="website-mini-card">
+                <h3>Measured audit</h3>
+                <p>{{ impact_report.after.saved_at }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if impact_report.recommendations %}
+        <div class="premium-queue-list">
+            {% for recommendation in impact_report.recommendations %}
+            <article class="premium-queue-item-card">
+                <div class="queue-item-main">
+                    {% if recommendation is mapping %}
+                    <h3>{{ recommendation.title or recommendation.action or recommendation.recommendation or "Recommended action" }}</h3>
+                    <p>{{ recommendation.reason or recommendation.detail or recommendation.description or recommendation.recommended_action or "" }}</p>
+                    {% else %}
+                    <h3>Recommended action</h3>
+                    <p>{{ recommendation }}</p>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% elif impact_report.status == "waiting_for_reaudit" %}
+        <p class="muted">
+            No post-publish audit yet. Run a re-audit to populate this report.
+        </p>
+        <div class="button-row">
+            <a href="{{ url_for('run_client_audit', client_id=post_publish_tracking.client_route_id) }}" class="btn btn-primary">
+                Run Post-Publish Audit
+            </a>
+        </div>
+        {% endif %}
     </section>
 
 </div>

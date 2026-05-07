@@ -24,6 +24,7 @@ from flask_login import (
     current_user,
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm.attributes import flag_modified
 from action_engine import (
     build_recommended_actions,
     build_content_opportunities,
@@ -46,6 +47,14 @@ from datetime import datetime
 from tavily import TavilyClient
 from urllib.parse import urlparse
 from website_page_builder import generate_structured_website_page
+from webflow_integration import (
+    WebflowAPIError,
+    WebflowConfigError,
+    export_project_to_webflow,
+    get_webflow_setup_status,
+    is_webflow_configured,
+    verify_webflow_connection,
+)
 import os
 import csv
 from dotenv import load_dotenv
@@ -765,6 +774,7 @@ def generate_full_website(client_id):
             "info",
         )
         return redirect(url_for("pricing_page"))
+
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
@@ -772,6 +782,7 @@ def generate_full_website(client_id):
     row = Client.query.filter_by(
         slug=str(client_id), user_id=current_user.id
     ).first()
+
     if not row and str(client_id).isdigit():
         row = Client.query.filter_by(
             id=int(client_id), user_id=current_user.id
@@ -780,7 +791,60 @@ def generate_full_website(client_id):
     if not row:
         abort(404)
 
+    # Step 1: Build brand kit / blueprint first
     blueprint = build_demo_website_blueprint(client)
+
+    # Save temporary brand kit in session for preview/approval
+    session["pending_website_blueprint"] = blueprint
+    session["pending_website_client_id"] = row.id
+    session["pending_website_client_slug"] = row.slug
+
+    flash("Brand kit generated. Please review before creating the website.", "success")
+    return redirect(url_for("preview_website_brand_kit", client_id=row.slug))
+
+@app.route("/client/<client_id>/website-builder/brand-kit")
+@login_required
+def preview_website_brand_kit(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    blueprint = session.get("pending_website_blueprint")
+
+    if not blueprint:
+        flash("No brand kit found. Please generate a website draft first.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    return render_template(
+        "website_brand_kit_preview.html",
+        client=client,
+        blueprint=blueprint,
+    )
+
+@app.route("/client/<client_id>/website-builder/approve-brand-kit", methods=["POST"])
+@login_required
+def approve_website_brand_kit(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    row = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
+
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
+
+    if not row:
+        abort(404)
+
+    blueprint = session.get("pending_website_blueprint")
+
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
 
     project = GeneratedWebsiteProject(
         user_id=current_user.id,
@@ -811,9 +875,12 @@ def generate_full_website(client_id):
 
     db.session.commit()
 
-    flash("Full website draft generated.", "success")
-    return redirect(url_for("preview_website_project", project_id=project.id))
+    session.pop("pending_website_blueprint", None)
+    session.pop("pending_website_client_id", None)
+    session.pop("pending_website_client_slug", None)
 
+    flash("Website draft generated from approved brand kit.", "success")
+    return redirect(url_for("preview_website_project", project_id=project.id))
 
 @app.route("/website-builder/project/<int:project_id>/preview")
 @login_required
@@ -831,11 +898,23 @@ def preview_website_project(project_id):
         .all()
     )
 
+    webflow_status = get_webflow_setup_status()
+    post_publish_tracking = build_post_publish_tracking(project)
+
     return render_template(
         "website_project_preview.html",
         project=project,
         pages=pages,
         blueprint=project.blueprint_json,
+        webflow_enabled=is_webflow_configured(),
+        webflow_status=webflow_status,
+        post_publish_tracking=post_publish_tracking,
+        impact_report=build_post_publish_impact_report(project),
+        mvp_readiness=build_website_mvp_readiness(
+            project,
+            pages,
+            webflow_status,
+        ),
     )
 
 
@@ -859,6 +938,402 @@ def publish_website_project(project_id):
 
     flash("Website published.", "success")
     return redirect(url_for("public_website_project", project_id=project.id))
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/verify-webflow",
+    methods=["POST"],
+)
+@login_required
+def verify_website_project_webflow(project_id):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.user_id != current_user.id:
+        abort(403)
+
+    try:
+        result = verify_webflow_connection()
+    except WebflowConfigError as exc:
+        flash(str(exc), "warning")
+        return redirect(url_for("preview_website_project", project_id=project.id))
+    except WebflowAPIError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("preview_website_project", project_id=project.id))
+
+    blueprint = project.blueprint_json or {}
+    blueprint["webflow_connection"] = {
+        "verified_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "collection_name": result["collection_name"],
+        "site_id": result["site_id"],
+        "collection_id": result["collection_id"],
+        "schema": result.get("schema"),
+    }
+    project.blueprint_json = blueprint
+    flag_modified(project, "blueprint_json")
+    db.session.commit()
+
+    flash(
+        f"Publishing setup verified: {result['collection_name']} collection is ready.",
+        "success",
+    )
+    return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+def build_website_mvp_readiness(project, pages, webflow_status):
+    blueprint = project.blueprint_json or {}
+    generated_pages_ready = bool(pages) and all(
+        (page.page_json or {}).get("sections") for page in pages
+    )
+    exported_pages = [
+        page
+        for page in pages
+        if ((page.page_json or {}).get("webflow") or {}).get("item_id")
+    ]
+    webflow_connection = blueprint.get("webflow_connection") or {}
+    webflow_schema = (
+        webflow_connection.get("schema")
+        or (blueprint.get("webflow_export") or {}).get("schema")
+        or {}
+    )
+    post_publish_tracking = build_post_publish_tracking(project)
+
+    checks = [
+        {
+            "label": "Brand kit approved",
+            "done": bool(blueprint),
+            "detail": "Website generation starts from an approved brand and AEO blueprint.",
+        },
+        {
+            "label": "Pages generated",
+            "done": generated_pages_ready,
+            "detail": f"{len(pages)} generated page(s) ready for review.",
+        },
+        {
+            "label": "Publishing configured",
+            "done": webflow_status.get("configured", False),
+            "detail": "API token, site ID, and collection ID are set.",
+        },
+        {
+            "label": "Publishing verified",
+            "done": bool(webflow_connection),
+            "detail": webflow_connection.get("collection_name")
+            or "Connection has not been verified yet.",
+        },
+        {
+            "label": "CMS schema valid",
+            "done": webflow_schema.get("valid", False),
+            "detail": "All mapped CMS fields exist."
+            if webflow_schema.get("valid")
+            else "Verify publishing setup to check required fields.",
+        },
+        {
+            "label": "Pages synced",
+            "done": bool(pages) and len(exported_pages) == len(pages),
+            "detail": f"{len(exported_pages)} of {len(pages)} page(s) synced to the publishing layer.",
+        },
+        {
+            "label": "Publication ready",
+            "done": project.status == "published"
+            or (
+                bool(pages)
+                and len(exported_pages) == len(pages)
+                and webflow_schema.get("valid", False)
+            ),
+            "detail": "Ready for final publish once pages are synced and reviewed.",
+        },
+        {
+            "label": "Track and improve loop",
+            "done": post_publish_tracking.get("started", False)
+            or post_publish_tracking.get("re_audited_after_export", False),
+            "detail": post_publish_tracking.get("summary"),
+        },
+    ]
+
+    completed = sum(1 for check in checks if check["done"])
+    return {
+        "percent": round((completed / len(checks)) * 100),
+        "completed": completed,
+        "total": len(checks),
+        "checks": checks,
+    }
+
+
+def build_post_publish_tracking(project):
+    blueprint = project.blueprint_json or {}
+    export_data = blueprint.get("webflow_export") or {}
+    tracking_data = blueprint.get("post_publish_tracking") or {}
+    exported_at = export_data.get("exported_at")
+
+    client = Client.query.filter_by(
+        id=project.client_id,
+        user_id=project.user_id,
+    ).first()
+
+    client_route_id = client.slug if client else project.client_id
+    matched_audits = _get_project_saved_audits(project, client)
+    latest_audit = matched_audits[0] if matched_audits else None
+
+    latest_audit_at = latest_audit.get("saved_at") if latest_audit else None
+    re_audited_after_export = _iso_after(latest_audit_at, exported_at)
+
+    if re_audited_after_export:
+        status = "measured"
+        summary = "A post-publish audit has been captured. Review the growth plan for improvement actions."
+    elif tracking_data:
+        status = tracking_data.get("status", "waiting_for_reaudit")
+        summary = "Tracking cycle started. Run a fresh audit after publishing to measure impact."
+    elif exported_at:
+        status = "ready_to_track"
+        summary = "Pages are synced. Start tracking, then re-audit after publishing."
+    else:
+        status = "not_ready"
+        summary = "Sync pages to the publishing layer before starting the post-publish tracking loop."
+
+    return {
+        "status": status,
+        "summary": summary,
+        "started": bool(tracking_data),
+        "started_at": tracking_data.get("started_at"),
+        "exported_at": exported_at,
+        "latest_audit": latest_audit,
+        "latest_audit_at": latest_audit_at,
+        "re_audited_after_export": re_audited_after_export,
+        "client_route_id": client_route_id,
+    }
+
+
+def build_post_publish_impact_report(project):
+    blueprint = project.blueprint_json or {}
+    exported_at = (blueprint.get("webflow_export") or {}).get("exported_at")
+    client = Client.query.filter_by(
+        id=project.client_id,
+        user_id=project.user_id,
+    ).first()
+    matched_audits = _get_project_saved_audits(project, client)
+
+    before_audits = [
+        audit
+        for audit in matched_audits
+        if not exported_at or not _iso_after(audit.get("saved_at"), exported_at)
+    ]
+    after_audits = [
+        audit
+        for audit in matched_audits
+        if exported_at and _iso_after(audit.get("saved_at"), exported_at)
+    ]
+
+    before = before_audits[0] if before_audits else None
+    after = after_audits[0] if after_audits else None
+    comparison = compare_audits(after, before) if before and after else None
+
+    score_rows = [
+        _impact_score_row("Overall", "normalized_score", before, after),
+        _impact_score_row("Visibility", "visibility_score", before, after),
+        _impact_score_row("Content", "content_score", before, after),
+        _impact_score_row("Schema", "schema_score", before, after),
+    ]
+
+    if after:
+        status = "measured"
+        summary = "Post-publish impact has been measured against the latest pre-sync audit."
+    elif exported_at:
+        status = "waiting_for_reaudit"
+        summary = "Run a fresh audit after publishing to measure impact."
+    else:
+        status = "not_ready"
+        summary = "Sync and publish pages before measuring impact."
+
+    recommendations = []
+    if after:
+        recommendations = (
+            after.get("top_recommendations")
+            or after.get("top_content_gaps")
+            or []
+        )[:5]
+
+    return {
+        "status": status,
+        "summary": summary,
+        "exported_at": exported_at,
+        "before": before,
+        "after": after,
+        "comparison": comparison,
+        "score_rows": score_rows,
+        "recommendations": recommendations,
+    }
+
+
+def _get_project_saved_audits(project, client=None):
+    matched_audits = [
+        audit
+        for audit in get_saved_audits(user_id=project.user_id)
+        if _audit_matches_project(audit, project, client)
+    ]
+    return sort_audits(matched_audits, sort_by="saved_at", order="desc")
+
+
+def _audit_matches_project(audit, project, client=None):
+    audit_client_id = str(audit.get("client_id") or "")
+    project_client_id = str(project.client_id)
+    client_slug = str(getattr(client, "slug", "") or "")
+
+    if audit_client_id in {project_client_id, client_slug}:
+        return True
+
+    audit_website = normalize_website(audit.get("website", ""))
+    client_website = normalize_website(getattr(client, "website", "") or "")
+    return bool(audit_website and client_website and audit_website == client_website)
+
+
+def _impact_score_row(label, key, before, after):
+    before_value = before.get(key, 0) if before else None
+    after_value = after.get(key, 0) if after else None
+    delta = None
+    if before_value is not None and after_value is not None:
+        delta = round((after_value or 0) - (before_value or 0), 2)
+
+    return {
+        "label": label,
+        "before": before_value,
+        "after": after_value,
+        "delta": delta,
+        "direction": "up" if delta and delta > 0 else "down" if delta and delta < 0 else "flat",
+    }
+
+
+def _iso_after(candidate, baseline):
+    if not candidate or not baseline:
+        return False
+    return str(candidate) > str(baseline)
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/start-tracking",
+    methods=["POST"],
+)
+@login_required
+def start_website_project_tracking(project_id):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.user_id != current_user.id:
+        abort(403)
+
+    tracking = build_post_publish_tracking(project)
+    if not tracking.get("exported_at"):
+        flash("Sync the website draft before starting tracking.", "warning")
+        return redirect(url_for("preview_website_project", project_id=project.id))
+
+    blueprint = project.blueprint_json or {}
+    blueprint["post_publish_tracking"] = {
+        "status": "waiting_for_reaudit",
+        "started_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "exported_at": tracking.get("exported_at"),
+    }
+    project.blueprint_json = blueprint
+    flag_modified(project, "blueprint_json")
+
+    client = Client.query.filter_by(
+        id=project.client_id,
+        user_id=current_user.id,
+    ).first()
+    client_name = client.name if client else "Workspace"
+    target_query = f"Post-publish improvement review for {project.title}"
+    existing_items = get_queue_items(
+        client_id=str(project.client_id),
+        user_id=current_user.id,
+    )
+    existing_queries = {
+        (item.get("target_query") or "").strip().lower()
+        for item in existing_items
+    }
+
+    if target_query.lower() not in existing_queries:
+        add_queue_item(
+            client_id=str(project.client_id),
+            client_name=client_name,
+            target_query=target_query,
+            content_type="post_publish_review",
+            item_type="brief",
+            title="Review post-publish AEO impact",
+            content=(
+                "Run a fresh audit after the published pages are live, compare "
+                "visibility and content scores, then turn the highest-impact "
+                "findings into improvement tasks."
+            ),
+            status="pending",
+            priority="high",
+            source="manual",
+            credits_required=0,
+            execution_type="human_review",
+            source_action_title="Post-publish tracking",
+            user_id=current_user.id,
+        )
+
+    db.session.commit()
+    flash("Post-publish tracking started. Run a fresh audit after publishing.", "success")
+    return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/export-webflow",
+    methods=["POST"],
+)
+@login_required
+def export_website_project_to_webflow(project_id):
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+
+    if project.user_id != current_user.id:
+        abort(403)
+
+    pages = (
+        GeneratedWebsitePage.query.filter_by(
+            project_id=project.id, user_id=current_user.id
+        )
+        .order_by(GeneratedWebsitePage.id.asc())
+        .all()
+    )
+
+    try:
+        export_result = export_project_to_webflow(project, pages)
+    except WebflowConfigError as exc:
+        flash(str(exc), "warning")
+        return redirect(url_for("preview_website_project", project_id=project.id))
+    except WebflowAPIError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("preview_website_project", project_id=project.id))
+
+    blueprint = project.blueprint_json or {}
+    blueprint["webflow_export"] = export_result
+    project.blueprint_json = blueprint
+    flag_modified(project, "blueprint_json")
+
+    exported_by_page_id = {
+        item.get("local_page_id"): item for item in export_result.get("pages", [])
+    }
+    exported_at = export_result.get("exported_at")
+
+    for page in pages:
+        item = exported_by_page_id.get(page.id)
+        if not item:
+            continue
+        page_json = page.page_json or {}
+        page_json["webflow"] = {
+            "item_id": item.get("webflow_item_id"),
+            "last_action": item.get("action"),
+            "exported_at": exported_at,
+            "published": export_result.get("published", False),
+            "live_url": item.get("live_url"),
+        }
+        page.page_json = page_json
+        flag_modified(page, "page_json")
+
+    db.session.commit()
+
+    flash(
+        f"Synced {len(export_result.get('pages', []))} page(s) to the publishing layer.",
+        "success",
+    )
+    return redirect(url_for("preview_website_project", project_id=project.id))
 
 
 @app.route("/site/<int:project_id>")
@@ -927,30 +1402,50 @@ def build_demo_website_blueprint(client):
     client_name = client.get("name", "Business")
     location = client.get("location", "Singapore")
 
-    if "clinic" in industry or "health" in industry or "wellness" in industry:
+    if any(word in industry for word in ["clinic", "health", "wellness", "dental", "medical", "aesthetic"]):
         theme = "clinic_wellness"
         style = "calm, clean, reassuring, health-focused"
         functions = ["appointment booking", "contact form", "FAQ schema"]
-    elif (
-        "tuition" in industry
-        or "education" in industry
-        or "school" in industry
-    ):
+
+    elif any(word in industry for word in ["tuition", "education", "school", "enrichment", "learning"]):
         theme = "education_centre"
         style = "friendly, structured, parent-focused, trustworthy"
         functions = ["enquiry form", "programme cards", "FAQ schema"]
-    elif "restaurant" in industry or "cafe" in industry or "food" in industry:
+
+    elif any(word in industry for word in [
+        "restaurant", "cafe", "food", "f&b", "ice cream", "dessert",
+        "confectionery", "bakery", "beverage"
+    ]):
         theme = "restaurant_cafe"
-        style = "warm, visual, menu-led, lifestyle-focused"
-        functions = ["menu section", "reservation CTA", "WhatsApp CTA"]
-    elif "ecommerce" in industry or "retail" in industry or "shop" in industry:
+        style = "warm, visual, product-led, lifestyle-focused"
+        functions = ["product grid", "menu/product section", "WhatsApp CTA"]
+
+    elif any(word in industry for word in [
+        "ecommerce", "e-commerce", "retail", "shop", "online store",
+        "merchandise", "products"
+    ]):
         theme = "ecommerce_store"
         style = "conversion-focused, product-led, clean, modern"
         functions = ["product grid", "checkout CTA", "FAQ schema"]
+
     else:
         theme = "professional_services"
         style = "premium, trustworthy, clear, professional"
         functions = ["lead form", "consultation CTA", "FAQ schema"]
+
+    primary_cta = (
+        "Shop Now"
+        if theme in ["restaurant_cafe", "ecommerce_store"]
+        else "Book an Appointment"
+        if theme == "clinic_wellness"
+        else "Enquire Now"
+    )
+
+    secondary_cta = (
+        "View Products"
+        if theme in ["restaurant_cafe", "ecommerce_store"]
+        else "View Services"
+    )
 
     return {
         "client_name": client_name,
@@ -958,8 +1453,8 @@ def build_demo_website_blueprint(client):
         "location": location,
         "theme": theme,
         "style_direction": style,
-        "primary_cta": "Book a Consultation",
-        "secondary_cta": "View Services",
+        "primary_cta": primary_cta,
+        "secondary_cta": secondary_cta,
         "functions": functions,
         "pages": [
             {
@@ -969,8 +1464,8 @@ def build_demo_website_blueprint(client):
                 "goal": "Explain the business clearly and convert visitors into enquiries.",
             },
             {
-                "title": "Services",
-                "slug": "services",
+                "title": "Products" if theme in ["restaurant_cafe", "ecommerce_store"] else "Services",
+                "slug": "products" if theme in ["restaurant_cafe", "ecommerce_store"] else "services",
                 "page_type": "services",
                 "goal": "Show what the business offers and answer buying-intent questions.",
             },
@@ -993,89 +1488,154 @@ def build_demo_website_blueprint(client):
                 "goal": "Make it easy for visitors to enquire.",
             },
         ],
-        "aeo_focus": [f"best {client.get('industry',
-                                             'service provider')} in {location}", f"{client_name} services", f"how to choose {client.get('industry',
-                                                      'a provider')}", f"{client.get('industry',
-                                        'service')} cost in {location}"],
+        "aeo_focus": [
+            f"best {client.get('industry', 'service provider')} in {location}",
+            f"{client_name} products" if theme in ["restaurant_cafe", "ecommerce_store"] else f"{client_name} services",
+            f"where to buy {client_name}" if theme in ["restaurant_cafe", "ecommerce_store"] else f"how to choose {client.get('industry', 'a provider')}",
+            f"{client.get('industry', 'service')} in {location}",
+        ],
     }
 
-
 def build_generated_site_page(client, blueprint, page_config):
-    client_name = blueprint["client_name"]
-    page_type = page_config["page_type"]
+    client_name = blueprint.get("client_name") or getattr(client, "name", "This Business")
+    page_type = page_config.get("page_type", "home")
+
+    business_type = blueprint.get("business_type", "Business")
+    primary_cta = blueprint.get("primary_cta", "Enquire Now")
+    secondary_cta = blueprint.get("secondary_cta", "View Services")
+
+    products_or_services = blueprint.get("products_or_services") or blueprint.get("services") or []
+    if isinstance(products_or_services, str):
+        products_or_services = [
+            item.strip()
+            for item in products_or_services.replace("\n", ",").split(",")
+            if item.strip()
+        ]
+
+    business_type_lower = str(business_type).lower()
+    is_food_or_ecommerce = any(
+        word in business_type_lower
+        for word in ["food", "beverage", "ecommerce", "ice cream", "confectionery", "dessert"]
+    )
+
+    if is_food_or_ecommerce:
+        primary_cta = "Shop Now"
+        secondary_cta = "View Products"
 
     if page_type == "home":
-        sections = [
-            {
-                "type": "hero",
-                "eyebrow": blueprint["business_type"],
-                "headline": f"{client_name} helps customers make confident decisions",
-                "subtext": f"A {blueprint['style_direction']} website experience designed to explain services clearly, build trust, and improve AI visibility.",
-                "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": blueprint["secondary_cta"],
-            },
-            {
-                "type": "services",
-                "headline": "What we help with",
-                "items": [
-                    {
-                        "title": "Clear service information",
-                        "description": "Pages structured around what customers and AI answer engines need to understand.",
-                    },
-                    {
-                        "title": "Trust-building content",
-                        "description": "Proof, FAQs, and decision factors that make the business easier to recommend.",
-                    },
-                    {
-                        "title": "Conversion-ready journeys",
-                        "description": "Clear calls-to-action that guide visitors toward enquiry or booking.",
-                    },
-                ],
-            },
-            {
-                "type": "proof",
-                "headline": "Why customers choose us",
-                "items": [
-                    "Clear explanations",
-                    "Helpful service guidance",
-                    "Trust-focused content",
-                    "Fast enquiry options",
-                ],
-            },
-            {
-                "type": "cta",
-                "headline": "Ready to take the next step?",
-                "body": "Get in touch to learn more or request a consultation.",
-                "button": blueprint["primary_cta"],
-            },
-        ]
+        if is_food_or_ecommerce:
+            sections = [
+                {
+                    "type": "hero",
+                    "eyebrow": business_type,
+                    "headline": f"Discover {client_name}'s ice cream, confectionery and sweet treats",
+                    "subtext": f"{client_name} brings customers in Singapore a product-focused experience for discovering desserts, confectionery, merchandise and nostalgic favourites.",
+                    "primary_cta": primary_cta,
+                    "secondary_cta": secondary_cta,
+                },
+                {
+                    "type": "services",
+                    "headline": "Featured products",
+                    "items": [
+                        {
+                            "title": item,
+                            "description": f"Explore {item} from {client_name}."
+                        }
+                        for item in (products_or_services[:3] or [
+                            "Ice cream",
+                            "Confectionery",
+                            "Merchandise"
+                        ])
+                    ],
+                },
+                {
+                    "type": "proof",
+                    "headline": "Why customers love us",
+                    "items": [
+                        "Nostalgic flavours",
+                        "Sweet treats for gifting and sharing",
+                        "Easy product discovery",
+                        "Singapore-focused ordering experience",
+                    ],
+                },
+                {
+                    "type": "cta",
+                    "headline": f"Ready to explore {client_name}?",
+                    "body": "Browse products, discover favourites, and find the next sweet treat to enjoy.",
+                    "button": primary_cta,
+                },
+            ]
+        else:
+            sections = [
+                {
+                    "type": "hero",
+                    "eyebrow": business_type,
+                    "headline": f"{client_name} helps customers understand their options clearly",
+                    "subtext": f"A {blueprint.get('style_direction', 'clear and trustworthy')} website experience designed to explain the business clearly, build trust, and guide customers to the next step.",
+                    "primary_cta": primary_cta,
+                    "secondary_cta": secondary_cta,
+                },
+                {
+                    "type": "services",
+                    "headline": "What we help with",
+                    "items": [
+                        {
+                            "title": "Clear service information",
+                            "description": "Pages structured around what customers and AI answer engines need to understand.",
+                        },
+                        {
+                            "title": "Trust-building content",
+                            "description": "Proof, FAQs, and decision factors that make the business easier to recommend.",
+                        },
+                        {
+                            "title": "Conversion-ready journeys",
+                            "description": "Clear calls-to-action that guide visitors toward enquiry or booking.",
+                        },
+                    ],
+                },
+                {
+                    "type": "proof",
+                    "headline": "Why customers choose us",
+                    "items": [
+                        "Clear explanations",
+                        "Helpful service guidance",
+                        "Trust-focused content",
+                        "Fast enquiry options",
+                    ],
+                },
+                {
+                    "type": "cta",
+                    "headline": "Ready to take the next step?",
+                    "body": "Get in touch to learn more.",
+                    "button": primary_cta,
+                },
+            ]
 
     elif page_type == "services":
         sections = [
             {
                 "type": "hero",
-                "eyebrow": "Services",
-                "headline": f"Services from {client_name}",
-                "subtext": "Explore the key services, what they include, and how to decide what is right for you.",
-                "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": "Read FAQs",
+                "eyebrow": "Products" if is_food_or_ecommerce else "Services",
+                "headline": f"{'Products' if is_food_or_ecommerce else 'Services'} from {client_name}",
+                "subtext": "Explore the key products and information customers need before taking the next step."
+                if is_food_or_ecommerce
+                else "Explore the key services, what they include, and how to decide what is right for you.",
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
             },
             {
                 "type": "services",
-                "headline": "Core services",
+                "headline": "Popular products" if is_food_or_ecommerce else "Core services",
                 "items": [
                     {
-                        "title": "Main service",
-                        "description": "A clear explanation of the primary offer and who it is best for.",
-                    },
-                    {
-                        "title": "Specialist support",
-                        "description": "Helpful guidance for customers with more specific needs.",
-                    },
-                    {
-                        "title": "Ongoing help",
-                        "description": "Support designed to make the next step simple and clear.",
-                    },
+                        "title": item,
+                        "description": f"Learn more about {item} from {client_name}.",
+                    }
+                    for item in (products_or_services[:3] or (
+                        ["Ice cream", "Confectionery", "Merchandise"]
+                        if is_food_or_ecommerce
+                        else ["Main service", "Specialist support", "Ongoing help"]
+                    ))
                 ],
             },
         ]
@@ -1084,25 +1644,24 @@ def build_generated_site_page(client, blueprint, page_config):
         sections = [
             {
                 "type": "hero",
-                "eyebrow": page_config["title"],
-                "headline": f"{page_config['title']} | {client_name}",
-                "subtext": page_config["goal"],
-                "primary_cta": blueprint["primary_cta"],
-                "secondary_cta": blueprint["secondary_cta"],
+                "eyebrow": page_config.get("title", "Page"),
+                "headline": f"{page_config.get('title', 'Page')} | {client_name}",
+                "subtext": page_config.get("goal", ""),
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
             }
         ]
 
     return {
         "page_type": page_type,
-        "title": f"{client_name} | {page_config['title']}",
-        "slug": page_config["slug"],
+        "title": f"{client_name} | {page_config.get('title', 'Home')}",
+        "slug": page_config.get("slug", "home"),
         "seo": {
-            "title": f"{page_config['title']} | {client_name}",
-            "description": page_config["goal"],
+            "title": f"{page_config.get('title', 'Home')} | {client_name}",
+            "description": page_config.get("goal", ""),
         },
         "sections": sections,
     }
-
 
 @app.route("/content-queue/<item_id>/generate-page")
 @login_required

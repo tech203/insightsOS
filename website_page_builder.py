@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 from openai import OpenAI
@@ -7,444 +6,466 @@ client = OpenAI()
 logger = logging.getLogger(__name__)
 
 
+def build_business_context(
+    business_name="",
+    industry="",
+    location="",
+    services="",
+    website_url="",
+    research_results=None,
+):
+    name = (business_name or "").strip()
+    industry_text = (industry or "").strip().lower()
+    services_text = (services or "").strip().lower()
+    combined = f"{industry_text} {services_text}"
+
+    if any(word in combined for word in [
+        "ice cream", "dessert", "confectionery", "food", "cafe",
+        "restaurant", "bakery", "f&b", "beverage"
+    ]):
+        business_type = "food_and_beverage"
+        primary_cta = "Shop Now"
+        secondary_cta = "View Products"
+        tone = "playful, warm, appetising, trustworthy"
+        suggested_sections = [
+            "Featured Products",
+            "Best Sellers",
+            "Why Customers Love Us",
+            "Delivery and Ordering",
+            "FAQ",
+        ]
+        avoid_terms = [
+            "Book a Consultation",
+            "professional services",
+            "client advisory",
+            "consulting",
+            "service consultation",
+        ]
+        homepage_angle = (
+            f"{name} offers nostalgic ice cream, desserts, confectionery, "
+            f"and merchandise for customers in {location or 'Singapore'}."
+        )
+
+    elif any(word in combined for word in [
+        "ecommerce", "online store", "shop", "merchandise", "products"
+    ]):
+        business_type = "ecommerce"
+        primary_cta = "Shop Now"
+        secondary_cta = "View Products"
+        tone = "clear, product-focused, trustworthy, conversion-friendly"
+        suggested_sections = [
+            "Featured Products",
+            "Popular Items",
+            "Why Buy From Us",
+            "Delivery Information",
+            "FAQ",
+        ]
+        avoid_terms = [
+            "Book a Consultation",
+            "professional services",
+            "client advisory",
+            "consulting",
+            "service consultation",
+        ]
+        homepage_angle = (
+            f"{name} helps customers discover and buy products online "
+            f"in {location or 'Singapore'}."
+        )
+
+    elif any(word in combined for word in [
+        "dental", "clinic", "doctor", "medical", "aesthetic", "health"
+    ]):
+        business_type = "clinic"
+        primary_cta = "Book an Appointment"
+        secondary_cta = "View Services"
+        tone = "professional, reassuring, clear, trustworthy"
+        suggested_sections = [
+            "Services",
+            "Why Choose Us",
+            "Treatment Information",
+            "Patient FAQs",
+            "Contact",
+        ]
+        avoid_terms = ["Shop Now", "Order Now", "Add to Cart"]
+        homepage_angle = (
+            f"{name} helps patients in {location or 'Singapore'} understand "
+            f"available services and book appointments with confidence."
+        )
+
+    elif any(word in combined for word in [
+        "tuition", "education", "enrichment", "school", "learning",
+        "psle", "math", "english"
+    ]):
+        business_type = "education"
+        primary_cta = "Enquire Now"
+        secondary_cta = "View Programmes"
+        tone = "supportive, clear, parent-friendly, encouraging"
+        suggested_sections = [
+            "Programmes",
+            "Who It Helps",
+            "Why Parents Choose Us",
+            "Learning Approach",
+            "FAQ",
+        ]
+        avoid_terms = ["Shop Now", "Order Now", "Add to Cart"]
+        homepage_angle = (
+            f"{name} helps students and parents in {location or 'Singapore'} "
+            f"find suitable learning support."
+        )
+
+    else:
+        business_type = "general_business"
+        primary_cta = "Enquire Now"
+        secondary_cta = "View Services"
+        tone = "professional, clear, trustworthy"
+        suggested_sections = [
+            "Services",
+            "Why Choose Us",
+            "How It Works",
+            "FAQ",
+            "Contact",
+        ]
+        avoid_terms = []
+        homepage_angle = (
+            f"{name} helps customers in {location or 'Singapore'} understand "
+            f"its services clearly."
+        )
+
+    products_or_services = []
+    if services:
+        products_or_services = [
+            item.strip()
+            for item in services.replace("\n", ",").split(",")
+            if item.strip()
+        ]
+
+    return {
+        "business_name": name,
+        "industry": industry or "",
+        "location": location or "",
+        "website_url": website_url or "",
+        "business_type": business_type,
+        "products_or_services": products_or_services,
+        "target_audience": [],
+        "tone": tone,
+        "primary_cta": primary_cta,
+        "secondary_cta": secondary_cta,
+        "suggested_sections": suggested_sections,
+        "avoid_terms": avoid_terms,
+        "homepage_angle": homepage_angle,
+    }
+
+
 def generate_structured_website_page(
     client_name,
     industry,
     location,
     target_query,
-    content_type="service_page",
+    content_type="landing_page",
     brand_context="",
 ):
-    """
-    Generate a structured premium website page using AI.
-    
-    Args:
-        client_name: Business name
-        industry: Industry/business type
-        location: Geographic location
-        target_query: Search query/topic the page targets
-        content_type: Type of page (service_page, landing_page, faq_page, etc.)
-        brand_context: Additional brand info, tone, or requirements
-    
-    Returns:
-        dict: Structured page JSON with sections
-    
-    Raises:
-        ValueError: If content generation or parsing fails
-    """
-    
-    # Build comprehensive, detailed prompt for high-quality output
-    prompt = f"""You are a premium SaaS/enterprise web copywriter with 15+ years experience.
-You specialize in creating conversion-optimized landing pages and service pages that rank in search results.
-You understand buyer psychology, search intent, and high-conversion copy techniques.
+    business_context = build_business_context(
+        business_name=client_name,
+        industry=industry,
+        location=location,
+        services=target_query,
+        website_url="",
+        research_results=None,
+    )
 
-BUSINESS BRIEFING:
-- Company: {client_name}
+    primary_cta = business_context.get("primary_cta", "Enquire Now")
+    secondary_cta = business_context.get("secondary_cta", "View Services")
+
+    prompt = f"""
+You are an expert website strategist and conversion copywriter.
+
+Create a website homepage for the actual business below.
+
+BUSINESS CONTEXT:
+{json.dumps(business_context, ensure_ascii=False, indent=2)}
+
+BUSINESS DETAILS:
+- Business name: {client_name}
 - Industry: {industry}
-- Market: {location}
-- Primary Target: Users searching "{target_query}"
-- Page Type: {content_type}
-{f'- Brand Voice & Context: {brand_context}' if brand_context else ''}
+- Location: {location}
+- Main offerings/products/services: {target_query}
+- Page type: {content_type}
+{f"- Brand context: {brand_context}" if brand_context else ""}
 
-YOUR TASK:
-Create a sophisticated, professional website page targeting "{target_query}" search intent.
-The page must be compelling, detailed, and designed to convert.
+STRICT RULES:
+- The page must be specific to this business.
+- Use the exact business type from the business context.
+- Use product-focused copy for food_and_beverage and ecommerce businesses.
+- Do not use generic professional-services wording for product/ecommerce/F&B brands.
+- Do not use any of these avoided terms: {business_context.get("avoid_terms", [])}
+- Primary CTA must be: {primary_cta}
+- Secondary CTA must be: {secondary_cta}
+- Suggested sections should follow: {business_context.get("suggested_sections", [])}
+- The homepage angle is: {business_context.get("homepage_angle")}
 
-RETURN ONLY VALID JSON (no markdown, no code blocks, no explanations) matching this exact structure:
+Return ONLY valid JSON. No markdown. No code block.
+
+Use this exact JSON structure:
 
 {{
   "page_type": "{content_type}",
-  "title": "Compelling, specific 60-char headline optimized for '{target_query}'",
-  "slug": "descriptive-url-slug",
-  "meta_title": "SEO-optimized title (60 chars) targeting '{target_query}'",
-  "meta_description": "Compelling 155-char description with search intent match and CTA",
+  "title": "Specific homepage title for {client_name}",
+  "slug": "home",
+  "meta_title": "SEO title for {client_name}",
+  "meta_description": "SEO description for {client_name}",
   "seo": {{
-    "meta_description": "...",
-    "keywords": ["primary keyword", "long-tail variant", "intent-based keyword"],
-    "og_title": "Shareable social media headline",
-    "og_description": "Shareable social description"
+    "meta_description": "SEO description for {client_name}",
+    "keywords": ["{client_name}", "{industry}", "{location}"],
+    "og_title": "Social title for {client_name}",
+    "og_description": "Social description for {client_name}"
   }},
   "sections": [
     {{
       "type": "hero",
-      "layout": "split",
-      "eyebrow": "Attention-grabbing subheading (10 words max)",
-      "headline": "Powerful main value proposition addressing specific '{target_query}' pain point",
-      "subtext": "3-4 sentences explaining transformation, outcome, and why {client_name} is different",
-      "primary_cta": "Action-oriented CTA text",
-      "secondary_cta": "Secondary CTA (alternative action)",
-      "visual_note": "Professional, industry-relevant imagery recommended"
-    }},
-    {{
-      "type": "value_prop",
-      "headline": "Why {client_name} for {target_query}",
-      "items": [
-        {{
-          "title": "Unique differentiator #1",
-          "description": "2-3 sentence explanation of why this matters to the buyer"
-        }},
-        {{
-          "title": "Unique differentiator #2",
-          "description": "2-3 sentence explanation of competitive advantage"
-        }},
-        {{
-          "title": "Unique differentiator #3",
-          "description": "2-3 sentence explanation of transformation they'll experience"
-        }}
-      ]
-    }},
-    {{
-      "type": "problem",
-      "headline": "The Real Cost of Poor {target_query}",
-      "subheading": "Understand the impact on your business",
-      "body": "4-5 detailed paragraphs explaining: the problem, why it matters, common mistakes, cost of inaction, opportunity cost. Use specific numbers and real consequences.",
-      "pain_points": [
-        "Specific pain point 1 faced by target audience",
-        "Specific pain point 2 with business impact",
-        "Specific pain point 3 affecting growth"
-      ]
-    }},
-    {{
-      "type": "solution",
-      "headline": "How {client_name} Solves {target_query}",
-      "subheading": "Our proven methodology",
-      "steps": [
-        {{
-          "number": 1,
-          "title": "Step/Process 1",
-          "description": "Detailed description of what happens and why it matters"
-        }},
-        {{
-          "number": 2,
-          "title": "Step/Process 2",
-          "description": "How this builds on step 1 and moves toward solution"
-        }},
-        {{
-          "number": 3,
-          "title": "Step/Process 3",
-          "description": "Final step and the transformation achieved"
-        }}
-      ]
+      "eyebrow": "{industry}",
+      "headline": "Specific headline for {client_name} based on its real products/services",
+      "subtext": "Specific 2-3 sentence intro based on the business context.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
     }},
     {{
       "type": "services",
-      "headline": "Our {industry} Expertise in {target_query}",
-      "subheading": "Comprehensive solutions designed for your needs",
+      "headline": "{business_context.get("suggested_sections", ["What We Offer"])[0]}",
       "items": [
         {{
-          "title": "Detailed Service/Feature 1",
-          "description": "2-3 sentences on specific benefit, outcome, and ROI impact",
-          "benefit": "Primary benefit statement"
+          "title": "Specific product/service/offering 1",
+          "description": "Specific description linked to {client_name}."
         }},
         {{
-          "title": "Detailed Service/Feature 2",
-          "description": "2-3 sentences on specific benefit, outcome, and ROI impact",
-          "benefit": "Primary benefit statement"
+          "title": "Specific product/service/offering 2",
+          "description": "Specific description linked to {client_name}."
         }},
         {{
-          "title": "Detailed Service/Feature 3",
-          "description": "2-3 sentences on specific benefit, outcome, and ROI impact",
-          "benefit": "Primary benefit statement"
-        }},
-        {{
-          "title": "Detailed Service/Feature 4",
-          "description": "2-3 sentences on specific benefit, outcome, and ROI impact",
-          "benefit": "Primary benefit statement"
+          "title": "Specific product/service/offering 3",
+          "description": "Specific description linked to {client_name}."
         }}
       ]
     }},
     {{
-      "type": "proof",
-      "headline": "Proven Results With {client_name}",
-      "subheading": "Real outcomes from businesses like yours",
-      "stats": [
+      "type": "value_prop",
+      "headline": "Why Customers Choose {client_name}",
+      "items": [
         {{
-          "metric": "X% improvement in {target_query} metric",
-          "context": "Specific outcome or transformation"
+          "title": "Specific reason 1",
+          "description": "Specific explanation."
         }},
         {{
-          "metric": "X% increase in relevant business metric",
-          "context": "What this means for the customer"
+          "title": "Specific reason 2",
+          "description": "Specific explanation."
         }},
         {{
-          "metric": "X months to see measurable {target_query} results",
-          "context": "Timeline and realistic expectation"
-        }}
-      ],
-      "testimonials": [
-        {{
-          "quote": "Specific, detailed testimonial addressing {target_query} transformation",
-          "author": "Title/role, Company type",
-          "context": "Their situation before and after"
-        }}
-      ]
-    }},
-    {{
-      "type": "comparison",
-      "headline": "Why {client_name} Stands Out",
-      "subheading": "How we compare to traditional approaches or competitors",
-      "advantages": [
-        {{
-          "factor": "Specific competitive advantage",
-          "our_approach": "How {client_name} does it differently",
-          "traditional": "How others handle it"
-        }},
-        {{
-          "factor": "Innovation or unique methodology",
-          "our_approach": "Our unique value add",
-          "traditional": "Standard industry approach"
-        }},
-        {{
-          "factor": "Support or customer success element",
-          "our_approach": "Our commitment to client success",
-          "traditional": "What other providers offer"
+          "title": "Specific reason 3",
+          "description": "Specific explanation."
         }}
       ]
     }},
     {{
       "type": "faq",
-      "headline": "Frequently Asked Questions About {target_query}",
-      "subheading": "Here's what clients want to know",
+      "headline": "Frequently Asked Questions",
       "items": [
         {{
-          "question": "How long does it take to see results with {client_name}'s {target_query} solution?",
-          "answer": "Detailed answer with realistic timeline, factors that affect speed, and early wins to expect"
+          "question": "Question specific to this business.",
+          "answer": "Helpful answer specific to this business."
         }},
         {{
-          "question": "What's the investment required for {target_query} at {client_name}?",
-          "answer": "Transparent pricing discussion, what's included, ROI justification, options available"
+          "question": "Question specific to ordering, products, services, or enquiries.",
+          "answer": "Helpful answer specific to this business."
         }},
         {{
-          "question": "Is {target_query} solution suitable for businesses like ours?",
-          "answer": "Clear answer on who benefits most, specific industry/size suitability, customization options"
-        }},
-        {{
-          "question": "How does {client_name}'s {target_query} approach differ from DIY or other vendors?",
-          "answer": "Clear competitive differentiation, specific advantages, why the difference matters"
-        }},
-        {{
-          "question": "What kind of support and onboarding do we get?",
-          "answer": "Detailed support structure, training, success metrics, ongoing relationship"
-        }}
-      ]
-    }},
-    {{
-      "type": "trust",
-      "headline": "Why {client_name} is Trusted for {target_query}",
-      "items": [
-        {{
-          "element": "Years of experience or specific credential",
-          "detail": "Specific evidence or example"
-        }},
-        {{
-          "element": "Industry recognition, certification, or award",
-          "detail": "Credibility indicator"
-        }},
-        {{
-          "element": "Client portfolio or case study highlight",
-          "detail": "Proof of execution in similar contexts"
+          "question": "Question specific to location, delivery, appointment, or availability.",
+          "answer": "Helpful answer specific to this business."
         }}
       ]
     }},
     {{
       "type": "cta_block",
-      "headline": "Transform Your {target_query} Strategy With {client_name}",
-      "subtext": "Join companies in the {industry} space who've improved their {target_query} results",
-      "primary_cta": "Schedule a free consultation",
-      "secondary_cta": "Explore case studies",
-      "cta_note": "No long-term commitment. Learn what's possible for your business."
+      "headline": "Ready to explore {client_name}?",
+      "subtext": "Take the next step with {client_name}.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
     }}
   ]
 }}
-
-CRITICAL QUALITY REQUIREMENTS:
-1. Content must be SPECIFIC to {client_name}, "{target_query}", and {industry} — NO generic placeholders
-2. All copy must directly address buyer pain points and transformation they want
-3. Every section must have a specific conversion goal
-4. Use specific numbers, metrics, and timeframes (not "significant" or "better")
-5. Tone must be professional, authoritative, and trustworthy
-6. Include psychological persuasion elements: social proof, scarcity, specificity, transformation
-7. Each section must move the buyer through the decision journey
-8. All CTAs must be specific and action-oriented
-9. Demonstrate deep understanding of {industry} and {target_query} challenges
-10. Highlight unique methodology, not just features
-
-STRUCTURE REQUIREMENTS:
-- Total: 10+ comprehensive sections
-- Each section must have 3+ sub-elements/items
-- FAQ: 5 detailed questions addressing real buyer concerns
-- Proof section: Include specific metrics and testimonials
-- Every major claim must have supporting detail
 """
 
-
     try:
-        # Use lower temperature for consistency and better JSON structure
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert web copywriter. Always return valid JSON exactly as specified. No markdown, no code blocks, no additional text."
+                    "content": "Return valid JSON only. No markdown. No explanations.",
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.3,  # Lower for consistency
-            max_tokens=2000,
+            temperature=0.2,
+            max_tokens=2500,
         )
 
         raw = response.choices[0].message.content.strip()
-        
-        # Clean up common formatting issues
         raw = raw.replace("```json", "").replace("```", "").strip()
-        
-        # Parse JSON
-        try:
-            page_json = json.loads(raw)
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parse error: {e}. Raw content: {raw[:200]}")
-            raise ValueError(f"Failed to parse AI response as JSON: {str(e)}")
-        
-        # Validate structure
+
+        page_json = json.loads(raw)
+
         page_json = _validate_page_structure(
-            page_json, 
-            client_name, 
-            target_query, 
-            content_type
+            page_json,
+            client_name,
+            target_query,
+            content_type,
+            business_context,
         )
-        
+
         return page_json
 
     except Exception as e:
         logger.error(f"Website generation error: {str(e)}")
-        # Return minimal valid structure as fallback
         return _create_fallback_page(
-            client_name, 
-            industry, 
-            location, 
-            target_query, 
-            content_type
+            client_name,
+            industry,
+            location,
+            target_query,
+            content_type,
+            business_context,
         )
 
 
-def _validate_page_structure(page_json, client_name, target_query, content_type):
-    """Validate and fix the page JSON structure."""
-    
-    # Ensure required fields exist
+def _validate_page_structure(
+    page_json,
+    client_name,
+    target_query,
+    content_type,
+    business_context=None,
+):
     if not isinstance(page_json, dict):
         raise ValueError("Page JSON must be a dictionary")
-    
-    # Set defaults for missing fields
+
+    business_context = business_context or {}
+
     page_json.setdefault("page_type", content_type)
     page_json.setdefault("title", f"{client_name} - {target_query}")
-    page_json.setdefault("slug", target_query.lower().replace(" ", "-")[:50])
-    
-    # Ensure SEO object
-    if "seo" not in page_json:
+    page_json.setdefault("slug", "home")
+
+    if "seo" not in page_json or not isinstance(page_json["seo"], dict):
         page_json["seo"] = {
-            "meta_description": f"Learn how {client_name} can help with {target_query}",
-            "keywords": [target_query],
-            "og_title": page_json.get("title", f"{client_name} - {target_query}"),
-            "og_description": f"Discover {client_name}'s solution for {target_query}"
+            "meta_description": f"Learn more about {client_name}.",
+            "keywords": [client_name, target_query],
+            "og_title": page_json.get("title", client_name),
+            "og_description": f"Discover {client_name}.",
         }
-    
-    # Ensure sections array exists
+
     if "sections" not in page_json or not isinstance(page_json["sections"], list):
         page_json["sections"] = []
-    
-    # Validate each section has required fields
-    required_section_types = ["hero", "problem", "services", "proof", "faq", "cta"]
-    existing_types = {s.get("type") for s in page_json["sections"] if s.get("type")}
-    
-    for section_type in required_section_types:
-        if section_type not in existing_types:
-            logger.warning(f"Missing {section_type} section, skipping validation")
-    
+
+    primary_cta = business_context.get("primary_cta", "Enquire Now")
+    secondary_cta = business_context.get("secondary_cta", "View Services")
+    avoid_terms = business_context.get("avoid_terms", [])
+
+    for section in page_json["sections"]:
+        if not isinstance(section, dict):
+            continue
+
+        if section.get("type") in ["hero", "cta_block", "cta"]:
+            section["primary_cta"] = primary_cta
+            section["secondary_cta"] = secondary_cta
+
+        for bad_term in avoid_terms:
+            for key, value in list(section.items()):
+                if isinstance(value, str) and bad_term.lower() in value.lower():
+                    section[key] = value.replace(bad_term, primary_cta)
+
     return page_json
 
 
-def _create_fallback_page(client_name, industry, location, target_query, content_type):
-    """Create a minimal valid page structure when generation fails."""
-    
-    logger.warning(
-        f"Using fallback page for {client_name} - {target_query}"
+def _create_fallback_page(
+    client_name,
+    industry,
+    location,
+    target_query,
+    content_type,
+    business_context=None,
+):
+    business_context = business_context or build_business_context(
+        business_name=client_name,
+        industry=industry,
+        location=location,
+        services=target_query,
     )
-    
+
+    primary_cta = business_context.get("primary_cta", "Enquire Now")
+    secondary_cta = business_context.get("secondary_cta", "View Services")
+    suggested_sections = business_context.get("suggested_sections", ["What We Offer"])
+
     return {
         "page_type": content_type,
-        "title": f"{client_name} - {target_query}",
-        "slug": target_query.lower().replace(" ", "-")[:50],
+        "title": f"{client_name} - {industry}",
+        "slug": "home",
         "seo": {
-            "meta_description": f"Learn how {client_name} in {location} can help with {target_query}",
-            "keywords": [target_query, client_name, industry],
-            "og_title": f"{client_name} - {target_query}",
-            "og_description": f"{client_name}'s solution for {target_query} in {location}"
+            "meta_description": business_context.get(
+                "homepage_angle", f"Learn more about {client_name}."
+            ),
+            "keywords": [client_name, industry, location, target_query],
+            "og_title": f"{client_name} - {industry}",
+            "og_description": business_context.get(
+                "homepage_angle", f"Discover {client_name}."
+            ),
         },
         "sections": [
             {
                 "type": "hero",
-                "eyebrow": f"Solution for {target_query}",
-                "headline": f"{client_name}: Your Answer to {target_query}",
-                "subtext": f"Based in {location}, we specialize in {industry}. We help businesses solve {target_query} challenges.",
-                "primary_cta": "Learn More",
-                "secondary_cta": "Contact Us"
-            },
-            {
-                "type": "problem",
-                "headline": f"The Challenge with {target_query}",
-                "body": f"Many businesses in the {industry} space struggle with {target_query}. This impacts their visibility and growth. At {client_name}, we understand these challenges and have developed proven solutions."
+                "eyebrow": industry,
+                "headline": business_context.get(
+                    "homepage_angle", f"Welcome to {client_name}"
+                ),
+                "subtext": (
+                    f"{client_name} serves customers in {location}. "
+                    f"Explore our {target_query}."
+                ),
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
             },
             {
                 "type": "services",
-                "headline": "How We Help",
+                "headline": suggested_sections[0],
                 "items": [
                     {
-                        "title": f"Expert {target_query} Solutions",
-                        "description": f"We provide specialized expertise in {target_query} for {industry} businesses"
-                    },
-                    {
-                        "title": "Customized Approach",
-                        "description": "Every solution is tailored to your specific needs and goals"
-                    },
-                    {
-                        "title": "Proven Results",
-                        "description": "Our methodology is tested and proven to deliver results"
+                        "title": item,
+                        "description": f"Explore {item} from {client_name}.",
                     }
-                ]
-            },
-            {
-                "type": "proof",
-                "headline": "Trusted by Businesses",
-                "items": [
-                    {
-                        "stat": "Established",
-                        "description": f"{client_name} is a trusted name in {industry}"
-                    },
-                    {
-                        "stat": "Located",
-                        "description": f"Serving {location} and surrounding areas"
-                    }
-                ]
+                    for item in business_context.get(
+                        "products_or_services", [target_query]
+                    )[:3]
+                ],
             },
             {
                 "type": "faq",
-                "headline": f"About {target_query}",
+                "headline": "Frequently Asked Questions",
                 "items": [
                     {
-                        "question": f"Why is {target_query} important?",
-                        "answer": f"{target_query} is crucial for {industry} businesses to stay competitive and visible in their market."
+                        "question": f"What does {client_name} offer?",
+                        "answer": business_context.get(
+                            "homepage_angle",
+                            f"{client_name} offers {target_query}.",
+                        ),
                     },
                     {
-                        "question": f"How can {client_name} help?",
-                        "answer": f"We offer comprehensive solutions tailored to your {target_query} needs."
-                    }
-                ]
+                        "question": f"Where is {client_name} based?",
+                        "answer": f"{client_name} serves customers in {location}.",
+                    },
+                ],
             },
             {
-                "type": "cta",
-                "headline": f"Ready to solve {target_query}?",
-                "subtext": f"Let {client_name} help you succeed",
-                "button_text": "Get Started Today"
-            }
-        ]
+                "type": "cta_block",
+                "headline": f"Explore {client_name}",
+                "subtext": business_context.get(
+                    "homepage_angle", f"Take the next step with {client_name}."
+                ),
+                "primary_cta": primary_cta,
+                "secondary_cta": secondary_cta,
+            },
+        ],
     }
