@@ -7,12 +7,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='generated-site.css') }}">
     {% for schema_item in page_json.schema_json or [] %}
     <script type="application/ld+json">{{ schema_item|tojson }}</script>
     {% endfor %}
 </head>
 
-<body class="generated-site-body theme-{{ project.theme }}">
+<body
+    class="generated-site-body theme-{{ project.theme }}"
+    style="
+        --site-primary: {{ blueprint.primary_color or '#f97316' }};
+        --site-primary-dark: {{ blueprint.primary_color or '#ea580c' }};
+        --site-primary-soft: {{ blueprint.secondary_color or '#fff7ed' }};
+        --site-accent-soft: {{ blueprint.accent_color or '#ffedd5' }};
+        --site-text: {{ blueprint.text_color or '#0f172a' }};
+    "
+>
     <nav class="generated-site-nav">
         <a href="{{ url_for('public_website_project', project_id=project.id) }}" class="generated-site-brand">
             {{ blueprint.client_name }}
