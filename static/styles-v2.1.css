@@ -1,62 +1,3 @@
-/*
-================================================================================
-                          CSS STYLE GUIDE v2.1
-                              TABLE OF CONTENTS
-================================================================================
-
-SECTIONS IN THIS FILE:
-
-1. DESIGN TOKENS & VARIABLES (lines ~15-45)
-   - Root CSS variables for colors, spacing, typography, shadows
-   - Define the design system used throughout
-
-2. GLOBAL BASE STYLES (lines ~45-70)
-   - Body, typography (h1-h3), links
-   - Global font families and text properties
-   
-3. SHARED UI COMPONENTS (lines ~70-300)
-   - Cards, panels, status pills/badges
-   - Buttons, form elements, consistent patterns
-
-4. LAYOUT & STRUCTURE (lines ~300-600)
-   - Page shell, containers, grid system
-   - Flex utilities and spacing
-
-5. APP SHELL LAYOUT (lines ~600-3000)
-   - Top navigation bar
-   - Sidebar navigation and overlay
-   - Main content area
-   - Modal styles
-
-6. PAGE-SPECIFIC STYLES (lines ~3000-15000)
-   - Dashboard and workspace layouts
-   - Content queue, audit reports
-   - Content briefs and drafts
-   - Settings, pricing pages, etc.
-
-7. RESPONSIVE DESIGN (lines ~15000-18000)
-   - Tablet breakpoints (768px and below)
-   - Mobile breakpoints (480px and below)
-   - Device-specific optimizations
-
-8. UTILITIES & HELPERS (scattered throughout)
-   - Text utilities, spacing helpers
-   - Display utilities, state classes
-
-================================================================================
-
-MAINTENANCE NOTES:
-  - Design tokens should be defined first (CSS variables in :root)
-  - Component styles are grouped by feature/page
-  - Responsive rules are co-located with their base styles
-  - Backup copy: styles-v2.1.css.backup
-
-Last Updated: May 6, 2026
-Organized for better maintainability and clarity
-
-================================================================================
-*/
-
 :root {
     /* Colors */
     --bg-page: #f7f9fc;
@@ -574,7 +515,6 @@ END COMMENTED OUT FOR CLEANUP TEST: legacy ui body block */
     }
 }
 
-END COMMENTED OUT FOR CLEANUP TEST: old shared v2 wrapper system */
 
 :root {
     --bg: #fff7fb;
@@ -861,7 +801,6 @@ APP SHELL
 }
 */
 
-END COMMENTED OUT FOR CLEANUP TEST: legacy app shell block */
 /* =========================
    BUTTONS
    ========================= */}
@@ -18352,119 +18291,146 @@ a.btn {
     }
 }
 
-/* Guided action metadata */
-.action-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
+
+/* ========================================
+   BRAND KIT STUDIO
+======================================== */
+
+.brand-kit-hero {
+    overflow: hidden;
+    padding: 0;
+    border: none;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
 }
 
-.action-meta-row span {
-    display: inline-flex;
+.brand-kit-grid {
+    padding: 56px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 54px;
     align-items: center;
-    min-height: 28px;
-    padding: 6px 10px;
-    border: 1px solid #dbe6f3;
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #475569;
-    font-size: 12px;
+}
+
+.brand-logo {
+    width: 88px;
+    height: 88px;
+    border-radius: 26px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
     font-weight: 800;
-    line-height: 1.2;
+    box-shadow: 0 18px 40px rgba(15,23,42,0.12);
 }
 
-.execution-card-recommended {
-    border-color: #7b61ff !important;
-    background: #f8f6ff !important;
+.brand-title-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: clamp(42px, 6vw, 68px);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    margin-bottom: 18px;
+    padding: 0;
+    color: #0f172a;
 }
 
-@media (max-width: 640px) {
-    .action-meta-row span {
-        max-width: 100%;
-        white-space: normal;
-    }
+.brand-description-input {
+    width: 100%;
+    min-height: 110px;
+    border: none;
+    resize: vertical;
+    background: transparent;
+    font-size: 20px;
+    line-height: 1.8;
+    color: var(--muted-text);
+    margin-bottom: 28px;
+    padding: 0;
 }
 
-/* Reporting workflow actions */
-.report-action-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.brand-preview-browser {
+    background: white;
+    border-radius: 34px;
+    overflow: hidden;
+    border: 1px solid rgba(15,23,42,0.08);
+    box-shadow: 0 24px 60px rgba(15,23,42,0.08);
+}
+
+.brand-color-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
     gap: 18px;
-    padding: 20px 22px;
-    border: 1px solid #dbe6f3;
-    border-radius: 20px;
-    background: #ffffff;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.report-action-copy {
-    min-width: 0;
+.brand-style-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 16px;
 }
 
-.report-action-copy h2 {
-    margin: 8px 0 6px;
-    color: #16243c;
+.brand-style-card {
+    padding: 22px;
+    border-radius: 24px;
+    border: 1px solid rgba(15,23,42,0.08);
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.brand-style-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(15,23,42,0.08);
+}
+
+.brand-style-card.active {
+    border: 2px solid var(--brand-primary, #f97316);
+}
+
+.brand-page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+    gap: 18px;
+}
+
+.brand-page-card {
+    padding: 24px;
+    border-radius: 26px;
+    border: 1px solid rgba(15,23,42,0.08);
+    background: white;
+}
+
+.brand-page-input {
+    width: 100%;
+    border: none;
     font-size: 22px;
-    line-height: 1.2;
+    font-weight: 700;
+    margin-bottom: 10px;
+    padding: 0;
 }
 
-.report-action-copy p {
-    max-width: 760px;
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.report-action-buttons {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.report-inline-link {
-    color: #475569;
-    font-size: 13px;
-    font-weight: 800;
-    text-decoration: none;
-}
-
-.report-inline-link:hover {
-    color: #16243c;
+.brand-page-textarea {
+    width: 100%;
+    min-height: 90px;
+    border: none;
+    resize: vertical;
+    line-height: 1.7;
+    color: var(--muted-text);
+    padding: 0;
 }
 
 @media (max-width: 768px) {
-    .report-action-bar {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 18px;
+
+    .brand-kit-grid {
+        padding: 28px;
     }
 
-    .report-action-buttons,
-    .report-action-buttons .btn,
-    .report-action-buttons .report-inline-link {
-        width: 100%;
+    .brand-color-grid {
+        grid-template-columns: repeat(2,1fr);
     }
 
-    .report-action-buttons .report-inline-link {
-        display: inline-flex;
-        justify-content: center;
-        min-height: 42px;
-        align-items: center;
-    }
-}
-
-@media print {
-    .no-print,
-    .report-action-bar,
-    .page-header-actions,
-    .mobile-topbar,
-    .app-sidebar {
-        display: none !important;
+    .brand-style-grid {
+        grid-template-columns: 1fr;
     }
 }

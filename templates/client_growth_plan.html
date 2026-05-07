@@ -200,12 +200,7 @@
                     </div>
 
                     <p><strong>Issue:</strong> {{ action.issue }}</p>
-                    <p><strong>Recommended action:</strong> {{ action.recommended_action or action.recommended_fix }}</p>
-                    <p class="muted-line">
-                        <strong>Mode:</strong>
-                        {{ "Assisted" if action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}
-                        · <strong>Credits:</strong> {{ action.credits_required or 0 }}
-                    </p>
+                    <p><strong>Recommended action:</strong> {{ action.recommended_action }}</p>
 
                     {% if action.support_signal %}
                     <p class="muted-line"><strong>Why this matters:</strong> {{ action.support_signal }}</p>
@@ -299,29 +294,23 @@
                 </div>
             </div>
 
-            <div class="execution-grid execution-grid-primary">
-                <a class="execution-card execution-card-recommended" href="{{ next_best_action.primary.url if next_best_action else url_for('client_actions_page', client_id=client.id) }}">
+            <div class="execution-grid">
+                <a class="execution-card" href="{{ url_for('generate_client_content_brief', client_id=client.id) }}">
                     <div class="execution-icon">📝</div>
                     <div>
-                        <h4>{{ next_best_action.label if next_best_action else "Open Action Plan" }}</h4>
-                        <p>{{ next_best_action.reason if next_best_action else "Review the top priority, mode, credit cost, and the first execution step." }}</p>
-                        {% if next_best_action %}
-                        <p class="muted-line">
-                            <strong>Mode:</strong> {{ next_best_action.mode|replace("_", " ")|title }}
-                            · <strong>Credits:</strong> {{ next_best_action.credits_required or 0 }}
-                        </p>
-                        {% endif %}
+                        <h4>Generate Content Brief</h4>
+                        <p>Create a structured brief for a missed query or high-value opportunity.</p>
                     </div>
                 </a>
 
-                <a class="execution-card" href="{{ next_best_action.secondary.url if next_best_action and next_best_action.secondary else url_for('content_queue_page', client_id=client.id) }}">
+                <a class="execution-card" href="{{ url_for('generate_client_content_draft', client_id=client.id) }}">
                     <div class="execution-icon">✍️</div>
                     <div>
-                        <h4>{{ next_best_action.secondary_label if next_best_action and next_best_action.secondary else "Open Queue" }}</h4>
-                        <p>Open the supporting workspace view before running the main workflow.</p>
+                        <h4>Generate Draft</h4>
+                        <p>Turn the plan into a first draft that can move straight into production.</p>
                     </div>
                 </a>
-
+ 
                 <a class="execution-card" href="{{ url_for('client_presentation_page', client_id=client.id) }}">
                     <div class="execution-icon">🎤</div>
                     <div>

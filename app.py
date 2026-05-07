@@ -14,6 +14,7 @@ from content_draft_generator import generate_content_draft
 from content_brief_generator import generate_content_brief
 from audit_runner import run_audit_for_input
 import json
+import logging
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import (
     LoginManager,
@@ -64,6 +65,10 @@ load_dotenv()
 
 app = Flask(__name__)
 print("Flask app initialized")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app.config["SECRET_KEY"] = os.getenv(
     "SECRET_KEY", "change-this-to-a-random-secret-key"
@@ -290,6 +295,83 @@ class GeneratedWebsitePage(db.Model):
     status = db.Column(db.String(40), default="draft")
 
     page_json = db.Column(db.JSON, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class WebflowExport(db.Model):
+    """
+    Tracks exports of DarInsights content to Webflow CMS.
+    
+    Allows monitoring which content has been exported, its status,
+    and whether it's published or still in draft on Webflow.
+    
+    Related to:
+    - GeneratedWebsitePage (page content exports)
+    - Content brief/draft results (blog post exports)
+    - FAQ items (FAQ collection exports)
+    - Service items (service collection exports)
+    """
+    __tablename__ = "webflow_exports"
+
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # User and workspace context
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
+    
+    # What was exported
+    content_type = db.Column(
+        db.String(50),
+        nullable=False,
+        comment="Type of content: blog, faq, service, location, page"
+    )
+    local_source_type = db.Column(
+        db.String(50),
+        nullable=False,
+        comment="Source type: generated_page, content_brief, faq_item, service_item"
+    )
+    local_source_id = db.Column(
+        db.Integer,
+        nullable=False,
+        comment="ID of the source content (e.g., GeneratedWebsitePage.id)"
+    )
+    
+    # Webflow destination
+    webflow_site_id = db.Column(db.String(100), nullable=False)
+    webflow_collection_id = db.Column(db.String(100), nullable=False)
+    webflow_item_id = db.Column(
+        db.String(100),
+        nullable=True,
+        comment="Webflow item ID after creation/update"
+    )
+    
+    # Status tracking
+    status = db.Column(
+        db.String(50),
+        default="draft",
+        comment="Status: draft, exported, published, failed"
+    )
+    error_message = db.Column(
+        db.Text,
+        nullable=True,
+        comment="Error message if status is failed"
+    )
+    
+    # Metadata
+    field_mapping = db.Column(
+        db.JSON,
+        nullable=True,
+        comment="Map of field_slug -> value that was sent to Webflow"
+    )
+    webflow_response = db.Column(
+        db.JSON,
+        nullable=True,
+        comment="Last response from Webflow API"
+    )
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -1578,6 +1660,7 @@ def build_generated_site_page(client, blueprint, page_config):
     primary_cta = blueprint.get("primary_cta", "Enquire Now")
     secondary_cta = blueprint.get("secondary_cta", "View Services")
 
+    # Get actual products/services from blueprint
     products_or_services = blueprint.get("products_or_services") or blueprint.get("services") or []
     if isinstance(products_or_services, str):
         products_or_services = [
@@ -1585,6 +1668,12 @@ def build_generated_site_page(client, blueprint, page_config):
             for item in products_or_services.replace("\n", ",").split(",")
             if item.strip()
         ]
+
+    # Get brand elements
+    style_direction = blueprint.get("style_direction", "")
+    personality = blueprint.get("personality", [])
+    aeo_focus = blueprint.get("aeo_focus", [])
+    functions = blueprint.get("functions", [])
 
     business_type_lower = str(business_type).lower()
     is_food_or_ecommerce = any(
@@ -1596,14 +1685,90 @@ def build_generated_site_page(client, blueprint, page_config):
         primary_cta = "Shop Now"
         secondary_cta = "View Products"
 
+    # Build dynamic proof items based on personality and functions
+    def build_proof_items():
+        proof_items = []
+
+        # Add personality-based items
+        if personality:
+            for trait in personality[:2]:  # Use first 2 personality traits
+                if "trustworthy" in trait.lower():
+                    proof_items.append(f"Trusted {business_type} in {location}")
+                elif "professional" in trait.lower():
+                    proof_items.append(f"Professional {business_type} expertise")
+                elif "friendly" in trait.lower():
+                    proof_items.append(f"Friendly, approachable service")
+                elif "modern" in trait.lower():
+                    proof_items.append(f"Modern, up-to-date approach")
+                elif "warm" in trait.lower():
+                    proof_items.append(f"Warm, welcoming experience")
+                elif "clear" in trait.lower():
+                    proof_items.append(f"Clear, straightforward communication")
+                else:
+                    proof_items.append(f"{trait} approach to {business_type}")
+
+        # Add function-based items
+        if functions:
+            for func in functions[:2]:  # Use first 2 functions
+                if "faq" in func.lower():
+                    proof_items.append("Clear answers to common questions")
+                elif "form" in func.lower():
+                    proof_items.append("Easy enquiry and contact options")
+                elif "booking" in func.lower():
+                    proof_items.append("Simple booking and appointment system")
+                elif "grid" in func.lower():
+                    proof_items.append("Easy-to-browse product/service options")
+                else:
+                    proof_items.append(f"{func} for customer convenience")
+
+        # Add location and AEO focus items
+        if location:
+            proof_items.append(f"Local {business_type} serving {location}")
+
+        if aeo_focus and len(proof_items) < 4:
+            for focus in aeo_focus[:2]:
+                if "best" in focus.lower():
+                    proof_items.append(f"Recognized as {focus}")
+                elif "where" in focus.lower():
+                    proof_items.append(f"Easy to find and contact")
+
+        # Fallback items if we don't have enough
+        fallbacks = [
+            f"Clear {business_type} information",
+            f"Helpful guidance for customers in {location}",
+            "AI-answer-friendly content structure",
+            "Simple paths to enquire or buy"
+        ]
+
+        while len(proof_items) < 4:
+            for fallback in fallbacks:
+                if fallback not in proof_items:
+                    proof_items.append(fallback)
+                    break
+
+        return proof_items[:4]
+
     if page_type == "home":
         if is_food_or_ecommerce:
+            # Use actual products/services or smart fallbacks
+            featured_items = products_or_services[:3] if products_or_services else [
+                "Ice cream", "Confectionery", "Merchandise"
+            ]
+
+            # Build headline based on products and personality
+            product_focus = ", ".join([item.lower() for item in featured_items[:2]])
+            headline = f"Discover {client_name}'s {product_focus} and sweet treats"
+
+            # Build subtext incorporating style direction
+            style_desc = f" {style_direction}" if style_direction else ""
+            subtext = f"{client_name} brings customers in {location} a{style_desc} experience for discovering desserts, confectionery, merchandise and nostalgic favourites."
+
             sections = [
                 {
                     "type": "hero",
                     "eyebrow": business_type,
-                    "headline": f"Discover {client_name}'s ice cream, confectionery and sweet treats",
-                    "subtext": f"{client_name} brings customers in Singapore a product-focused experience for discovering desserts, confectionery, merchandise and nostalgic favourites.",
+                    "headline": headline,
+                    "subtext": subtext,
                     "primary_cta": primary_cta,
                     "secondary_cta": secondary_cta,
                 },
@@ -1613,39 +1778,35 @@ def build_generated_site_page(client, blueprint, page_config):
                     "items": [
                         {
                             "title": item,
-                            "description": f"Explore {item} from {client_name}."
+                            "description": f"Explore {item.lower()} from {client_name}."
                         }
-                        for item in (products_or_services[:3] or [
-                            "Ice cream",
-                            "Confectionery",
-                            "Merchandise"
-                        ])
+                        for item in featured_items
                     ],
                 },
                 {
                     "type": "proof",
                     "headline": "Why customers love us",
-                    "items": [
-                        "Nostalgic flavours",
-                        "Sweet treats for gifting and sharing",
-                        "Easy product discovery",
-                        "Singapore-focused ordering experience",
-                    ],
+                    "items": build_proof_items(),
                 },
                 {
                     "type": "cta",
                     "headline": f"Ready to explore {client_name}?",
-                    "body": "Browse products, discover favourites, and find the next sweet treat to enjoy.",
+                    "body": f"Browse products, discover favourites, and find the next sweet treat to enjoy from {client_name} in {location}.",
                     "button": primary_cta,
                 },
             ]
         else:
+            # Professional services homepage
+            style_desc = f" {style_direction}" if style_direction else " clear and trustworthy"
+            headline = f"{client_name} helps customers understand their {business_type.lower()} options clearly"
+            subtext = f"A{style_desc} website experience designed to explain the business clearly, build trust, and guide customers to the next step."
+
             sections = [
                 {
                     "type": "hero",
                     "eyebrow": business_type,
-                    "headline": f"{client_name} helps customers understand their options clearly",
-                    "subtext": f"A {blueprint.get('style_direction', 'clear and trustworthy')} website experience designed to explain the business clearly, build trust, and guide customers to the next step.",
+                    "headline": headline,
+                    "subtext": subtext,
                     "primary_cta": primary_cta,
                     "secondary_cta": secondary_cta,
                 },
@@ -1654,72 +1815,71 @@ def build_generated_site_page(client, blueprint, page_config):
                     "headline": "What we help with",
                     "items": [
                         {
-                            "title": "Clear service information",
-                            "description": "Pages structured around what customers and AI answer engines need to understand.",
-                        },
-                        {
-                            "title": "Trust-building content",
-                            "description": "Proof, FAQs, and decision factors that make the business easier to recommend.",
-                        },
-                        {
-                            "title": "Conversion-ready journeys",
-                            "description": "Clear calls-to-action that guide visitors toward enquiry or booking.",
-                        },
+                            "title": item if item else f"Core {business_type.lower()} service",
+                            "description": f"Learn more about {item.lower() if item else 'our services'} from {client_name}.",
+                        }
+                        for item in (products_or_services[:3] or [
+                            f"{business_type} guidance",
+                            "Professional support",
+                            "Clear decision-making help"
+                        ])
                     ],
                 },
                 {
                     "type": "proof",
                     "headline": "Why customers choose us",
-                    "items": [
-                        "Clear explanations",
-                        "Helpful service guidance",
-                        "Trust-focused content",
-                        "Fast enquiry options",
-                    ],
+                    "items": build_proof_items(),
                 },
                 {
                     "type": "cta",
                     "headline": "Ready to take the next step?",
-                    "body": "Get in touch to learn more.",
+                    "body": f"Get in touch with {client_name} to learn more about our {business_type.lower()} options in {location}.",
                     "button": primary_cta,
                 },
             ]
 
     elif page_type == "services":
+        # Use actual products/services or smart fallbacks
+        service_items = products_or_services[:3] if products_or_services else (
+            ["Ice cream", "Confectionery", "Merchandise"]
+            if is_food_or_ecommerce
+            else ["Main service", "Specialist support", "Ongoing help"]
+        )
+
+        headline = "Popular products" if is_food_or_ecommerce else "Core services"
+        eyebrow = "Products" if is_food_or_ecommerce else "Services"
+        subtext = "Explore the key products and information customers need before taking the next step." if is_food_or_ecommerce else "Explore the key services, what they include, and how to decide what is right for you."
+
         sections = [
             {
                 "type": "hero",
-                "eyebrow": "Products" if is_food_or_ecommerce else "Services",
-                "headline": f"{'Products' if is_food_or_ecommerce else 'Services'} from {client_name}",
-                "subtext": "Explore the key products and information customers need before taking the next step."
-                if is_food_or_ecommerce
-                else "Explore the key services, what they include, and how to decide what is right for you.",
+                "eyebrow": eyebrow,
+                "headline": f"{eyebrow} from {client_name}",
+                "subtext": subtext,
                 "primary_cta": primary_cta,
                 "secondary_cta": secondary_cta,
             },
             {
                 "type": "services",
-                "headline": "Popular products" if is_food_or_ecommerce else "Core services",
+                "headline": headline,
                 "items": [
                     {
                         "title": item,
-                        "description": f"Learn more about {item} from {client_name}.",
+                        "description": f"Learn more about {item.lower()} from {client_name} in {location}.",
                     }
-                    for item in (products_or_services[:3] or (
-                        ["Ice cream", "Confectionery", "Merchandise"]
-                        if is_food_or_ecommerce
-                        else ["Main service", "Specialist support", "Ongoing help"]
-                    ))
+                    for item in service_items
                 ],
             },
             {
                 "type": "faq",
-                "headline": "Product questions",
+                "headline": "Product questions" if is_food_or_ecommerce else "Service questions",
                 "items": build_page_faq_items(
                     client_name,
                     business_type,
                     location,
                     is_food_or_ecommerce,
+                    aeo_focus,
+                    personality
                 ),
             },
         ]
@@ -1740,12 +1900,7 @@ def build_generated_site_page(client, blueprint, page_config):
             {
                 "type": "proof",
                 "headline": "What makes the brand easy to trust",
-                "items": [
-                    f"Clear {business_type} information for customers in {location}",
-                    "Helpful product and service guidance",
-                    "AI-answer-friendly content structure",
-                    "Simple paths to browse, enquire, or buy",
-                ],
+                "items": build_proof_items(),
             },
             {
                 "type": "cta",
@@ -1776,6 +1931,8 @@ def build_generated_site_page(client, blueprint, page_config):
                     business_type,
                     location,
                     is_food_or_ecommerce,
+                    aeo_focus,
+                    personality
                 ),
             },
         ]
@@ -1827,9 +1984,14 @@ def build_generated_site_page(client, blueprint, page_config):
     return enrich_generated_page_json(client, blueprint, page_json)
 
 
-def build_page_faq_items(client_name, business_type, location, is_food_or_ecommerce):
+def build_page_faq_items(client_name, business_type, location, is_food_or_ecommerce, aeo_focus=None, personality=None):
+    if aeo_focus is None:
+        aeo_focus = []
+    if personality is None:
+        personality = []
+
     if is_food_or_ecommerce:
-        return [
+        faq_items = [
             {
                 "question": f"What can customers find from {client_name}?",
                 "answer": f"Customers can discover products, sweet treats, confectionery, and related information from {client_name}.",
@@ -1844,7 +2006,29 @@ def build_page_faq_items(client_name, business_type, location, is_food_or_ecomme
             },
         ]
 
-    return [
+        # Add personality-based FAQ if available
+        if personality:
+            for trait in personality[:1]:  # Use first personality trait
+                if "friendly" in trait.lower():
+                    faq_items.append({
+                        "question": f"What makes {client_name} different?",
+                        "answer": f"{client_name} offers a friendly, approachable experience that makes discovering sweet treats enjoyable.",
+                    })
+                elif "modern" in trait.lower():
+                    faq_items.append({
+                        "question": f"What makes {client_name} different?",
+                        "answer": f"{client_name} brings a modern approach to traditional sweet treats and confectionery.",
+                    })
+                elif "warm" in trait.lower():
+                    faq_items.append({
+                        "question": f"What makes {client_name} different?",
+                        "answer": f"{client_name} provides a warm, welcoming experience for customers exploring sweet treats.",
+                    })
+
+        return faq_items[:4]
+
+    # Professional services FAQs
+    faq_items = [
         {
             "question": f"What does {client_name} help with?",
             "answer": f"{client_name} helps customers understand {business_type} options and take the right next step.",
@@ -1858,6 +2042,41 @@ def build_page_faq_items(client_name, business_type, location, is_food_or_ecomme
             "answer": "Visitors can review the page information, compare options, and use the primary call-to-action to enquire.",
         },
     ]
+
+    # Add personality-based FAQ if available
+    if personality:
+        for trait in personality[:1]:  # Use first personality trait
+            if "trustworthy" in trait.lower():
+                faq_items.append({
+                    "question": f"Why choose {client_name}?",
+                    "answer": f"{client_name} is known for being trustworthy and reliable in {business_type} services.",
+                })
+            elif "professional" in trait.lower():
+                faq_items.append({
+                    "question": f"Why choose {client_name}?",
+                    "answer": f"{client_name} brings professional expertise and clear communication to {business_type} services.",
+                })
+            elif "clear" in trait.lower():
+                faq_items.append({
+                    "question": f"Why choose {client_name}?",
+                    "answer": f"{client_name} provides clear, straightforward guidance for {business_type} decisions.",
+                })
+
+    # Add AEO focus-based FAQ if available
+    if aeo_focus:
+        for focus in aeo_focus[:1]:  # Use first AEO focus
+            if "best" in focus.lower():
+                faq_items.append({
+                    "question": f"What makes {client_name} stand out?",
+                    "answer": f"{client_name} is recognized as {focus} in {location}.",
+                })
+            elif "where" in focus.lower():
+                faq_items.append({
+                    "question": f"How can customers find {client_name}?",
+                    "answer": f"{client_name} is easy to find and contact in {location}.",
+                })
+
+    return faq_items[:4]
 
 
 def enrich_generated_page_json(client, blueprint, page_json):
@@ -6065,6 +6284,464 @@ def settings_preferences():
 @login_required
 def settings_team():
     return render_settings_section("team")
+
+
+# =========================
+# Webflow Integration Routes
+# =========================
+# These routes allow DarInsights to act as an AI CMS editor for Webflow sites.
+# Users can export content (blog posts, FAQs, services) from DarInsights to Webflow CMS
+# without directly editing Webflow Designer. All exports are created as drafts by default.
+
+
+@app.route("/integrations/webflow/settings")
+@login_required
+def webflow_settings():
+    """
+    Display Webflow integration settings and connection status.
+    
+    Shows:
+    - Whether Webflow is configured
+    - Available collections
+    - Connection status and test result
+    - Instructions for setup
+    """
+    try:
+        from services.webflow_client import WebflowCMSClient, WebflowConfigError
+        
+        config_error = None
+        client = None
+        collections = []
+        connection_status = None
+        
+        try:
+            client = WebflowCMSClient()
+            client.test_connection()
+            connection_status = "connected"
+            collections = client.list_collections()
+        except WebflowConfigError as e:
+            config_error = str(e)
+        except Exception as e:
+            connection_status = f"error: {str(e)}"
+            config_error = "Unable to connect to Webflow"
+        
+        # Get collection IDs from env
+        blog_collection_id = os.getenv("WEBFLOW_BLOG_COLLECTION_ID")
+        faq_collection_id = os.getenv("WEBFLOW_FAQ_COLLECTION_ID")
+        service_collection_id = os.getenv("WEBFLOW_SERVICE_COLLECTION_ID")
+        location_collection_id = os.getenv("WEBFLOW_LOCATION_COLLECTION_ID")
+        
+        return render_template(
+            "integrations/webflow_settings.html",
+            config_error=config_error,
+            connection_status=connection_status,
+            collections=collections,
+            blog_collection_id=blog_collection_id,
+            faq_collection_id=faq_collection_id,
+            service_collection_id=service_collection_id,
+            location_collection_id=location_collection_id,
+            publish_on_export=os.getenv("WEBFLOW_PUBLISH_ON_EXPORT", "false").lower() in {"true", "1", "yes"},
+        )
+    except Exception as e:
+        flash(f"Error loading Webflow settings: {str(e)}", "error")
+        return redirect(url_for("index"))
+
+
+@app.route("/integrations/webflow/test", methods=["POST"])
+@login_required
+def webflow_test_connection():
+    """Test Webflow API connection and return status."""
+    try:
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        
+        client = WebflowCMSClient()
+        client.test_connection()
+        
+        return jsonify({
+            "success": True,
+            "message": "Successfully connected to Webflow API"
+        })
+    except (WebflowConfigError, WebflowAPIError) as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"Webflow connection test failed: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Connection test failed"
+        }), 500
+
+
+@app.route("/integrations/webflow/collections")
+@login_required
+def webflow_collections():
+    """List all Webflow collections for the site."""
+    try:
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        
+        client = WebflowCMSClient()
+        collections = client.list_collections()
+        
+        return jsonify({
+            "success": True,
+            "collections": collections
+        })
+    except (WebflowConfigError, WebflowAPIError) as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"Failed to list collections: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to list collections"
+        }), 500
+
+
+@app.route("/integrations/webflow/export/blog/<int:item_id>", methods=["POST"])
+@login_required
+def webflow_export_blog(item_id):
+    """
+    Export a blog post/content brief to Webflow blog collection.
+    
+    Expected JSON body:
+    {
+        "title": "Blog Post Title",
+        "slug": "blog-post-slug",
+        "summary": "Brief summary",
+        "content": "HTML or rich text content",
+        "meta_description": "SEO meta description",
+        "featured_image_url": "optional image URL"
+    }
+    """
+    try:
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        
+        blog_collection_id = os.getenv("WEBFLOW_BLOG_COLLECTION_ID")
+        if not blog_collection_id or blog_collection_id.startswith("your_"):
+            return jsonify({
+                "success": False,
+                "message": "Webflow blog collection not configured. Set WEBFLOW_BLOG_COLLECTION_ID in .env"
+            }), 400
+        
+        data = request.get_json() or {}
+        client = WebflowCMSClient()
+        
+        # Build field data for Webflow
+        field_data = {
+            "name": data.get("title", f"Blog Post {item_id}"),
+            "slug": data.get("slug", f"blog-post-{item_id}"),
+        }
+        
+        # Add optional fields if provided
+        if data.get("summary"):
+            field_data["summary"] = data["summary"]
+        if data.get("content"):
+            field_data["content"] = data["content"]
+        if data.get("meta_description"):
+            field_data["meta-description"] = data["meta_description"]
+        
+        # Create or update item in Webflow
+        try:
+            # Check if item already exists in our export tracking
+            existing_export = WebflowExport.query.filter_by(
+                user_id=current_user.id,
+                local_source_id=item_id,
+                content_type="blog"
+            ).first()
+            
+            if existing_export and existing_export.webflow_item_id:
+                # Update existing item
+                result = client.update_item(blog_collection_id, existing_export.webflow_item_id, field_data)
+                webflow_item_id = existing_export.webflow_item_id
+                action = "updated"
+            else:
+                # Create new item
+                webflow_item_id = client.create_item(blog_collection_id, field_data, is_draft=True)
+                action = "created"
+            
+            # Track the export in our database
+            if existing_export:
+                existing_export.status = "exported"
+                existing_export.field_mapping = field_data
+                existing_export.error_message = None
+            else:
+                existing_export = WebflowExport(
+                    user_id=current_user.id,
+                    client_id=data.get("client_id"),
+                    content_type="blog",
+                    local_source_type="content_brief",
+                    local_source_id=item_id,
+                    webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                    webflow_collection_id=blog_collection_id,
+                    webflow_item_id=webflow_item_id,
+                    status="exported",
+                    field_mapping=field_data,
+                )
+                db.session.add(existing_export)
+            
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": f"Blog post {action} in Webflow",
+                "webflow_item_id": webflow_item_id,
+                "action": action,
+                "export_id": existing_export.id
+            })
+            
+        except WebflowAPIError as e:
+            # Track the failed export
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=data.get("client_id"),
+                content_type="blog",
+                local_source_type="content_brief",
+                local_source_id=item_id,
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=blog_collection_id,
+                status="failed",
+                error_message=str(e),
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+            
+            return jsonify({
+                "success": False,
+                "message": f"Failed to export to Webflow: {str(e)}",
+                "export_id": export.id
+            }), 400
+    
+    except Exception as e:
+        logger.error(f"Blog export failed: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Export failed"
+        }), 500
+
+
+@app.route("/integrations/webflow/export/faq/<int:item_id>", methods=["POST"])
+@login_required
+def webflow_export_faq(item_id):
+    """
+    Export an FAQ item to Webflow FAQ collection.
+    
+    Expected JSON body:
+    {
+        "question": "Frequently asked question?",
+        "answer": "Answer to the question",
+        "category": "optional category"
+    }
+    """
+    try:
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        
+        faq_collection_id = os.getenv("WEBFLOW_FAQ_COLLECTION_ID")
+        if not faq_collection_id or faq_collection_id.startswith("your_"):
+            return jsonify({
+                "success": False,
+                "message": "Webflow FAQ collection not configured. Set WEBFLOW_FAQ_COLLECTION_ID in .env"
+            }), 400
+        
+        data = request.get_json() or {}
+        client = WebflowCMSClient()
+        
+        field_data = {
+            "name": data.get("question", f"FAQ Item {item_id}"),
+        }
+        
+        if data.get("answer"):
+            field_data["answer"] = data["answer"]
+        if data.get("category"):
+            field_data["category"] = data["category"]
+        
+        try:
+            existing_export = WebflowExport.query.filter_by(
+                user_id=current_user.id,
+                local_source_id=item_id,
+                content_type="faq"
+            ).first()
+            
+            if existing_export and existing_export.webflow_item_id:
+                result = client.update_item(faq_collection_id, existing_export.webflow_item_id, field_data)
+                webflow_item_id = existing_export.webflow_item_id
+                action = "updated"
+            else:
+                webflow_item_id = client.create_item(faq_collection_id, field_data, is_draft=True)
+                action = "created"
+            
+            if existing_export:
+                existing_export.status = "exported"
+                existing_export.field_mapping = field_data
+                existing_export.error_message = None
+            else:
+                existing_export = WebflowExport(
+                    user_id=current_user.id,
+                    client_id=data.get("client_id"),
+                    content_type="faq",
+                    local_source_type="faq_item",
+                    local_source_id=item_id,
+                    webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                    webflow_collection_id=faq_collection_id,
+                    webflow_item_id=webflow_item_id,
+                    status="exported",
+                    field_mapping=field_data,
+                )
+                db.session.add(existing_export)
+            
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": f"FAQ item {action} in Webflow",
+                "webflow_item_id": webflow_item_id,
+                "action": action,
+                "export_id": existing_export.id
+            })
+            
+        except WebflowAPIError as e:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=data.get("client_id"),
+                content_type="faq",
+                local_source_type="faq_item",
+                local_source_id=item_id,
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=faq_collection_id,
+                status="failed",
+                error_message=str(e),
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+            
+            return jsonify({
+                "success": False,
+                "message": f"Failed to export to Webflow: {str(e)}",
+                "export_id": export.id
+            }), 400
+    
+    except Exception as e:
+        logger.error(f"FAQ export failed: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Export failed"
+        }), 500
+
+
+@app.route("/integrations/webflow/export/service/<int:item_id>", methods=["POST"])
+@login_required
+def webflow_export_service(item_id):
+    """
+    Export a service item to Webflow service collection.
+    
+    Expected JSON body:
+    {
+        "title": "Service Name",
+        "slug": "service-slug",
+        "description": "Service description",
+        "price": "optional price info"
+    }
+    """
+    try:
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        
+        service_collection_id = os.getenv("WEBFLOW_SERVICE_COLLECTION_ID")
+        if not service_collection_id or service_collection_id.startswith("your_"):
+            return jsonify({
+                "success": False,
+                "message": "Webflow service collection not configured. Set WEBFLOW_SERVICE_COLLECTION_ID in .env"
+            }), 400
+        
+        data = request.get_json() or {}
+        client = WebflowCMSClient()
+        
+        field_data = {
+            "name": data.get("title", f"Service {item_id}"),
+            "slug": data.get("slug", f"service-{item_id}"),
+        }
+        
+        if data.get("description"):
+            field_data["description"] = data["description"]
+        if data.get("price"):
+            field_data["price"] = data["price"]
+        
+        try:
+            existing_export = WebflowExport.query.filter_by(
+                user_id=current_user.id,
+                local_source_id=item_id,
+                content_type="service"
+            ).first()
+            
+            if existing_export and existing_export.webflow_item_id:
+                result = client.update_item(service_collection_id, existing_export.webflow_item_id, field_data)
+                webflow_item_id = existing_export.webflow_item_id
+                action = "updated"
+            else:
+                webflow_item_id = client.create_item(service_collection_id, field_data, is_draft=True)
+                action = "created"
+            
+            if existing_export:
+                existing_export.status = "exported"
+                existing_export.field_mapping = field_data
+                existing_export.error_message = None
+            else:
+                existing_export = WebflowExport(
+                    user_id=current_user.id,
+                    client_id=data.get("client_id"),
+                    content_type="service",
+                    local_source_type="service_item",
+                    local_source_id=item_id,
+                    webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                    webflow_collection_id=service_collection_id,
+                    webflow_item_id=webflow_item_id,
+                    status="exported",
+                    field_mapping=field_data,
+                )
+                db.session.add(existing_export)
+            
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": f"Service item {action} in Webflow",
+                "webflow_item_id": webflow_item_id,
+                "action": action,
+                "export_id": existing_export.id
+            })
+            
+        except WebflowAPIError as e:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=data.get("client_id"),
+                content_type="service",
+                local_source_type="service_item",
+                local_source_id=item_id,
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=service_collection_id,
+                status="failed",
+                error_message=str(e),
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+            
+            return jsonify({
+                "success": False,
+                "message": f"Failed to export to Webflow: {str(e)}",
+                "export_id": export.id
+            }), 400
+    
+    except Exception as e:
+        logger.error(f"Service export failed: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Export failed"
+        }), 500
 
 
 if __name__ == "__main__":
