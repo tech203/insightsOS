@@ -846,6 +846,8 @@ def approve_website_brand_kit(client_id):
         flash("Brand kit expired. Please generate it again.", "warning")
         return redirect(url_for("website_builder_page", client_id=client_id))
 
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
     project = GeneratedWebsiteProject(
         user_id=current_user.id,
         client_id=row.id,
@@ -881,6 +883,77 @@ def approve_website_brand_kit(client_id):
 
     flash("Website draft generated from approved brand kit.", "success")
     return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+def apply_brand_kit_form_edits(blueprint, form):
+    edited = dict(blueprint or {})
+
+    text_fields = [
+        "client_name",
+        "style_direction",
+        "primary_cta",
+        "secondary_cta",
+        "business_type",
+        "visual_style",
+    ]
+    color_fields = [
+        "primary_color",
+        "secondary_color",
+        "accent_color",
+        "text_color",
+    ]
+
+    for field in text_fields:
+        value = (form.get(field) or "").strip()
+        if value:
+            edited[field] = value
+
+    for field in color_fields:
+        value = (form.get(field) or "").strip()
+        if _is_hex_color(value):
+            edited[field] = value
+
+    personality = _split_lines_or_commas(form.get("personality", ""))
+    if personality:
+        edited["personality"] = personality[:6]
+
+    aeo_focus = _split_lines_or_commas(form.get("aeo_focus", ""))
+    if aeo_focus:
+        edited["aeo_focus"] = aeo_focus[:8]
+
+    pages = []
+    for index, page in enumerate(edited.get("pages") or []):
+        page_copy = dict(page)
+        title = (form.get(f"page_title_{index}") or "").strip()
+        slug = (form.get(f"page_slug_{index}") or "").strip()
+        goal = (form.get(f"page_goal_{index}") or "").strip()
+
+        if title:
+            page_copy["title"] = title
+        if slug:
+            page_copy["slug"] = slugify(slug) or page_copy.get("slug")
+        if goal:
+            page_copy["goal"] = goal
+
+        pages.append(page_copy)
+
+    if pages:
+        edited["pages"] = pages
+
+    return edited
+
+
+def _split_lines_or_commas(value):
+    raw_items = str(value or "").replace("\n", ",").split(",")
+    return [item.strip() for item in raw_items if item.strip()]
+
+
+def _is_hex_color(value):
+    value = str(value or "").strip()
+    if len(value) != 7 or not value.startswith("#"):
+        return False
+    return all(char in "0123456789abcdefABCDEF" for char in value[1:])
+
 
 @app.route("/website-builder/project/<int:project_id>/preview")
 @login_required

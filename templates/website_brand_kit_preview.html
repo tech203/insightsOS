@@ -2,6 +2,7 @@
 
 {% block content %}
 <div class="page-shell" style="max-width:1450px;">
+<form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}">
 
     <!-- HERO -->
     <section class="card" style="
@@ -48,7 +49,7 @@
                     </div>
 
                     <div>
-                        <button class="btn btn-secondary">
+                        <button class="btn btn-secondary" type="button">
                             Upload Logo
                         </button>
                     </div>
@@ -56,6 +57,7 @@
                 </div>
 
                 <input
+                    name="client_name"
                     type="text"
                     value="{{ blueprint.client_name }}"
                     style="
@@ -73,6 +75,7 @@
                 >
 
                 <textarea
+                    name="style_direction"
                     style="
                         width:100%;
                         min-height:110px;
@@ -95,6 +98,7 @@
                 ">
 
                     <input
+                        name="primary_cta"
                         value="{{ blueprint.primary_cta }}"
                         style="
                             border:none;
@@ -108,6 +112,7 @@
                     >
 
                     <input
+                        name="secondary_cta"
                         value="{{ blueprint.secondary_cta }}"
                         style="
                             border:1px solid rgba(15,23,42,0.08);
@@ -129,6 +134,19 @@
                     </span>
                     {% endfor %}
                 </div>
+                <textarea
+                    name="personality"
+                    style="
+                        width:100%;
+                        min-height:82px;
+                        margin-top:16px;
+                        border:1px solid rgba(15,23,42,0.08);
+                        border-radius:18px;
+                        padding:14px 16px;
+                        line-height:1.6;
+                        resize:vertical;
+                    "
+                >{{ blueprint.personality|join(", ") }}</textarea>
 
             </div>
 
@@ -226,7 +244,7 @@
                                     gap:12px;
                                     flex-wrap:wrap;
                                 ">
-                                    <button style="
+                                    <button type="button" style="
                                         background:{{ blueprint.primary_color }};
                                         color:white;
                                         border:none;
@@ -237,7 +255,7 @@
                                         {{ blueprint.primary_cta }}
                                     </button>
 
-                                    <button style="
+                                    <button type="button" style="
                                         background:white;
                                         border:1px solid rgba(15,23,42,0.08);
                                         padding:12px 18px;
@@ -299,7 +317,7 @@
                     <h2>Editable palette</h2>
                 </div>
 
-                <button class="btn btn-secondary">
+                <button class="btn btn-secondary" type="button">
                     Regenerate Palette
                 </button>
             </div>
@@ -311,13 +329,13 @@
             ">
 
                 {% set color_items = [
-                    ('Primary', blueprint.primary_color),
-                    ('Secondary', blueprint.secondary_color),
-                    ('Accent', blueprint.accent_color),
-                    ('Text', blueprint.text_color)
+                    ('Primary', 'primary_color', blueprint.primary_color),
+                    ('Secondary', 'secondary_color', blueprint.secondary_color),
+                    ('Accent', 'accent_color', blueprint.accent_color),
+                    ('Text', 'text_color', blueprint.text_color)
                 ] %}
 
-                {% for label, color in color_items %}
+                {% for label, field_name, color in color_items %}
                 <div>
 
                     <div style="
@@ -338,6 +356,7 @@
                         </div>
 
                         <input
+                            name="{{ field_name }}"
                             type="color"
                             value="{{ color }}"
                             style="
@@ -381,6 +400,7 @@
                 ] %}
 
                 {% for style in styles %}
+                {% set style_value = style|lower|replace(" ", "_") %}
                 <div style="
                     padding:22px;
                     border-radius:24px;
@@ -398,6 +418,13 @@
                         {% endif %};
                     cursor:pointer;
                 ">
+                    <input
+                        type="radio"
+                        name="visual_style"
+                        value="{{ style_value }}"
+                        {% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %}checked{% endif %}
+                        style="margin-bottom:12px;"
+                    >
 
                     <div style="
                         aspect-ratio:1.3/1;
@@ -445,7 +472,7 @@
                 <h2>Generated pages</h2>
             </div>
 
-            <button class="btn btn-secondary">
+            <button class="btn btn-secondary" type="button">
                 Add Page
             </button>
         </div>
@@ -479,6 +506,7 @@
                 </div>
 
                 <input
+                    name="page_title_{{ loop.index0 }}"
                     value="{{ page.title }}"
                     style="
                         width:100%;
@@ -496,8 +524,21 @@
                 ">
                     /{{ page.slug }}
                 </p>
+                <input
+                    name="page_slug_{{ loop.index0 }}"
+                    value="{{ page.slug }}"
+                    aria-label="Page slug"
+                    style="
+                        width:100%;
+                        border:1px solid rgba(15,23,42,0.08);
+                        border-radius:12px;
+                        padding:10px 12px;
+                        margin-bottom:12px;
+                        color:var(--muted-text);
+                    "
+                >
 
-                <textarea style="
+                <textarea name="page_goal_{{ loop.index0 }}" style="
                     width:100%;
                     min-height:90px;
                     border:none;
@@ -531,7 +572,7 @@
                 <h2>Questions people may ask AI</h2>
             </div>
 
-            <button class="btn btn-secondary">
+            <button class="btn btn-secondary" type="button">
                 Regenerate Ideas
             </button>
         </div>
@@ -543,6 +584,20 @@
             </span>
             {% endfor %}
         </div>
+
+        <textarea
+            name="aeo_focus"
+            style="
+                width:100%;
+                min-height:120px;
+                margin-top:18px;
+                border:1px solid rgba(15,23,42,0.08);
+                border-radius:18px;
+                padding:16px;
+                line-height:1.7;
+                resize:vertical;
+            "
+        >{{ blueprint.aeo_focus|join("\n") }}</textarea>
 
     </section>
 
@@ -587,16 +642,14 @@
             flex-wrap:wrap;
         ">
 
-            <form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}">
-                <button class="btn btn-primary" type="submit" style="
-                    background:white;
-                    color:{{ blueprint.primary_color }};
-                    border:none;
-                    min-width:260px;
-                ">
-                    Approve & Generate Website
-                </button>
-            </form>
+            <button class="btn btn-primary" type="submit" style="
+                background:white;
+                color:{{ blueprint.primary_color }};
+                border:none;
+                min-width:260px;
+            ">
+                Approve & Generate Website
+            </button>
 
             <a
                 class="btn btn-secondary"
@@ -614,5 +667,6 @@
 
     </section>
 
+</form>
 </div>
 {% endblock %}
