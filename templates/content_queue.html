@@ -1043,6 +1043,44 @@
     gap: 8px;
 }
 
+.ai-edit-scope-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-edit-scope-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.ai-edit-scope-select {
+    flex: 1 1 auto;
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid #d8dee9;
+    background: #ffffff;
+    color: #16243c;
+    font-size: 14px;
+}
+
+.ai-edit-msg-scope {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(157, 124, 227, 0.14);
+    color: #6745f5;
+}
+
 .ai-edit-input {
     width: 100%;
     min-height: 60px;
@@ -1143,12 +1181,18 @@
         <div class="ai-edit-error" id="aiEditError" role="alert"></div>
 
         <div class="ai-edit-input-row">
+            <div class="ai-edit-scope-row">
+                <label for="aiEditScope" class="ai-edit-scope-label">Scope</label>
+                <select id="aiEditScope" class="ai-edit-scope-select" aria-label="Section scope">
+                    <option value="">Whole document</option>
+                </select>
+            </div>
             <textarea id="aiEditInstruction" class="ai-edit-input" placeholder="What should change next?"></textarea>
             <div class="ai-edit-suggestions">
-                <button type="button" class="ai-edit-chip" data-prefill="Tighten the intro — every paragraph one sentence shorter.">Tighten</button>
+                <button type="button" class="ai-edit-chip" data-prefill="Tighten this — every paragraph one sentence shorter.">Tighten</button>
                 <button type="button" class="ai-edit-chip" data-prefill="Add a FAQ section at the end with three questions readers usually ask.">Add FAQ</button>
                 <button type="button" class="ai-edit-chip" data-prefill="Make the tone more confident and direct, less salesy.">Tone: confident</button>
-                <button type="button" class="ai-edit-chip" data-prefill="Add concrete examples to the main argument so it feels less abstract.">Add examples</button>
+                <button type="button" class="ai-edit-chip" data-prefill="Add concrete examples so it feels less abstract.">Add examples</button>
             </div>
             <div class="ai-edit-actions">
                 <button type="button" class="btn btn-primary" id="aiEditRun">Send</button>
@@ -1176,6 +1220,7 @@
     const errorEl       = document.getElementById('aiEditError');
     const logEl         = document.getElementById('aiEditLog');
     const logEmptyEl    = document.getElementById('aiEditLogEmpty');
+    const scopeSelect   = document.getElementById('aiEditScope');
     const applyForm     = document.getElementById('aiEditApplyForm');
     const applyHidden   = document.getElementById('aiEditRevisedHidden');
     const clientHidden  = document.getElementById('aiEditClientId');
@@ -1210,6 +1255,12 @@
             const meta = document.createElement('span');
             meta.className = 'ai-edit-msg-meta';
             meta.textContent = m.role === 'user' ? 'You' : 'Editor';
+            if (m.target_section_title) {
+                const scopeChip = document.createElement('span');
+                scopeChip.className = 'ai-edit-msg-scope';
+                scopeChip.textContent = m.target_section_title;
+                meta.appendChild(scopeChip);
+            }
             div.appendChild(meta);
 
             const body = document.createElement('div');
@@ -1253,6 +1304,22 @@
         } catch (_) {}
     }
 
+    async function loadSections(itemId) {
+        // Reset to just "Whole document"
+        scopeSelect.innerHTML = '<option value="">Whole document</option>';
+        try {
+            const r = await fetch('/content-queue/' + itemId + '/ai-edit/sections');
+            const d = await r.json();
+            if (!d || !d.ok) return;
+            (d.sections || []).forEach((s) => {
+                const opt = document.createElement('option');
+                opt.value = String(s.idx);
+                opt.textContent = s.title || ('Section ' + (s.idx + 1));
+                scopeSelect.appendChild(opt);
+            });
+        } catch (_) {}
+    }
+
     function openModal(itemId, itemTitle, clientId) {
         currentItemId = itemId;
         currentClientId = clientId || '';
@@ -1260,12 +1327,14 @@
         applyForm.action = '/content-queue/' + itemId + '/apply-ai-edit';
         subtitleEl.textContent = itemTitle ? `Editing: ${itemTitle}` : 'Chat to refine the content.';
         instructionEl.value = '';
+        scopeSelect.value = '';
         errorEl.classList.remove('is-visible');
         errorEl.textContent = '';
         renderHistory([]);
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
         loadHistory(itemId);
+        loadSections(itemId);
         setTimeout(() => instructionEl.focus(), 30);
     }
 
@@ -1322,6 +1391,9 @@
         try {
             const fd = new FormData();
             fd.append('instruction', instruction);
+            if (scopeSelect.value !== '') {
+                fd.append('target_section_idx', scopeSelect.value);
+            }
             const resp = await fetch('/content-queue/' + currentItemId + '/ai-edit', {
                 method: 'POST',
                 body: fd,
@@ -1338,6 +1410,8 @@
 
             renderHistory(data.chat_history || []);
             instructionEl.value = '';
+            // Headings can shift if the AI added a new section — reload picker.
+            loadSections(currentItemId);
         } catch (e) {
             errorEl.textContent = 'Network error. Try again.';
             errorEl.classList.add('is-visible');

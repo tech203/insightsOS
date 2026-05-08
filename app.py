@@ -6481,6 +6481,119 @@ def publish_queue_item_to_webflow(item_id):
     return _redirect_to_queue(client_id)
 
 
+def _parse_content_sections(text):
+    """Split a content blob into addressable sections.
+
+    Recognises markdown headings (#, ##, ###) and numbered headings like
+    "1. Page Title" or "5. FAQ Section" — what the brief / draft generators
+    actually produce. Each section spans from its heading line up to (but
+    not including) the next heading. Returns a list of dicts:
+
+        {idx, title, body, start, end, header_line}
+
+    Where start/end are character offsets in the original text. If the text
+    has no detectable headings, returns a single-section list covering the
+    whole text with title "Document".
+    """
+    import re
+
+    if not text:
+        return []
+
+    lines = text.split("\n")
+    # Build line-start offsets so we can compute character ranges.
+    offsets = []
+    pos = 0
+    for line in lines:
+        offsets.append(pos)
+        pos += len(line) + 1  # +1 for the newline
+
+    md_header_re = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$")
+    numbered_re = re.compile(r"^\s*(\d+)\.\s+(.{2,80})\s*$")
+    # Treat **Bold Heading** lines (used in many of our drafts) as headings too,
+    # but only if they're the entire line.
+    bold_re = re.compile(r"^\s*\*\*(.+?)\*\*\s*$")
+
+    headings = []
+    for i, line in enumerate(lines):
+        m = md_header_re.match(line)
+        if m:
+            headings.append({"line_idx": i, "title": m.group(2).strip(), "raw": line})
+            continue
+        m = numbered_re.match(line)
+        if m:
+            headings.append({"line_idx": i, "title": m.group(2).strip(), "raw": line})
+            continue
+        m = bold_re.match(line)
+        if m:
+            headings.append({"line_idx": i, "title": m.group(1).strip(), "raw": line})
+            continue
+
+    if not headings:
+        return [{
+            "idx": 0,
+            "title": "Document",
+            "body": text,
+            "start": 0,
+            "end": len(text),
+            "header_line": None,
+        }]
+
+    sections = []
+    for n, h in enumerate(headings):
+        start_line = h["line_idx"]
+        end_line = (
+            headings[n + 1]["line_idx"] if n + 1 < len(headings) else len(lines)
+        )
+        start_char = offsets[start_line]
+        end_char = offsets[end_line] if end_line < len(offsets) else len(text)
+        body = text[start_char:end_char]
+        sections.append({
+            "idx": n,
+            "title": h["title"][:80],
+            "body": body,
+            "start": start_char,
+            "end": end_char,
+            "header_line": h["raw"],
+        })
+    return sections
+
+
+def _replace_section_text(full_text, sections, target_idx, replacement):
+    """Patch a section's text back into the full document at its original
+    range. If target_idx is out of bounds, returns the full_text unchanged."""
+    if target_idx is None or not sections:
+        return replacement
+    if target_idx < 0 or target_idx >= len(sections):
+        return full_text
+    sec = sections[target_idx]
+    before = full_text[: sec["start"]]
+    after = full_text[sec["end"]:]
+    # Make sure the replacement ends with a newline so the next section starts
+    # on its own line.
+    if replacement and not replacement.endswith("\n"):
+        replacement = replacement + "\n"
+    return before + replacement + after
+
+
+@app.route("/content-queue/<item_id>/ai-edit/sections", methods=["GET"])
+@login_required
+def ai_edit_sections(item_id):
+    """Return the parsed sections of a queue item's content for the
+    section picker."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        return jsonify({"ok": False, "error": "Queue item not found."}), 404
+    sections = _parse_content_sections(item.get("content") or "")
+    return jsonify({
+        "ok": True,
+        "sections": [
+            {"idx": s["idx"], "title": s["title"]}
+            for s in sections
+        ],
+    })
+
+
 @app.route("/content-queue/<item_id>/ai-edit/history", methods=["GET"])
 @login_required
 def ai_edit_history(item_id):
@@ -6523,6 +6636,19 @@ def ai_edit_queue_item(item_id):
     if not instruction:
         return jsonify({"ok": False, "error": "Please describe the edit you want."}), 400
 
+    # Optional section scope. -1 / None / blank = whole document.
+    raw_target = (
+        request.form.get("target_section_idx")
+        or (request.get_json(silent=True) or {}).get("target_section_idx")
+        or ""
+    )
+    try:
+        target_section_idx = int(raw_target) if raw_target not in ("", None) else None
+    except (TypeError, ValueError):
+        target_section_idx = None
+    if target_section_idx is not None and target_section_idx < 0:
+        target_section_idx = None
+
     current_content = item.get("content") or ""
     if not current_content:
         return jsonify({"ok": False, "error": "This item has no content to edit yet. Generate a brief or draft first."}), 400
@@ -6531,9 +6657,25 @@ def ai_edit_queue_item(item_id):
         return jsonify({"ok": False, "error": "AI editing isn't set up on this site yet. Reach out to your admin."}), 503
 
     history = item.get("chat_history") or []
+
+    # Use the latest revised content as the working document, falling back to
+    # the queue item's content. This keeps the "section idx" stable across
+    # turns since headings rarely shift.
+    latest_content = current_content
+    for entry in history:
+        if entry.get("role") == "assistant" and entry.get("revised_content"):
+            latest_content = entry["revised_content"]
+
+    sections = _parse_content_sections(latest_content)
+    target_section = None
+    if target_section_idx is not None and 0 <= target_section_idx < len(sections):
+        target_section = sections[target_section_idx]
+
     user_turn = {
         "role": "user",
         "content": instruction,
+        "target_section_idx": target_section_idx,
+        "target_section_title": (target_section or {}).get("title"),
         "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
 
@@ -6541,35 +6683,42 @@ def ai_edit_queue_item(item_id):
         from openai import OpenAI
         client = OpenAI()
 
-        system_prompt = (
-            "You are an editor revising marketing content across multiple turns.\n"
-            "The user gives instructions; you return a revised version of the content.\n"
-            "Always return strict JSON with exactly these keys:\n"
-            "  - revised_content: the full revised content, in the same format as the original (markdown if input is markdown, prose if input is prose, etc.)\n"
-            "  - summary: one short sentence on what you changed in this turn.\n"
-            "Each turn revises the LATEST applied content the user shows you, "
-            "treating the conversation as a series of refinements. "
-            "Preserve any structured sections the original had (titles, headings, FAQ Q&A). "
-            "Do not add lorem ipsum. If the instruction is unclear, make a sensible best-effort revision."
-        )
-
-        # Build the conversation: prior turns + current instruction.
-        # The "latest" revised content from previous assistant turns is what
-        # the next turn revises — we surface it explicitly in each user turn.
-        latest_content = current_content
-        for entry in history:
-            if entry.get("role") == "assistant" and entry.get("revised_content"):
-                latest_content = entry["revised_content"]
+        if target_section:
+            system_prompt = (
+                "You are an editor revising one specific section of a marketing document.\n"
+                "The user gives instructions about that section only. Return strict JSON:\n"
+                "  - revised_section: the full revised section (keep its heading line if it had one)\n"
+                "  - summary: one short sentence on what you changed in this turn.\n"
+                "Don't add other sections. Don't reformat the heading style — keep it as the original section had it. "
+                "Don't add lorem ipsum. Make a best-effort revision if the instruction is fuzzy."
+            )
+            scoped_text = target_section["body"]
+            scope_label = f"section \"{target_section['title']}\""
+        else:
+            system_prompt = (
+                "You are an editor revising marketing content across multiple turns.\n"
+                "The user gives instructions; you return a revised version of the content.\n"
+                "Return strict JSON:\n"
+                "  - revised_content: the full revised content, in the same format as the original\n"
+                "  - summary: one short sentence on what you changed in this turn.\n"
+                "Preserve any structured sections the original had. Don't add lorem ipsum. "
+                "Make a best-effort revision if the instruction is fuzzy."
+            )
+            scoped_text = latest_content
+            scope_label = "whole document"
 
         oai_messages = [{"role": "system", "content": system_prompt}]
         for entry in history:
             role = entry.get("role")
             if role == "user":
-                oai_messages.append({"role": "user", "content": entry.get("content", "")})
+                tail = ""
+                if entry.get("target_section_title"):
+                    tail = f" [scope: {entry.get('target_section_title')}]"
+                oai_messages.append({
+                    "role": "user",
+                    "content": (entry.get("content") or "") + tail,
+                })
             elif role == "assistant":
-                # Send the prior summary as the assistant's reply so the model
-                # remembers what it's already done. (We don't re-send full
-                # revised_content each turn to keep tokens bounded.)
                 oai_messages.append({
                     "role": "assistant",
                     "content": entry.get("summary") or "(revised the content)",
@@ -6578,9 +6727,9 @@ def ai_edit_queue_item(item_id):
         oai_messages.append({
             "role": "user",
             "content": (
-                f"NEW INSTRUCTION: {instruction}\n\n"
-                f"CURRENT CONTENT (revise this):\n{latest_content}\n\n"
-                "Return JSON with revised_content + summary."
+                f"NEW INSTRUCTION ({scope_label}): {instruction}\n\n"
+                f"TEXT TO REVISE:\n{scoped_text}\n\n"
+                "Return JSON with the right key per the system prompt."
             ),
         })
 
@@ -6597,7 +6746,27 @@ def ai_edit_queue_item(item_id):
         except Exception:
             parsed = {}
 
-        revised = (parsed.get("revised_content") or "").strip()
+        # Section-scoped responses come back under revised_section; whole-doc
+        # under revised_content. Accept either to be forgiving.
+        if target_section:
+            revised_piece = (
+                parsed.get("revised_section")
+                or parsed.get("revised_content")
+                or ""
+            ).strip()
+            if revised_piece:
+                revised = _replace_section_text(
+                    latest_content, sections, target_section_idx, revised_piece
+                )
+            else:
+                revised = ""
+        else:
+            revised = (
+                parsed.get("revised_content")
+                or parsed.get("revised_section")
+                or ""
+            ).strip()
+
         summary = (parsed.get("summary") or "").strip() or "Revised the content."
 
         if not revised:
@@ -6615,6 +6784,8 @@ def ai_edit_queue_item(item_id):
             "content": summary,
             "summary": summary,
             "revised_content": revised,
+            "target_section_idx": target_section_idx,
+            "target_section_title": (target_section or {}).get("title"),
             "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         }
 
