@@ -21,6 +21,12 @@
             if (sessionStorage.getItem("darInsightsSidebarRail") === "1") {
                 document.documentElement.setAttribute("data-sidebar-rail", "1");
             }
+            // Restore theme: explicit user choice wins, otherwise follow OS preference.
+            var __t = localStorage.getItem("darInsightsTheme");
+            if (!__t) {
+                __t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+            }
+            document.documentElement.setAttribute("data-theme", __t);
         } catch (_) {}
     </script>
     {% block head %}{% endblock %}
@@ -56,6 +62,8 @@
             <symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></symbol>
             <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></symbol>
             <symbol id="i-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h4.5a2 2 0 1 1 0 4H9m0 0h4.5a2 2 0 1 1 0 4H9m1.5-8v10"/></symbol>
+            <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></symbol>
+            <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></symbol>
         </defs>
     </svg>
 
@@ -100,6 +108,16 @@
     <div class="app-shell">
         <aside class="app-sidebar" id="appSidebar" aria-hidden="true">
             <div class="sidebar-inner">
+
+                <button
+                    type="button"
+                    id="themeToggle"
+                    class="sidebar-rail-toggle sidebar-theme-toggle"
+                    aria-label="Toggle dark mode"
+                    title="Toggle dark mode"
+                >
+                    <svg class="nav-icon-svg" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg>
+                </button>
 
                 <button
                     type="button"
@@ -425,6 +443,34 @@
             }
             return confirm(label || ("This action costs " + cost + " credit" + (cost === 1 ? "" : "s") + ". Continue?"));
         };
+    </script>
+
+    <script>
+        // Theme toggle: explicit user choice persists in localStorage and
+        // wins over OS preference. Swaps the icon (moon ⇄ sun) and emits
+        // a custom event so the Preferences-tab toggle stays in sync.
+        document.addEventListener("DOMContentLoaded", function () {
+            var btn = document.getElementById("themeToggle");
+            if (!btn) return;
+            var icon = btn.querySelector("use");
+            function syncIcon() {
+                var dark = document.documentElement.getAttribute("data-theme") === "dark";
+                if (icon) {
+                    icon.setAttribute("href", dark ? "#i-sun" : "#i-moon");
+                }
+                btn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+                btn.setAttribute("title", dark ? "Switch to light mode" : "Switch to dark mode");
+            }
+            syncIcon();
+            btn.addEventListener("click", function () {
+                var dark = document.documentElement.getAttribute("data-theme") === "dark";
+                var next = dark ? "light" : "dark";
+                document.documentElement.setAttribute("data-theme", next);
+                try { localStorage.setItem("darInsightsTheme", next); } catch (_) {}
+                syncIcon();
+                window.dispatchEvent(new CustomEvent("darInsightsThemeChange", { detail: next }));
+            });
+        });
     </script>
 
     <script>

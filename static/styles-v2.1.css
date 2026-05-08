@@ -18943,3 +18943,207 @@ a.btn {
     background: rgba(252, 165, 165, 0.18);
     color: #F87171;
 }
+
+/* =========================================================
+   Theme tokens + dark mode
+   =========================================================
+   Semantic tokens drive surfaces that participate in dark mode.
+   Hard-coded colors elsewhere in the stylesheet keep working in
+   light mode unchanged; the dark-mode overrides below target the
+   highest-impact surfaces (page canvas, cards/panels, common text,
+   the recently-built integration pages). Brand accents (aqua, purple)
+   stay constant in both modes — only neutral surfaces flip. */
+
+:root {
+    --theme-canvas: #f6f7fb;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #fafafe;
+    --theme-surface-subtle: #f0f0f5;
+    --theme-text-primary: #191929;
+    --theme-text-secondary: #555;
+    --theme-text-muted: #888;
+    --theme-border-subtle: #ececf2;
+    --theme-border-strong: #d4d4dc;
+    --theme-shadow-card: 0 6px 18px rgba(15, 23, 42, 0.04);
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    --theme-canvas: #0F0F1A;
+    --theme-surface: #1B1B2E;
+    --theme-surface-alt: #232238;
+    --theme-surface-subtle: #14101F;
+    --theme-text-primary: #F4F6FB;
+    --theme-text-secondary: #B8BCC8;
+    --theme-text-muted: #8A8DA0;
+    --theme-border-subtle: rgba(255, 255, 255, 0.08);
+    --theme-border-strong: rgba(255, 255, 255, 0.16);
+    --theme-shadow-card: 0 6px 18px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+}
+
+/* Smooth the swap so it doesn't feel like a hard refresh. */
+html[data-theme] body,
+html[data-theme] .app-main {
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* The active theme toggle button gets a subtle aqua ring. */
+.sidebar-theme-toggle {
+    /* Sits to the left of the rail toggle. */
+    right: 56px;
+}
+html[data-sidebar-rail] .sidebar-theme-toggle {
+    /* In rail mode, stack below the rail toggle. */
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 48px;
+}
+
+/* ---- Dark-mode surface overrides ---- */
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-main {
+    background: var(--theme-canvas);
+    color: var(--theme-text-primary);
+}
+
+/* Card / panel surfaces — the highest-frequency container classes. */
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .settings-v3-panel,
+html[data-theme="dark"] .settings-v3-summary-card,
+html[data-theme="dark"] .settings-v3-active-card,
+html[data-theme="dark"] .settings-v3-metric-card,
+html[data-theme="dark"] .settings-v3-mini-card,
+html[data-theme="dark"] .settings-v3-info-row,
+html[data-theme="dark"] .settings-v3-tx-row,
+html[data-theme="dark"] .dashboard-priority-item,
+html[data-theme="dark"] .dashboard-priority-main-card,
+html[data-theme="dark"] .dashboard-ops-card,
+html[data-theme="dark"] .dashboard-welcome-card,
+html[data-theme="dark"] .summary-stat-card,
+html[data-theme="dark"] .workspace-section-card,
+html[data-theme="dark"] .workspace-summary-grid > *,
+html[data-theme="dark"] .workspace-module-card,
+html[data-theme="dark"] .workspace-next-step-card,
+html[data-theme="dark"] .workspace-top-strip,
+html[data-theme="dark"] .am-card,
+html[data-theme="dark"] .am-stat,
+html[data-theme="dark"] .mp-card,
+html[data-theme="dark"] .shopify-card,
+html[data-theme="dark"] .topup-bundle-card,
+html[data-theme="dark"] .pricing-plan-card,
+html[data-theme="dark"] .pricing-topup-card,
+html[data-theme="dark"] .pricing-hero-card,
+html[data-theme="dark"] .pricing-roi-card,
+html[data-theme="dark"] .pricing-addon-card,
+html[data-theme="dark"] .growth-calendar-week,
+html[data-theme="dark"] .growth-calendar-card,
+html[data-theme="dark"] .shopify-rewrite-card {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+
+/* Settings page hero + tabs row. */
+html[data-theme="dark"] .settings-v3-hero,
+html[data-theme="dark"] .settings-v3-tabs {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .settings-v3-tab {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .settings-v3-tab.active {
+    color: var(--theme-text-primary);
+    background: rgba(62, 223, 203, 0.10);
+}
+html[data-theme="dark"] .settings-v3-note-box {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+}
+
+/* Inline-styled subsurfaces (rgba-style backgrounds inside our newer
+   pages). Targets common light backgrounds via attribute selectors so
+   shopify_products / answer_monitor / marketplace_audits flip too. */
+html[data-theme="dark"] .am-empty,
+html[data-theme="dark"] .mp-empty,
+html[data-theme="dark"] .shopify-empty,
+html[data-theme="dark"] .am-engines-banner {
+    background: var(--theme-surface);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .am-spark-dot.not-cited {
+    background: rgba(255, 255, 255, 0.10);
+}
+html[data-theme="dark"] .am-engine-empty,
+html[data-theme="dark"] .am-engine-score,
+html[data-theme="dark"] .am-prompt-meta,
+html[data-theme="dark"] .mp-presence-meta,
+html[data-theme="dark"] .shopify-product .vendor {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .am-answer-excerpt,
+html[data-theme="dark"] .mp-query-row {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-secondary);
+    border-left-color: var(--theme-border-subtle);
+}
+
+/* Headings / body text inside dark surfaces. */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] strong,
+html[data-theme="dark"] .am-stat-value,
+html[data-theme="dark"] .summary-value,
+html[data-theme="dark"] .topup-bundle-credits,
+html[data-theme="dark"] .topup-bundle-price {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] p,
+html[data-theme="dark"] .summary-copy,
+html[data-theme="dark"] .am-header p,
+html[data-theme="dark"] .mp-header p,
+html[data-theme="dark"] .topup-bundle-rate,
+html[data-theme="dark"] .topup-cost-list li,
+html[data-theme="dark"] .settings-v3-info-row span:first-child {
+    color: var(--theme-text-secondary);
+}
+
+/* Form inputs in dark mode. */
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="email"],
+html[data-theme="dark"] input[type="password"],
+html[data-theme="dark"] input[type="url"],
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-strong);
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: var(--theme-text-muted);
+}
+
+/* Topup cost list separators. */
+html[data-theme="dark"] .topup-cost-list li {
+    border-bottom-color: var(--theme-border-subtle);
+}
+
+/* Strike-through list price + card heads keep their relative tones. */
+html[data-theme="dark"] .topup-bundle-strike {
+    color: var(--theme-text-muted);
+}
+
+/* Visibility scorecard already has a dark gradient — leave it alone in
+   dark mode. The kicker pills also keep their toned variants. */

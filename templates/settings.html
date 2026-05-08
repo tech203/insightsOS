@@ -581,6 +581,21 @@
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
+                <h2>Appearance</h2>
+                <p>Light or dark mode. Defaults to your operating system's preference; explicit choices persist for this browser.</p>
+            </div>
+            <div class="dev-view-buttons">
+                <button type="button" class="dev-view-btn" id="prefThemeLight">Light</button>
+                <button type="button" class="dev-view-btn" id="prefThemeDark">Dark</button>
+                <button type="button" class="dev-view-btn" id="prefThemeAuto">Match OS</button>
+            </div>
+            <p style="font-size:0.85rem; color:#555; margin-top:0.85rem;">
+                The sun/moon button in the sidebar header does the same thing.
+            </p>
+        </div>
+
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
                 <h2>Sidebar layout</h2>
                 <p>Choose between the full labelled sidebar and the compact icon rail. The setting persists for this browser session.</p>
             </div>
@@ -618,8 +633,7 @@
         (function () {
             var expand = document.getElementById('prefRailExpand');
             var collapse = document.getElementById('prefRailCollapse');
-            if (!expand || !collapse) return;
-            expand.addEventListener('click', function () {
+            if (expand) expand.addEventListener('click', function () {
                 document.documentElement.removeAttribute('data-sidebar-rail');
                 sessionStorage.removeItem('darInsightsSidebarRail');
                 var btn = document.getElementById('sidebarRailToggle');
@@ -628,7 +642,7 @@
                     if (icon) icon.setAttribute('href', '#i-chevron-left');
                 }
             });
-            collapse.addEventListener('click', function () {
+            if (collapse) collapse.addEventListener('click', function () {
                 document.documentElement.setAttribute('data-sidebar-rail', '1');
                 sessionStorage.setItem('darInsightsSidebarRail', '1');
                 var btn = document.getElementById('sidebarRailToggle');
@@ -636,6 +650,51 @@
                     var icon = btn.querySelector('use');
                     if (icon) icon.setAttribute('href', '#i-chevron-right');
                 }
+            });
+
+            // Theme toggle (Light / Dark / Match OS) — shares the same
+            // localStorage key + DOM attribute as the header toggle.
+            function applyTheme(value) {
+                document.documentElement.setAttribute('data-theme', value);
+                var btn = document.getElementById('themeToggle');
+                if (btn) {
+                    var icon = btn.querySelector('use');
+                    if (icon) icon.setAttribute('href', value === 'dark' ? '#i-sun' : '#i-moon');
+                    btn.setAttribute('aria-label', value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+                }
+                syncThemeButtons(localStorage.getItem('darInsightsTheme'));
+            }
+            function syncThemeButtons(stored) {
+                ['Light', 'Dark', 'Auto'].forEach(function (mode) {
+                    var el = document.getElementById('prefTheme' + mode);
+                    if (!el) return;
+                    var match = (mode === 'Auto' && !stored) ||
+                                (mode === 'Light' && stored === 'light') ||
+                                (mode === 'Dark' && stored === 'dark');
+                    el.classList.toggle('active', !!match);
+                });
+            }
+            var light = document.getElementById('prefThemeLight');
+            var dark = document.getElementById('prefThemeDark');
+            var auto = document.getElementById('prefThemeAuto');
+            if (light) light.addEventListener('click', function () {
+                try { localStorage.setItem('darInsightsTheme', 'light'); } catch (_) {}
+                applyTheme('light');
+            });
+            if (dark) dark.addEventListener('click', function () {
+                try { localStorage.setItem('darInsightsTheme', 'dark'); } catch (_) {}
+                applyTheme('dark');
+            });
+            if (auto) auto.addEventListener('click', function () {
+                try { localStorage.removeItem('darInsightsTheme'); } catch (_) {}
+                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                applyTheme(prefersDark ? 'dark' : 'light');
+            });
+            syncThemeButtons(localStorage.getItem('darInsightsTheme'));
+
+            // If the header toggle changes, re-sync the panel's active state.
+            window.addEventListener('darInsightsThemeChange', function () {
+                syncThemeButtons(localStorage.getItem('darInsightsTheme'));
             });
         })();
     </script>
