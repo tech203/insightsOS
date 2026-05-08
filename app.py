@@ -314,6 +314,39 @@ class PromptTracking(db.Model):
     )
 
 
+class MarketplacePresence(db.Model):
+    """A user's storefront on a third-party marketplace (Etsy, Amazon,
+    Shopee, eBay). One row per (workspace, marketplace) — workspaces
+    can have multiple presences across marketplaces.
+
+    We don't ingest the catalog; the value is checking how the storefront
+    surfaces in AI answers, similar to the AI Answer Monitor but with
+    marketplace-flavoured prompts."""
+    __tablename__ = "marketplace_presences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    # One of: etsy, amazon, shopee, ebay, other
+    marketplace = db.Column(db.String(40), nullable=False)
+    shop_name = db.Column(db.String(255), nullable=True)
+    shop_url = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(120), nullable=True)
+    region = db.Column(db.String(80), nullable=True)
+
+    # Latest aggregate visibility from the most recent audit.
+    last_visibility_score = db.Column(db.Integer, nullable=True)
+    last_audit_payload = db.Column(db.JSON, nullable=True)
+    last_audited_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class PromptCheckSnapshot(db.Model):
     """Point-in-time result of running a tracked prompt against an AI
     answer engine. One row per check; the latest values also live on
@@ -9126,6 +9159,142 @@ def answer_monitor_run_single(prompt_id):
     return redirect(
         url_for("answer_monitor_page", client_id=redirect_client_id)
     )
+
+
+# =========================
+# Marketplace presence audits
+# =========================
+# Track AI visibility for the user's storefronts on third-party
+# marketplaces (Etsy, Amazon, Shopee, eBay). We don't ingest the
+# catalog — we generate marketplace-flavoured prompts and check how
+# often the shop is cited.
+
+
+@app.route("/marketplace-audits/<int:client_id>")
+@login_required
+def marketplace_audits_page(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    presences = (
+        MarketplacePresence.query
+        .filter_by(user_id=current_user.id, client_id=client_id)
+        .order_by(MarketplacePresence.created_at.desc())
+        .all()
+    )
+    return render_template(
+        "marketplace_audits.html",
+        workspace=workspace,
+        presences=presences,
+        marketplace_options=[
+            ("etsy", "Etsy"),
+            ("amazon", "Amazon"),
+            ("shopee", "Shopee"),
+            ("ebay", "eBay"),
+            ("other", "Other"),
+        ],
+        marketplace_audit_cost=get_action_cost("marketplace_audit"),
+    )
+
+
+@app.route("/marketplace-audits/<int:client_id>/add", methods=["POST"])
+@login_required
+def marketplace_add_presence(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    marketplace = (request.form.get("marketplace") or "").strip().lower()
+    shop_url = (request.form.get("shop_url") or "").strip()
+    shop_name = (request.form.get("shop_name") or "").strip()
+    category = (request.form.get("category") or "").strip()
+    region = (request.form.get("region") or "").strip()
+
+    if marketplace not in {"etsy", "amazon", "shopee", "ebay", "other"} or not shop_url:
+        flash("Please pick a marketplace and paste your shop URL.", "error")
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    presence = MarketplacePresence(
+        user_id=current_user.id,
+        client_id=client_id,
+        marketplace=marketplace,
+        shop_name=shop_name or None,
+        shop_url=shop_url,
+        category=category or None,
+        region=region or None,
+    )
+    db.session.add(presence)
+    db.session.commit()
+    flash(f"Linked {presence.shop_name or presence.shop_url}.", "success")
+    return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+
+@app.route("/marketplace-audits/<int:client_id>/run/<int:presence_id>", methods=["POST"])
+@login_required
+def marketplace_run_audit(client_id, presence_id):
+    """Run the marketplace audit for one presence row."""
+    from ai_answer_agent import enabled_engines, simulate_ai_answer
+    from services.marketplace_audit import run_marketplace_audit
+
+    presence = MarketplacePresence.query.filter_by(
+        id=presence_id, user_id=current_user.id, client_id=client_id
+    ).one_or_none()
+    if not presence:
+        flash("That marketplace listing wasn't found.", "error")
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    if not has_enough_credits_for(current_user, "marketplace_audit"):
+        flash(
+            f"You need {get_action_cost('marketplace_audit')} credits to "
+            "run a marketplace audit.",
+            "warning",
+        )
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    engines = enabled_engines() or ["chatgpt"]
+    try:
+        payload = run_marketplace_audit(
+            presence=presence,
+            simulate_ai_answer=simulate_ai_answer,
+            engines=engines,
+        )
+    except Exception as exc:
+        logger.warning("Marketplace audit failed: %s", exc)
+        flash("Could not run that marketplace audit. Verify OPENAI_API_KEY.", "error")
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    presence.last_audit_payload = payload
+    presence.last_visibility_score = payload.get("visibility_score")
+    presence.last_audited_at = datetime.utcnow()
+    db.session.commit()
+
+    spend_credits_for(
+        current_user,
+        "marketplace_audit",
+        notes=f"Marketplace audit: {presence.marketplace}/{presence.shop_name or presence.shop_url}",
+    )
+    flash(
+        f"Audit complete — {payload['visibility_score']}% visibility across "
+        f"{len(payload['queries'])} queries.",
+        "success",
+    )
+    return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+
+@app.route("/marketplace-audits/<int:client_id>/delete/<int:presence_id>", methods=["POST"])
+@login_required
+def marketplace_delete_presence(client_id, presence_id):
+    presence = MarketplacePresence.query.filter_by(
+        id=presence_id, user_id=current_user.id, client_id=client_id
+    ).one_or_none()
+    if presence:
+        db.session.delete(presence)
+        db.session.commit()
+        flash("Marketplace listing removed.", "success")
+    return redirect(url_for("marketplace_audits_page", client_id=client_id))
 
 
 @app.route("/cron/answer-monitor", methods=["POST", "GET"])

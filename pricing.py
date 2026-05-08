@@ -45,6 +45,9 @@ ACTION_CREDIT_COSTS: Dict[str, int] = {
     "alt_text_fix_batch": 2,
     "answer_monitor_run_all": 2,
     "answer_monitor_run_single": 1,
+    # Marketplace audit ≈ 5 generated queries × N engines × OpenAI rate;
+    # ~$0.10 worst-case → 20× margin at 2 credits.
+    "marketplace_audit": 2,
     # Free-cost operations (Webflow CMS publishes, Shopify product reads,
     # Shopify product image PUTs) intentionally not listed — they cost
     # nothing on our side and stay free for the user.
