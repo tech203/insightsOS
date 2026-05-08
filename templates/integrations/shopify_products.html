@@ -291,10 +291,53 @@
                                 <span style="font-size:0.78rem; color:#777; margin-left:0.5rem;">Uses AI vision when OpenAI is configured.</span>
                             </form>
                             {% endif %}
+
+                            {% if 'thin product descriptions' in finding.title|lower and summary.thin_description %}
+                            <form method="post" action="{{ url_for('shopify_descriptions_preview', client_id=workspace.id) }}" style="margin-top:0.5rem;" onsubmit="return confirm('Generate AI-rewritten descriptions for every product with a thin description? Preview is free; applying costs {{ description_rewrite_cost }} credits.');">
+                                <button type="submit" class="shopify-btn" style="font-size:0.85rem; padding:0.4rem 0.8rem; min-height:auto;">Generate description previews</button>
+                                <span style="font-size:0.78rem; color:#777; margin-left:0.5rem;">You'll review each rewrite before anything is written to your store.</span>
+                            </form>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                 </div>
+            {% endif %}
+
+            {% if description_proposals %}
+            <div style="margin-top: 1.5rem;">
+                <h3 style="margin:0 0 0.4rem 0; font-size:1rem;">Review description rewrites</h3>
+                <p style="margin:0 0 0.85rem 0; font-size:0.88rem; color:#666;">
+                    Tick the rewrites you want to push to your store. Applying costs {{ description_rewrite_cost }} credits regardless of how many you select.
+                </p>
+                <form method="post" action="{{ url_for('shopify_descriptions_apply', client_id=workspace.id) }}" onsubmit="return confirm('Push the selected description rewrites to your Shopify store? This overwrites the existing body_html on those products.');">
+                    {% for proposal in description_proposals %}
+                    <div style="border:1px solid #e8e8ee; border-radius:10px; padding:0.85rem; margin-bottom:0.65rem; background:#fdfdff;">
+                        <label style="display:flex; gap:0.6rem; align-items:flex-start; cursor:pointer;">
+                            <input type="checkbox" name="apply_product_id" value="{{ proposal.product_id }}" checked style="margin-top:0.3rem;">
+                            <div style="flex:1;">
+                                <strong style="font-size:0.95rem;">{{ proposal.title }}</strong>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-top:0.5rem;">
+                                    <div>
+                                        <div style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.05em; color:#999; margin-bottom:0.2rem;">Current</div>
+                                        <div style="background:#f6f6fa; border-radius:6px; padding:0.5rem; font-size:0.82rem; color:#555; min-height:60px; max-height:160px; overflow:auto;">
+                                            {% if proposal.original_html %}{{ proposal.original_html|safe }}{% else %}<em>No description</em>{% endif %}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--brand-text-strong, #191929); margin-bottom:0.2rem;">Proposed</div>
+                                        <div style="background:#f0fffd; border:1px solid #cdf2ec; border-radius:6px; padding:0.5rem; font-size:0.82rem; color:#222; min-height:60px; max-height:160px; overflow:auto;">
+                                            {{ proposal.proposed_html|safe }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="shopify-btn">Apply selected rewrites ({{ description_rewrite_cost }} credits)</button>
+                </form>
+            </div>
             {% endif %}
 
             {% if products %}

@@ -201,3 +201,13 @@ class ShopifyAdminClient:
         path = f"/products/{int(product_id)}/images/{int(image_id)}.json"
         payload = {"image": {"id": int(image_id), "alt": alt}}
         return self._put(path, payload).get("image", {})
+
+    def update_product_description(
+        self, product_id: int, body_html: str
+    ) -> Dict[str, Any]:
+        """Replace a product's body_html (description) in place. The
+        new value should be self-contained HTML; Shopify renders it as
+        the product page body."""
+        path = f"/products/{int(product_id)}.json"
+        payload = {"product": {"id": int(product_id), "body_html": body_html}}
+        return self._put(path, payload).get("product", {})

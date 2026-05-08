@@ -8644,6 +8644,10 @@ def shopify_products(client_id):
             findings = _shopify_findings_for_client(current_user.id, client_id)
             summary = (connection.shop_meta or {}).get("cached_summary", {}) if isinstance(connection.shop_meta, dict) else {}
 
+    description_proposals = []
+    if connection and isinstance(connection.shop_meta, dict):
+        description_proposals = connection.shop_meta.get("cached_description_proposals") or []
+
     return render_template(
         "integrations/shopify_products.html",
         workspace=workspace,
@@ -8653,6 +8657,8 @@ def shopify_products(client_id):
         summary=summary,
         error=error,
         has_write_scope=has_write_scope,
+        description_proposals=description_proposals,
+        description_rewrite_cost=get_action_cost("description_rewrite_batch"),
     )
 
 
@@ -9395,6 +9401,239 @@ def cron_answer_monitor():
             "engines": engines,
         }
     )
+
+
+def _generate_product_description_ai(product: Dict[str, Any]) -> Optional[str]:
+    """Ask gpt-4o-mini for a richer product description grounded in the
+    product's title, vendor, type, and any existing thin copy. Returns
+    HTML body (safe-ish, no scripts) or None on failure."""
+    if not os.getenv("OPENAI_API_KEY"):
+        return None
+
+    title = (product.get("title") or "").strip()
+    vendor = (product.get("vendor") or "").strip()
+    product_type = (product.get("product_type") or "").strip()
+    tags = product.get("tags")
+    if isinstance(tags, list):
+        tag_text = ", ".join(tags[:8])
+    else:
+        tag_text = str(tags or "")[:200]
+
+    existing = (product.get("body_html") or "").strip()
+    # Strip any tags from existing for the prompt context.
+    import re as _re
+    existing_text = _re.sub(r"<[^>]+>", " ", existing)
+    existing_text = _re.sub(r"\s+", " ", existing_text).strip()[:400]
+
+    user_prompt = (
+        "Write a richer product description in clean HTML for the product below. "
+        "Lead with one short sentence that answers what the product is and who it's "
+        "for. Add a 2-3 sentence paragraph covering materials / build / size / use "
+        "cases (use only what's reasonably implied — never invent specs). End with "
+        "a short bullet list of 3-4 attributes (use <ul><li>). 80-130 words total. "
+        "Plain neutral retail tone, no marketing fluff or superlatives.\n\n"
+        f"Title: {title or 'Unknown product'}\n"
+        f"Type: {product_type or 'unknown'}\n"
+        f"Vendor: {vendor or 'unknown'}\n"
+        f"Tags: {tag_text or 'none'}\n"
+        f"Existing description (may be thin or empty): {existing_text or '(none)'}\n\n"
+        "Return JSON: {\"body_html\": \"<p>…</p><ul><li>…</li></ul>\"}"
+    )
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": "You write neutral, factual ecommerce product descriptions in HTML."},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            max_tokens=400,
+        )
+        raw = response.choices[0].message.content or "{}"
+        parsed = json.loads(raw)
+        body = (parsed.get("body_html") or "").strip()
+        if not body:
+            return None
+        # Strip any <script> tags as a basic safety net.
+        body = _re.sub(r"<script.*?</script>", "", body, flags=_re.IGNORECASE | _re.DOTALL)
+        return body[:4000]
+    except Exception as exc:
+        logger.warning("AI description generation failed: %s", exc)
+        return None
+
+
+@app.route("/integrations/shopify/descriptions/preview/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_descriptions_preview(client_id):
+    """Generate AI-rewritten descriptions for every product with a thin
+    body. Stores the proposals in shop_meta so the user can review and
+    approve before any write. Charges nothing on preview (no Shopify
+    write yet) — the apply step charges credits."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError, scope_has
+    from services.shopify_audit import _is_thin_description
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Shopify store connected.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if not os.getenv("OPENAI_API_KEY"):
+        flash(
+            "Description rewrites need OPENAI_API_KEY configured on this server.",
+            "error",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+    try:
+        products = admin.list_products(limit=50)
+    except ShopifyAPIError as exc:
+        flash(f"Could not load products: {exc}", "error")
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    proposals: List[Dict[str, Any]] = []
+    for product in products:
+        if not _is_thin_description(product):
+            continue
+        proposed = _generate_product_description_ai(product)
+        if not proposed:
+            continue
+        proposals.append(
+            {
+                "product_id": product.get("id"),
+                "title": product.get("title") or "Untitled product",
+                "original_html": product.get("body_html") or "",
+                "proposed_html": proposed,
+            }
+        )
+        if len(proposals) >= 25:
+            break  # cap a single preview pass to keep tokens bounded
+
+    meta = dict(connection.shop_meta or {})
+    meta["cached_description_proposals"] = proposals
+    meta["cached_description_proposals_at"] = datetime.utcnow().isoformat()
+    connection.shop_meta = meta
+    flag_modified(connection, "shop_meta")
+    db.session.commit()
+
+    if not proposals:
+        flash(
+            "No thin product descriptions found, or AI generation failed for "
+            "every candidate.",
+            "info",
+        )
+    else:
+        flash(
+            f"Generated {len(proposals)} description{'s' if len(proposals) != 1 else ''}. "
+            "Review the previews and apply the ones you want.",
+            "success",
+        )
+    return redirect(url_for("shopify_products", client_id=client_id))
+
+
+@app.route("/integrations/shopify/descriptions/apply/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_descriptions_apply(client_id):
+    """Push the user-approved description rewrites to Shopify."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError, scope_has
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Shopify store connected.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if not scope_has(connection.scope, "write_products"):
+        flash(
+            "This store was connected with read-only access. Reconnect to enable write-back.",
+            "error",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    if not has_enough_credits_for(current_user, "description_rewrite_batch"):
+        flash(
+            f"You need {get_action_cost('description_rewrite_batch')} credits "
+            "to apply description rewrites. Top up to continue.",
+            "warning",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    proposals = (connection.shop_meta or {}).get("cached_description_proposals") or []
+    selected_ids = {
+        str(pid) for pid in request.form.getlist("apply_product_id") if str(pid).strip()
+    }
+    if not selected_ids:
+        flash("No products selected.", "info")
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+    patched = 0
+    failed = 0
+    for proposal in proposals:
+        pid = proposal.get("product_id")
+        if not pid or str(pid) not in selected_ids:
+            continue
+        body = proposal.get("proposed_html") or ""
+        if not body:
+            continue
+        try:
+            admin.update_product_description(pid, body)
+            patched += 1
+        except ShopifyAPIError as exc:
+            logger.warning("Description PUT failed for product %s: %s", pid, exc)
+            failed += 1
+
+    if patched:
+        spend_credits_for(
+            current_user,
+            "description_rewrite_batch",
+            notes=f"Description rewrite: {patched} products",
+        )
+        # Clear proposals so the UI doesn't keep showing the same set.
+        meta = dict(connection.shop_meta or {})
+        meta.pop("cached_description_proposals", None)
+        meta.pop("cached_description_proposals_at", None)
+        connection.shop_meta = meta
+        flag_modified(connection, "shop_meta")
+        connection.last_synced_at = datetime.utcnow()
+        # Refresh findings after the rewrite (descriptions just got fatter).
+        try:
+            refreshed = admin.list_products(limit=50)
+            _refresh_shopify_findings(connection, refreshed)
+        except ShopifyAPIError:
+            pass
+        db.session.commit()
+
+    if patched and not failed:
+        flash(f"Updated descriptions on {patched} product{'s' if patched != 1 else ''}.", "success")
+    elif patched and failed:
+        flash(
+            f"Updated {patched}; {failed} update{'s' if failed != 1 else ''} failed.",
+            "warning",
+        )
+    else:
+        flash(f"Could not update any products ({failed} failures).", "error")
+    return redirect(url_for("shopify_products", client_id=client_id))
 
 
 @app.route("/integrations/shopify/disconnect/<int:client_id>", methods=["POST"])

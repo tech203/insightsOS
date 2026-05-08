@@ -48,6 +48,10 @@ ACTION_CREDIT_COSTS: Dict[str, int] = {
     # Marketplace audit ≈ 5 generated queries × N engines × OpenAI rate;
     # ~$0.10 worst-case → 20× margin at 2 credits.
     "marketplace_audit": 2,
+    # Description rewrites: gpt-4o-mini once per thin product, ~$0.004
+    # per rewrite. Worst case 50 thin products → ~$0.20. 3 credits ≈
+    # 15× margin and lets a free user do a full catalog rewrite for $6.
+    "description_rewrite_batch": 3,
     # Free-cost operations (Webflow CMS publishes, Shopify product reads,
     # Shopify product image PUTs) intentionally not listed — they cost
     # nothing on our side and stay free for the user.
