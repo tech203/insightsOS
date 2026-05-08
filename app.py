@@ -300,6 +300,40 @@ class PromptTracking(db.Model):
     )
 
 
+class PromptCheckSnapshot(db.Model):
+    """Point-in-time result of running a tracked prompt against an AI
+    answer engine. One row per check; the latest values also live on
+    PromptTracking but the snapshot table is the source of truth for
+    the trend line shown in the Answer Monitor."""
+    __tablename__ = "prompt_check_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prompt_tracking_id = db.Column(
+        db.Integer,
+        db.ForeignKey("prompt_tracking.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=True, index=True
+    )
+
+    engine = db.Column(db.String(60), nullable=True)
+    brand_mentioned = db.Column(db.Boolean, default=False, nullable=False)
+    brand_position = db.Column(db.Integer, nullable=True)
+    score = db.Column(db.Integer, default=0, nullable=False)
+    answer_type = db.Column(db.String(60), nullable=True)
+    competitors_mentioned = db.Column(db.JSON, nullable=True)
+    answer_excerpt = db.Column(db.Text, nullable=True)
+
+    checked_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False, index=True
+    )
+
+
 class GeneratedWebsiteProject(db.Model):
     __tablename__ = "generated_website_projects"
 
@@ -8619,6 +8653,207 @@ def shopify_fix_alt_text(client_id):
         flash("No images needed alt text — your catalog is already covered.", "info")
 
     return redirect(url_for("shopify_products", client_id=client_id))
+
+
+# =========================
+# AI Answer Monitor routes
+# =========================
+# Track how the brand surfaces in AI answer engines over time. Each
+# check writes a PromptCheckSnapshot row; the monitor page renders a
+# sparkline-style history per tracked prompt, plus a "Run all checks
+# now" button that re-runs every prompt for the workspace.
+
+
+def _run_answer_check_for_id(prompt_id: int, brand_name: str) -> Optional[Dict[str, Any]]:
+    """Internal helper that loads a prompt row and runs one check.
+
+    Returns the snapshot dict on success, None when the prompt isn't
+    found or doesn't belong to the current user."""
+    from ai_answer_agent import simulate_ai_answer
+    from services.answer_monitor import run_answer_check
+
+    row = PromptTracking.query.filter_by(
+        id=prompt_id, user_id=current_user.id
+    ).one_or_none()
+    if not row:
+        return None
+    try:
+        return run_answer_check(
+            db=db,
+            PromptTracking=PromptTracking,
+            PromptCheckSnapshot=PromptCheckSnapshot,
+            simulate_ai_answer=simulate_ai_answer,
+            prompt_row=row,
+            brand_name=brand_name,
+        )
+    except Exception as exc:
+        logger.warning("Answer check failed for prompt %s: %s", prompt_id, exc)
+        return None
+
+
+@app.route("/answer-monitor")
+@login_required
+def answer_monitor_page():
+    """Render the AI Answer Monitor for the selected workspace."""
+    from services.answer_monitor import (
+        load_history_for_prompts,
+        summarize_history,
+    )
+
+    requested_client_id = request.args.get("client_id", "").strip()
+    clients = build_client_views()
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
+
+    selected_client = None
+    if requested_client_id:
+        selected_client = next(
+            (c for c in clients if str(c.get("id")) == str(requested_client_id)),
+            None,
+        )
+    if not selected_client and view_mode == "single" and focused_client:
+        selected_client = focused_client
+    if not selected_client and clients:
+        selected_client = clients[0]
+
+    domain = ""
+    if selected_client:
+        domain = normalize_website(selected_client.get("website", "")) or ""
+
+    rows: List[PromptTracking] = []
+    if domain:
+        rows = (
+            PromptTracking.query.filter_by(
+                user_id=current_user.id, domain=domain
+            )
+            .order_by(PromptTracking.created_at.desc())
+            .all()
+        )
+
+    history = load_history_for_prompts(
+        db=db,
+        PromptCheckSnapshot=PromptCheckSnapshot,
+        prompt_ids=[r.id for r in rows],
+    )
+    summary = summarize_history(history)
+
+    prompt_views: List[Dict[str, Any]] = []
+    for row in rows:
+        h = history.get(row.id, [])
+        latest = h[-1] if h else None
+        prompt_views.append(
+            {
+                "id": row.id,
+                "prompt": row.prompt,
+                "platform": row.platform or "AI assistant",
+                "topic": row.topic,
+                "last_checked": row.last_checked,
+                "change": row.change,
+                "mentioned": row.mentioned,
+                "score": row.prompt_score,
+                "score_band": row.score_band,
+                "brand_position": row.brand_position,
+                "top_competitor": row.top_competitor,
+                "history": h,
+                "latest": latest,
+            }
+        )
+
+    return render_template(
+        "answer_monitor.html",
+        clients=clients,
+        selected_client=selected_client,
+        prompts=prompt_views,
+        summary=summary,
+        domain=domain,
+    )
+
+
+@app.route("/answer-monitor/run-all", methods=["POST"])
+@login_required
+def answer_monitor_run_all():
+    """Re-run every tracked prompt in the selected workspace."""
+    client_id = request.form.get("client_id", "").strip()
+    selected_client = get_client_by_id(client_id) if client_id else None
+    if not selected_client:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("answer_monitor_page"))
+
+    domain = normalize_website(selected_client.get("website", "")) or ""
+    if not domain:
+        flash("This workspace has no website set, so AI answer checks can't run.", "error")
+        return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+    brand_name = (selected_client.get("name") or "").strip() or domain
+    rows = (
+        PromptTracking.query.filter_by(user_id=current_user.id, domain=domain)
+        .all()
+    )
+    if not rows:
+        flash("No tracked prompts to check yet for this workspace.", "info")
+        return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+    succeeded = 0
+    failed = 0
+    for row in rows:
+        result = _run_answer_check_for_id(row.id, brand_name)
+        if result is None:
+            failed += 1
+        else:
+            succeeded += 1
+
+    if succeeded and not failed:
+        flash(f"Checked {succeeded} prompt{'s' if succeeded != 1 else ''}.", "success")
+    elif succeeded and failed:
+        flash(
+            f"Checked {succeeded}; {failed} failed. Try again or check OPENAI_API_KEY.",
+            "warning",
+        )
+    else:
+        flash("Could not run any checks. Verify OPENAI_API_KEY is set.", "error")
+
+    return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+
+@app.route("/answer-monitor/run/<int:prompt_id>", methods=["POST"])
+@login_required
+def answer_monitor_run_single(prompt_id):
+    """Re-run a single tracked prompt."""
+    row = PromptTracking.query.filter_by(
+        id=prompt_id, user_id=current_user.id
+    ).one_or_none()
+    if not row:
+        flash("Tracked prompt not found.", "error")
+        return redirect(url_for("answer_monitor_page"))
+
+    selected_client = None
+    if row.domain:
+        for client in build_client_views():
+            if normalize_website(client.get("website", "")) == row.domain:
+                selected_client = client
+                break
+
+    brand_name = (
+        (selected_client.get("name") if selected_client else None)
+        or row.domain
+        or "this brand"
+    )
+
+    result = _run_answer_check_for_id(prompt_id, brand_name)
+    if result is None:
+        flash("Could not run that check. Verify OPENAI_API_KEY is set.", "error")
+    else:
+        flash(
+            "Cited" if result["brand_mentioned"] else "Not cited",
+            "success" if result["brand_mentioned"] else "warning",
+        )
+
+    redirect_client_id = (
+        str(selected_client.get("id")) if selected_client else ""
+    )
+    return redirect(
+        url_for("answer_monitor_page", client_id=redirect_client_id)
+    )
 
 
 @app.route("/integrations/shopify/disconnect/<int:client_id>", methods=["POST"])
