@@ -113,7 +113,7 @@
 
                     {% if sidebar_client %}
                     <div class="nav-group">
-                        <div class="nav-label">Current Workspace</div>
+                        <div class="nav-label">Insights · {{ (sidebar_client.name or "Workspace")[:24] }}</div>
 
                         <a href="{{ url_for('client_detail', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}"
@@ -122,24 +122,6 @@
                             <span class="nav-icon">◉</span>
                             <span class="nav-text">Overview</span>
                             <span class="nav-tooltip">Overview</span>
-                        </a>
-
-                        <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
-                           aria-label="Run Audit"
-                           data-label="Run Audit">
-                            <span class="nav-icon">◈</span>
-                            <span class="nav-text">Run Audit</span>
-                            <span class="nav-tooltip">Run Audit</span>
-                        </a>
-
-                        <a href="{{ url_for('content_queue_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
-                           aria-label="Workspace Queue"
-                           data-label="Queue">
-                            <span class="nav-icon">≣</span>
-                            <span class="nav-text">Queue</span>
-                            <span class="nav-tooltip">Queue</span>
                         </a>
 
                         <a href="{{ url_for('client_visibility_page', client_id=sidebar_client.id) }}"
@@ -160,6 +142,28 @@
                             <span class="nav-tooltip">Competitors</span>
                         </a>
 
+                        <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
+                           aria-label="History"
+                           data-label="History">
+                            <span class="nav-icon">◷</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-tooltip">History</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-group">
+                        <div class="nav-label">Actions</div>
+
+                        <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
+                           aria-label="Run Audit"
+                           data-label="Run Audit">
+                            <span class="nav-icon">◈</span>
+                            <span class="nav-text">Run Audit</span>
+                            <span class="nav-tooltip">Run Audit</span>
+                        </a>
+
                         <a href="{{ url_for('client_brand_context', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_brand_context' %}active{% endif %}"
                            aria-label="Brand Context"
@@ -173,7 +177,7 @@
                            class="nav-item {% if current_endpoint == 'client_query_ideas' %}active{% endif %}"
                            aria-label="Query Ideas"
                            data-label="Query Ideas">
-                            <span class="nav-icon">?</span>
+                            <span class="nav-icon">✧</span>
                             <span class="nav-text">Query Ideas</span>
                             <span class="nav-tooltip">Query Ideas</span>
                         </a>
@@ -196,13 +200,13 @@
                             <span class="nav-tooltip">Content Draft</span>
                         </a>
 
-                        <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
-                           aria-label="History"
-                           data-label="History">
-                            <span class="nav-icon">◷</span>
-                            <span class="nav-text">History</span>
-                            <span class="nav-tooltip">History</span>
+                        <a href="{{ url_for('content_queue_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
+                           aria-label="Workspace Queue"
+                           data-label="Queue">
+                            <span class="nav-icon">≣</span>
+                            <span class="nav-text">Queue</span>
+                            <span class="nav-tooltip">Queue</span>
                         </a>
                     </div>
                     {% endif %}
