@@ -66,7 +66,7 @@ from flask import (
     session,
     make_response,
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 from tavily import TavilyClient
 from urllib.parse import urlparse
 from website_page_builder import generate_structured_website_page
@@ -9125,6 +9125,106 @@ def answer_monitor_run_single(prompt_id):
     )
     return redirect(
         url_for("answer_monitor_page", client_id=redirect_client_id)
+    )
+
+
+@app.route("/cron/answer-monitor", methods=["POST", "GET"])
+def cron_answer_monitor():
+    """Scheduled sweep that re-runs the AI Answer Monitor for every
+    paid user whose youngest snapshot is older than 6 days.
+
+    Auth: pass a `CRON_SECRET` either as `X-Cron-Secret` header or
+    `?secret=…` query param. Mismatched secrets get a 403.
+
+    Idempotent: a workspace is skipped if its newest snapshot is < 6
+    days old, so calling the endpoint daily costs nothing extra. The
+    sweep does NOT deduct credits — the auto-run is a subscriber
+    benefit; manual re-runs from the UI still charge.
+
+    Suggested cron entry (server-side):
+        0 8 * * 1  curl -fsS -X POST -H "X-Cron-Secret: $SECRET" \\
+                       https://your-host/cron/answer-monitor
+    """
+    from ai_answer_agent import enabled_engines, simulate_ai_answer
+    from services.answer_monitor import run_answer_check
+
+    expected = os.getenv("CRON_SECRET")
+    if not expected:
+        return jsonify({"ok": False, "error": "CRON_SECRET not configured"}), 503
+    provided = (
+        request.headers.get("X-Cron-Secret")
+        or request.args.get("secret")
+        or ""
+    )
+    if provided != expected:
+        abort(403)
+
+    from pricing import SUBSCRIBER_PLANS
+
+    users = User.query.filter(User.plan.in_(list(SUBSCRIBER_PLANS - {"dev_unlimited"}))).all()
+    engines = enabled_engines() or ["chatgpt"]
+
+    workspaces_run = 0
+    workspaces_skipped = 0
+    snapshots_total = 0
+    failures = 0
+    cutoff = datetime.utcnow() - timedelta(days=6)
+
+    for user in users:
+        clients = Client.query.filter_by(user_id=user.id).all()
+        for client in clients:
+            domain = normalize_website(client.website or "")
+            if not domain:
+                continue
+            prompts = (
+                PromptTracking.query
+                .filter_by(user_id=user.id, domain=domain)
+                .all()
+            )
+            if not prompts:
+                continue
+            youngest = (
+                db.session.query(db.func.max(PromptCheckSnapshot.checked_at))
+                .filter(PromptCheckSnapshot.prompt_tracking_id.in_([p.id for p in prompts]))
+                .scalar()
+            )
+            if youngest and youngest > cutoff:
+                workspaces_skipped += 1
+                continue
+
+            brand_name = (client.name or domain).strip() or "this brand"
+            ran_for_workspace = False
+            for prompt in prompts:
+                try:
+                    snaps = run_answer_check(
+                        db=db,
+                        PromptTracking=PromptTracking,
+                        PromptCheckSnapshot=PromptCheckSnapshot,
+                        simulate_ai_answer=simulate_ai_answer,
+                        prompt_row=prompt,
+                        brand_name=brand_name,
+                        engines=engines,
+                    )
+                    snapshots_total += len(snaps)
+                    ran_for_workspace = True
+                except Exception as exc:
+                    logger.warning(
+                        "Cron answer-monitor failed for prompt %s: %s",
+                        prompt.id, exc,
+                    )
+                    failures += 1
+            if ran_for_workspace:
+                workspaces_run += 1
+
+    return jsonify(
+        {
+            "ok": True,
+            "workspaces_run": workspaces_run,
+            "workspaces_skipped": workspaces_skipped,
+            "snapshots_saved": snapshots_total,
+            "failures": failures,
+            "engines": engines,
+        }
     )
 
 
