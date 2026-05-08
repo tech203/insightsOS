@@ -8,6 +8,7 @@ from content_queue import (
     update_queue_item_content,
     update_queue_item_details,
     update_queue_item_schedule,
+    update_queue_item_webflow_export,
     delete_queue_item,
     transition_queue_item,
 )
@@ -5997,6 +5998,140 @@ def publish_content_queue_item(item_id):
         flash(error, "error")
     else:
         flash("Item marked as published.", "success")
+
+    return _redirect_to_queue(client_id)
+
+
+CONTENT_TYPE_TO_WEBFLOW_COLLECTION = {
+    "blog_post": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "article": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "faq_page": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "faq": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "service_page": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "location_page": ("WEBFLOW_LOCATION_COLLECTION_ID", "location"),
+    "comparison_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "landing_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+}
+
+
+def _slugify_for_webflow(text):
+    """Webflow slugs: lowercase, alphanumerics + hyphens, no leading/trailing hyphens."""
+    import re
+
+    s = re.sub(r"[^\w\s-]", "", (text or "").lower())
+    s = re.sub(r"[\s_]+", "-", s).strip("-")
+    return s[:80] or "untitled"
+
+
+def _build_webflow_field_data_for_queue_item(item, collection_kind):
+    """Map a queue item's title/content/target_query into Webflow field-data."""
+    title = item.get("title") or item.get("target_query") or "Untitled"
+    slug = _slugify_for_webflow(title)
+    content = item.get("content") or ""
+
+    fields = {"name": title, "slug": slug}
+
+    if collection_kind == "faq":
+        fields["question"] = title
+        fields["answer"] = content
+    else:
+        fields["content"] = content
+        if item.get("target_query"):
+            fields["summary"] = f"Target query: {item['target_query']}"
+
+    return fields
+
+
+@app.route("/content-queue/<item_id>/publish-to-webflow", methods=["POST"])
+@login_required
+def publish_queue_item_to_webflow(item_id):
+    """Push a ready queue item to the right Webflow CMS collection."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+
+    status = (item.get("status") or "").lower()
+    if status not in {"ready", "draft_generated"}:
+        flash(
+            "Approve the draft first — only ready items can publish to Webflow.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    content_type = (item.get("content_type") or "").lower()
+    routing = CONTENT_TYPE_TO_WEBFLOW_COLLECTION.get(content_type)
+    if not routing:
+        flash(
+            f"No Webflow collection mapped for content_type '{content_type}'. "
+            "Pick blog, faq, service, or location.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    env_var, collection_label = routing
+    collection_id = os.getenv(env_var)
+    if not collection_id or collection_id.startswith("your_"):
+        flash(
+            f"Webflow {collection_label} collection isn't configured. "
+            f"Set {env_var} in your .env first.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    try:
+        from services.webflow_client import (
+            WebflowCMSClient,
+            WebflowAPIError,
+            WebflowConfigError,
+        )
+
+        client = WebflowCMSClient()
+        field_data = _build_webflow_field_data_for_queue_item(item, collection_label)
+        webflow_item_id = client.create_item(
+            collection_id, field_data, is_draft=True
+        )
+
+        update_queue_item_webflow_export(
+            item_id,
+            webflow_item_id=webflow_item_id,
+            webflow_collection=collection_label,
+            user_id=current_user.id,
+        )
+
+        try:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=item.get("client_id"),
+                content_type=collection_label,
+                local_source_type="content_queue",
+                local_source_id=str(item_id),
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=collection_id,
+                webflow_item_id=webflow_item_id,
+                status="exported",
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+        except Exception as track_err:
+            logger.warning(f"Webflow export tracking failed: {track_err}")
+            db.session.rollback()
+
+        flash(
+            f"Published to Webflow ({collection_label}) as a draft. "
+            "Review and live-publish from your Webflow CMS.",
+            "success",
+        )
+
+    except WebflowConfigError as e:
+        flash(f"Webflow not configured: {e}", "error")
+    except WebflowAPIError as e:
+        flash(f"Webflow API error: {e}", "error")
+    except Exception as e:
+        logger.error(f"Publish to Webflow failed: {e}")
+        flash("Publish to Webflow failed unexpectedly.", "error")
 
     return _redirect_to_queue(client_id)
 

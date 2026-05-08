@@ -421,11 +421,17 @@
                     <button type="submit" class="btn btn-primary">Approve Draft</button>
                 </form>
             {% elif item_status == 'ready' %}
+                <form method="POST" action="{{ url_for('publish_queue_item_to_webflow', item_id=item.id) }}" class="publish-inline-form">
+                    {% if active_client_id %}
+                    <input type="hidden" name="client_id" value="{{ active_client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">Publish to Webflow</button>
+                </form>
                 <form method="POST" action="{{ url_for('publish_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
                     {% if active_client_id %}
                     <input type="hidden" name="client_id" value="{{ active_client_id }}">
                     {% endif %}
-                    <button type="submit" class="btn btn-primary">Publish</button>
+                    <button type="submit" class="btn btn-secondary">Mark Published</button>
                 </form>
                 <form method="POST" action="{{ url_for('unapprove_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
                     {% if active_client_id %}
@@ -434,9 +440,18 @@
                     <button type="submit" class="btn btn-secondary">Revoke Approval</button>
                 </form>
             {% elif item_status == 'published' %}
+                {% if item.webflow_item_id %}
+                <button type="button" class="btn btn-primary" disabled>
+                    Published to Webflow
+                </button>
+                <span class="webflow-published-meta">
+                    {{ (item.webflow_collection or 'CMS')|title }} · ID {{ item.webflow_item_id[:8] }}…
+                </span>
+                {% else %}
                 <button type="button" class="btn btn-primary" disabled>
                     Published
                 </button>
+                {% endif %}
             {% endif %}
 
             {% if item.content or item_status in ['brief_generated', 'brief generated', 'brief ready', 'draft_generated', 'draft generated', 'ready', 'published'] %}
@@ -600,6 +615,19 @@
     color: #64748b;
     line-height: 1.45;
     flex-basis: 100%;
+}
+
+.webflow-published-meta {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(62, 223, 203, 0.10);
+    border: 1px solid rgba(62, 223, 203, 0.32);
+    color: #0f766e;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 .queue-section-actions {

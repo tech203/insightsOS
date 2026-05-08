@@ -124,10 +124,38 @@ def _normalize_item(raw):
         ),
         "source_action_title": _normalize_text(raw.get("source_action_title")),
         "scheduled_for": _normalize_scheduled_for(raw.get("scheduled_for")),
+        "webflow_item_id": _normalize_text(raw.get("webflow_item_id")) or None,
+        "webflow_collection": _normalize_text(raw.get("webflow_collection")) or None,
         "user_id": raw.get("user_id"),
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
     }
+
+
+def update_queue_item_webflow_export(
+    item_id, webflow_item_id, webflow_collection, user_id=None
+):
+    """Record that a queue item was successfully exported to Webflow."""
+    items = load_queue_items()
+    updated = None
+
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["webflow_item_id"] = _normalize_text(webflow_item_id) or None
+        item["webflow_collection"] = _normalize_text(webflow_collection) or None
+        item["status"] = "published"
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+
+    if not updated:
+        return None
+
+    save_queue_items(items)
+    return updated
 
 
 def load_queue_items():
