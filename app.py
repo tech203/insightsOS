@@ -1485,46 +1485,96 @@ def export_website_project_to_webflow(project_id):
         .all()
     )
 
-    try:
-        export_result = export_project_to_webflow(project, pages)
-    except WebflowConfigError as exc:
-        flash(str(exc), "warning")
-        return redirect(url_for("preview_website_project", project_id=project.id))
-    except WebflowAPIError as exc:
-        flash(str(exc), "danger")
-        return redirect(url_for("preview_website_project", project_id=project.id))
+    # Prefer the legacy single-collection export if WEBFLOW_COLLECTION_ID is
+    # set; otherwise fall through to per-page routing using BLOG / FAQ /
+    # SERVICE / LOCATION env vars (matching the per-content-type setup most
+    # users have today).
+    legacy_collection = os.getenv("WEBFLOW_COLLECTION_ID")
+    use_per_collection = (
+        not legacy_collection or legacy_collection.startswith("your_")
+    )
+
+    if use_per_collection:
+        try:
+            export_result = _export_website_project_per_collection(project, pages)
+        except Exception as exc:
+            logger.error(f"Per-collection export failed: {exc}")
+            flash(
+                "We couldn't sync this website to your CMS. Try again, or "
+                "reach out to your admin if the problem keeps happening.",
+                "danger",
+            )
+            return redirect(url_for("preview_website_project", project_id=project.id))
+    else:
+        try:
+            export_result = export_project_to_webflow(project, pages)
+        except WebflowConfigError as exc:
+            logger.warning(f"Site publishing config issue: {exc}")
+            flash(
+                "Publishing isn't fully set up on this site yet. "
+                "Reach out to your admin to enable it.",
+                "warning",
+            )
+            return redirect(url_for("preview_website_project", project_id=project.id))
+        except WebflowAPIError as exc:
+            logger.warning(f"Site publishing API error: {exc}")
+            flash(
+                "We couldn't sync this website to your CMS. Try again, or "
+                "reach out to your admin.",
+                "danger",
+            )
+            return redirect(url_for("preview_website_project", project_id=project.id))
 
     blueprint = project.blueprint_json or {}
     blueprint["webflow_export"] = export_result
     project.blueprint_json = blueprint
     flag_modified(project, "blueprint_json")
 
-    exported_by_page_id = {
-        item.get("local_page_id"): item for item in export_result.get("pages", [])
-    }
-    exported_at = export_result.get("exported_at")
-
-    for page in pages:
-        item = exported_by_page_id.get(page.id)
-        if not item:
-            continue
-        page_json = page.page_json or {}
-        page_json["webflow"] = {
-            "item_id": item.get("webflow_item_id"),
-            "last_action": item.get("action"),
-            "exported_at": exported_at,
-            "published": export_result.get("published", False),
-            "live_url": item.get("live_url"),
+    if not use_per_collection:
+        # The legacy path stamps webflow data per page outside the function;
+        # the per-collection path already stamped during the inner loop.
+        exported_by_page_id = {
+            item.get("local_page_id"): item for item in export_result.get("pages", [])
         }
-        page.page_json = page_json
-        flag_modified(page, "page_json")
+        exported_at = export_result.get("exported_at")
+        for page in pages:
+            item = exported_by_page_id.get(page.id)
+            if not item:
+                continue
+            page_json = page.page_json or {}
+            page_json["webflow"] = {
+                "item_id": item.get("webflow_item_id"),
+                "last_action": item.get("action"),
+                "exported_at": exported_at,
+                "published": export_result.get("published", False),
+                "live_url": item.get("live_url"),
+            }
+            page.page_json = page_json
+            flag_modified(page, "page_json")
 
     db.session.commit()
 
-    flash(
-        f"Synced {len(export_result.get('pages', []))} page(s) to the publishing layer.",
-        "success",
-    )
+    synced_count = len(export_result.get("pages", []))
+    skipped = export_result.get("skipped") or []
+    errors = export_result.get("errors") or []
+
+    if errors:
+        flash(
+            f"Synced {synced_count} page(s); {len(errors)} failed. "
+            "Check the preview for details.",
+            "warning",
+        )
+    elif skipped:
+        flash(
+            f"Synced {synced_count} page(s); skipped {len(skipped)} that don't have a CMS collection on this site yet.",
+            "success",
+        )
+    else:
+        flash(
+            f"Synced {synced_count} page(s) to your CMS as drafts. "
+            "Review and go live from your CMS.",
+            "success",
+        )
     return redirect(url_for("preview_website_project", project_id=project.id))
 
 
@@ -6022,6 +6072,171 @@ COLLECTION_LABEL_TO_ENV = {
     "service": "WEBFLOW_SERVICE_COLLECTION_ID",
     "location": "WEBFLOW_LOCATION_COLLECTION_ID",
 }
+
+# Multi-page website export: map a page's page_type to the collection it
+# should land in. "contact" is intentionally skipped — a contact page is
+# usually a static designer page, not a CMS item.
+PAGE_TYPE_TO_COLLECTION = {
+    "home": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "about": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "blog": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "blog_post": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "landing": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "landing_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "comparison": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "comparison_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "faq": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "faq_page": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "services": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "service": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "service_page": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "location": ("WEBFLOW_LOCATION_COLLECTION_ID", "location"),
+    "location_page": ("WEBFLOW_LOCATION_COLLECTION_ID", "location"),
+}
+
+
+def _build_field_data_for_generated_page(page, collection_label):
+    """Build a CMS field-data payload from a GeneratedWebsitePage row."""
+    title = page.title or page.slug or "Untitled"
+    slug = _slugify_for_webflow(page.slug or title)
+    page_json = page.page_json or {}
+
+    # Pull body content from common locations the page builder produces.
+    summary = ""
+    body = ""
+    if isinstance(page_json, dict):
+        summary = (
+            page_json.get("meta_description")
+            or page_json.get("summary")
+            or page_json.get("hero", {}).get("subhead", "")
+        )
+        body = page_json.get("body") or page_json.get("content") or ""
+
+        # Fallback: stitch sections together.
+        if not body and "sections" in page_json:
+            body = "\n\n".join(
+                str(s.get("body") or s.get("content") or "")
+                for s in (page_json.get("sections") or [])
+                if isinstance(s, dict)
+            )
+
+    fields = {"name": title, "slug": slug}
+    if collection_label == "faq":
+        fields["question"] = title
+        fields["answer"] = body or summary or title
+    else:
+        if summary:
+            fields["summary"] = summary[:240]
+        if body:
+            fields["content"] = body
+    return fields
+
+
+def _export_website_project_per_collection(project, pages):
+    """Push each generated page to the collection that matches its page_type.
+
+    Used when the legacy single-collection WEBFLOW_COLLECTION_ID isn't set
+    but per-collection env vars are. Returns a result dict mirroring the
+    legacy export's shape so callers can stay consistent.
+    """
+    from services.webflow_client import (
+        WebflowCMSClient,
+        WebflowAPIError,
+        WebflowConfigError,
+    )
+
+    client = WebflowCMSClient()
+    site_id = os.getenv("WEBFLOW_SITE_ID")
+
+    exported_pages = []
+    skipped_pages = []
+    errors = []
+
+    for page in pages:
+        page_type = (page.page_type or "").lower()
+        routing = PAGE_TYPE_TO_COLLECTION.get(page_type)
+        if not routing:
+            skipped_pages.append({"slug": page.slug, "reason": f"no collection mapped for '{page_type}'"})
+            continue
+
+        env_var, collection_label = routing
+        collection_id = os.getenv(env_var)
+        if not collection_id or collection_id.startswith("your_"):
+            skipped_pages.append({"slug": page.slug, "reason": f"{collection_label} collection not configured"})
+            continue
+
+        field_data = _build_field_data_for_generated_page(page, collection_label)
+
+        # Reuse an existing webflow_item_id if we tracked one previously.
+        existing_wf = (page.page_json or {}).get("webflow") if isinstance(page.page_json, dict) else None
+        existing_item_id = (existing_wf or {}).get("item_id")
+
+        try:
+            if existing_item_id:
+                client.update_item(collection_id, existing_item_id, field_data)
+                webflow_item_id = existing_item_id
+                action = "updated"
+            else:
+                webflow_item_id = client.create_item(collection_id, field_data, is_draft=True)
+                action = "created"
+        except (WebflowAPIError, WebflowConfigError) as e:
+            errors.append({"slug": page.slug, "error": str(e)})
+            continue
+
+        live_url = _build_live_url(client, collection_id, field_data["slug"])
+
+        # Stamp the result back on the page so the preview can show it.
+        if not isinstance(page.page_json, dict):
+            page.page_json = {}
+        page.page_json["webflow"] = {
+            "item_id": webflow_item_id,
+            "collection": collection_label,
+            "collection_id": collection_id,
+            "live_url": live_url,
+            "last_action": action,
+            "exported_at": datetime.utcnow().isoformat(timespec="seconds"),
+        }
+        flag_modified(page, "page_json")
+
+        # Per-page export tracking row.
+        try:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=str(project.client_id) if project.client_id else None,
+                content_type=collection_label,
+                local_source_type="generated_page",
+                local_source_id=str(page.id),
+                webflow_site_id=site_id,
+                webflow_collection_id=collection_id,
+                webflow_item_id=webflow_item_id,
+                status=action if action == "updated" else "exported",
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+        except Exception as e:
+            logger.warning(f"Per-page export tracking failed: {e}")
+
+        exported_pages.append({
+            "local_page_id": page.id,
+            "slug": page.slug,
+            "page_type": page_type,
+            "collection": collection_label,
+            "webflow_item_id": webflow_item_id,
+            "action": action,
+            "live_url": live_url,
+        })
+
+    db.session.commit()
+
+    return {
+        "site_id": site_id,
+        "exported_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "pages": exported_pages,
+        "skipped": skipped_pages,
+        "errors": errors,
+        "published": False,  # Always drafts in this path
+        "mode": "per_collection",
+    }
 
 
 def _slugify_for_webflow(text):
