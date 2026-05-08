@@ -12,6 +12,7 @@ VALID_STATUSES = {
     "draft_generated",
     "ready",
     "published",
+    "dismissed",
 }
 
 VALID_ITEM_TYPES = {"brief", "draft"}
@@ -222,6 +223,7 @@ def get_queue_items(
     item_type=None,
     priority=None,
     source=None,
+    include_dismissed=False,
 ):
     items = load_queue_items()
 
@@ -234,6 +236,9 @@ def get_queue_items(
     if status:
         normalized_status = _normalize_status(status)
         items = [item for item in items if item.get("status") == normalized_status]
+    elif not include_dismissed:
+        # Hide dismissed items from default listings (e.g., the queue page).
+        items = [item for item in items if item.get("status") != "dismissed"]
 
     if item_type:
         normalized_item_type = _normalize_item_type(item_type)

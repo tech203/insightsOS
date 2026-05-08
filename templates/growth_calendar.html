@@ -135,6 +135,17 @@
                                         {% endfor %}
                                     </select>
                                 </form>
+
+                                <form method="POST" action="{{ url_for('growth_calendar_dismiss_recommendation') }}" class="growth-calendar-dismiss-form">
+                                    <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+                                    <input type="hidden" name="title" value="{{ card.title }}">
+                                    <input type="hidden" name="target_query" value="{{ card.linked_query }}">
+                                    <input type="hidden" name="content_type" value="{{ card.content_type or 'service_page' }}">
+                                    <input type="hidden" name="priority" value="{{ card.priority }}">
+                                    <button type="submit" class="growth-calendar-dismiss-btn" aria-label="Dismiss recommendation" title="Dismiss this recommendation">
+                                        ✕
+                                    </button>
+                                </form>
                             {% else %}
                                 <a href="{{ url_for('content_queue_page', client_id=selected_client.id) }}#item-{{ card.id }}" class="btn btn-secondary btn-sm">
                                     Open in Queue
@@ -461,6 +472,32 @@
     outline: none;
     border-color: rgba(62, 223, 203, 0.36);
     box-shadow: 0 0 0 3px rgba(62, 223, 203, 0.12);
+}
+
+.growth-calendar-dismiss-form {
+    margin: 0;
+}
+
+.growth-calendar-dismiss-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e7ebf3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.growth-calendar-dismiss-btn:hover {
+    color: #b91c1c;
+    border-color: #fecaca;
+    background: #fef2f2;
 }
 
 .btn-sm {

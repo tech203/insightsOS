@@ -3949,16 +3949,39 @@ def growth_calendar_page():
         selected_client = clients[0]
 
     queue_items = []
+    queue_items_for_dedupe = []
     if selected_client:
+        # Visible queue items for the calendar cards exclude dismissed.
         queue_items = get_queue_items(
             client_id=selected_client.get("id"),
             user_id=current_user.id,
         )
+        # For dedupe we also include dismissed items so previously-dismissed
+        # recommendations stay hidden from the calendar.
+        queue_items_for_dedupe = get_queue_items(
+            client_id=selected_client.get("id"),
+            user_id=current_user.id,
+            include_dismissed=True,
+        )
 
     plan = weekly_growth_recommendations(
         client=selected_client,
-        queue_items=queue_items,
+        queue_items=queue_items_for_dedupe or queue_items,
     )
+
+    # The calendar layout shouldn't show dismissed cards as visible cards.
+    # weekly_growth_recommendations places queue items on the calendar; strip
+    # dismissed ones from the rendered cards (they're only there for dedupe).
+    for week in plan.get("weeks", []):
+        week["cards"] = [
+            c for c in week["cards"]
+            if c.get("kind") != "queue" or c.get("status") != "dismissed"
+        ]
+        week["counts"] = {
+            "total": len(week["cards"]),
+            "queue": sum(1 for c in week["cards"] if c["kind"] == "queue"),
+            "recommended": sum(1 for c in week["cards"] if c["kind"] == "recommendation"),
+        }
 
     return render_template(
         "growth_calendar.html",
@@ -4008,6 +4031,49 @@ def growth_calendar_schedule_recommendation():
     )
 
     flash("Recommendation scheduled to the queue.", "success")
+    return redirect(url_for("growth_calendar_page", client_id=client.get("id")))
+
+
+@app.route("/growth-calendar/dismiss-recommendation", methods=["POST"])
+@login_required
+def growth_calendar_dismiss_recommendation():
+    """Hide a recommendation from the calendar without pinning it.
+
+    Stores a queue item with status='dismissed' so the existing dedupe
+    filter (matching on source_action_title / target_query) keeps the
+    recommendation out of future renders. The dismissed item is hidden
+    from the queue page by default — it's a tombstone, not work.
+    """
+    client_id = request.form.get("client_id", "").strip()
+    title = request.form.get("title", "").strip() or "Visibility action"
+    target_query = request.form.get("target_query", "").strip()
+    content_type = request.form.get("content_type", "").strip() or "service_page"
+    priority = request.form.get("priority", "medium").strip() or "medium"
+
+    client = get_client_by_id(client_id) if client_id else None
+    if not client:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("growth_calendar_page"))
+
+    add_queue_item(
+        client_id=client.get("id"),
+        client_name=client.get("name"),
+        target_query=target_query,
+        content_type=content_type,
+        item_type="brief",
+        title=title,
+        content="",
+        status="dismissed",
+        priority=priority,
+        source="audit_opportunity",
+        credits_required=0,
+        execution_type="ai_executable",
+        source_action_title=title,
+        scheduled_for=None,
+        user_id=current_user.id,
+    )
+
+    flash("Recommendation dismissed.", "success")
     return redirect(url_for("growth_calendar_page", client_id=client.get("id")))
 
 
