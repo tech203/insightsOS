@@ -6254,6 +6254,34 @@ def _slugify_for_webflow(text):
 # Module-level caches — site domain rarely changes; collection slugs even less.
 _SITE_DOMAIN_CACHE = {}
 _COLLECTION_SLUG_CACHE = {}
+_COLLECTION_IMAGE_FIELD_CACHE = {}
+
+
+def _get_collection_image_field_slug(client, collection_id):
+    """Find the first image-type field on a collection, cached per collection.
+
+    Webflow image field types come back as 'ImageRef' or 'Image' depending on
+    the API version; check both.
+    """
+    if not collection_id:
+        return None
+    if collection_id in _COLLECTION_IMAGE_FIELD_CACHE:
+        return _COLLECTION_IMAGE_FIELD_CACHE[collection_id]
+    try:
+        fields = client.list_collection_fields(collection_id)
+    except Exception as e:
+        logger.warning(f"Couldn't list fields for collection {collection_id}: {e}")
+        return None
+
+    image_slug = None
+    for f in fields or []:
+        ftype = (f.get("type") or "").lower()
+        if ftype in {"image", "imageref"}:
+            image_slug = f.get("slug")
+            break
+
+    _COLLECTION_IMAGE_FIELD_CACHE[collection_id] = image_slug
+    return image_slug
 
 
 def _get_site_default_domain(client, site_id):
@@ -6498,7 +6526,56 @@ def generate_queue_item_visual(item_id):
             update_queue_item_og_image(
                 item_id, og_image_url=image_url, user_id=current_user.id
             )
-            flash("Visual generated and attached to this item.", "success")
+
+            # If this item already lives in the CMS, also push the image to
+            # the matching image field so the live page picks it up.
+            cms_synced = False
+            cms_skipped_reason = None
+            webflow_item_id = item.get("webflow_item_id")
+            collection_label = (item.get("webflow_collection") or "").lower()
+            if webflow_item_id and collection_label:
+                env_var = COLLECTION_LABEL_TO_ENV.get(collection_label)
+                collection_id = os.getenv(env_var) if env_var else None
+                if collection_id and not collection_id.startswith("your_"):
+                    try:
+                        from services.webflow_client import (
+                            WebflowCMSClient as _WebflowCMSClient,
+                            WebflowAPIError as _WebflowAPIError,
+                        )
+
+                        wf_client = _WebflowCMSClient()
+                        image_slug = _get_collection_image_field_slug(
+                            wf_client, collection_id
+                        )
+                        if image_slug:
+                            wf_client.update_item(
+                                collection_id,
+                                webflow_item_id,
+                                {image_slug: image_url},
+                            )
+                            cms_synced = True
+                        else:
+                            cms_skipped_reason = "no image field on collection"
+                    except _WebflowAPIError as e:
+                        logger.warning(f"Visual CMS sync API error: {e}")
+                        cms_skipped_reason = "CMS rejected the image update"
+                    except Exception as e:
+                        logger.warning(f"Visual CMS sync failed: {e}")
+                        cms_skipped_reason = "CMS sync failed"
+
+            if cms_synced:
+                flash(
+                    "Visual generated and synced to your CMS. "
+                    "Re-publish from the CMS to push it live.",
+                    "success",
+                )
+            elif cms_skipped_reason:
+                flash(
+                    f"Visual generated. CMS sync skipped — {cms_skipped_reason}.",
+                    "warning",
+                )
+            else:
+                flash("Visual generated and attached to this item.", "success")
         elif status == "queued":
             flash(
                 "Visual is still rendering. Refresh in a few seconds — it'll show up automatically.",
