@@ -12,6 +12,7 @@ VALID_STATUSES = {
     "draft_generated",
     "ready",
     "published",
+    "dismissed",
 }
 
 VALID_ITEM_TYPES = {"brief", "draft"}
@@ -91,6 +92,17 @@ def _normalize_int(value, default=0):
         return default
 
 
+def _normalize_scheduled_for(value):
+    """Accepts an ISO date string ('YYYY-MM-DD') or empty/None."""
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    # Just keep the date portion if a fuller datetime was passed.
+    return text[:10]
+
+
 def _normalize_item(raw):
     created_at = raw.get("created_at", _now_iso())
 
@@ -111,10 +123,69 @@ def _normalize_item(raw):
             raw.get("execution_type"), "ai_executable"
         ),
         "source_action_title": _normalize_text(raw.get("source_action_title")),
+        "scheduled_for": _normalize_scheduled_for(raw.get("scheduled_for")),
+        "webflow_item_id": _normalize_text(raw.get("webflow_item_id")) or None,
+        "webflow_collection": _normalize_text(raw.get("webflow_collection")) or None,
+        "webflow_live_url": _normalize_text(raw.get("webflow_live_url")) or None,
+        "og_image_url": _normalize_text(raw.get("og_image_url")) or None,
         "user_id": raw.get("user_id"),
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
     }
+
+
+def update_queue_item_og_image(item_id, og_image_url, user_id=None):
+    """Record the URL of a generated visual (OG image, banner, etc.)
+    on a queue item."""
+    items = load_queue_items()
+    updated = None
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["og_image_url"] = _normalize_text(og_image_url) or None
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+
+    if not updated:
+        return None
+
+    save_queue_items(items)
+    return updated
+
+
+def update_queue_item_webflow_export(
+    item_id,
+    webflow_item_id,
+    webflow_collection,
+    webflow_live_url=None,
+    user_id=None,
+):
+    """Record that a queue item was successfully exported to Webflow."""
+    items = load_queue_items()
+    updated = None
+
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["webflow_item_id"] = _normalize_text(webflow_item_id) or None
+        item["webflow_collection"] = _normalize_text(webflow_collection) or None
+        if webflow_live_url is not None:
+            item["webflow_live_url"] = _normalize_text(webflow_live_url) or None
+        item["status"] = "published"
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+
+    if not updated:
+        return None
+
+    save_queue_items(items)
+    return updated
 
 
 def load_queue_items():
@@ -146,6 +217,7 @@ def add_queue_item(
     credits_required=0,
     execution_type="ai_executable",
     source_action_title="",
+    scheduled_for=None,
     user_id=None,
 ):
     items = load_queue_items()
@@ -167,6 +239,7 @@ def add_queue_item(
             execution_type, "ai_executable"
         ),
         "source_action_title": _normalize_text(source_action_title),
+        "scheduled_for": _normalize_scheduled_for(scheduled_for),
         "user_id": user_id,
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
@@ -177,6 +250,30 @@ def add_queue_item(
     return new_item
 
 
+def update_queue_item_schedule(item_id, scheduled_for, user_id=None):
+    """Set or clear the scheduled_for date on a queue item."""
+    items = load_queue_items()
+    updated = None
+
+    normalized_date = _normalize_scheduled_for(scheduled_for)
+
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["scheduled_for"] = normalized_date
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+
+    if not updated:
+        return None
+
+    save_queue_items(items)
+    return updated
+
+
 def get_queue_items(
     client_id=None,
     user_id=None,
@@ -184,6 +281,7 @@ def get_queue_items(
     item_type=None,
     priority=None,
     source=None,
+    include_dismissed=False,
 ):
     items = load_queue_items()
 
@@ -196,6 +294,9 @@ def get_queue_items(
     if status:
         normalized_status = _normalize_status(status)
         items = [item for item in items if item.get("status") == normalized_status]
+    elif not include_dismissed:
+        # Hide dismissed items from default listings (e.g., the queue page).
+        items = [item for item in items if item.get("status") != "dismissed"]
 
     if item_type:
         normalized_item_type = _normalize_item_type(item_type)

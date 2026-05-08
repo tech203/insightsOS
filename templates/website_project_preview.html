@@ -37,13 +37,11 @@
 
         {% if not webflow_enabled %}
         <p class="muted">
-            Publishing setup is incomplete. Add real values for {{ webflow_status.missing|join(", ") }}.
-            Placeholder values like "..." are treated as not configured.
+            Publishing isn't fully set up on this site yet. Reach out to your admin to enable it.
         </p>
         {% elif blueprint.webflow_connection %}
         <p class="muted">
-            Publishing setup verified: {{ blueprint.webflow_connection.collection_name }} ·
-            {{ blueprint.webflow_connection.verified_at }}
+            Publishing setup verified · {{ blueprint.webflow_connection.verified_at }}
         </p>
         {% else %}
         <p class="muted">

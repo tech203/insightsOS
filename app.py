@@ -7,6 +7,9 @@ from content_queue import (
     update_queue_item_status,
     update_queue_item_content,
     update_queue_item_details,
+    update_queue_item_schedule,
+    update_queue_item_og_image,
+    update_queue_item_webflow_export,
     delete_queue_item,
     transition_queue_item,
 )
@@ -32,6 +35,7 @@ from action_engine import (
     build_content_opportunities,
 )
 from next_action_engine import build_next_best_action
+from growth_calendar import weekly_growth_recommendations
 from query_idea_generator import generate_query_ideas
 from flask import (
     Flask,
@@ -77,6 +81,8 @@ def _check_env_health():
         "WEBFLOW_FAQ_COLLECTION_ID": "FAQ publishing",
         "WEBFLOW_SERVICE_COLLECTION_ID": "service-page publishing",
         "WEBFLOW_LOCATION_COLLECTION_ID": "location-page publishing",
+        "PLACID_API_TOKEN": "visual generation (OG images, banners)",
+        "PLACID_TEMPLATE_UUID_OG": "OG image template for queue items",
     }
 
     missing_required = [(k, why) for k, why in required.items() if not os.getenv(k)]
@@ -1482,46 +1488,96 @@ def export_website_project_to_webflow(project_id):
         .all()
     )
 
-    try:
-        export_result = export_project_to_webflow(project, pages)
-    except WebflowConfigError as exc:
-        flash(str(exc), "warning")
-        return redirect(url_for("preview_website_project", project_id=project.id))
-    except WebflowAPIError as exc:
-        flash(str(exc), "danger")
-        return redirect(url_for("preview_website_project", project_id=project.id))
+    # Prefer the legacy single-collection export if WEBFLOW_COLLECTION_ID is
+    # set; otherwise fall through to per-page routing using BLOG / FAQ /
+    # SERVICE / LOCATION env vars (matching the per-content-type setup most
+    # users have today).
+    legacy_collection = os.getenv("WEBFLOW_COLLECTION_ID")
+    use_per_collection = (
+        not legacy_collection or legacy_collection.startswith("your_")
+    )
+
+    if use_per_collection:
+        try:
+            export_result = _export_website_project_per_collection(project, pages)
+        except Exception as exc:
+            logger.error(f"Per-collection export failed: {exc}")
+            flash(
+                "We couldn't sync this website to your CMS. Try again, or "
+                "reach out to your admin if the problem keeps happening.",
+                "danger",
+            )
+            return redirect(url_for("preview_website_project", project_id=project.id))
+    else:
+        try:
+            export_result = export_project_to_webflow(project, pages)
+        except WebflowConfigError as exc:
+            logger.warning(f"Site publishing config issue: {exc}")
+            flash(
+                "Publishing isn't fully set up on this site yet. "
+                "Reach out to your admin to enable it.",
+                "warning",
+            )
+            return redirect(url_for("preview_website_project", project_id=project.id))
+        except WebflowAPIError as exc:
+            logger.warning(f"Site publishing API error: {exc}")
+            flash(
+                "We couldn't sync this website to your CMS. Try again, or "
+                "reach out to your admin.",
+                "danger",
+            )
+            return redirect(url_for("preview_website_project", project_id=project.id))
 
     blueprint = project.blueprint_json or {}
     blueprint["webflow_export"] = export_result
     project.blueprint_json = blueprint
     flag_modified(project, "blueprint_json")
 
-    exported_by_page_id = {
-        item.get("local_page_id"): item for item in export_result.get("pages", [])
-    }
-    exported_at = export_result.get("exported_at")
-
-    for page in pages:
-        item = exported_by_page_id.get(page.id)
-        if not item:
-            continue
-        page_json = page.page_json or {}
-        page_json["webflow"] = {
-            "item_id": item.get("webflow_item_id"),
-            "last_action": item.get("action"),
-            "exported_at": exported_at,
-            "published": export_result.get("published", False),
-            "live_url": item.get("live_url"),
+    if not use_per_collection:
+        # The legacy path stamps webflow data per page outside the function;
+        # the per-collection path already stamped during the inner loop.
+        exported_by_page_id = {
+            item.get("local_page_id"): item for item in export_result.get("pages", [])
         }
-        page.page_json = page_json
-        flag_modified(page, "page_json")
+        exported_at = export_result.get("exported_at")
+        for page in pages:
+            item = exported_by_page_id.get(page.id)
+            if not item:
+                continue
+            page_json = page.page_json or {}
+            page_json["webflow"] = {
+                "item_id": item.get("webflow_item_id"),
+                "last_action": item.get("action"),
+                "exported_at": exported_at,
+                "published": export_result.get("published", False),
+                "live_url": item.get("live_url"),
+            }
+            page.page_json = page_json
+            flag_modified(page, "page_json")
 
     db.session.commit()
 
-    flash(
-        f"Synced {len(export_result.get('pages', []))} page(s) to the publishing layer.",
-        "success",
-    )
+    synced_count = len(export_result.get("pages", []))
+    skipped = export_result.get("skipped") or []
+    errors = export_result.get("errors") or []
+
+    if errors:
+        flash(
+            f"Synced {synced_count} page(s); {len(errors)} failed. "
+            "Check the preview for details.",
+            "warning",
+        )
+    elif skipped:
+        flash(
+            f"Synced {synced_count} page(s); skipped {len(skipped)} that don't have a CMS collection on this site yet.",
+            "success",
+        )
+    else:
+        flash(
+            f"Synced {synced_count} page(s) to your CMS as drafts. "
+            "Review and go live from your CMS.",
+            "success",
+        )
     return redirect(url_for("preview_website_project", project_id=project.id))
 
 
@@ -3919,19 +3975,189 @@ def help_page():
     return render_template("help.html", glossary=HELP_GLOSSARY)
 
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    return redirect(url_for("index"))
-
-
 @app.route("/pricing")
 @login_required
 def pricing_page():
     return render_template("pricing.html")
 
 
+@app.route("/growth-calendar")
+@login_required
+def growth_calendar_page():
+    requested_client_id = request.args.get("client_id", "").strip()
+    clients = build_client_views()
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
+
+    selected_client = None
+    if requested_client_id:
+        selected_client = next(
+            (c for c in clients if str(c.get("id")) == str(requested_client_id)),
+            None,
+        )
+
+    if not selected_client and view_mode == "single" and focused_client:
+        selected_client = focused_client
+
+    if not selected_client and clients:
+        selected_client = clients[0]
+
+    queue_items = []
+    queue_items_for_dedupe = []
+    if selected_client:
+        # Visible queue items for the calendar cards exclude dismissed.
+        queue_items = get_queue_items(
+            client_id=selected_client.get("id"),
+            user_id=current_user.id,
+        )
+        # For dedupe we also include dismissed items so previously-dismissed
+        # recommendations stay hidden from the calendar.
+        queue_items_for_dedupe = get_queue_items(
+            client_id=selected_client.get("id"),
+            user_id=current_user.id,
+            include_dismissed=True,
+        )
+
+    plan = weekly_growth_recommendations(
+        client=selected_client,
+        queue_items=queue_items_for_dedupe or queue_items,
+    )
+
+    # The calendar layout shouldn't show dismissed cards as visible cards.
+    # weekly_growth_recommendations places queue items on the calendar; strip
+    # dismissed ones from the rendered cards (they're only there for dedupe).
+    for week in plan.get("weeks", []):
+        week["cards"] = [
+            c for c in week["cards"]
+            if c.get("kind") != "queue" or c.get("status") != "dismissed"
+        ]
+        week["counts"] = {
+            "total": len(week["cards"]),
+            "queue": sum(1 for c in week["cards"] if c["kind"] == "queue"),
+            "recommended": sum(1 for c in week["cards"] if c["kind"] == "recommendation"),
+        }
+
+    return render_template(
+        "growth_calendar.html",
+        clients=clients,
+        selected_client=selected_client,
+        focused_client=focused_client,
+        view_mode=view_mode,
+        plan=plan,
+    )
+
+
+@app.route("/growth-calendar/schedule-recommendation", methods=["POST"])
+@login_required
+def growth_calendar_schedule_recommendation():
+    """Pin a recommended action to a specific week — adds it to the queue
+    with scheduled_for set to that week's Monday."""
+    client_id = request.form.get("client_id", "").strip()
+    title = request.form.get("title", "").strip() or "Visibility action"
+    target_query = request.form.get("target_query", "").strip()
+    content_type = request.form.get("content_type", "").strip() or "service_page"
+    priority = request.form.get("priority", "medium").strip() or "medium"
+    scheduled_for = request.form.get("scheduled_for", "").strip()
+    credits_required = request.form.get("credits_required", "0").strip() or "0"
+    source_action_title = request.form.get("source_action_title", title).strip()
+
+    client = get_client_by_id(client_id) if client_id else None
+    if not client:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("growth_calendar_page"))
+
+    add_queue_item(
+        client_id=client.get("id"),
+        client_name=client.get("name"),
+        target_query=target_query,
+        content_type=content_type,
+        item_type="brief",
+        title=title,
+        content="",
+        status="pending",
+        priority=priority,
+        source="audit_opportunity",
+        credits_required=int(credits_required) if credits_required.isdigit() else 0,
+        execution_type="ai_executable",
+        source_action_title=source_action_title,
+        scheduled_for=scheduled_for or None,
+        user_id=current_user.id,
+    )
+
+    flash("Recommendation scheduled to the queue.", "success")
+    return redirect(url_for("growth_calendar_page", client_id=client.get("id")))
+
+
+@app.route("/growth-calendar/dismiss-recommendation", methods=["POST"])
+@login_required
+def growth_calendar_dismiss_recommendation():
+    """Hide a recommendation from the calendar without pinning it.
+
+    Stores a queue item with status='dismissed' so the existing dedupe
+    filter (matching on source_action_title / target_query) keeps the
+    recommendation out of future renders. The dismissed item is hidden
+    from the queue page by default — it's a tombstone, not work.
+    """
+    client_id = request.form.get("client_id", "").strip()
+    title = request.form.get("title", "").strip() or "Visibility action"
+    target_query = request.form.get("target_query", "").strip()
+    content_type = request.form.get("content_type", "").strip() or "service_page"
+    priority = request.form.get("priority", "medium").strip() or "medium"
+
+    client = get_client_by_id(client_id) if client_id else None
+    if not client:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("growth_calendar_page"))
+
+    add_queue_item(
+        client_id=client.get("id"),
+        client_name=client.get("name"),
+        target_query=target_query,
+        content_type=content_type,
+        item_type="brief",
+        title=title,
+        content="",
+        status="dismissed",
+        priority=priority,
+        source="audit_opportunity",
+        credits_required=0,
+        execution_type="ai_executable",
+        source_action_title=title,
+        scheduled_for=None,
+        user_id=current_user.id,
+    )
+
+    flash("Recommendation dismissed.", "success")
+    return redirect(url_for("growth_calendar_page", client_id=client.get("id")))
+
+
+@app.route("/content-queue/<item_id>/schedule", methods=["POST"])
+@login_required
+def reschedule_queue_item(item_id):
+    scheduled_for = request.form.get("scheduled_for", "").strip()
+    item = update_queue_item_schedule(
+        item_id, scheduled_for or None, user_id=current_user.id
+    )
+    if not item:
+        abort(404)
+
+    if scheduled_for:
+        flash(f"Item rescheduled to {scheduled_for}.", "success")
+    else:
+        flash("Schedule cleared.", "success")
+
+    redirect_to = request.form.get("redirect_to", "").strip()
+    if redirect_to == "queue":
+        return redirect(
+            url_for("content_queue_page", client_id=request.form.get("client_id", ""))
+        )
+    return redirect(
+        url_for("growth_calendar_page", client_id=request.form.get("client_id", ""))
+    )
+
+
 @app.route("/")
+@app.route("/dashboard")
 @login_required
 def index():
     all_audits = get_saved_audits(user_id=current_user.id)
@@ -4202,7 +4428,7 @@ def payment_success():
     db.session.commit()
 
     flash("Upgrade successful! You now have full access 🚀", "success")
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("index"))
 
 
 @app.route("/clients/new", methods=["GET", "POST"])
@@ -5829,6 +6055,664 @@ def publish_content_queue_item(item_id):
     return _redirect_to_queue(client_id)
 
 
+CONTENT_TYPE_TO_WEBFLOW_COLLECTION = {
+    "blog_post": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "article": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "faq_page": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "faq": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "service_page": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "location_page": ("WEBFLOW_LOCATION_COLLECTION_ID", "location"),
+    "comparison_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "landing_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+}
+
+# Reverse: when an item is already published, look the collection back up by
+# the stored label so updates always target the same CMS collection even if
+# the user edits the item's content_type later.
+COLLECTION_LABEL_TO_ENV = {
+    "blog": "WEBFLOW_BLOG_COLLECTION_ID",
+    "faq": "WEBFLOW_FAQ_COLLECTION_ID",
+    "service": "WEBFLOW_SERVICE_COLLECTION_ID",
+    "location": "WEBFLOW_LOCATION_COLLECTION_ID",
+}
+
+# Multi-page website export: map a page's page_type to the collection it
+# should land in. "contact" is intentionally skipped — a contact page is
+# usually a static designer page, not a CMS item.
+PAGE_TYPE_TO_COLLECTION = {
+    "home": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "about": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "blog": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "blog_post": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "landing": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "landing_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "comparison": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "comparison_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
+    "faq": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "faq_page": ("WEBFLOW_FAQ_COLLECTION_ID", "faq"),
+    "services": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "service": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "service_page": ("WEBFLOW_SERVICE_COLLECTION_ID", "service"),
+    "location": ("WEBFLOW_LOCATION_COLLECTION_ID", "location"),
+    "location_page": ("WEBFLOW_LOCATION_COLLECTION_ID", "location"),
+}
+
+
+def _build_field_data_for_generated_page(page, collection_label):
+    """Build a CMS field-data payload from a GeneratedWebsitePage row."""
+    title = page.title or page.slug or "Untitled"
+    slug = _slugify_for_webflow(page.slug or title)
+    page_json = page.page_json or {}
+
+    # Pull body content from common locations the page builder produces.
+    summary = ""
+    body = ""
+    if isinstance(page_json, dict):
+        summary = (
+            page_json.get("meta_description")
+            or page_json.get("summary")
+            or page_json.get("hero", {}).get("subhead", "")
+        )
+        body = page_json.get("body") or page_json.get("content") or ""
+
+        # Fallback: stitch sections together.
+        if not body and "sections" in page_json:
+            body = "\n\n".join(
+                str(s.get("body") or s.get("content") or "")
+                for s in (page_json.get("sections") or [])
+                if isinstance(s, dict)
+            )
+
+    fields = {"name": title, "slug": slug}
+    if collection_label == "faq":
+        fields["question"] = title
+        fields["answer"] = body or summary or title
+    else:
+        if summary:
+            fields["summary"] = summary[:240]
+        if body:
+            fields["content"] = body
+    return fields
+
+
+def _export_website_project_per_collection(project, pages):
+    """Push each generated page to the collection that matches its page_type.
+
+    Used when the legacy single-collection WEBFLOW_COLLECTION_ID isn't set
+    but per-collection env vars are. Returns a result dict mirroring the
+    legacy export's shape so callers can stay consistent.
+    """
+    from services.webflow_client import (
+        WebflowCMSClient,
+        WebflowAPIError,
+        WebflowConfigError,
+    )
+
+    client = WebflowCMSClient()
+    site_id = os.getenv("WEBFLOW_SITE_ID")
+
+    exported_pages = []
+    skipped_pages = []
+    errors = []
+
+    for page in pages:
+        page_type = (page.page_type or "").lower()
+        routing = PAGE_TYPE_TO_COLLECTION.get(page_type)
+        if not routing:
+            skipped_pages.append({"slug": page.slug, "reason": f"no collection mapped for '{page_type}'"})
+            continue
+
+        env_var, collection_label = routing
+        collection_id = os.getenv(env_var)
+        if not collection_id or collection_id.startswith("your_"):
+            skipped_pages.append({"slug": page.slug, "reason": f"{collection_label} collection not configured"})
+            continue
+
+        field_data = _build_field_data_for_generated_page(page, collection_label)
+
+        # Reuse an existing webflow_item_id if we tracked one previously.
+        existing_wf = (page.page_json or {}).get("webflow") if isinstance(page.page_json, dict) else None
+        existing_item_id = (existing_wf or {}).get("item_id")
+
+        try:
+            if existing_item_id:
+                client.update_item(collection_id, existing_item_id, field_data)
+                webflow_item_id = existing_item_id
+                action = "updated"
+            else:
+                webflow_item_id = client.create_item(collection_id, field_data, is_draft=True)
+                action = "created"
+        except (WebflowAPIError, WebflowConfigError) as e:
+            errors.append({"slug": page.slug, "error": str(e)})
+            continue
+
+        live_url = _build_live_url(client, collection_id, field_data["slug"])
+
+        # Stamp the result back on the page so the preview can show it.
+        if not isinstance(page.page_json, dict):
+            page.page_json = {}
+        page.page_json["webflow"] = {
+            "item_id": webflow_item_id,
+            "collection": collection_label,
+            "collection_id": collection_id,
+            "live_url": live_url,
+            "last_action": action,
+            "exported_at": datetime.utcnow().isoformat(timespec="seconds"),
+        }
+        flag_modified(page, "page_json")
+
+        # Per-page export tracking row.
+        try:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=str(project.client_id) if project.client_id else None,
+                content_type=collection_label,
+                local_source_type="generated_page",
+                local_source_id=str(page.id),
+                webflow_site_id=site_id,
+                webflow_collection_id=collection_id,
+                webflow_item_id=webflow_item_id,
+                status=action if action == "updated" else "exported",
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+        except Exception as e:
+            logger.warning(f"Per-page export tracking failed: {e}")
+
+        exported_pages.append({
+            "local_page_id": page.id,
+            "slug": page.slug,
+            "page_type": page_type,
+            "collection": collection_label,
+            "webflow_item_id": webflow_item_id,
+            "action": action,
+            "live_url": live_url,
+        })
+
+    db.session.commit()
+
+    return {
+        "site_id": site_id,
+        "exported_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "pages": exported_pages,
+        "skipped": skipped_pages,
+        "errors": errors,
+        "published": False,  # Always drafts in this path
+        "mode": "per_collection",
+    }
+
+
+def _slugify_for_webflow(text):
+    """Webflow slugs: lowercase, alphanumerics + hyphens, no leading/trailing hyphens."""
+    import re
+
+    s = re.sub(r"[^\w\s-]", "", (text or "").lower())
+    s = re.sub(r"[\s_]+", "-", s).strip("-")
+    return s[:80] or "untitled"
+
+
+# Module-level caches — site domain rarely changes; collection slugs even less.
+_SITE_DOMAIN_CACHE = {}
+_COLLECTION_SLUG_CACHE = {}
+_COLLECTION_IMAGE_FIELD_CACHE = {}
+
+
+def _get_collection_image_field_slug(client, collection_id):
+    """Find the first image-type field on a collection, cached per collection.
+
+    Webflow image field types come back as 'ImageRef' or 'Image' depending on
+    the API version; check both.
+    """
+    if not collection_id:
+        return None
+    if collection_id in _COLLECTION_IMAGE_FIELD_CACHE:
+        return _COLLECTION_IMAGE_FIELD_CACHE[collection_id]
+    try:
+        fields = client.list_collection_fields(collection_id)
+    except Exception as e:
+        logger.warning(f"Couldn't list fields for collection {collection_id}: {e}")
+        return None
+
+    image_slug = None
+    for f in fields or []:
+        ftype = (f.get("type") or "").lower()
+        if ftype in {"image", "imageref"}:
+            image_slug = f.get("slug")
+            break
+
+    _COLLECTION_IMAGE_FIELD_CACHE[collection_id] = image_slug
+    return image_slug
+
+
+def _get_site_default_domain(client, site_id):
+    """Fetch and cache the site's primary domain.
+
+    Resolution order, since the v2 API often returns empty customDomains and
+    a None defaultDomain on hosted-only sites:
+      1. customDomains[*].url
+      2. defaultDomain
+      3. <shortName>.webflow.io (the free hosted domain Webflow always serves)
+    """
+    if not site_id:
+        return None
+    if site_id in _SITE_DOMAIN_CACHE:
+        return _SITE_DOMAIN_CACHE[site_id]
+    try:
+        info = client._request("GET", f"/sites/{site_id}")
+    except Exception as e:
+        logger.warning(f"Couldn't fetch site domain: {e}")
+        return None
+
+    domain = None
+    for d in info.get("customDomains") or []:
+        url = d.get("url") or d.get("name")
+        if url:
+            domain = url
+            break
+    if not domain:
+        domain = info.get("defaultDomain")
+    if not domain:
+        short_name = info.get("shortName")
+        if short_name:
+            domain = f"{short_name}.webflow.io"
+
+    if domain:
+        domain = domain.replace("https://", "").replace("http://", "").rstrip("/")
+        _SITE_DOMAIN_CACHE[site_id] = domain
+    return domain
+
+
+def _get_collection_slug(client, collection_id):
+    """Fetch and cache a collection's URL slug."""
+    if not collection_id:
+        return None
+    if collection_id in _COLLECTION_SLUG_CACHE:
+        return _COLLECTION_SLUG_CACHE[collection_id]
+    try:
+        details = client.get_collection_details(collection_id)
+    except Exception as e:
+        logger.warning(f"Couldn't fetch collection {collection_id}: {e}")
+        return None
+    slug = details.get("slug")
+    if slug:
+        _COLLECTION_SLUG_CACHE[collection_id] = slug
+    return slug
+
+
+def _build_live_url(client, collection_id, item_slug):
+    """Build the live URL for a published item, or None if anything is missing."""
+    if not item_slug:
+        return None
+    site_id = os.getenv("WEBFLOW_SITE_ID")
+    domain = _get_site_default_domain(client, site_id)
+    collection_slug = _get_collection_slug(client, collection_id)
+    if not domain or not collection_slug:
+        return None
+    return f"https://{domain}/{collection_slug}/{item_slug}"
+
+
+def _build_webflow_field_data_for_queue_item(item, collection_kind):
+    """Map a queue item's title/content/target_query into Webflow field-data."""
+    title = item.get("title") or item.get("target_query") or "Untitled"
+    slug = _slugify_for_webflow(title)
+    content = item.get("content") or ""
+
+    fields = {"name": title, "slug": slug}
+
+    if collection_kind == "faq":
+        fields["question"] = title
+        fields["answer"] = content
+    else:
+        fields["content"] = content
+        if item.get("target_query"):
+            fields["summary"] = f"Target query: {item['target_query']}"
+
+    return fields
+
+
+@app.route("/content-queue/<item_id>/publish-to-webflow", methods=["POST"])
+@login_required
+def publish_queue_item_to_webflow(item_id):
+    """Push a ready queue item to the right Webflow CMS collection."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+
+    status = (item.get("status") or "").lower()
+    if status not in {"ready", "draft_generated"}:
+        flash(
+            "Approve the draft first — only ready items can publish to Webflow.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    content_type = (item.get("content_type") or "").lower()
+    routing = CONTENT_TYPE_TO_WEBFLOW_COLLECTION.get(content_type)
+    if not routing:
+        flash(
+            f"This site can't publish '{content_type}' content yet. "
+            "Pick a blog, FAQ, service, or location item.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    env_var, collection_label = routing
+    collection_id = os.getenv(env_var)
+    if not collection_id or collection_id.startswith("your_"):
+        flash(
+            f"Publishing for {collection_label} pages isn't set up on this site yet. "
+            "Reach out to your admin to enable it.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    try:
+        from services.webflow_client import (
+            WebflowCMSClient,
+            WebflowAPIError,
+            WebflowConfigError,
+        )
+
+        client = WebflowCMSClient()
+        field_data = _build_webflow_field_data_for_queue_item(item, collection_label)
+        webflow_item_id = client.create_item(
+            collection_id, field_data, is_draft=True
+        )
+
+        live_url = _build_live_url(
+            client, collection_id, field_data.get("slug")
+        )
+
+        update_queue_item_webflow_export(
+            item_id,
+            webflow_item_id=webflow_item_id,
+            webflow_collection=collection_label,
+            webflow_live_url=live_url,
+            user_id=current_user.id,
+        )
+
+        try:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=item.get("client_id"),
+                content_type=collection_label,
+                local_source_type="content_queue",
+                local_source_id=str(item_id),
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=collection_id,
+                webflow_item_id=webflow_item_id,
+                status="exported",
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+        except Exception as track_err:
+            logger.warning(f"Webflow export tracking failed: {track_err}")
+            db.session.rollback()
+
+        flash(
+            f"Published as a {collection_label} draft on your site. "
+            "Review and go live from your CMS.",
+            "success",
+        )
+
+    except WebflowConfigError as e:
+        logger.warning(f"Site publishing config issue: {e}")
+        flash(
+            "Publishing isn't fully set up on this site yet. "
+            "Reach out to your admin to enable it.",
+            "error",
+        )
+    except WebflowAPIError as e:
+        logger.warning(f"Site publishing API error: {e}")
+        flash(
+            "We couldn't publish this item to your site. Try again, "
+            "or reach out to your admin if the problem keeps happening.",
+            "error",
+        )
+    except Exception as e:
+        logger.error(f"Publish to site failed: {e}")
+        flash("Publishing failed unexpectedly. Try again.", "error")
+
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/generate-visual", methods=["POST"])
+@login_required
+def generate_queue_item_visual(item_id):
+    """Render an OG image / banner for a queue item via Placid."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+
+    template_uuid = os.getenv("PLACID_TEMPLATE_UUID_OG")
+    if not os.getenv("PLACID_API_TOKEN") or not template_uuid:
+        flash(
+            "Visual generation isn't set up on this site yet. "
+            "Reach out to your admin to enable it.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    try:
+        from services.placid_client import (
+            PlacidClient,
+            PlacidAPIError,
+            PlacidConfigError,
+        )
+
+        client = PlacidClient()
+        # Map queue item content into the template's named layers.
+        # Templates configured in Placid should expose these layer names.
+        layers = {
+            "headline": {"text": item.get("title") or "Untitled"},
+        }
+        if item.get("target_query"):
+            layers["subhead"] = {"text": item.get("target_query")}
+        if item.get("client_name"):
+            layers["brand"] = {"text": item.get("client_name")}
+
+        result = client.generate_image(
+            template_uuid=template_uuid, layers=layers, wait=True
+        )
+        status = result.get("status")
+        image_url = result.get("image_url")
+
+        if status == "finished" and image_url:
+            update_queue_item_og_image(
+                item_id, og_image_url=image_url, user_id=current_user.id
+            )
+
+            # If this item already lives in the CMS, also push the image to
+            # the matching image field so the live page picks it up.
+            cms_synced = False
+            cms_skipped_reason = None
+            webflow_item_id = item.get("webflow_item_id")
+            collection_label = (item.get("webflow_collection") or "").lower()
+            if webflow_item_id and collection_label:
+                env_var = COLLECTION_LABEL_TO_ENV.get(collection_label)
+                collection_id = os.getenv(env_var) if env_var else None
+                if collection_id and not collection_id.startswith("your_"):
+                    try:
+                        from services.webflow_client import (
+                            WebflowCMSClient as _WebflowCMSClient,
+                            WebflowAPIError as _WebflowAPIError,
+                        )
+
+                        wf_client = _WebflowCMSClient()
+                        image_slug = _get_collection_image_field_slug(
+                            wf_client, collection_id
+                        )
+                        if image_slug:
+                            wf_client.update_item(
+                                collection_id,
+                                webflow_item_id,
+                                {image_slug: image_url},
+                            )
+                            cms_synced = True
+                        else:
+                            cms_skipped_reason = "no image field on collection"
+                    except _WebflowAPIError as e:
+                        logger.warning(f"Visual CMS sync API error: {e}")
+                        cms_skipped_reason = "CMS rejected the image update"
+                    except Exception as e:
+                        logger.warning(f"Visual CMS sync failed: {e}")
+                        cms_skipped_reason = "CMS sync failed"
+
+            if cms_synced:
+                flash(
+                    "Visual generated and synced to your CMS. "
+                    "Re-publish from the CMS to push it live.",
+                    "success",
+                )
+            elif cms_skipped_reason:
+                flash(
+                    f"Visual generated. CMS sync skipped — {cms_skipped_reason}.",
+                    "warning",
+                )
+            else:
+                flash("Visual generated and attached to this item.", "success")
+        elif status == "queued":
+            flash(
+                "Visual is still rendering. Refresh in a few seconds — it'll show up automatically.",
+                "info",
+            )
+        else:
+            flash(
+                "We couldn't generate a visual for this item. Try again, "
+                "or check the title isn't empty.",
+                "error",
+            )
+
+    except PlacidConfigError as e:
+        logger.warning(f"Visual generation config issue: {e}")
+        flash(
+            "Visual generation isn't fully set up on this site yet. "
+            "Reach out to your admin.",
+            "error",
+        )
+    except PlacidAPIError as e:
+        logger.warning(f"Visual generation API error: {e}")
+        flash(
+            "We couldn't reach the visual generator. Try again, or "
+            "reach out to your admin.",
+            "error",
+        )
+    except Exception as e:
+        logger.error(f"Generate visual failed: {e}")
+        flash("Visual generation failed unexpectedly. Try again.", "error")
+
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/update-on-site", methods=["POST"])
+@login_required
+def update_queue_item_on_site(item_id):
+    """Push edits for a previously-published queue item back to its CMS entry."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+
+    webflow_item_id = item.get("webflow_item_id")
+    collection_label = (item.get("webflow_collection") or "").lower()
+    if not webflow_item_id or not collection_label:
+        flash(
+            "This item isn't on your site yet — publish it first.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    env_var = COLLECTION_LABEL_TO_ENV.get(collection_label)
+    if not env_var:
+        flash(
+            f"Can't find the publishing collection for this item's '{collection_label}' type.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    collection_id = os.getenv(env_var)
+    if not collection_id or collection_id.startswith("your_"):
+        flash(
+            f"Publishing for {collection_label} pages isn't set up on this site anymore. "
+            "Reach out to your admin.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    try:
+        from services.webflow_client import (
+            WebflowCMSClient,
+            WebflowAPIError,
+            WebflowConfigError,
+        )
+
+        client = WebflowCMSClient()
+        field_data = _build_webflow_field_data_for_queue_item(item, collection_label)
+        client.update_item(collection_id, webflow_item_id, field_data)
+
+        live_url = _build_live_url(
+            client, collection_id, field_data.get("slug")
+        )
+        if live_url and live_url != item.get("webflow_live_url"):
+            update_queue_item_webflow_export(
+                item_id,
+                webflow_item_id=webflow_item_id,
+                webflow_collection=collection_label,
+                webflow_live_url=live_url,
+                user_id=current_user.id,
+            )
+
+        # Track the update in WebflowExport too.
+        try:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=item.get("client_id"),
+                content_type=collection_label,
+                local_source_type="content_queue",
+                local_source_id=str(item_id),
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=collection_id,
+                webflow_item_id=webflow_item_id,
+                status="updated",
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+        except Exception as track_err:
+            logger.warning(f"Update tracking failed: {track_err}")
+            db.session.rollback()
+
+        flash(
+            f"Updated the {collection_label} entry on your site. "
+            "Re-publish from your CMS to push the changes live.",
+            "success",
+        )
+
+    except WebflowConfigError as e:
+        logger.warning(f"Site update config issue: {e}")
+        flash(
+            "Publishing isn't fully set up on this site anymore. Reach out to your admin.",
+            "error",
+        )
+    except WebflowAPIError as e:
+        logger.warning(f"Site update API error: {e}")
+        flash(
+            "We couldn't update this item on your site. Try again, or reach out to your admin.",
+            "error",
+        )
+    except Exception as e:
+        logger.error(f"Update on site failed: {e}")
+        flash("Updating the item failed unexpectedly. Try again.", "error")
+
+    return _redirect_to_queue(client_id)
+
+
 @app.route("/content-queue/<item_id>/unapprove", methods=["POST"])
 @login_required
 def unapprove_content_queue_item(item_id):
@@ -6310,25 +7194,48 @@ def render_settings_section(section, **extra_context):
         or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
+    referral_link = None
+    if current_user.is_authenticated and current_user.referral_code:
+        referral_link = (
+            request.host_url.rstrip("/")
+            + url_for("signup")
+            + "?ref="
+            + current_user.referral_code
+        )
+
+    credit_history = []
+    if current_user.is_authenticated:
+        try:
+            credit_history = (
+                CreditTransaction.query
+                .filter_by(user_id=current_user.id)
+                .order_by(CreditTransaction.created_at.desc())
+                .limit(20)
+                .all()
+            )
+        except Exception:
+            credit_history = []
+
+    referrals_made = []
+    if current_user.is_authenticated:
+        try:
+            referrals_made = (
+                Referral.query
+                .filter_by(referrer_user_id=current_user.id)
+                .order_by(Referral.created_at.desc())
+                .limit(20)
+                .all()
+            )
+        except Exception:
+            referrals_made = []
+
     context = {
         "active_settings_section": section,
         "is_internal_user": is_internal_user,
         "view_mode": session.get("dev_view_mode", "auto"),
-    }
-    context.update(extra_context)
-
-
-def render_settings_section(section, **extra_context):
-    is_internal_user = current_user.is_authenticated and (
-        current_user.email == "pypteltd@gmail.com"
-        or getattr(current_user, "role", "") == "admin"
-        or getattr(current_user, "plan", "") == "dev_unlimited"
-    )
-
-    context = {
-        "active_settings_section": section,
-        "is_internal_user": is_internal_user,
-        "view_mode": session.get("dev_view_mode", "auto"),
+        "referral_link": referral_link,
+        "credit_history": credit_history,
+        "referrals_made": referrals_made,
     }
     context.update(extra_context)
 
