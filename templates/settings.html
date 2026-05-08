@@ -262,61 +262,79 @@
     {% endif %}
 
     {% if active_settings_section == "credits" %}
+    {% set tx_list = credit_history if credit_history is defined else [] %}
+    {% set total_earned = tx_list | selectattr('amount', 'gt', 0) | sum(attribute='amount') %}
+    {% set total_spent = tx_list | selectattr('amount', 'lt', 0) | sum(attribute='amount') %}
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
                 <h2>Credits</h2>
-                <p>Track current balance and future usage activity.</p>
+                <p>Current balance and recent activity on your wallet.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
                 <div class="settings-v3-metric-card">
                     <span>Current Balance</span>
                     <strong>
-                        {% if current_user.wallet %}
-                            {{ current_user.wallet.balance }}
-                        {% else %}
-                            0
-                        {% endif %}
+                        {% if current_user.plan == 'dev_unlimited' %}Unlimited
+                        {% elif current_user.wallet %}{{ current_user.wallet.balance }}
+                        {% else %}0{% endif %}
                     </strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Used This Month</span>
-                    <strong>Not tracked yet</strong>
+                    <span>Total Earned</span>
+                    <strong>{{ total_earned or 0 }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Purchased Top-ups</span>
-                    <strong>Not tracked yet</strong>
+                    <span>Total Spent</span>
+                    <strong>{{ (total_spent or 0) * -1 }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Usage History</span>
-                    <strong>Not tracked yet</strong>
+                    <span>Recent Transactions</span>
+                    <strong>{{ tx_list|length }}</strong>
                 </div>
             </div>
 
+            {% if tx_list %}
+            <div class="settings-v3-tx-table">
+                <div class="settings-v3-tx-row settings-v3-tx-head">
+                    <span>Date</span>
+                    <span>Type</span>
+                    <span>Amount</span>
+                    <span>Balance</span>
+                </div>
+                {% for tx in tx_list %}
+                <div class="settings-v3-tx-row">
+                    <span>{{ tx.created_at.strftime('%d %b %Y') if tx.created_at else '—' }}</span>
+                    <span>{{ tx.type|replace('_', ' ')|title }}</span>
+                    <span class="{% if tx.amount > 0 %}settings-v3-tx-pos{% elif tx.amount < 0 %}settings-v3-tx-neg{% endif %}">
+                        {% if tx.amount > 0 %}+{% endif %}{{ tx.amount }}
+                    </span>
+                    <span>{{ tx.balance_after }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
             <div class="settings-v3-note-box">
-                Credits are a core part of the product model. This is the right place for balance, usage by workflow, top-up history, and monthly consumption later.
+                No credit activity yet. Audits, briefs, and drafts will draw from your balance and show up here.
             </div>
+            {% endif %}
         </div>
 
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Planned Credit Actions</h2>
-                <p>Useful controls once billing flow is active.</p>
+                <h2>Top up</h2>
+                <p>Add credits when your balance gets low.</p>
             </div>
 
             <div class="settings-v3-card-list">
                 <div class="settings-v3-mini-card">
-                    <h3>Buy More Credits</h3>
-                    <p>Add a purchase flow for one-off credit top-ups here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Usage Breakdown</h3>
-                    <p>Show credits used for audits, exports, briefs, drafts, and other workflows.</p>
+                    <h3>Upgrade plan</h3>
+                    <p>Higher plans include a larger monthly credit allowance plus more workspaces.</p>
+                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary" style="margin-top:12px;">View Plans</a>
                 </div>
             </div>
         </div>
@@ -324,11 +342,14 @@
     {% endif %}
 
     {% if active_settings_section == "referrals" %}
+    {% set ref_list = referrals_made if referrals_made is defined else [] %}
+    {% set ref_completed = ref_list | selectattr('status', 'equalto', 'completed') | list %}
+    {% set rewards_total = ref_completed | sum(attribute='reward_amount_referrer') %}
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Referral Programme</h2>
-                <p>A dedicated home for referral code, sharing, and rewards tracking.</p>
+                <h2>Refer & earn</h2>
+                <p>Share your link. You earn credits when they sign up, they get a starter bonus.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
@@ -338,37 +359,79 @@
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Referral Link</span>
-                    <strong>Not connected yet</strong>
+                    <span>Total Signups</span>
+                    <strong>{{ ref_list|length }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Successful Referrals</span>
-                    <strong>Not tracked yet</strong>
+                    <span>Completed</span>
+                    <strong>{{ ref_completed|length }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Rewards Earned</span>
-                    <strong>Not tracked yet</strong>
+                    <span>Credits Earned</span>
+                    <strong>{{ rewards_total or 0 }}</strong>
                 </div>
             </div>
+
+            {% if referral_link %}
+            <div class="settings-v3-share-row">
+                <input type="text" id="referralLinkField" value="{{ referral_link }}" readonly>
+                <button type="button" class="btn btn-primary" id="referralCopyBtn">Copy</button>
+            </div>
+            {% endif %}
         </div>
 
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Planned Referral Features</h2>
-                <p>Useful modules once referral logic is connected.</p>
+                <h2>Recent referrals</h2>
+                <p>People who signed up using your link.</p>
             </div>
 
-            <div class="settings-v3-bullet-list">
-                <div class="settings-v3-bullet-item">Copy referral link</div>
-                <div class="settings-v3-bullet-item">Referral signups and status</div>
-                <div class="settings-v3-bullet-item">Rewards earned</div>
-                <div class="settings-v3-bullet-item">Referral usage history</div>
-                <div class="settings-v3-bullet-item">Credit or payout history</div>
+            {% if ref_list %}
+            <div class="settings-v3-tx-table">
+                <div class="settings-v3-tx-row settings-v3-tx-head">
+                    <span>Date</span>
+                    <span>Status</span>
+                    <span>Reward</span>
+                </div>
+                {% for ref in ref_list %}
+                <div class="settings-v3-tx-row">
+                    <span>{{ ref.created_at.strftime('%d %b %Y') if ref.created_at else '—' }}</span>
+                    <span>{{ ref.status|title }}</span>
+                    <span class="{% if ref.status == 'completed' %}settings-v3-tx-pos{% endif %}">
+                        {% if ref.status == 'completed' %}+{% endif %}{{ ref.reward_amount_referrer or 0 }}
+                    </span>
+                </div>
+                {% endfor %}
             </div>
+            {% else %}
+            <div class="settings-v3-note-box">
+                Share your link above. Referrals will show up here once someone signs up with it.
+            </div>
+            {% endif %}
         </div>
     </section>
+
+    <script>
+        (function () {
+            var btn = document.getElementById('referralCopyBtn');
+            var field = document.getElementById('referralLinkField');
+            if (!btn || !field) return;
+            btn.addEventListener('click', function () {
+                field.select();
+                field.setSelectionRange(0, 99999);
+                try {
+                    navigator.clipboard.writeText(field.value);
+                } catch (_) {
+                    document.execCommand('copy');
+                }
+                var prev = btn.textContent;
+                btn.textContent = 'Copied';
+                setTimeout(function () { btn.textContent = prev; }, 1600);
+            });
+        })();
+    </script>
     {% endif %}
 
     {% if active_settings_section == "preferences" %}
@@ -662,6 +725,84 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
+}
+
+.settings-v3-tx-table {
+    margin-top: 18px;
+    border: 1px solid #e7ebf3;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.settings-v3-tx-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.6fr 0.8fr 0.8fr;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #16243c;
+    border-top: 1px solid #f1f5f9;
+}
+
+.settings-v3-tx-row:first-child {
+    border-top: 0;
+}
+
+.settings-v3-tx-head {
+    background: #f8fafc;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    font-size: 11px;
+    font-weight: 800;
+    color: #6b7280;
+}
+
+.settings-v3-tx-pos {
+    color: #15803d;
+    font-weight: 700;
+}
+
+.settings-v3-tx-neg {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.settings-v3-share-row {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.settings-v3-share-row input {
+    flex: 1 1 280px;
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid #e7ebf3;
+    background: #f8fafc;
+    color: #16243c;
+    font-size: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.settings-v3-share-row input:focus {
+    outline: none;
+    border-color: #3EDFCB;
+    box-shadow: 0 0 0 3px rgba(62, 223, 203, 0.12);
+}
+
+@media (max-width: 720px) {
+    .settings-v3-tx-row {
+        grid-template-columns: 1fr 1fr;
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+
+    .settings-v3-tx-head {
+        display: none;
+    }
 }
 
 .settings-v3-panel {

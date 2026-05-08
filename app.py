@@ -3919,12 +3919,6 @@ def help_page():
     return render_template("help.html", glossary=HELP_GLOSSARY)
 
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    return redirect(url_for("index"))
-
-
 @app.route("/pricing")
 @login_required
 def pricing_page():
@@ -3932,6 +3926,7 @@ def pricing_page():
 
 
 @app.route("/")
+@app.route("/dashboard")
 @login_required
 def index():
     all_audits = get_saved_audits(user_id=current_user.id)
@@ -4202,7 +4197,7 @@ def payment_success():
     db.session.commit()
 
     flash("Upgrade successful! You now have full access 🚀", "success")
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("index"))
 
 
 @app.route("/clients/new", methods=["GET", "POST"])
@@ -6310,25 +6305,48 @@ def render_settings_section(section, **extra_context):
         or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
+    referral_link = None
+    if current_user.is_authenticated and current_user.referral_code:
+        referral_link = (
+            request.host_url.rstrip("/")
+            + url_for("signup")
+            + "?ref="
+            + current_user.referral_code
+        )
+
+    credit_history = []
+    if current_user.is_authenticated:
+        try:
+            credit_history = (
+                CreditTransaction.query
+                .filter_by(user_id=current_user.id)
+                .order_by(CreditTransaction.created_at.desc())
+                .limit(20)
+                .all()
+            )
+        except Exception:
+            credit_history = []
+
+    referrals_made = []
+    if current_user.is_authenticated:
+        try:
+            referrals_made = (
+                Referral.query
+                .filter_by(referrer_user_id=current_user.id)
+                .order_by(Referral.created_at.desc())
+                .limit(20)
+                .all()
+            )
+        except Exception:
+            referrals_made = []
+
     context = {
         "active_settings_section": section,
         "is_internal_user": is_internal_user,
         "view_mode": session.get("dev_view_mode", "auto"),
-    }
-    context.update(extra_context)
-
-
-def render_settings_section(section, **extra_context):
-    is_internal_user = current_user.is_authenticated and (
-        current_user.email == "pypteltd@gmail.com"
-        or getattr(current_user, "role", "") == "admin"
-        or getattr(current_user, "plan", "") == "dev_unlimited"
-    )
-
-    context = {
-        "active_settings_section": section,
-        "is_internal_user": is_internal_user,
-        "view_mode": session.get("dev_view_mode", "auto"),
+        "referral_link": referral_link,
+        "credit_history": credit_history,
+        "referrals_made": referrals_made,
     }
     context.update(extra_context)
 

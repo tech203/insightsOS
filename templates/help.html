@@ -5,7 +5,7 @@
 {% block page_subtitle %}Simple guidance for busy business owners and teams who want clarity fast.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('dashboard') if url_for else '#' }}" class="btn btn-secondary">Back to Dashboard</a>
+<a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Dashboard</a>
 <a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-secondary">Open Clients</a>
 {% endblock %}
 
