@@ -8087,6 +8087,50 @@ def settings_team():
     return render_settings_section("team")
 
 
+@app.route("/settings/profile/update", methods=["POST"])
+@login_required
+def settings_update_profile():
+    """Update the user's display name. Email is treated as immutable for
+    now since it's also the login identifier — changing it warrants a
+    re-verification flow we haven't built."""
+    new_name = (request.form.get("name") or "").strip()
+    if not new_name:
+        flash("Name can't be empty.", "error")
+        return redirect(url_for("settings_page"))
+    if len(new_name) > 200:
+        flash("Name is too long.", "error")
+        return redirect(url_for("settings_page"))
+    current_user.name = new_name
+    db.session.commit()
+    flash("Display name updated.", "success")
+    return redirect(url_for("settings_page"))
+
+
+@app.route("/settings/account/change-password", methods=["POST"])
+@login_required
+def settings_change_password():
+    """Change the user's password. Requires the current password to
+    avoid drive-by changes if a session is hijacked."""
+    current = request.form.get("current_password") or ""
+    new = request.form.get("new_password") or ""
+    confirm = request.form.get("confirm_password") or ""
+
+    if not check_password_hash(current_user.password_hash, current):
+        flash("Current password is incorrect.", "error")
+        return redirect(url_for("settings_account"))
+    if len(new) < 8:
+        flash("New password must be at least 8 characters.", "error")
+        return redirect(url_for("settings_account"))
+    if new != confirm:
+        flash("New password and confirmation don't match.", "error")
+        return redirect(url_for("settings_account"))
+
+    current_user.password_hash = generate_password_hash(new)
+    db.session.commit()
+    flash("Password updated.", "success")
+    return redirect(url_for("settings_account"))
+
+
 # =========================
 # Webflow Integration Routes
 # =========================

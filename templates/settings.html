@@ -62,10 +62,12 @@
             Preferences
         </a>
 
+        {% if is_internal_user %}
         <a href="{{ url_for('settings_team') }}"
            class="settings-v3-tab {% if active_settings_section == 'team' %}active{% endif %}">
             Team
         </a>
+        {% endif %}
     </section>
 
     <section class="settings-v3-summary-grid">
@@ -104,48 +106,42 @@
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Profile Overview</h2>
-                <p>Your identity inside the workspace.</p>
+                <h2>Display Name</h2>
+                <p>How your name appears across DarInsights.</p>
+            </div>
+
+            <form method="post" action="{{ url_for('settings_update_profile') }}" class="settings-v3-form">
+                <label for="profile-name">Name</label>
+                <input id="profile-name" type="text" name="name" value="{{ current_user.name }}" required maxlength="200">
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Save name</button>
+            </form>
+        </div>
+
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Account Identity</h2>
+                <p>Read-only details tied to your login.</p>
             </div>
 
             <div class="settings-v3-info-list">
-                <div class="settings-v3-info-row">
-                    <span>Name</span>
-                    <strong>{{ current_user.name }}</strong>
-                </div>
-
                 <div class="settings-v3-info-row">
                     <span>Email</span>
                     <strong>{{ current_user.email }}</strong>
                 </div>
 
                 <div class="settings-v3-info-row">
-                    <span>Workspace</span>
-                    <strong>DarInsights</strong>
+                    <span>Plan</span>
+                    <strong>{{ current_user.plan|default("free")|replace('_', ' ')|title }}</strong>
                 </div>
 
                 <div class="settings-v3-info-row">
                     <span>Role</span>
                     <strong>{{ current_user.role|default("user")|title }}</strong>
                 </div>
-            </div>
-        </div>
 
-        <div class="settings-v3-panel">
-            <div class="settings-v3-panel-head">
-                <h2>Profile Roadmap</h2>
-                <p>Natural next upgrades for this area.</p>
-            </div>
-
-            <div class="settings-v3-card-list">
-                <div class="settings-v3-mini-card">
-                    <h3>Display Identity</h3>
-                    <p>Add editable display name, avatar, and workspace branding here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Security Controls</h3>
-                    <p>Add password reset, email verification, and sign-in protection here later.</p>
+                <div class="settings-v3-info-row">
+                    <span>Member since</span>
+                    <strong>{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</strong>
                 </div>
             </div>
         </div>
@@ -156,107 +152,117 @@
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Account Details</h2>
-                <p>Core account identity and access details.</p>
+                <h2>Change password</h2>
+                <p>Sign-in password for {{ current_user.email }}.</p>
             </div>
 
-            <div class="settings-v3-info-list">
-                <div class="settings-v3-info-row">
-                    <span>Full Name</span>
-                    <strong>{{ current_user.name }}</strong>
-                </div>
+            <form method="post" action="{{ url_for('settings_change_password') }}" class="settings-v3-form" autocomplete="off">
+                <label for="acct-current">Current password</label>
+                <input id="acct-current" type="password" name="current_password" required autocomplete="current-password">
 
-                <div class="settings-v3-info-row">
-                    <span>Email Address</span>
-                    <strong>{{ current_user.email }}</strong>
-                </div>
+                <label for="acct-new">New password</label>
+                <input id="acct-new" type="password" name="new_password" required minlength="8" autocomplete="new-password">
 
-                <div class="settings-v3-info-row">
-                    <span>Referral Code</span>
-                    <strong>{{ current_user.referral_code or "Pending setup" }}</strong>
-                </div>
+                <label for="acct-confirm">Confirm new password</label>
+                <input id="acct-confirm" type="password" name="confirm_password" required minlength="8" autocomplete="new-password">
 
-                <div class="settings-v3-info-row">
-                    <span>Workspace Access</span>
-                    <strong>{{ current_user.role|default("user")|title }}</strong>
-                </div>
-            </div>
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Update password</button>
+            </form>
         </div>
 
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Account Roadmap</h2>
-                <p>Planned controls for account management.</p>
+                <h2>Sign out everywhere</h2>
+                <p>Ends your current session on this device.</p>
             </div>
-
-            <div class="settings-v3-card-list">
-                <div class="settings-v3-mini-card">
-                    <h3>Password & Security</h3>
-                    <p>Add password reset, login protection, and security controls here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Email Management</h3>
-                    <p>Move email update, verification, and notification controls here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Session Activity</h3>
-                    <p>Show login history, session visibility, and account activity here later.</p>
-                </div>
-            </div>
+            <p style="font-size:0.9rem; color:#555; margin:0 0 0.85rem 0;">
+                Signing out clears your session cookie. To revoke logins on other devices, change your password above —
+                that invalidates the password hash everywhere it's checked.
+            </p>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary">Sign out of this session</a>
         </div>
     </section>
     {% endif %}
 
     {% if active_settings_section == "billing" %}
+    {% set plan_slug = current_user.plan or 'free' %}
+    {% set plan_label = plan_slug|replace('_', ' ')|title %}
+    {% set plan_allowance = action_credit_costs and 0 %}
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Billing Overview</h2>
-                <p>Subscription, payment, and invoicing for your workspace.</p>
+                <h2>Subscription</h2>
+                <p>Your current plan and what it includes.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
                 <div class="settings-v3-metric-card">
                     <span>Current Plan</span>
-                    <strong>{{ current_user.plan|default("free")|replace('_', ' ')|title }}</strong>
+                    <strong>{{ plan_label }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Billing Status</span>
-                    <strong>Setup pending</strong>
+                    <span>Monthly Credits</span>
+                    <strong>
+                        {% if plan_slug == 'dev_unlimited' %}Unlimited
+                        {% elif plan_slug == 'free' %}0
+                        {% elif plan_slug == 'plus' %}25
+                        {% elif plan_slug == 'pro' %}75
+                        {% elif plan_slug == 'growth' %}175
+                        {% else %}—{% endif %}
+                    </strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Renewal</span>
-                    <strong>—</strong>
+                    <span>Per-Credit Topup</span>
+                    <strong>${{ '%.2f' | format(baseline_credit_price or 2.0) }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Agency Add-on</span>
-                    <strong>{% if current_user.is_white_label_enabled %}Enabled{% else %}Not enabled{% endif %}</strong>
+                    <span>Subscription Status</span>
+                    <strong>
+                        {% if current_user.stripe_subscription_id %}Active
+                        {% elif plan_slug == 'free' %}Free plan
+                        {% elif plan_slug == 'dev_unlimited' %}Internal
+                        {% else %}Manual{% endif %}
+                    </strong>
                 </div>
             </div>
 
-            <div class="settings-v3-note-box">
-                This section is ready for plans, payment methods, invoices, add-ons, and receipts once billing is connected.
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem;">
+                <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                    {% if plan_slug == 'free' %}Upgrade your plan{% else %}Change plan{% endif %}
+                </a>
+                {% if current_user.stripe_customer_id %}
+                <a href="{{ url_for('stripe_portal') }}" class="btn btn-secondary">Manage payment & invoices</a>
+                {% endif %}
+                <a href="{{ url_for('settings_credits') }}" class="btn btn-secondary">Buy credits</a>
             </div>
         </div>
 
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Planned Billing Modules</h2>
-                <p>The main billing controls this area should eventually include.</p>
+                <h2>Workspace add-ons</h2>
+                <p>Optional layers on top of your subscription.</p>
             </div>
 
-            <div class="settings-v3-bullet-list">
-                <div class="settings-v3-bullet-item">Current plan and upgrade options</div>
-                <div class="settings-v3-bullet-item">Payment method management</div>
-                <div class="settings-v3-bullet-item">Invoices and receipts</div>
-                <div class="settings-v3-bullet-item">Agency white-label add-on</div>
-                <div class="settings-v3-bullet-item">Credit top-up purchases</div>
+            <div class="settings-v3-info-list">
+                <div class="settings-v3-info-row">
+                    <span>Agency white-label</span>
+                    <strong>{% if current_user.is_white_label_enabled %}Enabled{% else %}Not enabled{% endif %}</strong>
+                </div>
+                {% if current_user.agency_name %}
+                <div class="settings-v3-info-row">
+                    <span>Agency name</span>
+                    <strong>{{ current_user.agency_name }}</strong>
+                </div>
+                {% endif %}
             </div>
+
+            <p style="font-size:0.85rem; color:#555; margin-top:1rem;">
+                The agency white-label add-on lets you deliver client reports under your own brand.
+                Contact support to enable it.
+            </p>
         </div>
     </section>
     {% endif %}
@@ -575,113 +581,76 @@
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Workspace Preferences</h2>
-                <p>Control defaults and behaviour across your workspace.</p>
+                <h2>Sidebar layout</h2>
+                <p>Choose between the full labelled sidebar and the compact icon rail. The setting persists for this browser session.</p>
             </div>
-
-            <div class="settings-v3-card-list">
-                <div class="settings-v3-mini-card">
-                    <h3>Report Defaults</h3>
-                    <p>Set default report views, output modes, and presentation preferences here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Notifications</h3>
-                    <p>Control system alerts, audit completion notices, and email preferences here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Brand & Interface</h3>
-                    <p>Add interface preferences, white-label defaults, and workspace branding rules here later.</p>
-                </div>
+            <div class="dev-view-buttons">
+                <button type="button" class="dev-view-btn" id="prefRailExpand">Full sidebar</button>
+                <button type="button" class="dev-view-btn" id="prefRailCollapse">Icon rail</button>
             </div>
-        </div>
-
-        <div class="settings-v3-panel">
-            <div class="settings-v3-panel-head">
-                <h2>Current State</h2>
-                <p>This section is ready to become the future control centre for workspace preferences.</p>
-            </div>
-
-            <div class="settings-v3-note-box">
-                Preference persistence is not connected yet.
-            </div>
+            <p style="font-size:0.85rem; color:#555; margin-top:0.85rem;">
+                The toggle in the sidebar header does the same thing — this is just a discoverable copy of the same control.
+            </p>
         </div>
 
         {% if is_internal_user %}
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Developer Controls</h2>
+                <h2>Developer controls</h2>
                 <p>Internal testing controls for switching interface modes.</p>
             </div>
 
-            <div class="settings-v3-card-list">
-                <div class="settings-v3-mini-card">
-                    <h3>Dev View Mode</h3>
-                    <p>Switch between interface modes for internal testing only.</p>
-
-                    <div class="dev-view-buttons">
-                        <a href="{{ url_for('dev_set_view_mode', mode='single') }}"
-                           class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}">
-                            Single
-                        </a>
-
-                        <a href="{{ url_for('dev_set_view_mode', mode='multi') }}"
-                           class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}">
-                            Multi
-                        </a>
-
-                        <a href="{{ url_for('dev_set_view_mode', mode='admin') }}"
-                           class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}">
-                            Admin
-                        </a>
-
-                        <a href="{{ url_for('dev_set_view_mode', mode='auto') }}"
-                           class="dev-view-btn {% if view_mode == 'auto' %}active{% endif %}">
-                            Auto
-                        </a>
-                    </div>
-                </div>
+            <div class="dev-view-buttons">
+                <a href="{{ url_for('dev_set_view_mode', mode='single') }}"
+                   class="dev-view-btn {% if view_mode == 'single' %}active{% endif %}">Single</a>
+                <a href="{{ url_for('dev_set_view_mode', mode='multi') }}"
+                   class="dev-view-btn {% if view_mode == 'multi' %}active{% endif %}">Multi</a>
+                <a href="{{ url_for('dev_set_view_mode', mode='admin') }}"
+                   class="dev-view-btn {% if view_mode == 'admin' %}active{% endif %}">Admin</a>
+                <a href="{{ url_for('dev_set_view_mode', mode='auto') }}"
+                   class="dev-view-btn {% if view_mode == 'auto' %}active{% endif %}">Auto</a>
             </div>
         </div>
         {% endif %}
     </section>
+
+    <script>
+        (function () {
+            var expand = document.getElementById('prefRailExpand');
+            var collapse = document.getElementById('prefRailCollapse');
+            if (!expand || !collapse) return;
+            expand.addEventListener('click', function () {
+                document.documentElement.removeAttribute('data-sidebar-rail');
+                sessionStorage.removeItem('darInsightsSidebarRail');
+                var btn = document.getElementById('sidebarRailToggle');
+                if (btn) {
+                    var icon = btn.querySelector('use');
+                    if (icon) icon.setAttribute('href', '#i-chevron-left');
+                }
+            });
+            collapse.addEventListener('click', function () {
+                document.documentElement.setAttribute('data-sidebar-rail', '1');
+                sessionStorage.setItem('darInsightsSidebarRail', '1');
+                var btn = document.getElementById('sidebarRailToggle');
+                if (btn) {
+                    var icon = btn.querySelector('use');
+                    if (icon) icon.setAttribute('href', '#i-chevron-right');
+                }
+            });
+        })();
+    </script>
     {% endif %}
 
-    {% if active_settings_section == "team" %}
+    {% if active_settings_section == "team" and is_internal_user %}
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Team & Access</h2>
-                <p>Future area for multi-user access, permissions, and workspace roles.</p>
+                <h2>Team &amp; access</h2>
+                <p>Multi-user access for this workspace.</p>
             </div>
-
-            <div class="settings-v3-card-list">
-                <div class="settings-v3-mini-card">
-                    <h3>Invite Team Members</h3>
-                    <p>Add staff invites, agency collaborators, or workspace users here later.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Role Permissions</h3>
-                    <p>Create permission layers for admins, editors, sales teams, and client-facing users.</p>
-                </div>
-
-                <div class="settings-v3-mini-card">
-                    <h3>Client Access Control</h3>
-                    <p>Allow selected team members or client accounts to access only assigned workspaces or reports.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="settings-v3-panel">
-            <div class="settings-v3-panel-head">
-                <h2>Current State</h2>
-                <p>This area is ready as a placeholder until team management is connected.</p>
-            </div>
-
             <div class="settings-v3-note-box">
-                No team management module is connected yet.
+                Team invites, role permissions, and client-access controls aren't built yet.
+                Single-user access only for now — let us know if you need teammate invites and we'll prioritise it.
             </div>
         </div>
     </section>
@@ -690,6 +659,33 @@
 </div>
 
 <style>
+.settings-v3-form {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+.settings-v3-form label {
+    font-size: 0.78rem;
+    color: #555;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
+}
+.settings-v3-form input[type="text"],
+.settings-v3-form input[type="password"],
+.settings-v3-form input[type="email"] {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #d4d4dc;
+    border-radius: 8px;
+    font-size: 16px;
+    background: #fff;
+}
+.settings-v3-form input:focus {
+    outline: 2px solid var(--brand-primary, #3EDFCB);
+    outline-offset: 1px;
+}
+
 .settings-v3-page {
     padding: 28px;
     display: grid;
