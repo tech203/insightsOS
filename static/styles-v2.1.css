@@ -2938,6 +2938,29 @@ a {
     pointer-events: none;
 }
 
+/* No-flash: head script sets html[data-sidebar-collapsed="..."] before paint
+   so the saved collapsed groups render collapsed from the very first frame.
+   Transition is suppressed here so the initial state doesn't animate.
+   The DOMContentLoaded handler later promotes this to a normal .nav-group--collapsed
+   class and removes the attribute so user clicks animate as usual. */
+html[data-sidebar-collapsed~="workspace"] .nav-group[data-group="workspace"] .nav-group-items,
+html[data-sidebar-collapsed~="insights"] .nav-group[data-group="insights"] .nav-group-items,
+html[data-sidebar-collapsed~="actions"] .nav-group[data-group="actions"] .nav-group-items,
+html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-group-items {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+}
+
+html[data-sidebar-collapsed~="workspace"] .nav-group[data-group="workspace"] .nav-label-chevron,
+html[data-sidebar-collapsed~="insights"] .nav-group[data-group="insights"] .nav-label-chevron,
+html[data-sidebar-collapsed~="actions"] .nav-group[data-group="actions"] .nav-label-chevron,
+html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-label-chevron {
+    transform: rotate(-90deg);
+    transition: none;
+}
+
 .nav-item {
     min-height: 48px;
     display: flex;

@@ -6,6 +6,19 @@
     <title>{% block title %}DarInsights{% endblock %}</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    <script>
+        // Restore sidebar collapse state before first paint to avoid a flash.
+        try {
+            var __c = JSON.parse(sessionStorage.getItem("darInsightsSidebarCollapse") || "{}");
+            var __ids = Object.keys(__c).filter(function (k) { return __c[k]; });
+            if (__ids.length) {
+                document.documentElement.setAttribute(
+                    "data-sidebar-collapsed",
+                    __ids.join(" ")
+                );
+            }
+        } catch (_) {}
+    </script>
     {% block head %}{% endblock %}
 </head>
 
@@ -501,6 +514,11 @@
                     sessionStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
                 });
             });
+
+            // The head script set data-sidebar-collapsed to suppress the initial
+            // flash. Now that the class-based state is in place, drop the
+            // attribute so user-initiated toggles use the normal transitions.
+            document.documentElement.removeAttribute("data-sidebar-collapsed");
         });
     </script>
 
