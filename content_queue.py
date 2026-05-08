@@ -365,19 +365,50 @@ def get_next_action(item):
 
     if status == "draft_generated":
         return {
-            "label": "Review / Publish",
-            "action": "review_publish",
-            "url": f"/content-queue",
+            "label": "Approve Draft",
+            "action": "approve",
+            "url": f"/content-queue/{item['id']}/approve",
         }
 
     if status == "ready":
         return {
             "label": "Publish",
             "action": "publish",
-            "url": f"/content-queue",
+            "url": f"/content-queue/{item['id']}/publish",
         }
 
     return None
+
+
+# Transitions allowed by the human-in-the-loop approval gate.
+# `approve` moves a draft into "ready" (a held state awaiting publish).
+# `publish` is only valid from "ready" — never directly from "draft_generated".
+APPROVAL_TRANSITIONS = {
+    "approve": {"from": {"draft_generated"}, "to": "ready"},
+    "publish": {"from": {"ready"}, "to": "published"},
+    "unapprove": {"from": {"ready"}, "to": "draft_generated"},
+}
+
+
+def transition_queue_item(item_id, transition, user_id=None):
+    """Apply a named approval transition. Returns (item, error_message)."""
+    rule = APPROVAL_TRANSITIONS.get(transition)
+    if not rule:
+        return None, f"Unknown transition: {transition}"
+
+    item = get_queue_item_by_id(item_id, user_id=user_id)
+    if not item:
+        return None, "Queue item not found."
+
+    current = (item.get("status") or "").lower()
+    if current not in rule["from"]:
+        return None, (
+            f"Cannot {transition} from status '{current}'. "
+            f"Expected one of: {sorted(rule['from'])}."
+        )
+
+    updated = update_queue_item_status(item_id, rule["to"], user_id=user_id)
+    return updated, None
 
 
 def get_client_progress(client_id, user_id=None):
