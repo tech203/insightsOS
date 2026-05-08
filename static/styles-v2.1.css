@@ -18867,3 +18867,79 @@ a.btn {
         top: 8px;
     }
 }
+
+/* =========================================================
+   Dashboard — brand color overrides
+   =========================================================
+   The earlier dashboard styles used a generic Tailwind palette
+   (orange #f97316, blue #60a5fa, etc.). These overrides pull every
+   accent into the brand: aqua #3EDFCB and purple #9D7CE3.
+   Appended at end-of-file so they cascade over the original rules. */
+
+/* Featured "What needs attention" card: aqua tint instead of beige. */
+.dashboard-priority-item-featured {
+    background:
+        radial-gradient(circle at top right, var(--brand-primary-soft), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+    border-color: rgba(62, 223, 203, 0.32);
+}
+
+/* Section kickers: brand purple bg with strong contrast. */
+.dashboard-priority-kicker {
+    background: rgba(157, 124, 227, 0.14);
+    color: #5d3fbe;
+}
+
+/* Big score number on the snapshot card — neutral navy lets the
+   coloured pill carry the band, not the digit. */
+.dashboard-score-value {
+    color: var(--brand-text-strong, #191929);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Score pills: brand-aligned tones for success / warning / danger. */
+.score-pill-success {
+    background: rgba(62, 223, 203, 0.18);
+    color: #0E7C6F;
+}
+.score-pill-warning {
+    background: rgba(157, 124, 227, 0.18);
+    color: #5D3FBE;
+}
+.score-pill-danger {
+    background: rgba(225, 29, 72, 0.10);
+    color: #b91c1c;
+}
+
+/* Score-row fills (Visibility / Content / Entity / Trust) — re-coloured
+   with the two brand accents plus two harmonious complements so the
+   four bars stay visually distinct but read as one palette. */
+.fill-blue {
+    background: linear-gradient(90deg, #5BE6D2 0%, var(--brand-primary, #3EDFCB) 100%);
+}
+.fill-orange {
+    background: linear-gradient(90deg, #B69BEB 0%, var(--brand-secondary, #9D7CE3) 100%);
+}
+.fill-purple {
+    background: linear-gradient(90deg, var(--brand-primary, #3EDFCB) 0%, var(--brand-secondary, #9D7CE3) 100%);
+}
+.fill-green {
+    background: linear-gradient(90deg, #6EE7C7 0%, #2BB8A1 100%);
+}
+
+/* Visibility scorecard pills: keep the variant rule but tone them. */
+.visibility-scorecard-pill-strong {
+    background: rgba(62, 223, 203, 0.22);
+    color: #1AAE99;
+}
+.visibility-scorecard-pill-moderate {
+    background: rgba(157, 124, 227, 0.22);
+    color: #B89BF0;
+}
+.visibility-scorecard-pill-opportunity {
+    background: rgba(252, 165, 165, 0.18);
+    color: #F87171;
+}
