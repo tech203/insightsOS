@@ -6033,6 +6033,78 @@ def _slugify_for_webflow(text):
     return s[:80] or "untitled"
 
 
+# Module-level caches — site domain rarely changes; collection slugs even less.
+_SITE_DOMAIN_CACHE = {}
+_COLLECTION_SLUG_CACHE = {}
+
+
+def _get_site_default_domain(client, site_id):
+    """Fetch and cache the site's primary domain.
+
+    Resolution order, since the v2 API often returns empty customDomains and
+    a None defaultDomain on hosted-only sites:
+      1. customDomains[*].url
+      2. defaultDomain
+      3. <shortName>.webflow.io (the free hosted domain Webflow always serves)
+    """
+    if not site_id:
+        return None
+    if site_id in _SITE_DOMAIN_CACHE:
+        return _SITE_DOMAIN_CACHE[site_id]
+    try:
+        info = client._request("GET", f"/sites/{site_id}")
+    except Exception as e:
+        logger.warning(f"Couldn't fetch site domain: {e}")
+        return None
+
+    domain = None
+    for d in info.get("customDomains") or []:
+        url = d.get("url") or d.get("name")
+        if url:
+            domain = url
+            break
+    if not domain:
+        domain = info.get("defaultDomain")
+    if not domain:
+        short_name = info.get("shortName")
+        if short_name:
+            domain = f"{short_name}.webflow.io"
+
+    if domain:
+        domain = domain.replace("https://", "").replace("http://", "").rstrip("/")
+        _SITE_DOMAIN_CACHE[site_id] = domain
+    return domain
+
+
+def _get_collection_slug(client, collection_id):
+    """Fetch and cache a collection's URL slug."""
+    if not collection_id:
+        return None
+    if collection_id in _COLLECTION_SLUG_CACHE:
+        return _COLLECTION_SLUG_CACHE[collection_id]
+    try:
+        details = client.get_collection_details(collection_id)
+    except Exception as e:
+        logger.warning(f"Couldn't fetch collection {collection_id}: {e}")
+        return None
+    slug = details.get("slug")
+    if slug:
+        _COLLECTION_SLUG_CACHE[collection_id] = slug
+    return slug
+
+
+def _build_live_url(client, collection_id, item_slug):
+    """Build the live URL for a published item, or None if anything is missing."""
+    if not item_slug:
+        return None
+    site_id = os.getenv("WEBFLOW_SITE_ID")
+    domain = _get_site_default_domain(client, site_id)
+    collection_slug = _get_collection_slug(client, collection_id)
+    if not domain or not collection_slug:
+        return None
+    return f"https://{domain}/{collection_slug}/{item_slug}"
+
+
 def _build_webflow_field_data_for_queue_item(item, collection_kind):
     """Map a queue item's title/content/target_query into Webflow field-data."""
     title = item.get("title") or item.get("target_query") or "Untitled"
@@ -6103,10 +6175,15 @@ def publish_queue_item_to_webflow(item_id):
             collection_id, field_data, is_draft=True
         )
 
+        live_url = _build_live_url(
+            client, collection_id, field_data.get("slug")
+        )
+
         update_queue_item_webflow_export(
             item_id,
             webflow_item_id=webflow_item_id,
             webflow_collection=collection_label,
+            webflow_live_url=live_url,
             user_id=current_user.id,
         )
 
@@ -6202,6 +6279,18 @@ def update_queue_item_on_site(item_id):
         client = WebflowCMSClient()
         field_data = _build_webflow_field_data_for_queue_item(item, collection_label)
         client.update_item(collection_id, webflow_item_id, field_data)
+
+        live_url = _build_live_url(
+            client, collection_id, field_data.get("slug")
+        )
+        if live_url and live_url != item.get("webflow_live_url"):
+            update_queue_item_webflow_export(
+                item_id,
+                webflow_item_id=webflow_item_id,
+                webflow_collection=collection_label,
+                webflow_live_url=live_url,
+                user_id=current_user.id,
+            )
 
         # Track the update in WebflowExport too.
         try:

@@ -447,6 +447,11 @@
                     {% endif %}
                     <button type="submit" class="btn btn-primary">Update on Site</button>
                 </form>
+                {% if item.webflow_live_url %}
+                <a href="{{ item.webflow_live_url }}" target="_blank" rel="noopener" class="btn btn-secondary">
+                    View on Site ↗
+                </a>
+                {% endif %}
                 <span class="webflow-published-meta">
                     Live on site · {{ (item.webflow_collection or 'CMS')|replace('_', ' ')|title }}
                 </span>
