@@ -22,6 +22,109 @@
 
 <div class="dashboard-v3">
 
+    {% set show_scorecard = view_mode == "single" and focused_client and (total_audits or 0) > 0 %}
+
+    {% if show_scorecard %}
+    {% set latest = focused_client.latest_audit or {} %}
+    {% set opportunity_level = latest.get('opportunity_level') if latest.get('opportunity_level') and latest.get('opportunity_level') != 'N/A' else (
+        'Strong Visibility' if aeo_score >= 80 else 'Moderate Opportunity' if aeo_score >= 55 else 'High Opportunity'
+    ) %}
+    <section class="visibility-scorecard">
+        <div class="visibility-scorecard-glow"></div>
+
+        <header class="visibility-scorecard-head">
+            <div class="visibility-scorecard-title-block">
+                <span class="visibility-scorecard-kicker">Latest Audit</span>
+                <h2>AI Visibility Scorecard</h2>
+                <p>{{ focused_client.name or 'Workspace' }}{% if focused_client.industry %} · {{ focused_client.industry }}{% endif %}</p>
+            </div>
+            <span class="visibility-scorecard-pill
+                {% if aeo_score >= 80 %}visibility-scorecard-pill-strong
+                {% elif aeo_score >= 55 %}visibility-scorecard-pill-moderate
+                {% else %}visibility-scorecard-pill-opportunity{% endif %}">
+                {% if aeo_score >= 80 %}Strong Visibility
+                {% elif aeo_score >= 55 %}Moderate Visibility
+                {% else %}High Opportunity{% endif %}
+            </span>
+        </header>
+
+        <div class="visibility-scorecard-grid">
+            <article class="visibility-scorecard-stat visibility-scorecard-stat-hero">
+                <div class="visibility-scorecard-stat-label">Normalized Score</div>
+                <div class="visibility-scorecard-stat-value">{{ aeo_score }}<span class="visibility-scorecard-stat-unit">/ 100</span></div>
+            </article>
+
+            <article class="visibility-scorecard-stat">
+                <div class="visibility-scorecard-stat-label">Visibility</div>
+                <div class="visibility-scorecard-stat-value visibility-scorecard-stat-value-sm">{{ vis_score }}<span class="visibility-scorecard-stat-unit">/ 100</span></div>
+                <div class="visibility-scorecard-bar"><span style="width: {{ vis_score }}%;"></span></div>
+            </article>
+
+            <article class="visibility-scorecard-stat">
+                <div class="visibility-scorecard-stat-label">Content</div>
+                <div class="visibility-scorecard-stat-value visibility-scorecard-stat-value-sm">{{ cont_score }}<span class="visibility-scorecard-stat-unit">/ 100</span></div>
+                <div class="visibility-scorecard-bar"><span style="width: {{ cont_score }}%;"></span></div>
+            </article>
+
+            <article class="visibility-scorecard-stat">
+                <div class="visibility-scorecard-stat-label">Entity</div>
+                <div class="visibility-scorecard-stat-value visibility-scorecard-stat-value-sm">{{ ent_score }}<span class="visibility-scorecard-stat-unit">/ 100</span></div>
+                <div class="visibility-scorecard-bar"><span style="width: {{ ent_score }}%;"></span></div>
+            </article>
+
+            <article class="visibility-scorecard-stat">
+                <div class="visibility-scorecard-stat-label">Trust</div>
+                <div class="visibility-scorecard-stat-value visibility-scorecard-stat-value-sm">{{ tr_score }}<span class="visibility-scorecard-stat-unit">/ 100</span></div>
+                <div class="visibility-scorecard-bar"><span style="width: {{ tr_score }}%;"></span></div>
+            </article>
+        </div>
+
+        <div class="visibility-scorecard-takeaway">
+            <span class="visibility-scorecard-takeaway-label">Takeaway</span>
+            <p>
+                {% if aeo_score >= 80 %}
+                    Strong overall visibility. Focus on holding your position by tracking new prompt clusters and refreshing high-impact content.
+                {% elif aeo_score >= 55 %}
+                    Visibility is developing. Prioritise the gaps in {% if vis_score < cont_score %}Visibility{% else %}Content{% endif %} first — that will move the needle fastest.
+                {% else %}
+                    Significant visibility upside. Run an audit refresh, fill the highest-impact content gaps, and start tracking the queries you most want to win.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="visibility-scorecard-actions">
+            <a href="{{ url_for('client_detail', client_id=focused_client.id) }}" class="btn btn-primary">
+                View Full Audit
+            </a>
+            <a href="{{ url_for('content_queue_page', client_id=focused_client.id) }}" class="btn btn-secondary">
+                Open Queue
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if not has_clients and (total_audits or 0) == 0 %}
+    <section class="dashboard-welcome-card">
+        <div class="dashboard-welcome-copy">
+            <span class="dashboard-welcome-kicker">Welcome to DarInsights</span>
+            <h2>Set up your first workspace to get started</h2>
+            <p>
+                Add the business you want to track — site URL, industry, location — and we'll
+                generate a visibility audit, surface the gaps, and queue up your first content actions.
+            </p>
+        </div>
+
+        <div class="dashboard-welcome-actions">
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary">
+                Add First Workspace
+            </a>
+            <a href="{{ url_for('help_page') }}" class="btn btn-secondary">
+                See How It Works
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
     {% if is_internal_user %}
     <div class="panel" style="max-width: 420px;">
         <div class="sidebar-footer-head">

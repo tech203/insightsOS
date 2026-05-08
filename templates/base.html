@@ -6,6 +6,19 @@
     <title>{% block title %}DarInsights{% endblock %}</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    <script>
+        // Restore sidebar collapse state before first paint to avoid a flash.
+        try {
+            var __c = JSON.parse(sessionStorage.getItem("darInsightsSidebarCollapse") || "{}");
+            var __ids = Object.keys(__c).filter(function (k) { return __c[k]; });
+            if (__ids.length) {
+                document.documentElement.setAttribute(
+                    "data-sidebar-collapsed",
+                    __ids.join(" ")
+                );
+            }
+        } catch (_) {}
+    </script>
     {% block head %}{% endblock %}
 </head>
 
@@ -71,9 +84,13 @@
 
                 <nav class="sidebar-nav" aria-label="Main navigation">
 
-                    <div class="nav-group">
-                        <div class="nav-label">Workspace</div>
+                    <div class="nav-group" data-group="workspace">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Workspace</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('index') }}"
                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
                            aria-label="Dashboard"
@@ -84,7 +101,7 @@
                         </a>
 
                         <a href="{{ url_for('clients_page') }}"
-                           class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'create_client'] %}active{% endif %}"
+                           class="nav-item {% if current_endpoint == 'clients_page' or (current_endpoint == 'create_client') or (current_endpoint in ['client_detail', 'edit_client'] and not sidebar_client) %}active{% endif %}"
                            aria-label="All Workspaces"
                            data-label="All Workspaces">
                             <span class="nav-icon">▣</span>
@@ -93,7 +110,7 @@
                         </a>
 
                         <a href="{{ url_for('content_queue_page') }}"
-                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] and not active_queue_client_id %}active{% endif %}"
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief'] and not active_queue_client_id %}active{% endif %}"
                            aria-label="All Content Queues"
                            data-label="All Queues">
                             <span class="nav-icon">☰</span>
@@ -109,12 +126,17 @@
                             <span class="nav-text">Tracked Prompts</span>
                             <span class="nav-tooltip">Tracked Prompts</span>
                         </a>
+                        </div>
                     </div>
 
                     {% if sidebar_client %}
-                    <div class="nav-group">
-                        <div class="nav-label">Current Workspace</div>
+                    <div class="nav-group" data-group="insights">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Insights · {{ (sidebar_client.name or "Workspace")[:24] }}</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('client_detail', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}"
                            aria-label="Workspace Overview"
@@ -122,24 +144,6 @@
                             <span class="nav-icon">◉</span>
                             <span class="nav-text">Overview</span>
                             <span class="nav-tooltip">Overview</span>
-                        </a>
-
-                        <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
-                           aria-label="Run Audit"
-                           data-label="Run Audit">
-                            <span class="nav-icon">◈</span>
-                            <span class="nav-text">Run Audit</span>
-                            <span class="nav-tooltip">Run Audit</span>
-                        </a>
-
-                        <a href="{{ url_for('content_queue_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
-                           aria-label="Workspace Queue"
-                           data-label="Queue">
-                            <span class="nav-icon">≣</span>
-                            <span class="nav-text">Queue</span>
-                            <span class="nav-tooltip">Queue</span>
                         </a>
 
                         <a href="{{ url_for('client_visibility_page', client_id=sidebar_client.id) }}"
@@ -160,6 +164,33 @@
                             <span class="nav-tooltip">Competitors</span>
                         </a>
 
+                        <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
+                           aria-label="History"
+                           data-label="History">
+                            <span class="nav-icon">◷</span>
+                            <span class="nav-text">History</span>
+                            <span class="nav-tooltip">History</span>
+                        </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-group" data-group="actions">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Actions</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
+
+                        <div class="nav-group-items">
+                        <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
+                           aria-label="Run Audit"
+                           data-label="Run Audit">
+                            <span class="nav-icon">◈</span>
+                            <span class="nav-text">Run Audit</span>
+                            <span class="nav-tooltip">Run Audit</span>
+                        </a>
+
                         <a href="{{ url_for('client_brand_context', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_brand_context' %}active{% endif %}"
                            aria-label="Brand Context"
@@ -173,7 +204,7 @@
                            class="nav-item {% if current_endpoint == 'client_query_ideas' %}active{% endif %}"
                            aria-label="Query Ideas"
                            data-label="Query Ideas">
-                            <span class="nav-icon">?</span>
+                            <span class="nav-icon">✧</span>
                             <span class="nav-text">Query Ideas</span>
                             <span class="nav-tooltip">Query Ideas</span>
                         </a>
@@ -196,20 +227,25 @@
                             <span class="nav-tooltip">Content Draft</span>
                         </a>
 
-                        <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
-                           aria-label="History"
-                           data-label="History">
-                            <span class="nav-icon">◷</span>
-                            <span class="nav-text">History</span>
-                            <span class="nav-tooltip">History</span>
+                        <a href="{{ url_for('content_queue_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
+                           aria-label="Workspace Queue"
+                           data-label="Queue">
+                            <span class="nav-icon">≣</span>
+                            <span class="nav-text">Queue</span>
+                            <span class="nav-tooltip">Queue</span>
                         </a>
+                        </div>
                     </div>
                     {% endif %}
 
-                    <div class="nav-group">
-                        <div class="nav-label">Account</div>
+                    <div class="nav-group" data-group="account">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Account</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('settings_page') }}"
                            class="nav-item {% if current_endpoint.startswith('settings') %}active{% endif %}"
                            aria-label="Settings"
@@ -227,6 +263,7 @@
                             <span class="nav-text">Help</span>
                             <span class="nav-tooltip">Help</span>
                         </a>
+                        </div>
                     </div>
                 </nav>
 
@@ -408,6 +445,80 @@
                     sidebar.setAttribute("aria-hidden", "true");
                 }
             }
+
+            // Persist sidebar scroll position across page navigations.
+            // Without this, every click rebuilds the sidebar and scroll resets to top.
+            const sidebarNav = document.querySelector(".sidebar-nav");
+            if (sidebarNav) {
+                const SCROLL_KEY = "darInsightsSidebarScroll";
+
+                const saved = sessionStorage.getItem(SCROLL_KEY);
+                if (saved !== null) {
+                    sidebarNav.scrollTop = parseInt(saved, 10) || 0;
+                }
+
+                // If the active item is offscreen after restore, gently scroll it into view.
+                const activeItem = sidebarNav.querySelector(".nav-item.active");
+                if (activeItem) {
+                    const navRect = sidebarNav.getBoundingClientRect();
+                    const itemRect = activeItem.getBoundingClientRect();
+                    const offscreen =
+                        itemRect.top < navRect.top ||
+                        itemRect.bottom > navRect.bottom;
+                    if (offscreen) {
+                        activeItem.scrollIntoView({ block: "nearest" });
+                    }
+                }
+
+                let saveTimer = null;
+                sidebarNav.addEventListener("scroll", function () {
+                    if (saveTimer) clearTimeout(saveTimer);
+                    saveTimer = setTimeout(function () {
+                        sessionStorage.setItem(SCROLL_KEY, sidebarNav.scrollTop);
+                    }, 80);
+                });
+
+                // Save immediately when a nav link is about to navigate away,
+                // so the click target's offset is captured before the page swap.
+                sidebarNav.addEventListener("click", function (event) {
+                    const link = event.target.closest("a.nav-item");
+                    if (link) {
+                        sessionStorage.setItem(SCROLL_KEY, sidebarNav.scrollTop);
+                    }
+                });
+            }
+
+            // Collapsible sidebar groups — persist open/closed per group across pages.
+            const COLLAPSE_KEY = "darInsightsSidebarCollapse";
+            let collapsed = {};
+            try {
+                collapsed = JSON.parse(sessionStorage.getItem(COLLAPSE_KEY) || "{}");
+            } catch (_) {
+                collapsed = {};
+            }
+
+            document.querySelectorAll(".nav-group[data-group]").forEach((group) => {
+                const id = group.getAttribute("data-group");
+                const toggle = group.querySelector(".nav-label-toggle");
+                if (!toggle) return;
+
+                if (collapsed[id]) {
+                    group.classList.add("nav-group--collapsed");
+                    toggle.setAttribute("aria-expanded", "false");
+                }
+
+                toggle.addEventListener("click", function () {
+                    const isCollapsed = group.classList.toggle("nav-group--collapsed");
+                    toggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+                    collapsed[id] = isCollapsed;
+                    sessionStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
+                });
+            });
+
+            // The head script set data-sidebar-collapsed to suppress the initial
+            // flash. Now that the class-based state is in place, drop the
+            // attribute so user-initiated toggles use the normal transitions.
+            document.documentElement.removeAttribute("data-sidebar-collapsed");
         });
     </script>
 

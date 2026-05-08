@@ -512,7 +512,7 @@
         </div>
     </section>
 
-    <section class="aeo-section">
+    <section class="aeo-section aeo-section--accent">
         <div class="aeo-container">
             <div class="aeo-cta-panel">
                 <div class="aeo-cta-left">
@@ -565,15 +565,16 @@
 
 <style>
 :root {
-    --bg-main: #020617;
-    --bg-soft: #0b1120;
-    --panel: rgba(255, 255, 255, 0.05);
-    --border: rgba(255, 255, 255, 0.10);
+    --bg-main: #0A0A12;
+    --bg-soft: #14141C;
+    --panel: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.08);
     --text-main: #f8fafc;
     --text-soft: #cbd5e1;
     --text-muted: #94a3b8;
-    --accent: #818cf8;
-    --accent-strong: #6366f1;
+    --accent: #3EDFCB;
+    --accent-strong: #2BCBB7;
+    --secondary: #9D7CE3;
     --success: #34d399;
     --danger: #fb7185;
 }
@@ -587,11 +588,60 @@
     min-height: 100vh;
     margin: 0;
     color: var(--text-main);
-    background:
-        radial-gradient(circle at top left, rgba(79, 70, 229, 0.22), transparent 34%),
-        radial-gradient(circle at top right, rgba(139, 92, 246, 0.16), transparent 28%),
-        linear-gradient(180deg, var(--bg-main) 0%, var(--bg-soft) 100%);
+    background: var(--bg-main);
     overflow-x: hidden;
+}
+
+.aeo-landing-page::before {
+    content: "";
+    position: absolute;
+    top: -180px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1400px;
+    height: 900px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 55% 45% at 25% 50%, rgba(62, 223, 203, 0.38), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 75% 40%, rgba(157, 124, 227, 0.32), transparent 58%);
+    filter: blur(6px);
+}
+
+.aeo-landing-page::after {
+    content: "";
+    position: absolute;
+    top: 1400px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1100px;
+    height: 600px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 50% 40% at 80% 30%, rgba(62, 223, 203, 0.18), transparent 65%),
+        radial-gradient(ellipse 45% 35% at 20% 60%, rgba(157, 124, 227, 0.16), transparent 60%);
+    filter: blur(8px);
+}
+
+.aeo-topbar,
+.aeo-hero,
+.aeo-strip,
+.aeo-section,
+.aeo-footer {
+    position: relative;
+    z-index: 1;
+}
+
+.aeo-section + .aeo-section,
+.aeo-strip + .aeo-section,
+.aeo-section + .aeo-strip {
+    border-top: 1px solid transparent;
+    background-image:
+        linear-gradient(var(--bg-main), var(--bg-main)),
+        linear-gradient(90deg, transparent 0%, rgba(62, 223, 203, 0.30) 30%, rgba(157, 124, 227, 0.30) 70%, transparent 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
 }
 
 .aeo-container {
@@ -694,7 +744,7 @@
 
 .aeo-btn-primary {
     background: var(--accent-strong);
-    color: #ffffff;
+    color: #15161e;
 }
 
 .aeo-btn-primary:hover {
@@ -736,7 +786,7 @@
     border-radius: 999px;
     background: rgba(129, 140, 248, 0.10);
     border: 1px solid rgba(129, 140, 248, 0.18);
-    color: #c7d2fe;
+    color: #B8A0E8;
     font-size: 14px;
     line-height: 1.4;
 }
@@ -764,9 +814,16 @@
 }
 
 .aeo-typed-line,
-#heroTypedWord,
+#heroTypedWord {
+    background: linear-gradient(135deg, #3EDFCB 0%, #9D7CE3 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
 #heroCursor {
-    color: #a5b4fc;
+    color: #3EDFCB;
 }
 
 #heroCursor {
@@ -830,9 +887,24 @@
 .aeo-step-card,
 .aeo-faq-card,
 .aeo-scorecard {
-    border: 1px solid var(--border);
-    background: var(--panel);
-    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 20px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aeo-feature-card:hover,
+.aeo-strip-card:hover,
+.aeo-content-card:hover,
+.aeo-step-card:hover,
+.aeo-faq-card:hover {
+    border-color: rgba(62, 223, 203, 0.20);
+    background: rgba(255, 255, 255, 0.035);
+    transform: translateY(-2px);
 }
 
 .aeo-feature-card,
@@ -935,7 +1007,11 @@
     font-size: 34px;
     font-weight: 700;
     line-height: 1.1;
-    color: var(--text-main);
+    background: linear-gradient(135deg, #3EDFCB 0%, #9D7CE3 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
 .aeo-stat-small {
@@ -948,7 +1024,7 @@
     border-radius: 18px;
     border: 1px solid rgba(129, 140, 248, 0.18);
     background: rgba(129, 140, 248, 0.10);
-    color: #e0e7ff;
+    color: #E5D9F6;
     font-size: 14px;
     line-height: 1.65;
 }
@@ -988,16 +1064,12 @@
     padding: 76px 0;
 }
 
-.aeo-section-dark {
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    background: rgba(2, 6, 23, 0.36);
-}
-
+.aeo-section--accent,
+.aeo-section-dark,
 .aeo-section-soft {
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.03);
+    background: transparent;
+    border-top: 0;
+    border-bottom: 0;
 }
 
 .aeo-section-intro {
@@ -1016,7 +1088,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.22em;
-    color: #a5b4fc;
+    color: #C8B5F0;
 }
 
 .aeo-section-intro h2,
@@ -1057,7 +1129,7 @@
     margin-bottom: 16px;
     border-radius: 16px;
     background: rgba(99, 102, 241, 0.20);
-    color: #c7d2fe;
+    color: #B8A0E8;
     font-weight: 800;
 }
 
@@ -1170,7 +1242,7 @@
     border-radius: 18px;
     border: 1px solid rgba(129, 140, 248, 0.22);
     background: rgba(129, 140, 248, 0.10);
-    color: #e0e7ff;
+    color: #E5D9F6;
     font-size: 14px;
     line-height: 1.7;
     text-align: center;
@@ -1339,7 +1411,7 @@
 .aeo-credit-card span {
     display: block;
     margin-top: 10px;
-    color: #a5b4fc;
+    color: #C8B5F0;
     font-size: 24px;
     font-weight: 800;
 }

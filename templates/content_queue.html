@@ -272,7 +272,7 @@
         <article class="summary-card">
             <span class="summary-label">Ready</span>
             <strong class="summary-value">{{ ready_count }}</strong>
-            <p class="summary-copy">Ready for review or publishing.</p>
+            <p class="summary-copy">Approved and awaiting publish.</p>
         </article>
 
         <article class="summary-card">
@@ -310,6 +310,7 @@
         </div>
 
         <div class="premium-queue-list">
+            {% set free_action_limit = 2 %}
             {% for item in queue_items %}
             {% set item_status = (item.status or "pending")|lower %}
             {% set item_priority = (item.priority or "medium")|lower %}
@@ -317,14 +318,16 @@
             {% set next_action_obj = item.next_action if item.next_action is mapping else {} %}
             {% set next_action_label = next_action_obj.get('label', 'Review item') %}
             {% set next_action_type = next_action_obj.get('action', '') %}
+            {% set global_index = ((current_page or 1) - 1) * (per_page or 10) + loop.index %}
+            {% set free_locked = current_user.plan == "free" and global_index > free_action_limit %}
 
             <article class="premium-queue-item-card {% if loop.index == 1 %}queue-item-priority{% endif %}">
                 <div class="queue-item-top">
                     <div class="queue-item-badges">
                         <span class="status-pill
                             {% if item_status in ['queued', 'pending'] %}status-queued
-                            {% elif item_status in ['in_progress', 'in-progress', 'draft_generated'] %}status-progress
-                            {% elif item_status in ['ready', 'brief_generated', 'brief generated', 'brief ready'] %}status-ready
+                            {% elif item_status in ['in_progress', 'in-progress', 'brief_generated', 'brief generated', 'draft_generated', 'draft generated'] %}status-progress
+                            {% elif item_status == 'ready' %}status-ready
                             {% elif item_status == 'published' %}status-published
                             {% else %}status-neutral{% endif %}">
                             {{ item.status|replace("_", " ")|title if item.status else "Pending" }}
@@ -392,10 +395,14 @@
 
 <div class="queue-item-actions">
     {% if item.client_id %}
-        {% if current_user.plan == "free" %}
+        {% if free_locked %}
             <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
                 Unlock
             </a>
+            <p class="free-cap-note">
+                Free trial covers your first {{ free_action_limit }} queue items.
+                Upgrade to keep going.
+            </p>
         {% else %}
 
             {% if item_status in ['queued', 'pending'] %}
@@ -406,10 +413,25 @@
                 <a href="{{ item.generate_draft_url }}" class="btn btn-primary">
                     Generate Draft
                 </a>
-            {% elif item_status in ['draft_generated', 'draft generated', 'ready'] %}
-                <form method="POST" action="{{ url_for('update_content_queue_status', item_id=item.id) }}" class="publish-inline-form">
-                    <input type="hidden" name="status" value="published">
-                    <button type="submit" class="btn btn-primary">Mark Published</button>
+            {% elif item_status in ['draft_generated', 'draft generated'] %}
+                <form method="POST" action="{{ url_for('approve_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
+                    {% if active_client_id %}
+                    <input type="hidden" name="client_id" value="{{ active_client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">Approve Draft</button>
+                </form>
+            {% elif item_status == 'ready' %}
+                <form method="POST" action="{{ url_for('publish_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
+                    {% if active_client_id %}
+                    <input type="hidden" name="client_id" value="{{ active_client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">Publish</button>
+                </form>
+                <form method="POST" action="{{ url_for('unapprove_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
+                    {% if active_client_id %}
+                    <input type="hidden" name="client_id" value="{{ active_client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-secondary">Revoke Approval</button>
                 </form>
             {% elif item_status == 'published' %}
                 <button type="button" class="btn btn-primary" disabled>
@@ -570,6 +592,14 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 18px;
+}
+
+.free-cap-note {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.45;
+    flex-basis: 100%;
 }
 
 .queue-section-actions {

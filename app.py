@@ -8,6 +8,7 @@ from content_queue import (
     update_queue_item_content,
     update_queue_item_details,
     delete_queue_item,
+    transition_queue_item,
 )
 from help_content import HELP_GLOSSARY
 from content_draft_generator import generate_content_draft
@@ -61,6 +62,39 @@ import csv
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _check_env_health():
+    required = {
+        "OPENAI_API_KEY": "AI brief/draft/page generation",
+        "TAVILY_API_KEY": "competitor and web research",
+    }
+    optional = {
+        "WEBFLOW_API_TOKEN": "Webflow publishing",
+        "WEBFLOW_SITE_ID": "Webflow publishing",
+        "WEBFLOW_COLLECTION_ID": "legacy single-collection export",
+        "WEBFLOW_BLOG_COLLECTION_ID": "blog publishing",
+        "WEBFLOW_FAQ_COLLECTION_ID": "FAQ publishing",
+        "WEBFLOW_SERVICE_COLLECTION_ID": "service-page publishing",
+        "WEBFLOW_LOCATION_COLLECTION_ID": "location-page publishing",
+    }
+
+    missing_required = [(k, why) for k, why in required.items() if not os.getenv(k)]
+    missing_optional = [(k, why) for k, why in optional.items() if not os.getenv(k)]
+
+    if missing_required:
+        print("WARNING: required env vars are missing — features will fail when invoked:")
+        for key, why in missing_required:
+            print(f"  - {key}  ({why})")
+    if missing_optional:
+        print("INFO: optional env vars not set — related features are disabled:")
+        for key, why in missing_optional:
+            print(f"  - {key}  ({why})")
+    if not (missing_required or missing_optional):
+        print("Env check: all known keys present.")
+
+
+_check_env_health()
 
 
 app = Flask(__name__)
@@ -5648,7 +5682,9 @@ def content_queue_page():
             item["generate_brief_url"] = None
             item["generate_draft_url"] = None
 
-    # Stats should use ALL filtered items, not only the current page
+    # Stats should use ALL filtered items, not only the current page.
+    # "Ready" now means human-approved and awaiting publish — drafts mid-flow
+    # (brief_generated, draft_generated) belong in "In Progress".
     stats = {
         "queued": len(
             [
@@ -5662,20 +5698,21 @@ def content_queue_page():
                 i
                 for i in items
                 if (i.get("status") or "").lower()
-                in ["in_progress", "in-progress", "draft_generated"]
+                in [
+                    "in_progress",
+                    "in-progress",
+                    "brief_generated",
+                    "brief generated",
+                    "draft_generated",
+                    "draft generated",
+                ]
             ]
         ),
         "ready": len(
             [
                 i
                 for i in items
-                if (i.get("status") or "").lower()
-                in [
-                    "ready",
-                    "brief_generated",
-                    "brief generated",
-                    "brief ready",
-                ]
+                if (i.get("status") or "").lower() == "ready"
             ]
         ),
         "published": len(
@@ -5752,6 +5789,60 @@ def update_content_queue_status(item_id):
     if client_id:
         return redirect(url_for("content_queue_page", client_id=client_id))
     return redirect(url_for("content_queue_page"))
+
+
+def _redirect_to_queue(client_id):
+    if client_id:
+        return redirect(url_for("content_queue_page", client_id=client_id))
+    return redirect(url_for("content_queue_page"))
+
+
+@app.route("/content-queue/<item_id>/approve", methods=["POST"])
+@login_required
+def approve_content_queue_item(item_id):
+    item, error = transition_queue_item(
+        item_id, "approve", user_id=current_user.id
+    )
+    client_id = request.form.get("client_id", "").strip()
+
+    if error:
+        flash(error, "error")
+    else:
+        flash("Draft approved. Item is ready to publish.", "success")
+
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/publish", methods=["POST"])
+@login_required
+def publish_content_queue_item(item_id):
+    item, error = transition_queue_item(
+        item_id, "publish", user_id=current_user.id
+    )
+    client_id = request.form.get("client_id", "").strip()
+
+    if error:
+        flash(error, "error")
+    else:
+        flash("Item marked as published.", "success")
+
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/unapprove", methods=["POST"])
+@login_required
+def unapprove_content_queue_item(item_id):
+    item, error = transition_queue_item(
+        item_id, "unapprove", user_id=current_user.id
+    )
+    client_id = request.form.get("client_id", "").strip()
+
+    if error:
+        flash(error, "error")
+    else:
+        flash("Approval revoked. Item moved back to draft.", "success")
+
+    return _redirect_to_queue(client_id)
 
 
 @app.route("/client/<client_id>/save-brief", methods=["POST"])
