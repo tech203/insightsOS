@@ -18740,3 +18740,130 @@ a.btn {
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================================
+   Sidebar SVG icons + rail-collapse mode
+   ========================================================= */
+
+/* SVG icon inside .nav-icon — sized to match the unicode icons it replaced
+   but draws in currentColor so the active aqua / hover white states still
+   apply via colour inheritance. */
+.nav-icon-svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+.nav-icon {
+    color: currentColor;
+}
+
+/* Rail-collapse toggle: small button anchored top-right of the sidebar.
+   Shows a doubled-chevron pointing in the direction the click would
+   move the sidebar. */
+.sidebar-rail-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 5;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(233, 238, 248, 0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.sidebar-rail-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+.sidebar-rail-toggle .nav-icon-svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* The rail toggle is a desktop affordance only — on mobile the sidebar
+   already collapses to a slide-in drawer, so the rail mode is moot. */
+@media (max-width: 1199px) {
+    .sidebar-rail-toggle { display: none; }
+}
+
+/* ----- Rail mode: shrinks sidebar to a thin icon strip on desktop. -----
+
+   We keep the same DOM but hide every text label, group heading,
+   footer panel, and chevron, then re-center each remaining icon.
+   Tooltips (.nav-tooltip, already in the markup) become the only way
+   to see what each icon means — they were already visible on hover so
+   nothing extra needed. */
+
+@media (min-width: 1200px) {
+    html[data-sidebar-rail] .app-sidebar {
+        width: 72px;
+        min-width: 72px;
+    }
+    /* The grid container that lives in app-shell uses
+       grid-template-columns based on the sidebar width — match it. */
+    html[data-sidebar-rail] .app-shell {
+        grid-template-columns: 72px 1fr;
+    }
+
+    html[data-sidebar-rail] .sidebar-inner {
+        padding: 18px 10px;
+    }
+
+    /* Hide everything that requires width to read. */
+    html[data-sidebar-rail] .nav-text,
+    html[data-sidebar-rail] .nav-label,
+    html[data-sidebar-rail] .nav-label-toggle,
+    html[data-sidebar-rail] .sidebar-footer,
+    html[data-sidebar-rail] .brand-link strong,
+    html[data-sidebar-rail] .brand-link span:not(.brand-mark),
+    html[data-sidebar-rail] .sidebar-brand-tagline {
+        display: none !important;
+    }
+
+    /* Center the brand mark, keep it tappable as a home link. */
+    html[data-sidebar-rail] .sidebar-brand {
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+    html[data-sidebar-rail] .brand-link {
+        justify-content: center;
+        gap: 0;
+    }
+    html[data-sidebar-rail] .brand-mark {
+        margin: 0 auto;
+    }
+
+    /* Center every nav icon and shrink the row footprint. */
+    html[data-sidebar-rail] .nav-item {
+        justify-content: center;
+        padding: 0;
+        gap: 0;
+        min-height: 44px;
+    }
+    html[data-sidebar-rail] .nav-group-items {
+        gap: 4px;
+    }
+    html[data-sidebar-rail] .nav-group + .nav-group {
+        margin-top: 14px;
+    }
+
+    /* Active-state left bar would float off the edge of the rail; tuck it. */
+    html[data-sidebar-rail] .nav-item.active::before {
+        left: 4px;
+    }
+
+    /* Position the toggle button in the new tighter spot. */
+    html[data-sidebar-rail] .sidebar-rail-toggle {
+        right: 50%;
+        transform: translateX(50%);
+        top: 8px;
+    }
+}
