@@ -111,7 +111,7 @@
                 {% if plan.slug == 'free' %}
                 <a href="{{ url_for('signup') }}" class="btn btn-secondary full-width-btn">Get Started</a>
                 {% else %}
-                <a href="{{ url_for('start_subscription', plan_slug=plan.slug) }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} full-width-btn">
+                <a href="{{ url_for('stripe_checkout_plan', plan_slug=plan.slug) }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} full-width-btn">
                     {% if current_plan == plan.slug %}Current Plan{% else %}Choose {{ plan.label }}{% endif %}
                 </a>
                 {% endif %}

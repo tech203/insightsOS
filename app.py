@@ -175,6 +175,11 @@ class User(UserMixin, db.Model):
     is_white_label_enabled = db.Column(db.Boolean, default=False)
     agency_name = db.Column(db.String(255), nullable=True)
 
+    # Set by the Stripe webhook on the first successful checkout so
+    # billing-portal sessions can locate the customer.
+    stripe_customer_id = db.Column(db.String(120), nullable=True)
+    stripe_subscription_id = db.Column(db.String(120), nullable=True)
+
     wallet = db.relationship(
         "Wallet",
         backref="user",
@@ -4631,43 +4636,208 @@ def can_create_workspace(user):
     return count < limit, limit, count
 
 
-@app.route("/create-checkout-session")
+# =========================
+# Stripe checkout (bundles + subscriptions)
+# =========================
+# Three routes:
+#   /stripe/checkout/bundle/<credits>  — one-time topup
+#   /stripe/checkout/plan/<plan_slug>  — recurring subscription
+#   /stripe/webhook                    — credits land + plans flip here
+# Plus /stripe/portal so the user can self-serve cancel / payment method.
+
+
+@app.route("/stripe/checkout/bundle/<int:credits>", methods=["GET", "POST"])
 @login_required
-def create_checkout_session():
+def stripe_checkout_bundle(credits):
+    from services.stripe_helper import (
+        StripeNotConfigured,
+        create_bundle_checkout_session,
+        is_stripe_configured,
+    )
+
+    if not is_stripe_configured():
+        flash(
+            "Stripe isn't configured on this server yet. Reach out to support to top up credits.",
+            "error",
+        )
+        return redirect(url_for("settings_credits"))
+
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            mode="payment",  # simple one-time payment
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                            "name": "DarInsights Pro Upgrade",
-                        },
-                        "unit_amount": 2900,  # $29.00
-                    },
-                    "quantity": 1,
-                }
-            ],
-            success_url=url_for("payment_success", _external=True),
+        result = create_bundle_checkout_session(
+            user_id=current_user.id,
+            user_email=current_user.email,
+            credits=credits,
+            is_subscriber=is_subscriber(getattr(current_user, "plan", "free")),
+            success_url=url_for("stripe_success", _external=True),
+            cancel_url=url_for("settings_credits", _external=True),
+        )
+    except StripeNotConfigured as exc:
+        flash(f"Topup unavailable: {exc}", "error")
+        return redirect(url_for("settings_credits"))
+    except Exception as exc:
+        logger.warning("Stripe bundle checkout failed: %s", exc)
+        flash("Could not start checkout. Try again in a moment.", "error")
+        return redirect(url_for("settings_credits"))
+
+    return redirect(result["url"], code=303)
+
+
+@app.route("/stripe/checkout/plan/<plan_slug>", methods=["GET", "POST"])
+@login_required
+def stripe_checkout_plan(plan_slug):
+    from services.stripe_helper import (
+        StripeNotConfigured,
+        create_subscription_checkout_session,
+        is_stripe_configured,
+    )
+
+    if plan_slug not in PLAN_CATALOG or plan_slug == "free":
+        flash("That plan isn't available.", "error")
+        return redirect(url_for("pricing_page"))
+
+    if not is_stripe_configured():
+        # Dev fallback: flip the plan immediately so the demo flow works
+        # without Stripe wired up. Production deployments should always
+        # have STRIPE_SECRET_KEY set so this branch never fires.
+        return redirect(url_for("start_subscription", plan_slug=plan_slug))
+
+    try:
+        result = create_subscription_checkout_session(
+            user_id=current_user.id,
+            user_email=current_user.email,
+            plan_slug=plan_slug,
+            success_url=url_for("stripe_success", _external=True),
             cancel_url=url_for("pricing_page", _external=True),
         )
+    except StripeNotConfigured as exc:
+        flash(f"Plan checkout unavailable: {exc}", "error")
+        return redirect(url_for("pricing_page"))
+    except Exception as exc:
+        logger.warning("Stripe subscription checkout failed: %s", exc)
+        flash("Could not start checkout. Try again in a moment.", "error")
+        return redirect(url_for("pricing_page"))
 
-        return redirect(session.url, code=303)
-
-    except Exception as e:
-        return str(e)
+    return redirect(result["url"], code=303)
 
 
-@app.route("/payment-success")
+@app.route("/stripe/success")
 @login_required
-def payment_success():
-    current_user.plan = "pro"
-    db.session.commit()
+def stripe_success():
+    """Landing page after Stripe Checkout completes. Note: the wallet
+    update happens in the webhook, so this page just confirms receipt
+    and redirects to the credits view."""
+    flash(
+        "Payment received — credits will land in your wallet within a few seconds.",
+        "success",
+    )
+    return redirect(url_for("settings_credits"))
 
-    flash("Upgrade successful! You now have full access 🚀", "success")
-    return redirect(url_for("index"))
+
+@app.route("/stripe/portal", methods=["GET", "POST"])
+@login_required
+def stripe_portal():
+    from services.stripe_helper import (
+        StripeNotConfigured,
+        create_billing_portal_session,
+        is_stripe_configured,
+    )
+
+    if not is_stripe_configured() or not getattr(current_user, "stripe_customer_id", None):
+        flash(
+            "Open the billing portal after your first Stripe checkout. "
+            "If you've already paid, contact support.",
+            "info",
+        )
+        return redirect(url_for("settings_billing"))
+
+    try:
+        result = create_billing_portal_session(
+            customer_id=current_user.stripe_customer_id,
+            return_url=url_for("settings_billing", _external=True),
+        )
+    except StripeNotConfigured as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("settings_billing"))
+
+    return redirect(result["url"], code=303)
+
+
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    """Receive checkout.session.completed events and credit the wallet
+    or flip the plan accordingly. Always returns 200 once parsed so
+    Stripe doesn't retry on application errors."""
+    from services.stripe_helper import StripeNotConfigured, construct_webhook_event
+
+    payload = request.get_data()
+    signature = request.headers.get("Stripe-Signature", "")
+    try:
+        event = construct_webhook_event(payload, signature)
+    except StripeNotConfigured as exc:
+        logger.warning("Stripe webhook hit but not configured: %s", exc)
+        return jsonify({"ok": False, "error": "not_configured"}), 503
+    except Exception as exc:
+        logger.warning("Stripe webhook signature check failed: %s", exc)
+        return jsonify({"ok": False, "error": "invalid_signature"}), 400
+
+    event_type = event.get("type") or ""
+    data = (event.get("data") or {}).get("object") or {}
+
+    if event_type == "checkout.session.completed":
+        try:
+            metadata = data.get("metadata") or {}
+            kind = metadata.get("kind")
+            user_id = int(metadata.get("user_id") or 0)
+            user = db.session.get(User, user_id) if user_id else None
+            if not user:
+                return jsonify({"ok": True, "ignored": "user_not_found"})
+
+            customer_id = data.get("customer")
+            if customer_id and not user.stripe_customer_id:
+                user.stripe_customer_id = customer_id
+
+            if kind == "bundle":
+                credits = int(metadata.get("credits") or 0)
+                if credits > 0:
+                    if not user.wallet:
+                        user.wallet = Wallet(user_id=user.id, balance=0)
+                        db.session.add(user.wallet)
+                        db.session.flush()
+                    user.wallet.balance += credits
+                    db.session.add(
+                        CreditTransaction(
+                            user_id=user.id,
+                            type="topup_bundle",
+                            amount=credits,
+                            balance_after=user.wallet.balance,
+                            notes=f"Stripe topup: {credits} credits",
+                        )
+                    )
+            elif kind == "subscription":
+                plan_slug = metadata.get("plan_slug")
+                if plan_slug in PLAN_CATALOG and plan_slug != "free":
+                    user.plan = plan_slug
+                    user.stripe_subscription_id = data.get("subscription")
+                    grant_monthly_credits_if_due(user)
+            db.session.commit()
+        except Exception as exc:
+            logger.error("Stripe webhook handling failed: %s", exc)
+            db.session.rollback()
+
+    elif event_type == "customer.subscription.deleted":
+        try:
+            sub_id = data.get("id")
+            if sub_id:
+                user = User.query.filter_by(stripe_subscription_id=sub_id).first()
+                if user:
+                    user.plan = "free"
+                    user.stripe_subscription_id = None
+                    db.session.commit()
+        except Exception as exc:
+            logger.error("Stripe subscription delete handling failed: %s", exc)
+            db.session.rollback()
+
+    return jsonify({"ok": True})
 
 
 @app.route("/clients/new", methods=["GET", "POST"])

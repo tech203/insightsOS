@@ -353,9 +353,9 @@
                         {% endif %}
                     </div>
                     <p class="topup-bundle-rate">${{ '%.2f' | format(bundle.per_credit) }} per credit</p>
-                    <button type="button" class="btn btn-primary topup-bundle-cta" data-credits="{{ bundle.credits }}" data-price="{{ '%.2f' | format(bundle.price_usd) }}">
+                    <a href="{{ url_for('stripe_checkout_bundle', credits=bundle.credits) }}" class="btn btn-primary topup-bundle-cta">
                         Buy {{ bundle.credits }} credits
-                    </button>
+                    </a>
                 </div>
                 {% endfor %}
             </div>
