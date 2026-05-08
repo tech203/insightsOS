@@ -32,6 +32,7 @@ from action_engine import (
     build_content_opportunities,
 )
 from next_action_engine import build_next_best_action
+from growth_calendar import weekly_growth_recommendations
 from query_idea_generator import generate_query_ideas
 from flask import (
     Flask,
@@ -3923,6 +3924,49 @@ def help_page():
 @login_required
 def pricing_page():
     return render_template("pricing.html")
+
+
+@app.route("/growth-calendar")
+@login_required
+def growth_calendar_page():
+    requested_client_id = request.args.get("client_id", "").strip()
+    clients = build_client_views()
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
+
+    selected_client = None
+    if requested_client_id:
+        selected_client = next(
+            (c for c in clients if str(c.get("id")) == str(requested_client_id)),
+            None,
+        )
+
+    if not selected_client and view_mode == "single" and focused_client:
+        selected_client = focused_client
+
+    if not selected_client and clients:
+        selected_client = clients[0]
+
+    queue_items = []
+    if selected_client:
+        queue_items = get_queue_items(
+            client_id=selected_client.get("id"),
+            user_id=current_user.id,
+        )
+
+    plan = weekly_growth_recommendations(
+        client=selected_client,
+        queue_items=queue_items,
+    )
+
+    return render_template(
+        "growth_calendar.html",
+        clients=clients,
+        selected_client=selected_client,
+        focused_client=focused_client,
+        view_mode=view_mode,
+        plan=plan,
+    )
 
 
 @app.route("/")

@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+{% block title %}Growth Calendar | DarInsights{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Growth Calendar</h1>
+        <p>Plan visibility actions across the next four weeks. Recommendations come from your latest audit; queue items show up the week they were created.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% set summary = plan.summary if plan else {} %}
+
+<div class="growth-calendar-shell">
+
+    <section class="growth-calendar-filter">
+        <div class="growth-calendar-filter-copy">
+            <span class="section-kicker">Workspace Filter</span>
+            {% if selected_client %}
+                <h2>{{ selected_client.name }}</h2>
+                <p>Showing the four-week growth plan for this workspace.</p>
+            {% else %}
+                <h2>No workspace selected</h2>
+                <p>Pick a workspace to see its growth plan.</p>
+            {% endif %}
+        </div>
+
+        <form method="GET" action="{{ url_for('growth_calendar_page') }}" class="growth-calendar-filter-form">
+            <label for="gc-client">Workspace</label>
+            <select id="gc-client" name="client_id" onchange="this.form.submit()">
+                <option value="">Select a workspace</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}"
+                    {% if selected_client and selected_client.id == client.id %}selected{% endif %}>
+                    {{ client.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </section>
+
+    {% if not selected_client %}
+        <section class="growth-calendar-empty">
+            <h2>No workspace yet</h2>
+            <p>Create a workspace and run an audit to start seeing weekly growth recommendations.</p>
+            <div class="growth-calendar-empty-actions">
+                <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Open Workspaces</a>
+                <a href="{{ url_for('create_client') }}" class="btn btn-secondary">Add First Workspace</a>
+            </div>
+        </section>
+    {% else %}
+        <section class="growth-calendar-summary">
+            <article class="growth-calendar-summary-card">
+                <span>Total actions in plan</span>
+                <strong>{{ summary.total_actions or 0 }}</strong>
+            </article>
+            <article class="growth-calendar-summary-card growth-calendar-summary-card-highlight">
+                <span>This week</span>
+                <strong>{{ summary.current_week_actions or 0 }}</strong>
+            </article>
+            <article class="growth-calendar-summary-card">
+                <span>Open recommendations</span>
+                <strong>{{ summary.open_recommendations or 0 }}</strong>
+            </article>
+        </section>
+
+        <section class="growth-calendar-grid">
+            {% for week in plan.weeks %}
+            <article class="growth-calendar-week {% if week.is_current %}growth-calendar-week-current{% endif %}">
+                <header class="growth-calendar-week-head">
+                    <div>
+                        <span class="growth-calendar-week-kicker">{{ week.label }}</span>
+                        <h3>
+                            {{ week.start.strftime('%d %b') }} – {{ week.end.strftime('%d %b') }}
+                        </h3>
+                    </div>
+                    <span class="growth-calendar-week-count">
+                        {{ week.counts.total }} item{{ '' if week.counts.total == 1 else 's' }}
+                    </span>
+                </header>
+
+                {% if week.cards %}
+                <div class="growth-calendar-card-list">
+                    {% for card in week.cards %}
+                    <article class="growth-calendar-card growth-calendar-card-{{ card.kind }}">
+                        <div class="growth-calendar-card-top">
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-{{ card.priority|default('medium') }}">
+                                {{ card.priority|default('medium')|title }}
+                            </span>
+                            {% if card.kind == 'queue' %}
+                                <span class="growth-calendar-card-status">{{ card.status|replace('_', ' ')|title }}</span>
+                            {% else %}
+                                <span class="growth-calendar-card-status">Recommended</span>
+                            {% endif %}
+                        </div>
+
+                        <h4>{{ card.title }}</h4>
+
+                        {% if card.subtitle %}
+                        <p class="growth-calendar-card-sub">{{ card.subtitle }}</p>
+                        {% endif %}
+
+                        <div class="growth-calendar-card-meta">
+                            {% if card.kind == 'recommendation' %}
+                                {% if card.linked_query and card.content_type %}
+                                    <a href="{{ url_for('generate_client_content_brief', client_id=selected_client.id, target_query=card.linked_query, content_type=card.content_type) }}" class="btn btn-primary btn-sm">
+                                        Generate Brief
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('client_actions_page', client_id=selected_client.id) }}" class="btn btn-primary btn-sm">
+                                        Open Action Plan
+                                    </a>
+                                {% endif %}
+                                {% if card.credits_required %}
+                                <span class="growth-calendar-card-credit">{{ card.credits_required }} credits</span>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('content_queue_page', client_id=selected_client.id) }}#item-{{ card.id }}" class="btn btn-secondary btn-sm">
+                                    Open in Queue
+                                </a>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="growth-calendar-card-empty">
+                    <p>No items planned this week. Use queue items or the action plan to fill it in.</p>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+</div>
+
+<style>
+.growth-calendar-shell {
+    display: grid;
+    gap: 22px;
+}
+
+.growth-calendar-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: end;
+    justify-content: space-between;
+    padding: 20px 22px;
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 22px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.growth-calendar-filter-copy h2 {
+    margin: 8px 0 4px;
+    font-size: 22px;
+    color: #16243c;
+}
+
+.growth-calendar-filter-copy p {
+    margin: 0;
+    color: #627084;
+    font-size: 14px;
+}
+
+.growth-calendar-filter-form {
+    display: grid;
+    gap: 8px;
+    min-width: 280px;
+}
+
+.growth-calendar-filter-form label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.growth-calendar-filter-form select {
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid #d8dee9;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #16243c;
+    font-size: 16px;
+}
+
+.growth-calendar-empty {
+    padding: 40px 32px;
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 22px;
+    text-align: center;
+}
+
+.growth-calendar-empty h2 {
+    margin: 0 0 8px;
+    color: #16243c;
+}
+
+.growth-calendar-empty p {
+    margin: 0 auto 18px;
+    max-width: 460px;
+    color: #627084;
+}
+
+.growth-calendar-empty-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.growth-calendar-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.growth-calendar-summary-card {
+    padding: 18px 20px;
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.growth-calendar-summary-card span {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.growth-calendar-summary-card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 28px;
+    font-weight: 800;
+    color: #16243c;
+}
+
+.growth-calendar-summary-card-highlight {
+    background: linear-gradient(180deg, rgba(62, 223, 203, 0.08) 0%, #ffffff 100%);
+    border-color: rgba(62, 223, 203, 0.32);
+}
+
+.growth-calendar-summary-card-highlight strong {
+    background: linear-gradient(135deg, #3EDFCB 0%, #9D7CE3 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.growth-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.growth-calendar-week {
+    padding: 20px 22px;
+    background: #ffffff;
+    border: 1px solid #e7ebf3;
+    border-radius: 22px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.growth-calendar-week-current {
+    border-color: rgba(62, 223, 203, 0.36);
+    box-shadow: 0 14px 30px rgba(62, 223, 203, 0.10);
+}
+
+.growth-calendar-week-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.growth-calendar-week-kicker {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #9D7CE3;
+}
+
+.growth-calendar-week-current .growth-calendar-week-kicker {
+    color: #2BCBB7;
+}
+
+.growth-calendar-week-head h3 {
+    margin: 4px 0 0;
+    font-size: 18px;
+    color: #16243c;
+}
+
+.growth-calendar-week-count {
+    flex-shrink: 0;
+    align-self: flex-start;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.growth-calendar-card-list {
+    display: grid;
+    gap: 10px;
+}
+
+.growth-calendar-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid #e7ebf3;
+    background: #fbfcfe;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.growth-calendar-card:hover {
+    border-color: rgba(62, 223, 203, 0.32);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.growth-calendar-card-recommendation {
+    background: linear-gradient(180deg, #ffffff 0%, rgba(157, 124, 227, 0.04) 100%);
+}
+
+.growth-calendar-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.growth-calendar-card-pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.growth-calendar-card-pill-high {
+    background: rgba(220, 38, 38, 0.10);
+    color: #b91c1c;
+}
+
+.growth-calendar-card-pill-medium {
+    background: rgba(245, 158, 11, 0.10);
+    color: #b45309;
+}
+
+.growth-calendar-card-pill-low {
+    background: rgba(16, 185, 129, 0.10);
+    color: #047857;
+}
+
+.growth-calendar-card-status {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.growth-calendar-card h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    line-height: 1.35;
+    color: #16243c;
+}
+
+.growth-calendar-card-sub {
+    margin: 0 0 10px;
+    color: #627084;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.growth-calendar-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.growth-calendar-card-credit {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.btn-sm {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+.growth-calendar-card-empty {
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px dashed #e7ebf3;
+    background: #f8fafc;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+@media (max-width: 980px) {
+    .growth-calendar-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .growth-calendar-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .growth-calendar-filter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+
+{% endblock %}
