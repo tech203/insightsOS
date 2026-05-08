@@ -84,7 +84,7 @@
                         </a>
 
                         <a href="{{ url_for('clients_page') }}"
-                           class="nav-item {% if current_endpoint in ['clients_page', 'client_detail', 'edit_client', 'create_client'] %}active{% endif %}"
+                           class="nav-item {% if current_endpoint == 'clients_page' or (current_endpoint == 'create_client') or (current_endpoint in ['client_detail', 'edit_client'] and not sidebar_client) %}active{% endif %}"
                            aria-label="All Workspaces"
                            data-label="All Workspaces">
                             <span class="nav-icon">▣</span>
@@ -93,7 +93,7 @@
                         </a>
 
                         <a href="{{ url_for('content_queue_page') }}"
-                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] and not active_queue_client_id %}active{% endif %}"
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief'] and not active_queue_client_id %}active{% endif %}"
                            aria-label="All Content Queues"
                            data-label="All Queues">
                             <span class="nav-icon">☰</span>
@@ -201,7 +201,7 @@
                         </a>
 
                         <a href="{{ url_for('content_queue_page', client_id=sidebar_client.id) }}"
-                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief', 'generate_client_content_brief', 'generate_client_content_draft'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
+                           class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
                            aria-label="Workspace Queue"
                            data-label="Queue">
                             <span class="nav-icon">≣</span>
