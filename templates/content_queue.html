@@ -310,6 +310,7 @@
         </div>
 
         <div class="premium-queue-list">
+            {% set free_action_limit = 2 %}
             {% for item in queue_items %}
             {% set item_status = (item.status or "pending")|lower %}
             {% set item_priority = (item.priority or "medium")|lower %}
@@ -317,6 +318,8 @@
             {% set next_action_obj = item.next_action if item.next_action is mapping else {} %}
             {% set next_action_label = next_action_obj.get('label', 'Review item') %}
             {% set next_action_type = next_action_obj.get('action', '') %}
+            {% set global_index = ((current_page or 1) - 1) * (per_page or 10) + loop.index %}
+            {% set free_locked = current_user.plan == "free" and global_index > free_action_limit %}
 
             <article class="premium-queue-item-card {% if loop.index == 1 %}queue-item-priority{% endif %}">
                 <div class="queue-item-top">
@@ -392,10 +395,14 @@
 
 <div class="queue-item-actions">
     {% if item.client_id %}
-        {% if current_user.plan == "free" %}
+        {% if free_locked %}
             <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
                 Unlock
             </a>
+            <p class="free-cap-note">
+                Free trial covers your first {{ free_action_limit }} queue items.
+                Upgrade to keep going.
+            </p>
         {% else %}
 
             {% if item_status in ['queued', 'pending'] %}
@@ -585,6 +592,14 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 18px;
+}
+
+.free-cap-note {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.45;
+    flex-basis: 100%;
 }
 
 .queue-section-actions {
