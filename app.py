@@ -8,6 +8,7 @@ from content_queue import (
     update_queue_item_content,
     update_queue_item_details,
     update_queue_item_schedule,
+    update_queue_item_og_image,
     update_queue_item_webflow_export,
     delete_queue_item,
     transition_queue_item,
@@ -80,6 +81,8 @@ def _check_env_health():
         "WEBFLOW_FAQ_COLLECTION_ID": "FAQ publishing",
         "WEBFLOW_SERVICE_COLLECTION_ID": "service-page publishing",
         "WEBFLOW_LOCATION_COLLECTION_ID": "location-page publishing",
+        "PLACID_API_TOKEN": "visual generation (OG images, banners)",
+        "PLACID_TEMPLATE_UUID_OG": "OG image template for queue items",
     }
 
     missing_required = [(k, why) for k, why in required.items() if not os.getenv(k)]
@@ -6444,6 +6447,87 @@ def publish_queue_item_to_webflow(item_id):
     except Exception as e:
         logger.error(f"Publish to site failed: {e}")
         flash("Publishing failed unexpectedly. Try again.", "error")
+
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/generate-visual", methods=["POST"])
+@login_required
+def generate_queue_item_visual(item_id):
+    """Render an OG image / banner for a queue item via Placid."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+
+    template_uuid = os.getenv("PLACID_TEMPLATE_UUID_OG")
+    if not os.getenv("PLACID_API_TOKEN") or not template_uuid:
+        flash(
+            "Visual generation isn't set up on this site yet. "
+            "Reach out to your admin to enable it.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    try:
+        from services.placid_client import (
+            PlacidClient,
+            PlacidAPIError,
+            PlacidConfigError,
+        )
+
+        client = PlacidClient()
+        # Map queue item content into the template's named layers.
+        # Templates configured in Placid should expose these layer names.
+        layers = {
+            "headline": {"text": item.get("title") or "Untitled"},
+        }
+        if item.get("target_query"):
+            layers["subhead"] = {"text": item.get("target_query")}
+        if item.get("client_name"):
+            layers["brand"] = {"text": item.get("client_name")}
+
+        result = client.generate_image(
+            template_uuid=template_uuid, layers=layers, wait=True
+        )
+        status = result.get("status")
+        image_url = result.get("image_url")
+
+        if status == "finished" and image_url:
+            update_queue_item_og_image(
+                item_id, og_image_url=image_url, user_id=current_user.id
+            )
+            flash("Visual generated and attached to this item.", "success")
+        elif status == "queued":
+            flash(
+                "Visual is still rendering. Refresh in a few seconds — it'll show up automatically.",
+                "info",
+            )
+        else:
+            flash(
+                "We couldn't generate a visual for this item. Try again, "
+                "or check the title isn't empty.",
+                "error",
+            )
+
+    except PlacidConfigError as e:
+        logger.warning(f"Visual generation config issue: {e}")
+        flash(
+            "Visual generation isn't fully set up on this site yet. "
+            "Reach out to your admin.",
+            "error",
+        )
+    except PlacidAPIError as e:
+        logger.warning(f"Visual generation API error: {e}")
+        flash(
+            "We couldn't reach the visual generator. Try again, or "
+            "reach out to your admin.",
+            "error",
+        )
+    except Exception as e:
+        logger.error(f"Generate visual failed: {e}")
+        flash("Visual generation failed unexpectedly. Try again.", "error")
 
     return _redirect_to_queue(client_id)
 

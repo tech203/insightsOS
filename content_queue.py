@@ -127,10 +127,33 @@ def _normalize_item(raw):
         "webflow_item_id": _normalize_text(raw.get("webflow_item_id")) or None,
         "webflow_collection": _normalize_text(raw.get("webflow_collection")) or None,
         "webflow_live_url": _normalize_text(raw.get("webflow_live_url")) or None,
+        "og_image_url": _normalize_text(raw.get("og_image_url")) or None,
         "user_id": raw.get("user_id"),
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
     }
+
+
+def update_queue_item_og_image(item_id, og_image_url, user_id=None):
+    """Record the URL of a generated visual (OG image, banner, etc.)
+    on a queue item."""
+    items = load_queue_items()
+    updated = None
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["og_image_url"] = _normalize_text(og_image_url) or None
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+
+    if not updated:
+        return None
+
+    save_queue_items(items)
+    return updated
 
 
 def update_queue_item_webflow_export(
