@@ -22,6 +22,28 @@
 
 <div class="dashboard-v3">
 
+    {% if not has_clients and (total_audits or 0) == 0 %}
+    <section class="dashboard-welcome-card">
+        <div class="dashboard-welcome-copy">
+            <span class="dashboard-welcome-kicker">Welcome to DarInsights</span>
+            <h2>Set up your first workspace to get started</h2>
+            <p>
+                Add the business you want to track — site URL, industry, location — and we'll
+                generate a visibility audit, surface the gaps, and queue up your first content actions.
+            </p>
+        </div>
+
+        <div class="dashboard-welcome-actions">
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary">
+                Add First Workspace
+            </a>
+            <a href="{{ url_for('help_page') }}" class="btn btn-secondary">
+                See How It Works
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
     {% if is_internal_user %}
     <div class="panel" style="max-width: 420px;">
         <div class="sidebar-footer-head">

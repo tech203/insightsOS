@@ -7446,11 +7446,78 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .dashboard-metric-card,
 .dashboard-next-card,
 .dashboard-client-card,
-.dashboard-empty-card {
+.dashboard-empty-card,
+.dashboard-welcome-card {
     background: #ffffff;
     border: 1px solid #e6ebf2;
     border-radius: 20px;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.dashboard-welcome-card {
+    padding: 24px 28px;
+    margin-bottom: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: center;
+    justify-content: space-between;
+    background:
+        radial-gradient(circle at top right, rgba(124, 92, 255, 0.10), transparent 32%),
+        linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    border-color: #e0d8fb;
+}
+
+.dashboard-welcome-copy {
+    flex: 1 1 360px;
+    min-width: 280px;
+}
+
+.dashboard-welcome-kicker {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #7c5cff;
+    margin-bottom: 8px;
+}
+
+.dashboard-welcome-card h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    line-height: 1.2;
+    color: #15233b;
+}
+
+.dashboard-welcome-card p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #435267;
+    max-width: 620px;
+}
+
+.dashboard-welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+    .dashboard-welcome-card {
+        padding: 20px;
+    }
+
+    .dashboard-welcome-card h2 {
+        font-size: 21px;
+    }
+
+    .dashboard-welcome-actions,
+    .dashboard-welcome-actions .btn {
+        width: 100%;
+    }
 }
 
 .dashboard-priority-main-card {
