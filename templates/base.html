@@ -412,6 +412,48 @@
                     sidebar.setAttribute("aria-hidden", "true");
                 }
             }
+
+            // Persist sidebar scroll position across page navigations.
+            // Without this, every click rebuilds the sidebar and scroll resets to top.
+            const sidebarNav = document.querySelector(".sidebar-nav");
+            if (sidebarNav) {
+                const SCROLL_KEY = "darInsightsSidebarScroll";
+
+                const saved = sessionStorage.getItem(SCROLL_KEY);
+                if (saved !== null) {
+                    sidebarNav.scrollTop = parseInt(saved, 10) || 0;
+                }
+
+                // If the active item is offscreen after restore, gently scroll it into view.
+                const activeItem = sidebarNav.querySelector(".nav-item.active");
+                if (activeItem) {
+                    const navRect = sidebarNav.getBoundingClientRect();
+                    const itemRect = activeItem.getBoundingClientRect();
+                    const offscreen =
+                        itemRect.top < navRect.top ||
+                        itemRect.bottom > navRect.bottom;
+                    if (offscreen) {
+                        activeItem.scrollIntoView({ block: "nearest" });
+                    }
+                }
+
+                let saveTimer = null;
+                sidebarNav.addEventListener("scroll", function () {
+                    if (saveTimer) clearTimeout(saveTimer);
+                    saveTimer = setTimeout(function () {
+                        sessionStorage.setItem(SCROLL_KEY, sidebarNav.scrollTop);
+                    }, 80);
+                });
+
+                // Save immediately when a nav link is about to navigate away,
+                // so the click target's offset is captured before the page swap.
+                sidebarNav.addEventListener("click", function (event) {
+                    const link = event.target.closest("a.nav-item");
+                    if (link) {
+                        sessionStorage.setItem(SCROLL_KEY, sidebarNav.scrollTop);
+                    }
+                });
+            }
         });
     </script>
 
