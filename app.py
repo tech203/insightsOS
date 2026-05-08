@@ -21,6 +21,8 @@ from content_brief_generator import generate_content_brief
 from audit_runner import run_audit_for_input
 import json
 import logging
+import secrets
+from typing import Any, Dict, List, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import (
     LoginManager,
@@ -85,6 +87,8 @@ def _check_env_health():
         "WEBFLOW_LOCATION_COLLECTION_ID": "location-page publishing",
         "PLACID_API_TOKEN": "visual generation (OG images, banners)",
         "PLACID_TEMPLATE_UUID_OG": "OG image template for queue items",
+        "SHOPIFY_API_KEY": "Shopify store OAuth + product sync",
+        "SHOPIFY_API_SECRET": "Shopify store OAuth + product sync",
     }
 
     missing_required = [(k, why) for k, why in required.items() if not os.getenv(k)]
@@ -417,6 +421,49 @@ class WebflowExport(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class ShopifyConnection(db.Model):
+    """An OAuth-installed Shopify connection scoped to a workspace.
+
+    The shop is where the user runs their store; the access_token is what
+    we use to call Admin REST. Stored per (user, client) so different
+    workspaces can be wired to different stores.
+    """
+    __tablename__ = "shopify_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    # e.g. "my-store.myshopify.com"
+    shop_domain = db.Column(db.String(255), nullable=False)
+
+    # Access token from the OAuth callback. Stored as plain text — production
+    # deployments should encrypt at rest (or move to a secrets manager).
+    access_token = db.Column(db.Text, nullable=False)
+
+    # Comma-separated scopes the token was granted with.
+    scope = db.Column(db.Text, nullable=True)
+
+    # Cached store metadata (name, country, plan, etc.).
+    shop_meta = db.Column(db.JSON, nullable=True)
+
+    # Last time we successfully synced products.
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_shopify_user_client"),
     )
 
 
@@ -8087,6 +8134,259 @@ def webflow_export_service(item_id):
             "success": False,
             "message": "Export failed"
         }), 500
+
+
+# =========================
+# Shopify integration routes
+# =========================
+# Connect a workspace to a Shopify store via OAuth, then pull products via
+# the Admin REST API. Persists the access token in `shopify_connections`
+# so subsequent audits can read store data without re-asking the user.
+
+
+def _shopify_redirect_uri() -> str:
+    """The OAuth redirect URI Shopify will call back into.
+
+    Must match the value registered on the app in the Shopify Partners
+    dashboard. Allow override for local dev via env, fall back to the
+    request host."""
+    override = os.getenv("SHOPIFY_REDIRECT_URI")
+    if override:
+        return override
+    return url_for("shopify_oauth_callback", _external=True)
+
+
+@app.route("/integrations/shopify/connect/<int:client_id>")
+@login_required
+def shopify_connect(client_id):
+    """Kick off the Shopify OAuth install for a workspace.
+
+    Expects ?shop=foo.myshopify.com (or just ?shop=foo). Redirects the
+    user to Shopify's authorization screen."""
+    from services.shopify_client import (
+        ShopifyConfigError,
+        build_install_url,
+        is_shopify_configured,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    if not is_shopify_configured():
+        flash(
+            "Shopify is not yet configured on this server. "
+            "Set SHOPIFY_API_KEY and SHOPIFY_API_SECRET to enable store connections.",
+            "error",
+        )
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    shop = (request.args.get("shop") or "").strip()
+    if not shop:
+        flash("Please enter your store URL (e.g. my-store.myshopify.com).", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    state = secrets.token_urlsafe(24)
+    session["shopify_oauth_state"] = state
+    session["shopify_oauth_client_id"] = client_id
+
+    try:
+        install_url = build_install_url(
+            shop=shop,
+            redirect_uri=_shopify_redirect_uri(),
+            state=state,
+        )
+    except ShopifyConfigError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    return redirect(install_url)
+
+
+@app.route("/integrations/shopify/callback")
+@login_required
+def shopify_oauth_callback():
+    """Handle the Shopify OAuth callback.
+
+    Verifies HMAC, exchanges the temporary code for an access token,
+    and persists a ShopifyConnection row scoped to the user + workspace
+    that initiated the install."""
+    from services.shopify_client import (
+        ShopifyAdminClient,
+        ShopifyAPIError,
+        ShopifyConfigError,
+        _normalize_shop_domain,
+        exchange_code_for_token,
+        verify_hmac,
+    )
+
+    params = {k: v for k, v in request.args.items()}
+
+    expected_state = session.pop("shopify_oauth_state", None)
+    pending_client_id = session.pop("shopify_oauth_client_id", None)
+    if not expected_state or params.get("state") != expected_state:
+        flash("Shopify install state mismatch — please retry the connection.", "error")
+        return redirect(url_for("index"))
+
+    if not verify_hmac(params):
+        flash("Shopify HMAC verification failed.", "error")
+        return redirect(url_for("index"))
+
+    workspace = db.session.get(Client, pending_client_id) if pending_client_id else None
+    if not workspace or workspace.user_id != current_user.id:
+        flash("The workspace this install was started from could not be found.", "error")
+        return redirect(url_for("index"))
+
+    shop_domain = _normalize_shop_domain(params.get("shop") or "")
+    code = params.get("code")
+    if not shop_domain or not code:
+        flash("Missing shop or code in Shopify callback.", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    try:
+        token_payload = exchange_code_for_token(shop_domain, code)
+    except (ShopifyConfigError, ShopifyAPIError) as exc:
+        flash(f"Could not finish Shopify install: {exc}", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    access_token = token_payload.get("access_token")
+    if not access_token:
+        flash("Shopify did not return an access token.", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    shop_meta: Dict[str, Any] = {}
+    try:
+        admin = ShopifyAdminClient(shop_domain, access_token)
+        shop_meta = admin.get_shop()
+    except ShopifyAPIError as exc:
+        logger.warning("Shopify get_shop after install failed: %s", exc)
+
+    existing = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=workspace.id
+        ).one_or_none()
+    )
+    if existing:
+        existing.shop_domain = shop_domain
+        existing.access_token = access_token
+        existing.scope = token_payload.get("scope")
+        existing.shop_meta = shop_meta or existing.shop_meta
+        existing.updated_at = datetime.utcnow()
+    else:
+        db.session.add(
+            ShopifyConnection(
+                user_id=current_user.id,
+                client_id=workspace.id,
+                shop_domain=shop_domain,
+                access_token=access_token,
+                scope=token_payload.get("scope"),
+                shop_meta=shop_meta or None,
+            )
+        )
+    db.session.commit()
+
+    flash(f"Connected Shopify store {shop_domain}.", "success")
+    return redirect(url_for("shopify_products", client_id=workspace.id))
+
+
+@app.route("/integrations/shopify/sync/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_sync_products(client_id):
+    """Pull the latest product list from the connected store."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        return jsonify(
+            {"success": False, "message": "No Shopify store connected for this workspace."}
+        ), 400
+
+    try:
+        admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+        products = admin.list_products(limit=50)
+    except ShopifyAPIError as exc:
+        return jsonify({"success": False, "message": str(exc)}), 502
+
+    connection.last_synced_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify(
+        {
+            "success": True,
+            "shop_domain": connection.shop_domain,
+            "count": len(products),
+            "synced_at": connection.last_synced_at.isoformat(),
+        }
+    )
+
+
+@app.route("/integrations/shopify/products/<int:client_id>")
+@login_required
+def shopify_products(client_id):
+    """Render the connected store's products for an audit-ready view."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+
+    products: List[Dict[str, Any]] = []
+    error: Optional[str] = None
+    if connection:
+        try:
+            admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+            products = admin.list_products(limit=50)
+            connection.last_synced_at = datetime.utcnow()
+            db.session.commit()
+        except ShopifyAPIError as exc:
+            error = str(exc)
+
+    return render_template(
+        "integrations/shopify_products.html",
+        workspace=workspace,
+        connection=connection,
+        products=products,
+        error=error,
+    )
+
+
+@app.route("/integrations/shopify/disconnect/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_disconnect(client_id):
+    """Drop the stored access token for a workspace."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected Shopify store.", "success")
+    else:
+        flash("No Shopify store to disconnect.", "info")
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 if __name__ == "__main__":
