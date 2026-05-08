@@ -157,6 +157,49 @@
         flex-wrap: wrap;
         align-items: center;
     }
+    .am-engine-row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        margin-top: 0.4rem;
+        flex-wrap: wrap;
+    }
+    .am-engine-label {
+        font-size: 0.78rem;
+        color: #444;
+        font-weight: 600;
+        min-width: 86px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .am-engine-tag {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: var(--brand-secondary, #9D7CE3);
+        color: white;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+    .am-engine-empty {
+        font-size: 0.78rem;
+        color: #999;
+    }
+    .am-engine-score {
+        font-size: 0.78rem;
+        color: #555;
+    }
+    .am-engines-banner {
+        background: #f6f6fa;
+        border: 1px dashed #d4d4dc;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        color: #555;
+        margin-bottom: 1rem;
+    }
     .am-workspace-picker select {
         padding: 0.45rem 0.7rem;
         border-radius: 8px;
@@ -210,7 +253,16 @@
         </div>
     </div>
 
-    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" style="margin-bottom:1rem;" onsubmit="return confirm('Re-run every tracked prompt against the AI answer engine? Each check uses one OpenAI call.');">
+    <div class="am-engines-banner">
+        Active engines: <strong>{{ enabled_engine_labels|join(', ') }}</strong>.
+        {% if enabled_engine_labels|length == 1 %}
+            Add <code>PERPLEXITY_API_KEY</code> to your environment to track web-grounded results alongside ChatGPT.
+        {% else %}
+            Each check fans out across all active engines.
+        {% endif %}
+    </div>
+
+    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" style="margin-bottom:1rem;" onsubmit="return confirm('Re-run every tracked prompt across every active engine? Each check uses one API call per engine.');">
         <input type="hidden" name="client_id" value="{{ selected_client.id }}">
         <button type="submit" class="am-btn">Run all checks now</button>
     </form>
@@ -245,12 +297,32 @@
                     {% endif %}
                 </div>
 
-                {% if prompt.history %}
-                    <div class="am-spark" title="Last {{ prompt.history|length }} checks (oldest → newest)">
-                        {% for snap in prompt.history %}
-                            <div class="am-spark-dot {% if snap.brand_mentioned %}cited{% else %}not-cited{% endif %}" style="height: {{ 12 + (snap.score * 1.2)|round|int }}px;" title="{{ snap.checked_at.strftime('%d %b') if snap.checked_at else '' }} · {% if snap.brand_mentioned %}Cited{% else %}Not cited{% endif %} · score {{ snap.score }}"></div>
-                        {% endfor %}
+                {% if prompt.engines %}
+                    {% for engine_view in prompt.engines %}
+                    <div class="am-engine-row">
+                        <span class="am-engine-label">
+                            {{ engine_view.label }}
+                            {% if engine_view.kind == 'web' %}<span class="am-engine-tag">web-grounded</span>{% endif %}
+                        </span>
+                        {% if engine_view.history %}
+                        <div class="am-spark" title="Last {{ engine_view.history|length }} checks via {{ engine_view.label }} (oldest → newest)">
+                            {% for snap in engine_view.history %}
+                                <div class="am-spark-dot {% if snap.brand_mentioned %}cited{% else %}not-cited{% endif %}" style="height: {{ 12 + (snap.score * 1.2)|round|int }}px;" title="{{ snap.checked_at.strftime('%d %b') if snap.checked_at else '' }} · {% if snap.brand_mentioned %}Cited{% else %}Not cited{% endif %} · score {{ snap.score }}"></div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="am-engine-empty">No history</span>
+                        {% endif %}
+                        {% if engine_view.latest %}
+                            {% if engine_view.latest.brand_mentioned %}
+                                <span class="am-pill cited">Cited</span>
+                            {% else %}
+                                <span class="am-pill not-cited">Not cited</span>
+                            {% endif %}
+                            <span class="am-engine-score">Score {{ engine_view.latest.score }}</span>
+                        {% endif %}
                     </div>
+                    {% endfor %}
                 {% else %}
                     <p class="am-spark-empty">No history yet — run a check to start tracking the trend.</p>
                 {% endif %}

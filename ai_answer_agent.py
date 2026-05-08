@@ -1,11 +1,77 @@
 import os
 import re
+from typing import List, Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ---------------------------------------------------------------------------
+# Engine registry
+# ---------------------------------------------------------------------------
+# Each engine slug maps to a chat-completions backend; Perplexity exposes an
+# OpenAI-compatible API so the same SDK works for both. A check fans out
+# across every enabled engine (i.e. every entry whose API key is present),
+# producing one snapshot per (prompt, engine) pair.
+
+ENGINE_REGISTRY = {
+    "chatgpt": {
+        "label": "ChatGPT",
+        "model": "gpt-4.1-mini",
+        "env_key": "OPENAI_API_KEY",
+        "base_url": None,
+        # ChatGPT answers from training data; no live web grounding.
+        "kind": "trained",
+    },
+    "perplexity": {
+        "label": "Perplexity",
+        # `sonar` is web-grounded; the right comparison point for tracking
+        # how a brand surfaces in AI search.
+        "model": "sonar",
+        "env_key": "PERPLEXITY_API_KEY",
+        "base_url": "https://api.perplexity.ai",
+        "kind": "web",
+    },
+}
+
+DEFAULT_ENGINE = "chatgpt"
+
+
+def is_engine_enabled(engine: str) -> bool:
+    """True when the engine is registered and its API key is configured."""
+    spec = ENGINE_REGISTRY.get(engine)
+    if not spec:
+        return False
+    key = os.getenv(spec["env_key"]) or ""
+    return bool(key) and not key.startswith("your_")
+
+
+def enabled_engines() -> List[str]:
+    """All engines whose API key is set, in registry order."""
+    return [slug for slug in ENGINE_REGISTRY if is_engine_enabled(slug)]
+
+
+def engine_label(engine: str) -> str:
+    spec = ENGINE_REGISTRY.get(engine)
+    return spec["label"] if spec else engine
+
+
+def _client_for(engine: str) -> OpenAI:
+    spec = ENGINE_REGISTRY.get(engine)
+    if not spec:
+        raise ValueError(f"Unknown AI engine: {engine}")
+    api_key = os.getenv(spec["env_key"])
+    if not api_key:
+        raise ValueError(f"{spec['env_key']} is not set; cannot use {spec['label']}.")
+    kwargs = {"api_key": api_key}
+    if spec.get("base_url"):
+        kwargs["base_url"] = spec["base_url"]
+    return OpenAI(**kwargs)
+
+
+# Default OpenAI client kept at module scope for backward compatibility with
+# any code that imports `client` directly.
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY") or "")
 
 DIRECTORY_HINTS = [
     "yelp", "threebestrated", "yellowpages", "clutch", "goodfirms",
@@ -165,7 +231,24 @@ def score_ai_visibility(
     return min(score, 20)
 
 
-def simulate_ai_answer(query, company_name, model="gpt-4.1-mini"):
+def simulate_ai_answer(
+    query,
+    company_name,
+    model: Optional[str] = None,
+    engine: str = DEFAULT_ENGINE,
+):
+    """Run a single (prompt, engine) check and return the parsed result.
+
+    `engine` selects which backend to hit; `model` is an override (defaults
+    to the engine's registered model). The result dict includes the engine
+    slug so persistence layers can group snapshots per engine."""
+    spec = ENGINE_REGISTRY.get(engine)
+    if not spec:
+        raise ValueError(f"Unknown AI engine: {engine}")
+
+    eng_client = _client_for(engine)
+    final_model = model or spec["model"]
+
     prompt = f"""
 You are an AI search assistant.
 
@@ -177,8 +260,8 @@ Keep the answer concise and useful.
 User query: {query}
 """
 
-    response = client.chat.completions.create(
-        model=model,
+    response = eng_client.chat.completions.create(
+        model=final_model,
         messages=[
             {"role": "system", "content": "You are a helpful AI search assistant."},
             {"role": "user", "content": prompt},
@@ -214,7 +297,8 @@ User query: {query}
     )
 
     return {
-        "engine": "chatgpt",
+        "engine": engine,
+        "engine_label": spec["label"],
         "query": query,
         "brand_name": company_name,
         "brand_mentioned": brand_mentioned,

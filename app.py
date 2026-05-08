@@ -78,6 +78,7 @@ def _check_env_health():
         "TAVILY_API_KEY": "competitor and web research",
     }
     optional = {
+        "PERPLEXITY_API_KEY": "second AI engine for the Answer Monitor",
         "WEBFLOW_API_TOKEN": "Webflow publishing",
         "WEBFLOW_SITE_ID": "Webflow publishing",
         "WEBFLOW_COLLECTION_ID": "legacy single-collection export",
@@ -8664,12 +8665,16 @@ def shopify_fix_alt_text(client_id):
 # now" button that re-runs every prompt for the workspace.
 
 
-def _run_answer_check_for_id(prompt_id: int, brand_name: str) -> Optional[Dict[str, Any]]:
-    """Internal helper that loads a prompt row and runs one check.
+def _run_answer_check_for_id(
+    prompt_id: int, brand_name: str
+) -> Optional[List[Dict[str, Any]]]:
+    """Internal helper that loads a prompt row and runs a check across
+    every enabled AI engine.
 
-    Returns the snapshot dict on success, None when the prompt isn't
-    found or doesn't belong to the current user."""
-    from ai_answer_agent import simulate_ai_answer
+    Returns the list of per-engine snapshots, or None when the prompt
+    isn't found or doesn't belong to the current user. An empty list
+    means no engines were enabled or every backend errored out."""
+    from ai_answer_agent import enabled_engines, simulate_ai_answer
     from services.answer_monitor import run_answer_check
 
     row = PromptTracking.query.filter_by(
@@ -8677,6 +8682,8 @@ def _run_answer_check_for_id(prompt_id: int, brand_name: str) -> Optional[Dict[s
     ).one_or_none()
     if not row:
         return None
+
+    engines = enabled_engines() or ["chatgpt"]
     try:
         return run_answer_check(
             db=db,
@@ -8685,6 +8692,7 @@ def _run_answer_check_for_id(prompt_id: int, brand_name: str) -> Optional[Dict[s
             simulate_ai_answer=simulate_ai_answer,
             prompt_row=row,
             brand_name=brand_name,
+            engines=engines,
         )
     except Exception as exc:
         logger.warning("Answer check failed for prompt %s: %s", prompt_id, exc)
@@ -8730,6 +8738,8 @@ def answer_monitor_page():
             .all()
         )
 
+    from ai_answer_agent import enabled_engines, engine_label, ENGINE_REGISTRY
+
     history = load_history_for_prompts(
         db=db,
         PromptCheckSnapshot=PromptCheckSnapshot,
@@ -8737,10 +8747,39 @@ def answer_monitor_page():
     )
     summary = summarize_history(history)
 
+    enabled = enabled_engines() or ["chatgpt"]
+    enabled_labels = [engine_label(e) for e in enabled]
+
     prompt_views: List[Dict[str, Any]] = []
     for row in rows:
-        h = history.get(row.id, [])
-        latest = h[-1] if h else None
+        per_engine_history = history.get(row.id, {})
+        engines_in_view: List[Dict[str, Any]] = []
+        for slug, snapshots in per_engine_history.items():
+            latest = snapshots[-1] if snapshots else None
+            engines_in_view.append(
+                {
+                    "slug": slug,
+                    "label": engine_label(slug),
+                    "kind": (ENGINE_REGISTRY.get(slug) or {}).get("kind", "trained"),
+                    "history": snapshots,
+                    "latest": latest,
+                }
+            )
+        # Stable order: registered engines first (in registry order), then any extras.
+        order = list(ENGINE_REGISTRY.keys())
+        engines_in_view.sort(
+            key=lambda e: (order.index(e["slug"]) if e["slug"] in order else 99)
+        )
+
+        # Pick a representative latest for the headline citation pill.
+        latest_overall = None
+        for ev in engines_in_view:
+            if ev["latest"] and (
+                latest_overall is None
+                or ev["latest"]["score"] > latest_overall["score"]
+            ):
+                latest_overall = ev["latest"]
+
         prompt_views.append(
             {
                 "id": row.id,
@@ -8754,8 +8793,8 @@ def answer_monitor_page():
                 "score_band": row.score_band,
                 "brand_position": row.brand_position,
                 "top_competitor": row.top_competitor,
-                "history": h,
-                "latest": latest,
+                "engines": engines_in_view,
+                "latest": latest_overall,
             }
         )
 
@@ -8766,6 +8805,8 @@ def answer_monitor_page():
         prompts=prompt_views,
         summary=summary,
         domain=domain,
+        enabled_engines=enabled,
+        enabled_engine_labels=enabled_labels,
     )
 
 
@@ -8795,22 +8836,39 @@ def answer_monitor_run_all():
 
     succeeded = 0
     failed = 0
+    total_snapshots = 0
+    engines_seen: set = set()
     for row in rows:
         result = _run_answer_check_for_id(row.id, brand_name)
-        if result is None:
+        if not result:
             failed += 1
         else:
             succeeded += 1
+            total_snapshots += len(result)
+            for snap in result:
+                if snap.get("engine_label"):
+                    engines_seen.add(snap["engine_label"])
+
+    engines_label = (
+        " across " + ", ".join(sorted(engines_seen)) if engines_seen else ""
+    )
 
     if succeeded and not failed:
-        flash(f"Checked {succeeded} prompt{'s' if succeeded != 1 else ''}.", "success")
+        flash(
+            f"Checked {succeeded} prompt{'s' if succeeded != 1 else ''}{engines_label} "
+            f"({total_snapshots} snapshots saved).",
+            "success",
+        )
     elif succeeded and failed:
         flash(
-            f"Checked {succeeded}; {failed} failed. Try again or check OPENAI_API_KEY.",
+            f"Checked {succeeded}; {failed} failed. Verify OPENAI_API_KEY / PERPLEXITY_API_KEY.",
             "warning",
         )
     else:
-        flash("Could not run any checks. Verify OPENAI_API_KEY is set.", "error")
+        flash(
+            "Could not run any checks. Set OPENAI_API_KEY (and optionally PERPLEXITY_API_KEY).",
+            "error",
+        )
 
     return redirect(url_for("answer_monitor_page", client_id=client_id))
 
@@ -8840,13 +8898,22 @@ def answer_monitor_run_single(prompt_id):
     )
 
     result = _run_answer_check_for_id(prompt_id, brand_name)
-    if result is None:
+    if not result:
         flash("Could not run that check. Verify OPENAI_API_KEY is set.", "error")
     else:
-        flash(
-            "Cited" if result["brand_mentioned"] else "Not cited",
-            "success" if result["brand_mentioned"] else "warning",
-        )
+        cited_engines = [
+            snap["engine_label"] for snap in result if snap["brand_mentioned"]
+        ]
+        if cited_engines:
+            flash(
+                f"Cited in {', '.join(cited_engines)}.",
+                "success",
+            )
+        else:
+            flash(
+                f"Not cited in {', '.join(snap['engine_label'] for snap in result)}.",
+                "warning",
+            )
 
     redirect_client_id = (
         str(selected_client.get("id")) if selected_client else ""
