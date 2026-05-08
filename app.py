@@ -6064,8 +6064,8 @@ def publish_queue_item_to_webflow(item_id):
     routing = CONTENT_TYPE_TO_WEBFLOW_COLLECTION.get(content_type)
     if not routing:
         flash(
-            f"No Webflow collection mapped for content_type '{content_type}'. "
-            "Pick blog, faq, service, or location.",
+            f"This site can't publish '{content_type}' content yet. "
+            "Pick a blog, FAQ, service, or location item.",
             "error",
         )
         return _redirect_to_queue(client_id)
@@ -6074,8 +6074,8 @@ def publish_queue_item_to_webflow(item_id):
     collection_id = os.getenv(env_var)
     if not collection_id or collection_id.startswith("your_"):
         flash(
-            f"Webflow {collection_label} collection isn't configured. "
-            f"Set {env_var} in your .env first.",
+            f"Publishing for {collection_label} pages isn't set up on this site yet. "
+            "Reach out to your admin to enable it.",
             "error",
         )
         return _redirect_to_queue(client_id)
@@ -6120,18 +6120,28 @@ def publish_queue_item_to_webflow(item_id):
             db.session.rollback()
 
         flash(
-            f"Published to Webflow ({collection_label}) as a draft. "
-            "Review and live-publish from your Webflow CMS.",
+            f"Published as a {collection_label} draft on your site. "
+            "Review and go live from your CMS.",
             "success",
         )
 
     except WebflowConfigError as e:
-        flash(f"Webflow not configured: {e}", "error")
+        logger.warning(f"Site publishing config issue: {e}")
+        flash(
+            "Publishing isn't fully set up on this site yet. "
+            "Reach out to your admin to enable it.",
+            "error",
+        )
     except WebflowAPIError as e:
-        flash(f"Webflow API error: {e}", "error")
+        logger.warning(f"Site publishing API error: {e}")
+        flash(
+            "We couldn't publish this item to your site. Try again, "
+            "or reach out to your admin if the problem keeps happening.",
+            "error",
+        )
     except Exception as e:
-        logger.error(f"Publish to Webflow failed: {e}")
-        flash("Publish to Webflow failed unexpectedly.", "error")
+        logger.error(f"Publish to site failed: {e}")
+        flash("Publishing failed unexpectedly. Try again.", "error")
 
     return _redirect_to_queue(client_id)
 

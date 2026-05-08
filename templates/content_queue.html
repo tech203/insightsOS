@@ -425,7 +425,7 @@
                     {% if active_client_id %}
                     <input type="hidden" name="client_id" value="{{ active_client_id }}">
                     {% endif %}
-                    <button type="submit" class="btn btn-primary">Publish to Webflow</button>
+                    <button type="submit" class="btn btn-primary">Publish to Site</button>
                 </form>
                 <form method="POST" action="{{ url_for('publish_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
                     {% if active_client_id %}
@@ -440,17 +440,13 @@
                     <button type="submit" class="btn btn-secondary">Revoke Approval</button>
                 </form>
             {% elif item_status == 'published' %}
-                {% if item.webflow_item_id %}
-                <button type="button" class="btn btn-primary" disabled>
-                    Published to Webflow
-                </button>
-                <span class="webflow-published-meta">
-                    {{ (item.webflow_collection or 'CMS')|title }} · ID {{ item.webflow_item_id[:8] }}…
-                </span>
-                {% else %}
                 <button type="button" class="btn btn-primary" disabled>
                     Published
                 </button>
+                {% if item.webflow_item_id %}
+                <span class="webflow-published-meta">
+                    Live on site · {{ (item.webflow_collection or 'CMS')|replace('_', ' ')|title }}
+                </span>
                 {% endif %}
             {% endif %}
 
