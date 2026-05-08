@@ -11969,8 +11969,10 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     min-width: 220px;
 }
 
-.table-wrap {
+.table-wrap,
+.table-responsive {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .insights-table {
