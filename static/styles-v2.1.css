@@ -19,6 +19,18 @@
     --purple: #6d4aff;
     --purple-soft: #f4ebff;
 
+    /* Brand palette — primary aqua, secondary purple, surface tint, deep navy */
+    --brand-primary: #3EDFCB;
+    --brand-primary-hover: #2BCBB7;
+    --brand-primary-soft: rgba(62, 223, 203, 0.12);
+    --brand-primary-shadow: rgba(62, 223, 203, 0.28);
+    --brand-secondary: #9D7CE3;
+    --brand-secondary-hover: #8866D8;
+    --brand-secondary-soft: rgba(157, 124, 227, 0.12);
+    --brand-surface-tint: #E4E4EC;
+    --brand-text-strong: #191929;
+    --brand-text-on-primary: #15161e;
+
     --success-bg: #ecfdf3;
     --success-text: #15803d;
 
@@ -806,8 +818,9 @@ APP SHELL
    ========================= */}
 
 .btn-primary:hover {
+    background: var(--brand-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 14px 28px rgba(79, 70, 229, 0.22);
+    box-shadow: 0 14px 28px var(--brand-primary-shadow);
 }
 
 .btn-secondary:hover {
@@ -7463,9 +7476,10 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     align-items: center;
     justify-content: space-between;
     background:
-        radial-gradient(circle at top right, rgba(124, 92, 255, 0.10), transparent 32%),
+        radial-gradient(circle at top right, var(--brand-primary-soft), transparent 36%),
+        radial-gradient(circle at bottom left, var(--brand-secondary-soft), transparent 30%),
         linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-    border-color: #e0d8fb;
+    border-color: rgba(62, 223, 203, 0.28);
 }
 
 .dashboard-welcome-copy {
@@ -7479,7 +7493,7 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #7c5cff;
+    color: var(--brand-secondary);
     margin-bottom: 8px;
 }
 
@@ -7487,7 +7501,7 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     margin: 0 0 8px;
     font-size: 24px;
     line-height: 1.2;
-    color: #15233b;
+    color: var(--brand-text-strong);
 }
 
 .dashboard-welcome-card p {
@@ -13900,13 +13914,13 @@ input {
     padding: 0 18px;
     border: 0;
     border-radius: 12px;
-    background: linear-gradient(135deg, #7c5cff, #9b7bff);
-    color: #ffffff;
+    background: var(--brand-primary);
+    color: var(--brand-text-on-primary);
     font-size: 14px;
     font-weight: 700;
     line-height: 1;
-    box-shadow: 0 12px 26px rgba(139, 92, 246, 0.2);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    box-shadow: 0 12px 26px var(--brand-primary-shadow);
+    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
 @media (max-width: 768px) {
@@ -14043,9 +14057,9 @@ input {
     min-height: 46px;
     padding: 0 18px;
     border: 0;
-    background: linear-gradient(135deg, #7c5cff, #9b7bff);
-    color: #ffffff;
-    box-shadow: 0 12px 26px rgba(139, 92, 246, 0.2);
+    background: var(--brand-primary);
+    color: var(--brand-text-on-primary);
+    box-shadow: 0 12px 26px var(--brand-primary-shadow);
 }
 
 .btn-secondary {

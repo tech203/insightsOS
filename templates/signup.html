@@ -99,14 +99,16 @@
 :root {
     --auth-bg-page: #f7f9fc;
     --auth-bg-card: #ffffff;
-    --auth-bg-soft: #f8fafc;
-    --auth-text-strong: #15233b;
+    --auth-bg-soft: #E4E4EC;
+    --auth-text-strong: #191929;
     --auth-text-main: #435267;
     --auth-text-muted: #6b7280;
     --auth-border: #e7ebf3;
-    --auth-accent: #7c5cff;
-    --auth-accent-strong: #6745f5;
-    --auth-accent-soft: rgba(124, 92, 255, 0.10);
+    --auth-accent: #3EDFCB;
+    --auth-accent-strong: #2BCBB7;
+    --auth-accent-soft: rgba(62, 223, 203, 0.12);
+    --auth-secondary: #9D7CE3;
+    --auth-text-on-primary: #15161e;
     --auth-danger-bg: #fef2f2;
     --auth-danger-border: #fecaca;
     --auth-danger-text: #991b1b;
@@ -124,8 +126,8 @@ body.auth-page-light {
     min-height: 100vh;
     color: var(--auth-text-main);
     background:
-        radial-gradient(circle at top right, rgba(124, 92, 255, 0.08), transparent 35%),
-        radial-gradient(circle at bottom left, rgba(155, 123, 255, 0.06), transparent 30%),
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.10), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.08), transparent 30%),
         var(--auth-bg-page);
 }
 
@@ -158,11 +160,11 @@ body.auth-page-light {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #7c5cff, #9b7bff);
-    color: #ffffff;
+    background: linear-gradient(135deg, var(--auth-accent), var(--auth-secondary));
+    color: var(--auth-text-on-primary);
     font-size: 32px;
     font-weight: 800;
-    box-shadow: 0 14px 32px rgba(124, 92, 255, 0.22);
+    box-shadow: 0 14px 32px rgba(62, 223, 203, 0.28);
 }
 
 .auth-brand-copy {
@@ -354,18 +356,19 @@ body.auth-page-light {
     margin-top: 4px;
     border: 0;
     border-radius: 14px;
-    background: linear-gradient(135deg, #7c5cff, #9b7bff);
-    color: #ffffff;
+    background: var(--auth-accent);
+    color: var(--auth-text-on-primary);
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 12px 26px rgba(124, 92, 255, 0.22);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    box-shadow: 0 12px 26px rgba(62, 223, 203, 0.28);
+    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
 .auth-submit-btn:hover {
+    background: var(--auth-accent-strong);
     transform: translateY(-1px);
-    box-shadow: 0 14px 30px rgba(124, 92, 255, 0.28);
+    box-shadow: 0 14px 30px rgba(62, 223, 203, 0.34);
 }
 
 .auth-submit-btn:disabled {
