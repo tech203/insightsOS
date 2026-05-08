@@ -7496,6 +7496,240 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     border-color: rgba(62, 223, 203, 0.28);
 }
 
+.visibility-scorecard {
+    position: relative;
+    margin-bottom: 22px;
+    padding: 28px 32px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #0F0F1F 0%, #191929 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+    color: #f4f6fb;
+    overflow: hidden;
+}
+
+.visibility-scorecard-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.20), transparent 45%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.16), transparent 50%);
+}
+
+.visibility-scorecard > * {
+    position: relative;
+    z-index: 1;
+}
+
+.visibility-scorecard-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.visibility-scorecard-kicker {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #C8B5F0;
+    margin-bottom: 6px;
+}
+
+.visibility-scorecard-head h2 {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.15;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
+.visibility-scorecard-head p {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: rgba(244, 246, 251, 0.66);
+}
+
+.visibility-scorecard-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(244, 246, 251, 0.86);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.visibility-scorecard-pill-strong {
+    color: #6EE7B7;
+    border-color: rgba(110, 231, 183, 0.32);
+    background: rgba(110, 231, 183, 0.10);
+}
+
+.visibility-scorecard-pill-moderate {
+    color: #3EDFCB;
+    border-color: rgba(62, 223, 203, 0.32);
+    background: rgba(62, 223, 203, 0.10);
+}
+
+.visibility-scorecard-pill-opportunity {
+    color: #FBBF77;
+    border-color: rgba(251, 191, 119, 0.32);
+    background: rgba(251, 191, 119, 0.10);
+}
+
+.visibility-scorecard-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr));
+}
+
+.visibility-scorecard-stat {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.visibility-scorecard-stat-hero {
+    padding: 22px;
+    background:
+        linear-gradient(180deg, rgba(62, 223, 203, 0.08) 0%, rgba(157, 124, 227, 0.06) 100%);
+    border-color: rgba(62, 223, 203, 0.20);
+}
+
+.visibility-scorecard-stat-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(244, 246, 251, 0.62);
+}
+
+.visibility-scorecard-stat-value {
+    margin-top: 12px;
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.0;
+    background: linear-gradient(135deg, #3EDFCB 0%, #9D7CE3 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.visibility-scorecard-stat-value-sm {
+    font-size: 28px;
+}
+
+.visibility-scorecard-stat-unit {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(244, 246, 251, 0.40);
+    -webkit-text-fill-color: rgba(244, 246, 251, 0.40);
+    letter-spacing: 0;
+}
+
+.visibility-scorecard-bar {
+    margin-top: 14px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.visibility-scorecard-bar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #3EDFCB 0%, #9D7CE3 100%);
+    border-radius: 999px;
+}
+
+.visibility-scorecard-takeaway {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.visibility-scorecard-takeaway-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #3EDFCB;
+    margin-bottom: 6px;
+}
+
+.visibility-scorecard-takeaway p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(244, 246, 251, 0.78);
+}
+
+.visibility-scorecard-actions {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.visibility-scorecard-actions .btn-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: #f4f6fb;
+}
+
+.visibility-scorecard-actions .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+    .visibility-scorecard-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .visibility-scorecard-stat-hero {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .visibility-scorecard {
+        padding: 22px;
+    }
+
+    .visibility-scorecard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .visibility-scorecard-actions,
+    .visibility-scorecard-actions .btn {
+        width: 100%;
+    }
+}
+
 .dashboard-welcome-copy {
     flex: 1 1 360px;
     min-width: 280px;
