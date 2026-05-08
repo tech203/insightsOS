@@ -2506,6 +2506,7 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
             "technical_issues": full_data.get("technical_issues", [])
         },
         research_pack=research_pack,
+        industry=client.get("industry", ""),
     )
 
     opportunities = build_content_opportunities(actions)
@@ -3506,6 +3507,7 @@ def build_client_views():
                 ]
             },
             site_findings={},
+            industry=client.get("industry", ""),
         )
         client_views.append(
             {

@@ -90,6 +90,9 @@
                             <span class="growth-calendar-card-pill growth-calendar-card-pill-{{ card.priority|default('medium') }}">
                                 {{ card.priority|default('medium')|title }}
                             </span>
+                            {% if card.category_tag == 'ecommerce' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-ecom">Ecom</span>
+                            {% endif %}
                             {% if card.kind == 'queue' %}
                                 <span class="growth-calendar-card-status">{{ card.status|replace('_', ' ')|title }}</span>
                             {% else %}
@@ -414,6 +417,12 @@
 .growth-calendar-card-pill-low {
     background: rgba(16, 185, 129, 0.10);
     color: #047857;
+}
+
+.growth-calendar-card-pill-ecom {
+    background: rgba(157, 124, 227, 0.12);
+    color: #6745f5;
+    border: 1px solid rgba(157, 124, 227, 0.32);
 }
 
 .growth-calendar-card-status {
