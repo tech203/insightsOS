@@ -146,6 +146,54 @@
         gap: 0.5rem;
         flex-wrap: wrap;
     }
+    .shopify-findings {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    .shopify-finding {
+        border: 1px solid #ececf2;
+        border-left: 4px solid var(--brand-secondary, #9D7CE3);
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        background: #fafafe;
+    }
+    .shopify-finding.priority-high { border-left-color: #d24b4b; background: #fef7f7; }
+    .shopify-finding.priority-medium { border-left-color: var(--brand-secondary, #9D7CE3); }
+    .shopify-finding.priority-low { border-left-color: #8a8a99; }
+    .shopify-finding-title {
+        font-weight: 600;
+        margin: 0 0 0.25rem 0;
+        font-size: 0.95rem;
+    }
+    .shopify-finding-meta {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+        color: #777;
+    }
+    .shopify-finding-fix {
+        font-size: 0.88rem;
+        color: #333;
+        margin: 0.25rem 0 0 0;
+    }
+    .shopify-summary {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin: 0.75rem 0 0 0;
+        font-size: 0.85rem;
+    }
+    .shopify-summary-pill {
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        background: #eef0fb;
+        color: #2a2a48;
+    }
+    .shopify-summary-pill.warn { background: #fdf0e6; color: #8c4a1f; }
 </style>
 {% endblock %}
 
@@ -203,6 +251,38 @@
                     <button type="submit" class="shopify-btn">Refresh catalog</button>
                 </form>
             </div>
+
+            {% if summary %}
+                <div class="shopify-summary">
+                    <span class="shopify-summary-pill"><strong>{{ summary.total }}</strong> products</span>
+                    {% if summary.active %}<span class="shopify-summary-pill"><strong>{{ summary.active }}</strong> active</span>{% endif %}
+                    {% if summary.drafts %}<span class="shopify-summary-pill warn"><strong>{{ summary.drafts }}</strong> drafts</span>{% endif %}
+                    {% if summary.thin_description %}<span class="shopify-summary-pill warn"><strong>{{ summary.thin_description }}</strong> thin descriptions</span>{% endif %}
+                    {% if summary.missing_alt_text %}<span class="shopify-summary-pill warn"><strong>{{ summary.missing_alt_text }}</strong> missing alt text</span>{% endif %}
+                    {% if summary.no_images %}<span class="shopify-summary-pill warn"><strong>{{ summary.no_images }}</strong> no images</span>{% endif %}
+                </div>
+            {% endif %}
+
+            {% if findings %}
+                <div style="margin-top: 1.5rem;">
+                    <h3 style="margin:0 0 0.4rem 0; font-size:1rem;">What this catalog tells us</h3>
+                    <p style="margin:0; font-size:0.88rem; color:#666;">These findings are now wired into your action plan and growth calendar.</p>
+                    <div class="shopify-findings">
+                        {% for finding in findings %}
+                        <div class="shopify-finding priority-{{ finding.priority }}">
+                            <div class="shopify-finding-meta">
+                                <span>{{ finding.priority }}</span>
+                                <span>·</span>
+                                <span>{{ finding.credits_required }} credits</span>
+                                {% if finding.difficulty %}<span>·</span><span>{{ finding.difficulty }}</span>{% endif %}
+                            </div>
+                            <p class="shopify-finding-title">{{ finding.title }}</p>
+                            <p class="shopify-finding-fix">{{ finding.recommended_fix }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
 
             {% if products %}
                 <div class="shopify-products">

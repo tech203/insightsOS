@@ -93,6 +93,9 @@
                             {% if card.category_tag == 'ecommerce' %}
                             <span class="growth-calendar-card-pill growth-calendar-card-pill-ecom">Ecom</span>
                             {% endif %}
+                            {% if card.category_tag == 'ecommerce_product' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-ecom">From your store</span>
+                            {% endif %}
                             {% if card.kind == 'queue' %}
                                 <span class="growth-calendar-card-status">{{ card.status|replace('_', ' ')|title }}</span>
                             {% else %}

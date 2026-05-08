@@ -2556,6 +2556,10 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
         industry=client.get("industry", ""),
     )
 
+    shopify_findings = _shopify_findings_for_client(user_id, client_id)
+    if shopify_findings:
+        actions = list(actions) + shopify_findings
+
     opportunities = build_content_opportunities(actions)
 
     if not opportunities:
@@ -3556,6 +3560,13 @@ def build_client_views():
             site_findings={},
             industry=client.get("industry", ""),
         )
+
+        shopify_findings = _shopify_findings_for_client(
+            current_user.id, client.get("id")
+        )
+        if shopify_findings:
+            recommended_actions = list(recommended_actions) + shopify_findings
+
         client_views.append(
             {
                 **client,
@@ -8290,6 +8301,46 @@ def shopify_oauth_callback():
     return redirect(url_for("shopify_products", client_id=workspace.id))
 
 
+def _refresh_shopify_findings(connection: "ShopifyConnection", products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Run the catalog audit, persist the findings on the connection, and
+    return them. Persisting the findings (not the full product list) keeps
+    the calendar render path fast: subsequent renders just read shop_meta."""
+    from services.shopify_audit import find_shopify_action_items, summarize_catalog
+
+    findings = find_shopify_action_items(products)
+    summary = summarize_catalog(products)
+
+    meta = dict(connection.shop_meta or {})
+    meta["cached_findings"] = findings
+    meta["cached_summary"] = summary
+    meta["cached_findings_at"] = datetime.utcnow().isoformat()
+    connection.shop_meta = meta
+    flag_modified(connection, "shop_meta")
+    return findings
+
+
+def _shopify_findings_for_client(user_id: int, client_id: Optional[int]) -> List[Dict[str, Any]]:
+    """Return cached Shopify findings for a workspace (empty list if none).
+
+    Reads the shop_meta payload set by the products view / sync route, so
+    no HTTP round-trip happens on the render path."""
+    if not client_id:
+        return []
+    try:
+        connection = (
+            ShopifyConnection.query.filter_by(user_id=user_id, client_id=client_id)
+            .one_or_none()
+        )
+    except Exception:
+        return []
+    if not connection or not connection.shop_meta:
+        return []
+    findings = connection.shop_meta.get("cached_findings") if isinstance(connection.shop_meta, dict) else None
+    if isinstance(findings, list):
+        return findings
+    return []
+
+
 @app.route("/integrations/shopify/sync/<int:client_id>", methods=["POST"])
 @login_required
 def shopify_sync_products(client_id):
@@ -8316,6 +8367,7 @@ def shopify_sync_products(client_id):
     except ShopifyAPIError as exc:
         return jsonify({"success": False, "message": str(exc)}), 502
 
+    findings = _refresh_shopify_findings(connection, products)
     connection.last_synced_at = datetime.utcnow()
     db.session.commit()
 
@@ -8324,6 +8376,7 @@ def shopify_sync_products(client_id):
             "success": True,
             "shop_domain": connection.shop_domain,
             "count": len(products),
+            "findings_count": len(findings),
             "synced_at": connection.last_synced_at.isoformat(),
         }
     )
@@ -8347,21 +8400,29 @@ def shopify_products(client_id):
     )
 
     products: List[Dict[str, Any]] = []
+    findings: List[Dict[str, Any]] = []
+    summary: Dict[str, Any] = {}
     error: Optional[str] = None
     if connection:
         try:
             admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
             products = admin.list_products(limit=50)
+            findings = _refresh_shopify_findings(connection, products)
+            summary = (connection.shop_meta or {}).get("cached_summary", {}) if isinstance(connection.shop_meta, dict) else {}
             connection.last_synced_at = datetime.utcnow()
             db.session.commit()
         except ShopifyAPIError as exc:
             error = str(exc)
+            findings = _shopify_findings_for_client(current_user.id, client_id)
+            summary = (connection.shop_meta or {}).get("cached_summary", {}) if isinstance(connection.shop_meta, dict) else {}
 
     return render_template(
         "integrations/shopify_products.html",
         workspace=workspace,
         connection=connection,
         products=products,
+        findings=findings,
+        summary=summary,
         error=error,
     )
 
