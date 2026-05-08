@@ -42,10 +42,16 @@ from next_action_engine import build_next_best_action
 from growth_calendar import weekly_growth_recommendations
 from pricing import (
     ACTION_CREDIT_COSTS,
+    PLAN_CATALOG,
+    active_queue_limit_for_plan,
     baseline_credit_price,
     get_action_cost,
     get_bundles_for_plan,
+    get_plan,
     is_subscriber,
+    list_public_plans,
+    monthly_credit_allowance,
+    workspace_limit_for_plan,
 )
 from query_idea_generator import generate_query_ideas
 from flask import (
@@ -3702,24 +3708,15 @@ def user_has_unlimited_credits(user):
 def get_active_queue_limit(user):
     """
     Controls how many active content queue items each plan can have.
-    Published/archived items do not count.
+    Published/archived items do not count. Reads from PLAN_CATALOG so
+    bumping a tier's limit is a one-line edit in pricing.py.
     """
     if not user:
         return 3
-
     if user_has_unlimited_credits(user):
         return 999
-
     plan = getattr(user, "plan", "free") or "free"
-
-    limits = {
-        "free": 3,
-        "pro": 10,
-        "growth": 25,
-        "dev_unlimited": 999,
-    }
-
-    return limits.get(plan, 3)
+    return active_queue_limit_for_plan(plan)
 
 
 def is_active_queue_status(status):
@@ -3831,6 +3828,60 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     db.session.add(tx)
     db.session.commit()
     return True
+
+
+def grant_monthly_credits_if_due(user) -> int:
+    """If `user` is on a paid plan and at least 28 days have passed since
+    their last monthly_allowance grant (or they've never received one),
+    credit their wallet with the plan's allowance and record the
+    transaction. Returns the number of credits granted (0 if not due)."""
+    if not user or not getattr(user, "plan", None):
+        return 0
+    monthly = monthly_credit_allowance(user.plan)
+    if monthly <= 0:
+        return 0
+
+    last_grant = (
+        CreditTransaction.query
+        .filter_by(user_id=user.id, type="monthly_allowance")
+        .order_by(CreditTransaction.created_at.desc())
+        .first()
+    )
+    now = datetime.utcnow()
+    if last_grant and (now - last_grant.created_at).days < 28:
+        return 0
+
+    if not user.wallet:
+        user.wallet = Wallet(user_id=user.id, balance=0)
+        db.session.add(user.wallet)
+        db.session.flush()
+
+    user.wallet.balance += monthly
+    db.session.add(
+        CreditTransaction(
+            user_id=user.id,
+            type="monthly_allowance",
+            amount=monthly,
+            balance_after=user.wallet.balance,
+            notes=f"Monthly allowance — {get_plan(user.plan).get('label', user.plan)} plan",
+        )
+    )
+    db.session.commit()
+    return monthly
+
+
+@app.before_request
+def _maybe_grant_monthly_credits():
+    """Top up paid users with their monthly allowance once per period."""
+    if not current_user.is_authenticated:
+        return
+    # Cheap fast-path: skip if the request is for static assets.
+    if request.endpoint and request.endpoint.startswith("static"):
+        return
+    try:
+        grant_monthly_credits_if_due(current_user)
+    except Exception as exc:
+        logger.warning("Monthly credit grant failed for user %s: %s", current_user.id, exc)
 
 
 def has_enough_credits_for(user, action_key: str) -> bool:
@@ -4101,9 +4152,49 @@ def help_page():
 
 
 @app.route("/pricing")
-@login_required
 def pricing_page():
-    return render_template("pricing.html")
+    """Public pricing page — renders the plan catalog."""
+    current_plan = (
+        getattr(current_user, "plan", None)
+        if current_user.is_authenticated
+        else None
+    )
+    return render_template(
+        "pricing.html",
+        plans=list_public_plans(),
+        current_plan=current_plan,
+    )
+
+
+@app.route("/subscribe/<plan_slug>", methods=["GET"])
+@login_required
+def start_subscription(plan_slug):
+    """Begin a subscription change. Without Stripe wired up, this is a
+    dev-mode plan switch that records a CreditTransaction for audit
+    visibility. The Stripe checkout flow plugs in here later."""
+    plan = get_plan(plan_slug)
+    if plan_slug not in PLAN_CATALOG or plan_slug == "free":
+        flash("That plan isn't available.", "error")
+        return redirect(url_for("pricing_page"))
+
+    # Stripe placeholder: when STRIPE_SECRET_KEY + price IDs are wired,
+    # redirect to a Stripe Checkout session here. For now we set the plan
+    # directly and grant the first month's allowance immediately.
+    if os.getenv("STRIPE_SECRET_KEY"):
+        # TODO: redirect to stripe.checkout.Session.create(...)
+        pass
+
+    current_user.plan = plan_slug
+    db.session.commit()
+    granted = grant_monthly_credits_if_due(current_user)
+    if granted:
+        flash(
+            f"Welcome to {plan['label']} — {granted} credits added to your wallet.",
+            "success",
+        )
+    else:
+        flash(f"You're now on the {plan['label']} plan.", "success")
+    return redirect(url_for("settings_billing"))
 
 
 @app.route("/growth-calendar")
@@ -4488,19 +4579,9 @@ def report_page(client_id):
 def get_workspace_limit(user):
     if not user:
         return 0
-
     if user.role == "admin" or user.plan == "dev_unlimited":
         return None
-
-    limits = {
-        "free": 1,
-        "starter": 3,
-        "pro": 10,
-        "growth": 10,
-        "agency": 25,
-    }
-
-    return limits.get(user.plan, 1)
+    return workspace_limit_for_plan(getattr(user, "plan", "free") or "free")
 
 
 def get_workspace_count(user_id):

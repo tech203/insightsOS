@@ -68,6 +68,113 @@ def is_subscriber(plan: str | None) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Subscription plan catalog
+# ---------------------------------------------------------------------------
+# Single source of truth for what each tier includes. Workspace and queue
+# limits are read from here by app.py helpers; the pricing page renders
+# directly from this dict so adding a tier is a one-place change.
+#
+# Effective per-credit cost on each paid plan (price ÷ monthly_credits):
+#   Plus:    $19 / 25  = $0.76 / credit
+#   Pro:     $49 / 75  = $0.65 / credit
+#   Growth:  $99 / 175 = $0.57 / credit
+#
+# All paid tiers also unlock the $1/credit topup table (vs the free
+# tier's $2/credit).
+
+PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
+    "free": {
+        "label": "Free",
+        "monthly_price_usd": 0,
+        "monthly_credits": 0,
+        "workspace_limit": 1,
+        "active_queue_limit": 3,
+        "tagline": "Run your first audits and see how the system works.",
+        "features": [
+            "1 workspace",
+            "3 active queue items",
+            "Topup credits at $2 each",
+        ],
+        "popular": False,
+    },
+    "plus": {
+        "label": "Plus",
+        "monthly_price_usd": 19,
+        "monthly_credits": 25,
+        "workspace_limit": 3,
+        "active_queue_limit": 10,
+        "tagline": "For solo operators getting serious about AI visibility.",
+        "features": [
+            "25 credits / month",
+            "3 workspaces",
+            "10 active queue items",
+            "Topup credits at $1 each",
+            "Multi-engine answer monitor",
+        ],
+        "popular": False,
+    },
+    "pro": {
+        "label": "Pro",
+        "monthly_price_usd": 49,
+        "monthly_credits": 75,
+        "workspace_limit": 10,
+        "active_queue_limit": 25,
+        "tagline": "For consultants and small teams running multiple brands.",
+        "features": [
+            "75 credits / month",
+            "10 workspaces",
+            "25 active queue items",
+            "Topup credits at $1 each",
+            "Priority support",
+        ],
+        "popular": True,
+    },
+    "growth": {
+        "label": "Growth",
+        "monthly_price_usd": 99,
+        "monthly_credits": 175,
+        "workspace_limit": 25,
+        "active_queue_limit": 50,
+        "tagline": "For agencies running AI visibility for their roster.",
+        "features": [
+            "175 credits / month",
+            "25 workspaces",
+            "50 active queue items",
+            "Topup credits at $1 each",
+            "White-label add-on available",
+        ],
+        "popular": False,
+    },
+}
+
+
+# Public ordering for the pricing page.
+PLAN_ORDER: List[str] = ["free", "plus", "pro", "growth"]
+
+
+def get_plan(slug: str | None) -> Dict[str, Any]:
+    """Look up a plan by slug; falls back to Free for unknown slugs."""
+    return PLAN_CATALOG.get((slug or "free").lower(), PLAN_CATALOG["free"])
+
+
+def list_public_plans() -> List[Dict[str, Any]]:
+    """Plans exposed on the pricing page, in display order."""
+    return [{"slug": s, **PLAN_CATALOG[s]} for s in PLAN_ORDER if s in PLAN_CATALOG]
+
+
+def workspace_limit_for_plan(slug: str | None) -> int:
+    return int(get_plan(slug).get("workspace_limit", 1))
+
+
+def active_queue_limit_for_plan(slug: str | None) -> int:
+    return int(get_plan(slug).get("active_queue_limit", 3))
+
+
+def monthly_credit_allowance(slug: str | None) -> int:
+    return int(get_plan(slug).get("monthly_credits", 0))
+
+
+# ---------------------------------------------------------------------------
 # Topup bundles
 # ---------------------------------------------------------------------------
 # Two tables: subscribers buy at $1/credit; free users pay $2/credit.
