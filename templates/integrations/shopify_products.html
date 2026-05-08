@@ -194,6 +194,25 @@
         color: #2a2a48;
     }
     .shopify-summary-pill.warn { background: #fdf0e6; color: #8c4a1f; }
+
+    .shopify-rewrite-card {
+        border: 1px solid #e8e8ee;
+        border-radius: 10px;
+        padding: 0.85rem;
+        margin-bottom: 0.65rem;
+        background: #fdfdff;
+    }
+    .shopify-rewrite-diff {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-top: 0.5rem;
+    }
+    @media (max-width: 720px) {
+        .shopify-rewrite-diff {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -226,13 +245,21 @@
     {% endif %}
 
     {% if not connection %}
-        <div class="shopify-card shopify-empty">
-            <h2>Connect your store</h2>
-            <p>Link your store so audits can read your live product catalog and turn it into AI-visible content. Enter your store URL to get started.</p>
+        <div class="shopify-card shopify-empty" style="padding: 3rem 1.5rem;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛒</div>
+            <h2 style="font-size: 1.4rem; margin-bottom: 0.6rem;">Connect your store to start</h2>
+            <p style="font-size: 1rem; max-width: 480px; margin: 0 auto 1.5rem auto;">
+                Link your store so audits can read your live product catalog. Once connected, we'll surface
+                what's hurting AI visibility (thin descriptions, missing alt text, draft products) and let you
+                fix them in one click.
+            </p>
             <form class="shopify-connect-form" method="get" action="{{ url_for('shopify_connect', client_id=workspace.id) }}">
                 <input type="text" name="shop" placeholder="my-store.myshopify.com" required>
                 <button type="submit" class="shopify-btn">Connect store</button>
             </form>
+            <p style="font-size: 0.78rem; color: #888; margin-top: 1rem;">
+                Read-only access by default. We never charge anything to your store.
+            </p>
         </div>
     {% else %}
         <div class="shopify-card">
@@ -286,16 +313,16 @@
                             <p class="shopify-finding-title">{{ finding.title }}</p>
                             <p class="shopify-finding-fix">{{ finding.recommended_fix }}</p>
                             {% if 'alt text' in finding.title|lower and has_write_scope and summary.missing_alt_text %}
-                            <form method="post" action="{{ url_for('shopify_fix_alt_text', client_id=workspace.id) }}" style="margin-top:0.5rem;" onsubmit="return confirm('Generate alt text from each image and write it back to your store? This will only update images that are currently missing alt text.');">
-                                <button type="submit" class="shopify-btn" style="font-size:0.85rem; padding:0.4rem 0.8rem; min-height:auto;">Auto-fill alt text now</button>
-                                <span style="font-size:0.78rem; color:#777; margin-left:0.5rem;">Uses AI vision when OpenAI is configured.</span>
+                            <form method="post" action="{{ url_for('shopify_fix_alt_text', client_id=workspace.id) }}" style="margin-top:0.65rem; display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;" onsubmit="return __creditCheckBeforeSubmit(this, 2, 'Generate alt text and write it back to your store? Costs 2 credits.');">
+                                <button type="submit" class="shopify-btn">Auto-fill alt text now</button>
+                                <span style="font-size:0.8rem; color:#777;">Uses AI vision when OpenAI is configured.</span>
                             </form>
                             {% endif %}
 
                             {% if 'thin product descriptions' in finding.title|lower and summary.thin_description %}
-                            <form method="post" action="{{ url_for('shopify_descriptions_preview', client_id=workspace.id) }}" style="margin-top:0.5rem;" onsubmit="return confirm('Generate AI-rewritten descriptions for every product with a thin description? Preview is free; applying costs {{ description_rewrite_cost }} credits.');">
-                                <button type="submit" class="shopify-btn" style="font-size:0.85rem; padding:0.4rem 0.8rem; min-height:auto;">Generate description previews</button>
-                                <span style="font-size:0.78rem; color:#777; margin-left:0.5rem;">You'll review each rewrite before anything is written to your store.</span>
+                            <form method="post" action="{{ url_for('shopify_descriptions_preview', client_id=workspace.id) }}" style="margin-top:0.65rem; display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;" onsubmit="return confirm('Generate AI-rewritten descriptions for every product with a thin description? Preview is free; applying costs {{ description_rewrite_cost }} credits.');">
+                                <button type="submit" class="shopify-btn">Generate description previews</button>
+                                <span style="font-size:0.8rem; color:#777;">You'll review each rewrite before anything is written to your store.</span>
                             </form>
                             {% endif %}
                         </div>
@@ -310,14 +337,14 @@
                 <p style="margin:0 0 0.85rem 0; font-size:0.88rem; color:#666;">
                     Tick the rewrites you want to push to your store. Applying costs {{ description_rewrite_cost }} credits regardless of how many you select.
                 </p>
-                <form method="post" action="{{ url_for('shopify_descriptions_apply', client_id=workspace.id) }}" onsubmit="return confirm('Push the selected description rewrites to your Shopify store? This overwrites the existing body_html on those products.');">
+                <form method="post" action="{{ url_for('shopify_descriptions_apply', client_id=workspace.id) }}" onsubmit="return __creditCheckBeforeSubmit(this, {{ description_rewrite_cost }}, 'Push the selected description rewrites to your store? This overwrites existing descriptions and costs {{ description_rewrite_cost }} credits.');">
                     {% for proposal in description_proposals %}
-                    <div style="border:1px solid #e8e8ee; border-radius:10px; padding:0.85rem; margin-bottom:0.65rem; background:#fdfdff;">
+                    <div class="shopify-rewrite-card">
                         <label style="display:flex; gap:0.6rem; align-items:flex-start; cursor:pointer;">
                             <input type="checkbox" name="apply_product_id" value="{{ proposal.product_id }}" checked style="margin-top:0.3rem;">
                             <div style="flex:1;">
                                 <strong style="font-size:0.95rem;">{{ proposal.title }}</strong>
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-top:0.5rem;">
+                                <div class="shopify-rewrite-diff">
                                     <div>
                                         <div style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.05em; color:#999; margin-bottom:0.2rem;">Current</div>
                                         <div style="background:#f6f6fa; border-radius:6px; padding:0.5rem; font-size:0.82rem; color:#555; min-height:60px; max-height:160px; overflow:auto;">

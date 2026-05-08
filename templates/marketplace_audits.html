@@ -180,7 +180,7 @@
                     </div>
                 </div>
                 <div class="mp-actions">
-                    <form method="post" action="{{ url_for('marketplace_run_audit', client_id=workspace.id, presence_id=presence.id) }}" onsubmit="return confirm('Run a marketplace audit? Costs {{ marketplace_audit_cost }} credits.');">
+                    <form method="post" action="{{ url_for('marketplace_run_audit', client_id=workspace.id, presence_id=presence.id) }}" onsubmit="return __creditCheckBeforeSubmit(this, {{ marketplace_audit_cost }}, 'Run a marketplace audit for this shop? Costs {{ marketplace_audit_cost }} credits.');">
                         <button type="submit" class="mp-btn">Run audit ({{ marketplace_audit_cost }} cr)</button>
                     </form>
                     <form method="post" action="{{ url_for('marketplace_delete_presence', client_id=workspace.id, presence_id=presence.id) }}" onsubmit="return confirm('Remove this marketplace listing?');">
@@ -213,7 +213,10 @@
         {% endfor %}
     {% else %}
         <div class="mp-empty">
-            No marketplace shops linked yet. Add your Etsy / Amazon / Shopee storefront above to start auditing.
+            <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">Link your first marketplace shop</p>
+            <p style="margin:0; max-width:480px; margin-left:auto; margin-right:auto;">
+                Use the form above to paste your Etsy, Amazon, Shopee, or eBay storefront URL. We'll generate marketplace-specific queries and check whether your shop is one of the AI-recommended results.
+            </p>
         </div>
     {% endif %}
 </div>

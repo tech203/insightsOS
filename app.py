@@ -5132,8 +5132,11 @@ def signup():
         db.session.commit()
 
         login_user(user)
-        flash("Account created successfully. You received 3 starter credits.")
-        return redirect(url_for("index"))
+        flash(
+            "Welcome! Set up your first workspace to run an audit.",
+            "success",
+        )
+        return redirect(url_for("create_client"))
 
     return render_template("signup.html", error=None)
 

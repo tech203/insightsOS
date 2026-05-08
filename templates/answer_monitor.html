@@ -256,13 +256,13 @@
     <div class="am-engines-banner">
         Active engines: <strong>{{ enabled_engine_labels|join(', ') }}</strong>.
         {% if enabled_engine_labels|length == 1 %}
-            Add <code>PERPLEXITY_API_KEY</code> to your environment to track web-grounded results alongside ChatGPT.
+            Web-grounded answers (separate from training-data results) become available when an admin enables the second AI engine — contact support to turn it on.
         {% else %}
             Each check fans out across all active engines.
         {% endif %}
     </div>
 
-    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" style="margin-bottom:1rem;" onsubmit="return confirm('Re-run every tracked prompt across every active engine? Each check uses one API call per engine.');">
+    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" style="margin-bottom:1rem;" onsubmit="return __creditCheckBeforeSubmit(this, 2, 'Re-run every tracked prompt across every active engine? Costs 2 credits.');">
         <input type="hidden" name="client_id" value="{{ selected_client.id }}">
         <button type="submit" class="am-btn">Run all checks now</button>
     </form>
@@ -343,12 +343,20 @@
 
     {% elif selected_client %}
     <div class="am-empty">
-        <p style="margin:0 0 0.5rem 0; font-size:1.05rem; font-weight:600;">No tracked prompts yet for {{ selected_client.name }}</p>
-        <p style="margin:0;">Add prompts from the Visibility or Position Tracking page, then come back here to run checks and watch the trend.</p>
+        <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">No tracked prompts yet for {{ selected_client.name }}</p>
+        <p style="margin:0 0 1.25rem 0; max-width:480px; margin-left:auto; margin-right:auto;">
+            Add the questions you want to monitor — anything a prospect might ask an AI assistant about your business — then run checks here to see how often you get cited.
+        </p>
+        <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
+            <a href="{{ url_for('position_tracking_page', client_id=selected_client.id) }}" class="am-btn">Add tracked prompts</a>
+            <a href="{{ url_for('run_client_audit', client_id=selected_client.id) }}" class="am-btn am-btn-secondary">Run an audit first</a>
+        </div>
     </div>
     {% else %}
     <div class="am-empty">
-        <p style="margin:0;">Pick or create a workspace to start monitoring AI answer citations.</p>
+        <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">Create a workspace to start monitoring</p>
+        <p style="margin:0 0 1.25rem 0;">Each workspace tracks a different brand or website.</p>
+        <a href="{{ url_for('create_client') }}" class="am-btn">Create your first workspace</a>
     </div>
     {% endif %}
 </div>
