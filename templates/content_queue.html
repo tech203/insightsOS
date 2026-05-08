@@ -479,6 +479,16 @@
                 <a href="{{ url_for('view_queue_brief', item_id=item.id) }}" class="btn btn-secondary">
                     View Brief
                 </a>
+
+                {% if item.content %}
+                <button type="button"
+                        class="btn btn-secondary ai-edit-trigger"
+                        data-item-id="{{ item.id }}"
+                        data-item-title="{{ item.title|default('Queue item') }}"
+                        data-client-id="{{ active_client_id or '' }}">
+                    Edit with AI
+                </button>
+                {% endif %}
             {% endif %}
 
             {% if item_status in ['brief_generated', 'brief generated', 'brief ready', 'draft_generated', 'draft generated', 'ready'] %}
@@ -867,6 +877,369 @@
         align-items: stretch;
     }
 }
+
+/* AI Edit modal */
+.ai-edit-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(15, 23, 42, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.ai-edit-overlay.is-open {
+    display: flex;
+}
+
+.ai-edit-modal {
+    width: min(720px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.30);
+    padding: 24px 26px;
+    display: grid;
+    gap: 16px;
+}
+
+.ai-edit-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.ai-edit-head h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    color: #16243c;
+}
+
+.ai-edit-head p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.ai-edit-close {
+    border: 0;
+    background: transparent;
+    font-size: 22px;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.ai-edit-close:hover {
+    color: #0f172a;
+}
+
+.ai-edit-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #d8dee9;
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.ai-edit-input:focus {
+    outline: none;
+    border-color: rgba(62, 223, 203, 0.45);
+    box-shadow: 0 0 0 3px rgba(62, 223, 203, 0.15);
+}
+
+.ai-edit-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ai-edit-chip {
+    border: 1px solid #e7ebf3;
+    background: #f8fafc;
+    color: #475569;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ai-edit-chip:hover {
+    border-color: rgba(62, 223, 203, 0.40);
+    background: rgba(62, 223, 203, 0.06);
+    color: #0f172a;
+}
+
+.ai-edit-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ai-edit-result {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.ai-edit-result.is-visible {
+    display: grid;
+}
+
+@media (max-width: 720px) {
+    .ai-edit-result {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ai-edit-pane {
+    border: 1px solid #e7ebf3;
+    border-radius: 14px;
+    background: #fbfcfe;
+    padding: 14px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.ai-edit-pane h4 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.ai-edit-pane pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #16243c;
+    font-family: inherit;
+}
+
+.ai-edit-summary {
+    background: rgba(62, 223, 203, 0.08);
+    border: 1px solid rgba(62, 223, 203, 0.28);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #0f766e;
+    line-height: 1.5;
+}
+
+.ai-edit-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #b91c1c;
+    display: none;
+}
+
+.ai-edit-error.is-visible {
+    display: block;
+}
+
+.ai-edit-loading {
+    color: #6b7280;
+    font-size: 13px;
+    padding: 8px 0;
+    display: none;
+}
+
+.ai-edit-loading.is-visible {
+    display: block;
+}
 </style>
+
+<div class="ai-edit-overlay" id="aiEditOverlay" aria-hidden="true">
+    <div class="ai-edit-modal" role="dialog" aria-modal="true" aria-labelledby="aiEditTitle">
+        <div class="ai-edit-head">
+            <div>
+                <h2 id="aiEditTitle">Edit with AI</h2>
+                <p id="aiEditSubtitle">Tell the AI what to change.</p>
+            </div>
+            <button type="button" class="ai-edit-close" id="aiEditClose" aria-label="Close">×</button>
+        </div>
+
+        <div>
+            <textarea id="aiEditInstruction" class="ai-edit-input" placeholder="e.g. Tighten the intro and make the CTA more specific."></textarea>
+            <div class="ai-edit-suggestions">
+                <button type="button" class="ai-edit-chip" data-prefill="Tighten the intro and make every paragraph one sentence shorter.">Tighten</button>
+                <button type="button" class="ai-edit-chip" data-prefill="Add a short FAQ section at the end with three questions readers usually ask.">Add FAQ</button>
+                <button type="button" class="ai-edit-chip" data-prefill="Make the tone more confident and direct, less salesy.">Tone: confident</button>
+                <button type="button" class="ai-edit-chip" data-prefill="Add concrete examples to the main argument so it feels less abstract.">Add examples</button>
+            </div>
+        </div>
+
+        <div class="ai-edit-error" id="aiEditError" role="alert"></div>
+
+        <div class="ai-edit-actions">
+            <button type="button" class="btn btn-primary" id="aiEditRun">Generate Revision</button>
+            <button type="button" class="btn btn-secondary" id="aiEditCancel">Cancel</button>
+        </div>
+
+        <div class="ai-edit-loading" id="aiEditLoading">Asking the editor…</div>
+
+        <div class="ai-edit-summary" id="aiEditSummary" style="display: none;"></div>
+
+        <div class="ai-edit-result" id="aiEditResult">
+            <div class="ai-edit-pane">
+                <h4>Original</h4>
+                <pre id="aiEditOriginalText"></pre>
+            </div>
+            <div class="ai-edit-pane">
+                <h4>Revised</h4>
+                <pre id="aiEditRevisedText"></pre>
+            </div>
+        </div>
+
+        <form method="POST" id="aiEditApplyForm" style="display: none;">
+            <input type="hidden" name="revised_content" id="aiEditRevisedHidden">
+            <input type="hidden" name="client_id" id="aiEditClientId">
+            <button type="submit" class="btn btn-primary">Apply Revision</button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const overlay = document.getElementById('aiEditOverlay');
+    if (!overlay) return;
+
+    const titleEl       = document.getElementById('aiEditTitle');
+    const subtitleEl    = document.getElementById('aiEditSubtitle');
+    const closeBtn      = document.getElementById('aiEditClose');
+    const cancelBtn     = document.getElementById('aiEditCancel');
+    const instructionEl = document.getElementById('aiEditInstruction');
+    const runBtn        = document.getElementById('aiEditRun');
+    const loadingEl     = document.getElementById('aiEditLoading');
+    const errorEl       = document.getElementById('aiEditError');
+    const summaryEl     = document.getElementById('aiEditSummary');
+    const resultEl      = document.getElementById('aiEditResult');
+    const originalEl    = document.getElementById('aiEditOriginalText');
+    const revisedEl     = document.getElementById('aiEditRevisedText');
+    const applyForm     = document.getElementById('aiEditApplyForm');
+    const applyHidden   = document.getElementById('aiEditRevisedHidden');
+    const clientHidden  = document.getElementById('aiEditClientId');
+
+    let currentItemId = null;
+
+    function open(itemId, itemTitle, clientId) {
+        currentItemId = itemId;
+        titleEl.textContent = 'Edit with AI';
+        subtitleEl.textContent = itemTitle ? `Editing: ${itemTitle}` : 'Tell the AI what to change.';
+        instructionEl.value = '';
+        clientHidden.value = clientId || '';
+        applyForm.action = '/content-queue/' + itemId + '/apply-ai-edit';
+
+        errorEl.classList.remove('is-visible');
+        errorEl.textContent = '';
+        summaryEl.style.display = 'none';
+        summaryEl.textContent = '';
+        resultEl.classList.remove('is-visible');
+        applyForm.style.display = 'none';
+
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden', 'false');
+        setTimeout(() => instructionEl.focus(), 30);
+    }
+
+    function close() {
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+        currentItemId = null;
+    }
+
+    document.querySelectorAll('.ai-edit-trigger').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            open(
+                btn.getAttribute('data-item-id'),
+                btn.getAttribute('data-item-title'),
+                btn.getAttribute('data-client-id')
+            );
+        });
+    });
+
+    closeBtn.addEventListener('click', close);
+    cancelBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) close();
+    });
+
+    document.querySelectorAll('.ai-edit-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            instructionEl.value = chip.getAttribute('data-prefill') || '';
+            instructionEl.focus();
+        });
+    });
+
+    runBtn.addEventListener('click', async () => {
+        if (!currentItemId) return;
+        const instruction = (instructionEl.value || '').trim();
+        if (!instruction) {
+            errorEl.textContent = 'Type an instruction first.';
+            errorEl.classList.add('is-visible');
+            return;
+        }
+        errorEl.classList.remove('is-visible');
+        summaryEl.style.display = 'none';
+        resultEl.classList.remove('is-visible');
+        applyForm.style.display = 'none';
+        loadingEl.classList.add('is-visible');
+        runBtn.disabled = true;
+
+        try {
+            const fd = new FormData();
+            fd.append('instruction', instruction);
+            const resp = await fetch('/content-queue/' + currentItemId + '/ai-edit', {
+                method: 'POST',
+                body: fd,
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.ok) {
+                errorEl.textContent = data.error || 'AI revision failed.';
+                errorEl.classList.add('is-visible');
+                return;
+            }
+
+            originalEl.textContent = data.original_content || '(loading…)';
+            revisedEl.textContent  = data.revised_content || '';
+            applyHidden.value      = data.revised_content || '';
+            if (data.summary) {
+                summaryEl.textContent = data.summary;
+                summaryEl.style.display = 'block';
+            }
+            resultEl.classList.add('is-visible');
+            applyForm.style.display = 'block';
+
+            // Fetch the original text only on first run, lazily.
+            if (!originalEl.dataset.loaded) {
+                originalEl.dataset.loaded = 'true';
+            }
+        } catch (e) {
+            errorEl.textContent = 'Network error. Try again.';
+            errorEl.classList.add('is-visible');
+        } finally {
+            loadingEl.classList.remove('is-visible');
+            runBtn.disabled = false;
+        }
+    });
+})();
+</script>
 
 {% endblock %}

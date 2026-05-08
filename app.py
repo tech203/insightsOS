@@ -6479,6 +6479,108 @@ def publish_queue_item_to_webflow(item_id):
     return _redirect_to_queue(client_id)
 
 
+@app.route("/content-queue/<item_id>/ai-edit", methods=["POST"])
+@login_required
+def ai_edit_queue_item(item_id):
+    """Run a one-shot AI revision against a queue item's content.
+
+    Returns JSON:
+      { "ok": True,  "revised_content": "...", "summary": "Short note on what changed" }
+      { "ok": False, "error":  "..." }
+    """
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        return jsonify({"ok": False, "error": "Queue item not found."}), 404
+
+    instruction = (request.form.get("instruction") or
+                   (request.get_json(silent=True) or {}).get("instruction") or "").strip()
+    if not instruction:
+        return jsonify({"ok": False, "error": "Please describe the edit you want."}), 400
+
+    current_content = item.get("content") or ""
+    if not current_content:
+        return jsonify({"ok": False, "error": "This item has no content to edit yet. Generate a brief or draft first."}), 400
+
+    if not os.getenv("OPENAI_API_KEY"):
+        return jsonify({"ok": False, "error": "AI editing isn't set up on this site yet. Reach out to your admin."}), 503
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+
+        system_prompt = (
+            "You are an editor revising marketing content based on a user's instruction.\n"
+            "Return strict JSON with exactly these keys:\n"
+            "  - revised_content: the full revised content, in the same format as the original (markdown if input is markdown, prose if input is prose, etc.)\n"
+            "  - summary: a one-sentence note on what you changed.\n"
+            "Preserve any structured sections (titles, headings, FAQ Q&A) the original had. "
+            "Do not add lorem ipsum. If the instruction is unclear, make a sensible best-effort revision."
+        )
+
+        user_prompt = (
+            f"INSTRUCTION:\n{instruction}\n\n"
+            f"ORIGINAL CONTENT:\n{current_content}\n\n"
+            "Return revised_content + summary as JSON."
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.4,
+        )
+
+        raw = response.choices[0].message.content or "{}"
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            parsed = {}
+
+        revised = (parsed.get("revised_content") or "").strip()
+        summary = (parsed.get("summary") or "").strip()
+
+        if not revised:
+            return jsonify({
+                "ok": False,
+                "error": "AI didn't return a usable revision. Try rephrasing your instruction.",
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "original_content": current_content,
+            "revised_content": revised,
+            "summary": summary,
+            "instruction": instruction,
+        })
+
+    except Exception as e:
+        logger.error(f"AI edit failed: {e}")
+        return jsonify({"ok": False, "error": "AI revision failed unexpectedly. Try again."}), 500
+
+
+@app.route("/content-queue/<item_id>/apply-ai-edit", methods=["POST"])
+@login_required
+def apply_ai_edit_queue_item(item_id):
+    """Apply an AI-revised content blob to a queue item."""
+    revised = (request.form.get("revised_content") or "").strip()
+    if not revised:
+        flash("No revision to apply.", "error")
+        return _redirect_to_queue(request.form.get("client_id", ""))
+
+    updated = update_queue_item_content(
+        item_id, content=revised, user_id=current_user.id
+    )
+    if not updated:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or updated.get("client_id")
+    flash("AI revision applied to this item.", "success")
+    return _redirect_to_queue(client_id)
+
+
 @app.route("/content-queue/<item_id>/generate-visual", methods=["POST"])
 @login_required
 def generate_queue_item_visual(item_id):
