@@ -40,6 +40,13 @@ from action_engine import (
 )
 from next_action_engine import build_next_best_action
 from growth_calendar import weekly_growth_recommendations
+from pricing import (
+    ACTION_CREDIT_COSTS,
+    baseline_credit_price,
+    get_action_cost,
+    get_bundles_for_plan,
+    is_subscriber,
+)
 from query_idea_generator import generate_query_ideas
 from flask import (
     Flask,
@@ -3826,6 +3833,27 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     return True
 
 
+def has_enough_credits_for(user, action_key: str) -> bool:
+    """Convenience: does the user have enough credits for a named action?"""
+    from pricing import get_action_cost
+    return has_enough_credits(user, get_action_cost(action_key))
+
+
+def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
+    """Deduct the canonical credit cost for an action. Returns False
+    if the wallet doesn't have the funds (caller should flash + bail)."""
+    from pricing import get_action_cost
+    cost = get_action_cost(action_key)
+    if cost <= 0:
+        return True
+    return spend_credits(
+        user,
+        cost,
+        tx_type=f"usage_{action_key}",
+        notes=notes or action_key.replace("_", " ").title(),
+    )
+
+
 def has_enough_credits(user, amount):
     if user_has_unlimited_credits(user):
         return True
@@ -4894,14 +4922,14 @@ def run_client_audit(client_id):
                 view_mode=view_mode,
             )
 
-        if not has_enough_credits(current_user, 1):
+        if not has_enough_credits_for(current_user, "audit_run"):
             flash(
                 "You don’t have enough credits to run another audit.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(current_user, 1, notes="Client audit run"):
+        if not spend_credits_for(current_user, "audit_run", notes="Client audit run"):
             flash("Unable to deduct credits for audit.", "warning")
             return redirect(url_for("pricing_page"))
 
@@ -5010,15 +5038,15 @@ def generate_client_content_brief(client_id):
                 form_data=request.form,
             )
 
-        if not has_enough_credits(current_user, 1):
+        if not has_enough_credits_for(current_user, "content_brief"):
             flash(
                 "You don’t have enough credits to generate another brief.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(
-            current_user, 1, notes="Content brief generation"
+        if not spend_credits_for(
+            current_user, "content_brief", notes="Content brief generation"
         ):
             flash("Unable to deduct credits for brief generation.", "warning")
             return redirect(url_for("pricing_page"))
@@ -5375,15 +5403,15 @@ def generate_client_content_draft(client_id):
                 form_data=request.form,
             )
 
-        if not has_enough_credits(current_user, 2):
+        if not has_enough_credits_for(current_user, "content_draft"):
             flash(
                 "You don’t have enough credits to generate another draft.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(
-            current_user, 2, notes="Content draft generation"
+        if not spend_credits_for(
+            current_user, "content_draft", notes="Content draft generation"
         ):
             flash("Unable to deduct credits for draft generation.", "warning")
             return redirect(url_for("pricing_page"))
@@ -6731,6 +6759,15 @@ def ai_edit_queue_item(item_id):
     if not instruction:
         return jsonify({"ok": False, "error": "Please describe the edit you want."}), 400
 
+    if not has_enough_credits_for(current_user, "ai_edit_turn"):
+        return jsonify({
+            "ok": False,
+            "error": (
+                f"You need {get_action_cost('ai_edit_turn')} credit "
+                "to send another AI edit. Top up to continue."
+            ),
+        }), 402
+
     # Optional section scope. -1 / None / blank = whole document.
     raw_target = (
         request.form.get("target_section_idx")
@@ -6888,6 +6925,12 @@ def ai_edit_queue_item(item_id):
             item_id, [user_turn, assistant_turn], user_id=current_user.id
         )
 
+        spend_credits_for(
+            current_user,
+            "ai_edit_turn",
+            notes=f"AI edit turn: queue item {item_id}",
+        )
+
         return jsonify({
             "ok": True,
             "current_content": current_content,
@@ -6938,6 +6981,14 @@ def generate_queue_item_visual(item_id):
         )
         return _redirect_to_queue(client_id)
 
+    if not has_enough_credits_for(current_user, "visual_generation"):
+        flash(
+            f"You need {get_action_cost('visual_generation')} credit to "
+            "generate a visual. Top up to continue.",
+            "warning",
+        )
+        return _redirect_to_queue(client_id)
+
     try:
         from services.placid_client import (
             PlacidClient,
@@ -6965,6 +7016,11 @@ def generate_queue_item_visual(item_id):
         if status == "finished" and image_url:
             update_queue_item_og_image(
                 item_id, og_image_url=image_url, user_id=current_user.id
+            )
+            spend_credits_for(
+                current_user,
+                "visual_generation",
+                notes=f"Visual generation: queue item {item_id}",
             )
 
             # If this item already lives in the CMS, also push the image to
@@ -7429,14 +7485,14 @@ def new_audit():
                 view_mode=view_mode,
             )
 
-        if not has_enough_credits(current_user, 1):
+        if not has_enough_credits_for(current_user, "audit_run"):
             flash(
                 "You don’t have enough credits to run another audit.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(current_user, 1, notes="New audit run"):
+        if not spend_credits_for(current_user, "audit_run", notes="New audit run"):
             flash("Unable to deduct credits for audit.", "warning")
             return redirect(url_for("pricing_page"))
 
@@ -7609,16 +7665,26 @@ def inject_template_globals():
         "focused_client": focused_client,
         "can_run_audit": (
             current_user.is_authenticated
-            and (has_unlimited_credits or credit_balance_numeric >= 1)
+            and (
+                has_unlimited_credits
+                or credit_balance_numeric >= ACTION_CREDIT_COSTS["audit_run"]
+            )
         ),
         "can_generate_brief": (
             current_user.is_authenticated
-            and (has_unlimited_credits or credit_balance_numeric >= 1)
+            and (
+                has_unlimited_credits
+                or credit_balance_numeric >= ACTION_CREDIT_COSTS["content_brief"]
+            )
         ),
         "can_generate_draft": (
             current_user.is_authenticated
-            and (has_unlimited_credits or credit_balance_numeric >= 2)
+            and (
+                has_unlimited_credits
+                or credit_balance_numeric >= ACTION_CREDIT_COSTS["content_draft"]
+            )
         ),
+        "action_credit_costs": ACTION_CREDIT_COSTS,
     }
 
 
@@ -7669,6 +7735,12 @@ def render_settings_section(section, **extra_context):
         except Exception:
             referrals_made = []
 
+    user_plan = (
+        getattr(current_user, "plan", "free")
+        if current_user.is_authenticated
+        else "free"
+    )
+
     context = {
         "active_settings_section": section,
         "is_internal_user": is_internal_user,
@@ -7676,6 +7748,10 @@ def render_settings_section(section, **extra_context):
         "referral_link": referral_link,
         "credit_history": credit_history,
         "referrals_made": referrals_made,
+        "topup_bundles": get_bundles_for_plan(user_plan),
+        "is_subscriber": is_subscriber(user_plan),
+        "baseline_credit_price": baseline_credit_price(user_plan),
+        "action_credit_costs": ACTION_CREDIT_COSTS,
     }
     context.update(extra_context)
 
@@ -8590,6 +8666,14 @@ def shopify_fix_alt_text(client_id):
         )
         return redirect(url_for("shopify_products", client_id=client_id))
 
+    if not has_enough_credits_for(current_user, "alt_text_fix_batch"):
+        flash(
+            f"You need {get_action_cost('alt_text_fix_batch')} credits to run "
+            "an alt-text fix. Top up to continue.",
+            "warning",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
     admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
     try:
         products = admin.list_products(limit=50)
@@ -8639,6 +8723,13 @@ def shopify_fix_alt_text(client_id):
 
     ai_used = bool(os.getenv("OPENAI_API_KEY"))
     source_label = "AI-generated alt text" if ai_used else "alt text"
+
+    if patched:
+        spend_credits_for(
+            current_user,
+            "alt_text_fix_batch",
+            notes=f"Alt-text fix: {patched} images",
+        )
 
     if patched and not failed:
         flash(f"Filled {source_label} on {patched} product image{'s' if patched != 1 else ''}.", "success")
@@ -8834,6 +8925,14 @@ def answer_monitor_run_all():
         flash("No tracked prompts to check yet for this workspace.", "info")
         return redirect(url_for("answer_monitor_page", client_id=client_id))
 
+    if not has_enough_credits_for(current_user, "answer_monitor_run_all"):
+        flash(
+            f"You need {get_action_cost('answer_monitor_run_all')} credits "
+            "to re-run every prompt. Top up to continue.",
+            "warning",
+        )
+        return redirect(url_for("answer_monitor_page", client_id=client_id))
+
     succeeded = 0
     failed = 0
     total_snapshots = 0
@@ -8852,6 +8951,13 @@ def answer_monitor_run_all():
     engines_label = (
         " across " + ", ".join(sorted(engines_seen)) if engines_seen else ""
     )
+
+    if succeeded:
+        spend_credits_for(
+            current_user,
+            "answer_monitor_run_all",
+            notes=f"Answer monitor sweep: {succeeded} prompts × {len(engines_seen) or 1} engines",
+        )
 
     if succeeded and not failed:
         flash(
@@ -8897,10 +9003,28 @@ def answer_monitor_run_single(prompt_id):
         or "this brand"
     )
 
+    if not has_enough_credits_for(current_user, "answer_monitor_run_single"):
+        flash(
+            f"You need {get_action_cost('answer_monitor_run_single')} credit "
+            "to re-run that check. Top up to continue.",
+            "warning",
+        )
+        redirect_client_id = (
+            str(selected_client.get("id")) if selected_client else ""
+        )
+        return redirect(
+            url_for("answer_monitor_page", client_id=redirect_client_id)
+        )
+
     result = _run_answer_check_for_id(prompt_id, brand_name)
     if not result:
         flash("Could not run that check. Verify OPENAI_API_KEY is set.", "error")
     else:
+        spend_credits_for(
+            current_user,
+            "answer_monitor_run_single",
+            notes=f"Answer monitor: prompt #{prompt_id}",
+        )
         cited_engines = [
             snap["engine_label"] for snap in result if snap["brand_mentioned"]
         ]

@@ -327,18 +327,155 @@
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
                 <h2>Top up</h2>
-                <p>Add credits when your balance gets low.</p>
+                <p>
+                    {% if is_subscriber %}
+                        Subscriber price — 1 credit costs $1 ($0.85+ in larger bundles).
+                    {% else %}
+                        Free-plan price — 1 credit costs $2. Subscribe to halve the per-credit cost.
+                    {% endif %}
+                </p>
             </div>
 
-            <div class="settings-v3-card-list">
+            {% if topup_bundles %}
+            <div class="topup-bundle-grid">
+                {% for bundle in topup_bundles %}
+                <div class="topup-bundle-card {% if bundle.discount_pct >= 10 %}is-best{% endif %}">
+                    <div class="topup-bundle-head">
+                        <strong class="topup-bundle-credits">{{ bundle.credits }} credits</strong>
+                        {% if bundle.discount_pct %}
+                        <span class="topup-bundle-pill">Save {{ bundle.discount_pct }}%</span>
+                        {% endif %}
+                    </div>
+                    <div class="topup-bundle-price">
+                        ${{ '%.2f' | format(bundle.price_usd) }}
+                        {% if bundle.savings_usd > 0 %}
+                        <span class="topup-bundle-strike">${{ '%.2f' | format(bundle.list_price_usd) }}</span>
+                        {% endif %}
+                    </div>
+                    <p class="topup-bundle-rate">${{ '%.2f' | format(bundle.per_credit) }} per credit</p>
+                    <button type="button" class="btn btn-primary topup-bundle-cta" data-credits="{{ bundle.credits }}" data-price="{{ '%.2f' | format(bundle.price_usd) }}">
+                        Buy {{ bundle.credits }} credits
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if action_credit_costs %}
+            <div class="topup-cost-table">
+                <h3>What credits buy</h3>
+                <ul class="topup-cost-list">
+                    <li><span>Audit run</span><strong>{{ action_credit_costs.audit_run }} credits</strong></li>
+                    <li><span>Content brief</span><strong>{{ action_credit_costs.content_brief }} credit</strong></li>
+                    <li><span>Content draft</span><strong>{{ action_credit_costs.content_draft }} credits</strong></li>
+                    <li><span>AI editing turn</span><strong>{{ action_credit_costs.ai_edit_turn }} credit</strong></li>
+                    <li><span>Visual generation</span><strong>{{ action_credit_costs.visual_generation }} credit</strong></li>
+                    <li><span>Alt-text fix batch</span><strong>{{ action_credit_costs.alt_text_fix_batch }} credits</strong></li>
+                    <li><span>AI Answer Monitor — single re-run</span><strong>{{ action_credit_costs.answer_monitor_run_single }} credit</strong></li>
+                    <li><span>AI Answer Monitor — full sweep</span><strong>{{ action_credit_costs.answer_monitor_run_all }} credits</strong></li>
+                    <li><span>Webflow / Shopify publishing</span><strong>Free</strong></li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="settings-v3-card-list" style="margin-top:1rem;">
                 <div class="settings-v3-mini-card">
                     <h3>Upgrade plan</h3>
-                    <p>Higher plans include a larger monthly credit allowance plus more workspaces.</p>
-                    <a href="{{ url_for('pricing_page') }}" class="btn btn-primary" style="margin-top:12px;">View Plans</a>
+                    <p>Subscribers pay half the per-credit price and get a monthly allowance bundled in.</p>
+                    <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary" style="margin-top:12px;">View Plans</a>
                 </div>
             </div>
         </div>
     </section>
+
+    <style>
+        .topup-bundle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.85rem;
+            margin-top: 1rem;
+        }
+        .topup-bundle-card {
+            background: white;
+            border: 1px solid #ececf2;
+            border-radius: 12px;
+            padding: 1rem 1.05rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .topup-bundle-card.is-best {
+            border: 2px solid var(--brand-primary, #3EDFCB);
+            background: linear-gradient(180deg, #f0fffd 0%, white 60%);
+        }
+        .topup-bundle-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .topup-bundle-credits {
+            font-size: 1.05rem;
+            color: var(--brand-text-strong, #191929);
+        }
+        .topup-bundle-pill {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--brand-secondary, #9D7CE3);
+            color: white;
+        }
+        .topup-bundle-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.6rem 0 0.2rem 0;
+            color: var(--brand-text-strong, #191929);
+        }
+        .topup-bundle-strike {
+            font-size: 0.9rem;
+            color: #888;
+            text-decoration: line-through;
+            font-weight: 400;
+            margin-left: 0.4rem;
+        }
+        .topup-bundle-rate {
+            font-size: 0.82rem;
+            color: #666;
+            margin: 0 0 0.85rem 0;
+        }
+        .topup-bundle-cta {
+            margin-top: auto;
+            font-size: 0.88rem;
+        }
+        .topup-cost-table {
+            margin-top: 1.5rem;
+            border-top: 1px solid #ececf2;
+            padding-top: 1rem;
+        }
+        .topup-cost-table h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.95rem;
+        }
+        .topup-cost-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 0.3rem;
+        }
+        .topup-cost-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.35rem 0;
+            font-size: 0.88rem;
+            color: #444;
+            border-bottom: 1px dashed #ececf2;
+        }
+        .topup-cost-list li:last-child { border-bottom: 0; }
+        .topup-cost-list strong { color: var(--brand-text-strong, #191929); }
+    </style>
     {% endif %}
 
     {% if active_settings_section == "referrals" %}
