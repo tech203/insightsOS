@@ -117,10 +117,41 @@
                                 {% if card.credits_required %}
                                 <span class="growth-calendar-card-credit">{{ card.credits_required }} credits</span>
                                 {% endif %}
+
+                                <form method="POST" action="{{ url_for('growth_calendar_schedule_recommendation') }}" class="growth-calendar-schedule-form">
+                                    <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+                                    <input type="hidden" name="title" value="{{ card.title }}">
+                                    <input type="hidden" name="target_query" value="{{ card.linked_query }}">
+                                    <input type="hidden" name="content_type" value="{{ card.content_type or 'service_page' }}">
+                                    <input type="hidden" name="priority" value="{{ card.priority }}">
+                                    <input type="hidden" name="credits_required" value="{{ card.credits_required or 0 }}">
+                                    <input type="hidden" name="source_action_title" value="{{ card.title }}">
+                                    <select name="scheduled_for" aria-label="Pin to week" onchange="if(this.value){this.form.submit();}">
+                                        <option value="">Pin to week…</option>
+                                        {% for opt in plan.week_options %}
+                                        <option value="{{ opt.iso }}" {% if opt.iso == week.iso %}selected{% endif %}>
+                                            {{ opt.label }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
                             {% else %}
                                 <a href="{{ url_for('content_queue_page', client_id=selected_client.id) }}#item-{{ card.id }}" class="btn btn-secondary btn-sm">
                                     Open in Queue
                                 </a>
+
+                                <form method="POST" action="{{ url_for('reschedule_queue_item', item_id=card.id) }}" class="growth-calendar-schedule-form">
+                                    <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+                                    <select name="scheduled_for" aria-label="Reschedule" onchange="this.form.submit()">
+                                        <option value="">Reschedule…</option>
+                                        {% for opt in plan.week_options %}
+                                        <option value="{{ opt.iso }}" {% if card.scheduled_for and card.scheduled_for[:10] == opt.iso %}selected{% endif %}>
+                                            {{ opt.label }}
+                                        </option>
+                                        {% endfor %}
+                                        <option value="">Clear schedule</option>
+                                    </select>
+                                </form>
                             {% endif %}
                         </div>
                     </article>
@@ -407,6 +438,29 @@
     color: #6b7280;
     font-size: 12px;
     font-weight: 600;
+}
+
+.growth-calendar-schedule-form {
+    margin: 0;
+    margin-left: auto;
+}
+
+.growth-calendar-schedule-form select {
+    min-height: 36px;
+    padding: 0 28px 0 10px;
+    border: 1px solid #d8dee9;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.growth-calendar-schedule-form select:focus {
+    outline: none;
+    border-color: rgba(62, 223, 203, 0.36);
+    box-shadow: 0 0 0 3px rgba(62, 223, 203, 0.12);
 }
 
 .btn-sm {

@@ -107,6 +107,7 @@ def _queue_to_card(item: Dict[str, Any]) -> Dict[str, Any]:
         "status": _clean(item.get("status"), "pending"),
         "priority": _clean(item.get("priority"), "medium"),
         "item_type": _clean(item.get("item_type"), "brief"),
+        "scheduled_for": _clean(item.get("scheduled_for")),
     }
 
 
@@ -163,19 +164,20 @@ def weekly_growth_recommendations(
         offset = _suggest_day_offset(prio, slot)
         weeks_out[0]["cards"].append(_action_to_card(a, offset))
 
-    # 2. Place existing queue items into their created_at week.
+    # 2. Place existing queue items into their scheduled week.
+    # Prefer scheduled_for if set, otherwise fall back to created_at.
     for item in queue_items or []:
-        created = _parse_date(item.get("created_at"))
-        if not created:
+        anchor = _parse_date(item.get("scheduled_for")) or _parse_date(item.get("created_at"))
+        if not anchor:
             target_week = week_start
         else:
-            created_ws = _start_of_week(created)
-            if created_ws < week_start:
+            anchor_ws = _start_of_week(anchor)
+            if anchor_ws < week_start:
                 target_week = week_start
-            elif created_ws >= horizon_end:
+            elif anchor_ws >= horizon_end:
                 continue
             else:
-                target_week = created_ws
+                target_week = anchor_ws
 
         index = (target_week - week_start).days // 7
         if 0 <= index < weeks:
@@ -201,9 +203,16 @@ def weekly_growth_recommendations(
         "open_recommendations": len(open_actions),
     }
 
+    # Convenience list of (iso, label) pairs for "Schedule for…" pickers.
+    week_options = [
+        {"iso": w["iso"], "label": f"{w['label']} ({w['start'].strftime('%d %b')})"}
+        for w in weeks_out
+    ]
+
     return {
         "today": today,
         "week_start": week_start,
         "weeks": weeks_out,
         "summary": summary,
+        "week_options": week_options,
     }

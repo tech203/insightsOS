@@ -7,6 +7,7 @@ from content_queue import (
     update_queue_item_status,
     update_queue_item_content,
     update_queue_item_details,
+    update_queue_item_schedule,
     delete_queue_item,
     transition_queue_item,
 )
@@ -3966,6 +3967,72 @@ def growth_calendar_page():
         focused_client=focused_client,
         view_mode=view_mode,
         plan=plan,
+    )
+
+
+@app.route("/growth-calendar/schedule-recommendation", methods=["POST"])
+@login_required
+def growth_calendar_schedule_recommendation():
+    """Pin a recommended action to a specific week — adds it to the queue
+    with scheduled_for set to that week's Monday."""
+    client_id = request.form.get("client_id", "").strip()
+    title = request.form.get("title", "").strip() or "Visibility action"
+    target_query = request.form.get("target_query", "").strip()
+    content_type = request.form.get("content_type", "").strip() or "service_page"
+    priority = request.form.get("priority", "medium").strip() or "medium"
+    scheduled_for = request.form.get("scheduled_for", "").strip()
+    credits_required = request.form.get("credits_required", "0").strip() or "0"
+    source_action_title = request.form.get("source_action_title", title).strip()
+
+    client = get_client_by_id(client_id) if client_id else None
+    if not client:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("growth_calendar_page"))
+
+    add_queue_item(
+        client_id=client.get("id"),
+        client_name=client.get("name"),
+        target_query=target_query,
+        content_type=content_type,
+        item_type="brief",
+        title=title,
+        content="",
+        status="pending",
+        priority=priority,
+        source="audit_opportunity",
+        credits_required=int(credits_required) if credits_required.isdigit() else 0,
+        execution_type="ai_executable",
+        source_action_title=source_action_title,
+        scheduled_for=scheduled_for or None,
+        user_id=current_user.id,
+    )
+
+    flash("Recommendation scheduled to the queue.", "success")
+    return redirect(url_for("growth_calendar_page", client_id=client.get("id")))
+
+
+@app.route("/content-queue/<item_id>/schedule", methods=["POST"])
+@login_required
+def reschedule_queue_item(item_id):
+    scheduled_for = request.form.get("scheduled_for", "").strip()
+    item = update_queue_item_schedule(
+        item_id, scheduled_for or None, user_id=current_user.id
+    )
+    if not item:
+        abort(404)
+
+    if scheduled_for:
+        flash(f"Item rescheduled to {scheduled_for}.", "success")
+    else:
+        flash("Schedule cleared.", "success")
+
+    redirect_to = request.form.get("redirect_to", "").strip()
+    if redirect_to == "queue":
+        return redirect(
+            url_for("content_queue_page", client_id=request.form.get("client_id", ""))
+        )
+    return redirect(
+        url_for("growth_calendar_page", client_id=request.form.get("client_id", ""))
     )
 
 

@@ -91,6 +91,17 @@ def _normalize_int(value, default=0):
         return default
 
 
+def _normalize_scheduled_for(value):
+    """Accepts an ISO date string ('YYYY-MM-DD') or empty/None."""
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    # Just keep the date portion if a fuller datetime was passed.
+    return text[:10]
+
+
 def _normalize_item(raw):
     created_at = raw.get("created_at", _now_iso())
 
@@ -111,6 +122,7 @@ def _normalize_item(raw):
             raw.get("execution_type"), "ai_executable"
         ),
         "source_action_title": _normalize_text(raw.get("source_action_title")),
+        "scheduled_for": _normalize_scheduled_for(raw.get("scheduled_for")),
         "user_id": raw.get("user_id"),
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
@@ -146,6 +158,7 @@ def add_queue_item(
     credits_required=0,
     execution_type="ai_executable",
     source_action_title="",
+    scheduled_for=None,
     user_id=None,
 ):
     items = load_queue_items()
@@ -167,6 +180,7 @@ def add_queue_item(
             execution_type, "ai_executable"
         ),
         "source_action_title": _normalize_text(source_action_title),
+        "scheduled_for": _normalize_scheduled_for(scheduled_for),
         "user_id": user_id,
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
@@ -175,6 +189,30 @@ def add_queue_item(
     items.append(new_item)
     save_queue_items(items)
     return new_item
+
+
+def update_queue_item_schedule(item_id, scheduled_for, user_id=None):
+    """Set or clear the scheduled_for date on a queue item."""
+    items = load_queue_items()
+    updated = None
+
+    normalized_date = _normalize_scheduled_for(scheduled_for)
+
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["scheduled_for"] = normalized_date
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+
+    if not updated:
+        return None
+
+    save_queue_items(items)
+    return updated
 
 
 def get_queue_items(
