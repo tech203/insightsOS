@@ -6013,6 +6013,16 @@ CONTENT_TYPE_TO_WEBFLOW_COLLECTION = {
     "landing_page": ("WEBFLOW_BLOG_COLLECTION_ID", "blog"),
 }
 
+# Reverse: when an item is already published, look the collection back up by
+# the stored label so updates always target the same CMS collection even if
+# the user edits the item's content_type later.
+COLLECTION_LABEL_TO_ENV = {
+    "blog": "WEBFLOW_BLOG_COLLECTION_ID",
+    "faq": "WEBFLOW_FAQ_COLLECTION_ID",
+    "service": "WEBFLOW_SERVICE_COLLECTION_ID",
+    "location": "WEBFLOW_LOCATION_COLLECTION_ID",
+}
+
 
 def _slugify_for_webflow(text):
     """Webflow slugs: lowercase, alphanumerics + hyphens, no leading/trailing hyphens."""
@@ -6142,6 +6152,98 @@ def publish_queue_item_to_webflow(item_id):
     except Exception as e:
         logger.error(f"Publish to site failed: {e}")
         flash("Publishing failed unexpectedly. Try again.", "error")
+
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/update-on-site", methods=["POST"])
+@login_required
+def update_queue_item_on_site(item_id):
+    """Push edits for a previously-published queue item back to its CMS entry."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+
+    webflow_item_id = item.get("webflow_item_id")
+    collection_label = (item.get("webflow_collection") or "").lower()
+    if not webflow_item_id or not collection_label:
+        flash(
+            "This item isn't on your site yet — publish it first.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    env_var = COLLECTION_LABEL_TO_ENV.get(collection_label)
+    if not env_var:
+        flash(
+            f"Can't find the publishing collection for this item's '{collection_label}' type.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    collection_id = os.getenv(env_var)
+    if not collection_id or collection_id.startswith("your_"):
+        flash(
+            f"Publishing for {collection_label} pages isn't set up on this site anymore. "
+            "Reach out to your admin.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    try:
+        from services.webflow_client import (
+            WebflowCMSClient,
+            WebflowAPIError,
+            WebflowConfigError,
+        )
+
+        client = WebflowCMSClient()
+        field_data = _build_webflow_field_data_for_queue_item(item, collection_label)
+        client.update_item(collection_id, webflow_item_id, field_data)
+
+        # Track the update in WebflowExport too.
+        try:
+            export = WebflowExport(
+                user_id=current_user.id,
+                client_id=item.get("client_id"),
+                content_type=collection_label,
+                local_source_type="content_queue",
+                local_source_id=str(item_id),
+                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_collection_id=collection_id,
+                webflow_item_id=webflow_item_id,
+                status="updated",
+                field_mapping=field_data,
+            )
+            db.session.add(export)
+            db.session.commit()
+        except Exception as track_err:
+            logger.warning(f"Update tracking failed: {track_err}")
+            db.session.rollback()
+
+        flash(
+            f"Updated the {collection_label} entry on your site. "
+            "Re-publish from your CMS to push the changes live.",
+            "success",
+        )
+
+    except WebflowConfigError as e:
+        logger.warning(f"Site update config issue: {e}")
+        flash(
+            "Publishing isn't fully set up on this site anymore. Reach out to your admin.",
+            "error",
+        )
+    except WebflowAPIError as e:
+        logger.warning(f"Site update API error: {e}")
+        flash(
+            "We couldn't update this item on your site. Try again, or reach out to your admin.",
+            "error",
+        )
+    except Exception as e:
+        logger.error(f"Update on site failed: {e}")
+        flash("Updating the item failed unexpectedly. Try again.", "error")
 
     return _redirect_to_queue(client_id)
 
