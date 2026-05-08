@@ -71,9 +71,13 @@
 
                 <nav class="sidebar-nav" aria-label="Main navigation">
 
-                    <div class="nav-group">
-                        <div class="nav-label">Workspace</div>
+                    <div class="nav-group" data-group="workspace">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Workspace</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('index') }}"
                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
                            aria-label="Dashboard"
@@ -109,12 +113,17 @@
                             <span class="nav-text">Tracked Prompts</span>
                             <span class="nav-tooltip">Tracked Prompts</span>
                         </a>
+                        </div>
                     </div>
 
                     {% if sidebar_client %}
-                    <div class="nav-group">
-                        <div class="nav-label">Insights · {{ (sidebar_client.name or "Workspace")[:24] }}</div>
+                    <div class="nav-group" data-group="insights">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Insights · {{ (sidebar_client.name or "Workspace")[:24] }}</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('client_detail', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}"
                            aria-label="Workspace Overview"
@@ -150,11 +159,16 @@
                             <span class="nav-text">History</span>
                             <span class="nav-tooltip">History</span>
                         </a>
+                        </div>
                     </div>
 
-                    <div class="nav-group">
-                        <div class="nav-label">Actions</div>
+                    <div class="nav-group" data-group="actions">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Actions</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('run_client_audit', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
                            aria-label="Run Audit"
@@ -208,12 +222,17 @@
                             <span class="nav-text">Queue</span>
                             <span class="nav-tooltip">Queue</span>
                         </a>
+                        </div>
                     </div>
                     {% endif %}
 
-                    <div class="nav-group">
-                        <div class="nav-label">Account</div>
+                    <div class="nav-group" data-group="account">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Account</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
 
+                        <div class="nav-group-items">
                         <a href="{{ url_for('settings_page') }}"
                            class="nav-item {% if current_endpoint.startswith('settings') %}active{% endif %}"
                            aria-label="Settings"
@@ -231,6 +250,7 @@
                             <span class="nav-text">Help</span>
                             <span class="nav-tooltip">Help</span>
                         </a>
+                        </div>
                     </div>
                 </nav>
 
@@ -454,6 +474,33 @@
                     }
                 });
             }
+
+            // Collapsible sidebar groups — persist open/closed per group across pages.
+            const COLLAPSE_KEY = "darInsightsSidebarCollapse";
+            let collapsed = {};
+            try {
+                collapsed = JSON.parse(sessionStorage.getItem(COLLAPSE_KEY) || "{}");
+            } catch (_) {
+                collapsed = {};
+            }
+
+            document.querySelectorAll(".nav-group[data-group]").forEach((group) => {
+                const id = group.getAttribute("data-group");
+                const toggle = group.querySelector(".nav-label-toggle");
+                if (!toggle) return;
+
+                if (collapsed[id]) {
+                    group.classList.add("nav-group--collapsed");
+                    toggle.setAttribute("aria-expanded", "false");
+                }
+
+                toggle.addEventListener("click", function () {
+                    const isCollapsed = group.classList.toggle("nav-group--collapsed");
+                    toggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+                    collapsed[id] = isCollapsed;
+                    sessionStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
+                });
+            });
         });
     </script>
 
