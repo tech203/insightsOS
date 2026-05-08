@@ -28,8 +28,19 @@ import requests
 
 
 ADMIN_API_VERSION = "2024-10"
-DEFAULT_SCOPES = "read_products,read_product_listings"
+# Default scopes: read for catalog audits, write for one-click fixes
+# (alt-text patches today; richer write-back later). Existing read-only
+# tokens still work for read flows; write features check granted scope.
+DEFAULT_SCOPES = "read_products,read_product_listings,write_products"
 DEFAULT_TIMEOUT = 30
+
+
+def scope_has(scope_string: Optional[str], target: str) -> bool:
+    """True if `target` is one of the comma- or space-separated scopes."""
+    if not scope_string:
+        return False
+    parts = [p.strip() for p in str(scope_string).replace(",", " ").split() if p.strip()]
+    return target in parts
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +164,21 @@ class ShopifyAdminClient:
             raise ShopifyAPIError(f"GET {path} → {resp.status_code}: {resp.text[:200]}")
         return resp.json()
 
+    def _put(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        url = f"{self._base}{path}"
+        resp = requests.put(
+            url,
+            headers={
+                "X-Shopify-Access-Token": self.access_token,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=DEFAULT_TIMEOUT,
+        )
+        if resp.status_code >= 400:
+            raise ShopifyAPIError(f"PUT {path} → {resp.status_code}: {resp.text[:200]}")
+        return resp.json()
+
     def get_shop(self) -> Dict[str, Any]:
         return self._get("/shop.json").get("shop", {})
 
@@ -162,3 +188,16 @@ class ShopifyAdminClient:
         audit pass we'll add later only needs a sample."""
         data = self._get("/products.json", params={"limit": min(limit, 250)})
         return data.get("products") or []
+
+    def update_product_image_alt(
+        self, product_id: int, image_id: int, alt: str
+    ) -> Dict[str, Any]:
+        """Patch the `alt` field on a product image.
+
+        Shopify keeps image alt as a top-level field on the image resource
+        (not on the variant), so we PUT the resource directly. This is
+        purely additive — existing alt text is overwritten only if a new
+        non-empty value is sent."""
+        path = f"/products/{int(product_id)}/images/{int(image_id)}.json"
+        payload = {"image": {"id": int(image_id), "alt": alt}}
+        return self._put(path, payload).get("image", {})

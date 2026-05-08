@@ -8399,10 +8399,13 @@ def shopify_products(client_id):
         ).one_or_none()
     )
 
+    from services.shopify_client import scope_has
+
     products: List[Dict[str, Any]] = []
     findings: List[Dict[str, Any]] = []
     summary: Dict[str, Any] = {}
     error: Optional[str] = None
+    has_write_scope = bool(connection and scope_has(connection.scope, "write_products"))
     if connection:
         try:
             admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
@@ -8424,7 +8427,129 @@ def shopify_products(client_id):
         findings=findings,
         summary=summary,
         error=error,
+        has_write_scope=has_write_scope,
     )
+
+
+def _generate_alt_text(product: Dict[str, Any], image_index: int) -> str:
+    """Build a short, descriptive alt text from the product fields.
+
+    Strategy: lead with product title (the strongest known signal), append
+    vendor/type if present and not already in the title. This is good
+    enough as a baseline; AI-rewritten alt text can come later as a
+    follow-up."""
+    title = (product.get("title") or "").strip()
+    vendor = (product.get("vendor") or "").strip()
+    product_type = (product.get("product_type") or "").strip()
+
+    parts = [title or "Product image"]
+    extras = []
+    title_lower = title.lower()
+    if product_type and product_type.lower() not in title_lower:
+        extras.append(product_type)
+    if vendor and vendor.lower() not in title_lower:
+        extras.append(f"by {vendor}")
+    if extras:
+        parts.append(" ".join(extras))
+    base = " — ".join(parts)
+    if image_index > 0:
+        base = f"{base} (view {image_index + 1})"
+    return base[:240]
+
+
+@app.route("/integrations/shopify/fix/alt-text/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_fix_alt_text(client_id):
+    """Auto-fill missing alt text on every product image in the store.
+
+    Safe write-back: alt is purely additive metadata, the route only
+    touches images whose alt is empty, and Shopify retains the previous
+    value in image history if the user wants to revert."""
+    from services.shopify_client import (
+        ShopifyAdminClient,
+        ShopifyAPIError,
+        scope_has,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Shopify store connected for this workspace.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if not scope_has(connection.scope, "write_products"):
+        flash(
+            "This store was connected before write access was enabled. "
+            "Please reconnect the store to grant the write_products scope.",
+            "error",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+    try:
+        products = admin.list_products(limit=50)
+    except ShopifyAPIError as exc:
+        flash(f"Could not load products: {exc}", "error")
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    patched = 0
+    failed = 0
+    for product in products:
+        product_id = product.get("id")
+        if not product_id:
+            continue
+        images = product.get("images") or []
+        for idx, image in enumerate(images):
+            if not isinstance(image, dict):
+                continue
+            existing_alt = (image.get("alt") or "").strip()
+            if existing_alt:
+                continue
+            image_id = image.get("id")
+            if not image_id:
+                continue
+            alt_text = _generate_alt_text(product, idx)
+            try:
+                admin.update_product_image_alt(product_id, image_id, alt_text)
+                patched += 1
+            except ShopifyAPIError as exc:
+                logger.warning(
+                    "Shopify alt-text PUT failed for product %s image %s: %s",
+                    product_id, image_id, exc,
+                )
+                failed += 1
+
+    if patched:
+        try:
+            refreshed = admin.list_products(limit=50)
+            _refresh_shopify_findings(connection, refreshed)
+            connection.last_synced_at = datetime.utcnow()
+            db.session.commit()
+        except ShopifyAPIError as exc:
+            logger.warning("Refresh after alt-text fix failed: %s", exc)
+
+    if patched and not failed:
+        flash(f"Filled alt text on {patched} product image{'s' if patched != 1 else ''}.", "success")
+    elif patched and failed:
+        flash(
+            f"Filled alt text on {patched} image{'s' if patched != 1 else ''}; "
+            f"{failed} update{'s' if failed != 1 else ''} failed.",
+            "warning",
+        )
+    elif failed:
+        flash(f"Could not update any images ({failed} failures).", "error")
+    else:
+        flash("No images needed alt text — your catalog is already covered.", "info")
+
+    return redirect(url_for("shopify_products", client_id=client_id))
 
 
 @app.route("/integrations/shopify/disconnect/<int:client_id>", methods=["POST"])

@@ -218,6 +218,13 @@
         <div class="shopify-error">{{ error }}</div>
     {% endif %}
 
+    {% if connection and not has_write_scope %}
+        <div class="shopify-error" style="background:#fff5e6; color:#7a4a14;">
+            This store was connected with read-only access. To enable one-click fixes (like auto-filling alt text),
+            <a href="{{ url_for('shopify_connect', client_id=workspace.id, shop=connection.shop_domain) }}" style="color:inherit; text-decoration:underline;">reconnect the store</a>.
+        </div>
+    {% endif %}
+
     {% if not connection %}
         <div class="shopify-card shopify-empty">
             <h2>Connect your store</h2>
@@ -278,6 +285,11 @@
                             </div>
                             <p class="shopify-finding-title">{{ finding.title }}</p>
                             <p class="shopify-finding-fix">{{ finding.recommended_fix }}</p>
+                            {% if 'alt text' in finding.title|lower and has_write_scope and summary.missing_alt_text %}
+                            <form method="post" action="{{ url_for('shopify_fix_alt_text', client_id=workspace.id) }}" style="margin-top:0.5rem;" onsubmit="return confirm('Auto-fill alt text on every product image that is missing one? This writes back to your Shopify store.');">
+                                <button type="submit" class="shopify-btn" style="font-size:0.85rem; padding:0.4rem 0.8rem; min-height:auto;">Auto-fill alt text now</button>
+                            </form>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
