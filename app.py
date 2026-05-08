@@ -8435,9 +8435,8 @@ def _generate_alt_text(product: Dict[str, Any], image_index: int) -> str:
     """Build a short, descriptive alt text from the product fields.
 
     Strategy: lead with product title (the strongest known signal), append
-    vendor/type if present and not already in the title. This is good
-    enough as a baseline; AI-rewritten alt text can come later as a
-    follow-up."""
+    vendor/type if present and not already in the title. Used as a fast,
+    deterministic fallback when AI generation isn't available."""
     title = (product.get("title") or "").strip()
     vendor = (product.get("vendor") or "").strip()
     product_type = (product.get("product_type") or "").strip()
@@ -8455,6 +8454,69 @@ def _generate_alt_text(product: Dict[str, Any], image_index: int) -> str:
     if image_index > 0:
         base = f"{base} (view {image_index + 1})"
     return base[:240]
+
+
+def _generate_alt_text_ai(
+    product: Dict[str, Any],
+    image_url: str,
+    image_index: int,
+) -> Optional[str]:
+    """Ask gpt-4o-mini (vision) to describe the product image in one
+    factual sentence, grounded in the product context.
+
+    Returns None on any failure — caller is responsible for falling
+    back to the template-based generator."""
+    if not os.getenv("OPENAI_API_KEY") or not image_url:
+        return None
+
+    title = (product.get("title") or "").strip()
+    vendor = (product.get("vendor") or "").strip()
+    product_type = (product.get("product_type") or "").strip()
+
+    context_parts = [f"Product title: {title or 'unknown'}"]
+    if product_type:
+        context_parts.append(f"Product type: {product_type}")
+    if vendor:
+        context_parts.append(f"Vendor: {vendor}")
+    context = " | ".join(context_parts)
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.2,
+            max_tokens=80,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You write concise, factual image alt text for ecommerce product photos. "
+                        "Lead with the product, then describe visible attributes (color, material, "
+                        "shape, key features). One sentence, under 25 words, no marketing language, "
+                        "no leading 'image of' or 'photo of'. Plain text only."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": f"Context: {context}"},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                },
+            ],
+        )
+        alt = (response.choices[0].message.content or "").strip()
+        # Strip trailing punctuation that some models add and quotes
+        alt = alt.strip().strip('"').strip("'")
+        if not alt:
+            return None
+        if image_index > 0:
+            alt = f"{alt} (view {image_index + 1})"
+        return alt[:240]
+    except Exception as exc:
+        logger.warning("AI alt-text generation failed: %s", exc)
+        return None
 
 
 @app.route("/integrations/shopify/fix/alt-text/<int:client_id>", methods=["POST"])
@@ -8516,7 +8578,11 @@ def shopify_fix_alt_text(client_id):
             image_id = image.get("id")
             if not image_id:
                 continue
-            alt_text = _generate_alt_text(product, idx)
+            image_src = (image.get("src") or "").strip()
+            alt_text = (
+                _generate_alt_text_ai(product, image_src, idx)
+                or _generate_alt_text(product, idx)
+            )
             try:
                 admin.update_product_image_alt(product_id, image_id, alt_text)
                 patched += 1
@@ -8536,8 +8602,11 @@ def shopify_fix_alt_text(client_id):
         except ShopifyAPIError as exc:
             logger.warning("Refresh after alt-text fix failed: %s", exc)
 
+    ai_used = bool(os.getenv("OPENAI_API_KEY"))
+    source_label = "AI-generated alt text" if ai_used else "alt text"
+
     if patched and not failed:
-        flash(f"Filled alt text on {patched} product image{'s' if patched != 1 else ''}.", "success")
+        flash(f"Filled {source_label} on {patched} product image{'s' if patched != 1 else ''}.", "success")
     elif patched and failed:
         flash(
             f"Filled alt text on {patched} image{'s' if patched != 1 else ''}; "

@@ -286,8 +286,9 @@
                             <p class="shopify-finding-title">{{ finding.title }}</p>
                             <p class="shopify-finding-fix">{{ finding.recommended_fix }}</p>
                             {% if 'alt text' in finding.title|lower and has_write_scope and summary.missing_alt_text %}
-                            <form method="post" action="{{ url_for('shopify_fix_alt_text', client_id=workspace.id) }}" style="margin-top:0.5rem;" onsubmit="return confirm('Auto-fill alt text on every product image that is missing one? This writes back to your Shopify store.');">
+                            <form method="post" action="{{ url_for('shopify_fix_alt_text', client_id=workspace.id) }}" style="margin-top:0.5rem;" onsubmit="return confirm('Generate alt text from each image and write it back to your store? This will only update images that are currently missing alt text.');">
                                 <button type="submit" class="shopify-btn" style="font-size:0.85rem; padding:0.4rem 0.8rem; min-height:auto;">Auto-fill alt text now</button>
+                                <span style="font-size:0.78rem; color:#777; margin-left:0.5rem;">Uses AI vision when OpenAI is configured.</span>
                             </form>
                             {% endif %}
                         </div>
