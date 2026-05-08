@@ -34,7 +34,10 @@ from typing import Any, Dict, List
 #   answer_monitor_run_single  ~ $0.02
 
 ACTION_CREDIT_COSTS: Dict[str, int] = {
-    "audit_run": 3,
+    # Audits are intentionally priced as a low-friction adoption hook
+    # (1 credit ≈ break-even on a single audit). The margin lives in the
+    # downstream actions a user takes after seeing the report.
+    "audit_run": 1,
     "content_brief": 1,
     "content_draft": 2,
     "ai_edit_turn": 1,
