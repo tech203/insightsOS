@@ -151,9 +151,33 @@ def weekly_growth_recommendations(
         key=_bucket_priority,
     )
 
+    # Dedupe: hide any recommendation already pinned to the queue.
+    # We match on source_action_title (which add_queue_item stores when a
+    # recommendation is pinned) and on linked_query as a fallback for the
+    # target-query path.
+    pinned_titles = set()
+    pinned_queries = set()
+    for q in queue_items or []:
+        sat = _clean(q.get("source_action_title"))
+        if sat:
+            pinned_titles.add(sat.lower())
+        tq = _clean(q.get("target_query"))
+        if tq:
+            pinned_queries.add(tq.lower())
+
+    def _already_pinned(action: Dict[str, Any]) -> bool:
+        title = _clean(action.get("title")).lower()
+        if title and title in pinned_titles:
+            return True
+        linked = _clean(action.get("linked_query")).lower()
+        if linked and linked in pinned_queries:
+            return True
+        return False
+
     open_actions = [
         a for a in actions
         if _clean(a.get("status"), "open") not in {"completed", "dismissed"}
+        and not _already_pinned(a)
     ][:6]
 
     slot_counters = {"high": 0, "medium": 0, "low": 0}
