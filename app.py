@@ -353,6 +353,13 @@ class Client(db.Model):
     brand_typography = db.Column(db.String(120), nullable=True)
     brand_imagery_direction = db.Column(db.Text, nullable=True)
     brand_kit_updated_at = db.Column(db.DateTime, nullable=True)
+    # When set, the Brand Kit has been approved by the user — the
+    # blueprint's "Brand Kit → Preview → Approval" loop. Generators
+    # check this before lifting kit values into prompts so unfinished
+    # drafts don't bake half-formed direction into output. Cleared
+    # automatically whenever a kit field changes via the studio so
+    # the user has to re-approve.
+    brand_kit_approved_at = db.Column(db.DateTime, nullable=True)
 
     # Business profile fields enriched via Tavily research — used by
     # the audit PDF's Business Profile table and Executive Summary.
@@ -3441,22 +3448,40 @@ def brand_kit_dict(client) -> Dict[str, Any]:
             client.brand_kit_updated_at.isoformat()
             if getattr(client, "brand_kit_updated_at", None) else None
         ),
+        "approved_at": (
+            client.brand_kit_approved_at.isoformat()
+            if getattr(client, "brand_kit_approved_at", None) else None
+        ),
     }
 
 
 def brand_kit_context_block(client_or_dict) -> str:
     """Format the Brand Kit fields as a clean text block for prompts.
 
-    Generators (audit, briefs, drafts, AI editing) prepend this so
-    the model gets explicit brand direction instead of leaning on
-    a generic notes blob. Returns empty string when nothing is set —
-    callers can concat without checking for content."""
+    Generators only lift the kit when it's been approved AND the
+    approval timestamp is newer than the last edit — protects against
+    half-formed direction baking into output. Returns empty string
+    otherwise so callers can concat without checking for content."""
+    approved_at = None
+    updated_at = None
     if hasattr(client_or_dict, "brand_audience"):
         kit = brand_kit_dict(client_or_dict)
+        approved_at = getattr(client_or_dict, "brand_kit_approved_at", None)
+        updated_at = getattr(client_or_dict, "brand_kit_updated_at", None)
     elif isinstance(client_or_dict, dict):
         kit = client_or_dict.get("brand_kit") or {}
+        approved_at = kit.get("approved_at")
+        updated_at = kit.get("updated_at")
     else:
         kit = {}
+    # Skip the block when the kit hasn't been approved yet, or when
+    # the user edited after approving (clears approval automatically
+    # in the save handler — but defensive double-check).
+    if not approved_at:
+        return ""
+    if updated_at and approved_at and isinstance(approved_at, datetime) and isinstance(updated_at, datetime):
+        if updated_at > approved_at:
+            return ""
     fields = [
         ("Target audience", kit.get("audience")),
         ("Main offerings", kit.get("services")),
@@ -11098,11 +11123,49 @@ def client_brand_kit(client_id):
         workspace.brand_typography = (request.form.get("brand_typography") or "").strip()[:120] or None
         workspace.brand_imagery_direction = (request.form.get("brand_imagery_direction") or "").strip() or None
         workspace.brand_kit_updated_at = datetime.utcnow()
+        # Any save invalidates the prior approval so generators don't
+        # lean on stale direction. The user re-approves once they're
+        # happy with the new state.
+        workspace.brand_kit_approved_at = None
         db.session.commit()
-        flash("Brand Kit saved.", "success")
+        flash("Brand Kit saved. Click Approve when you're ready to use it across generators.", "success")
         return redirect(url_for("client_brand_kit", client_id=client_id))
 
     return render_template("brand_kit_studio.html", workspace=workspace)
+
+
+@app.route("/client/<int:client_id>/brand-kit/approve", methods=["POST"])
+@login_required
+def client_brand_kit_approve(client_id):
+    """Mark the Brand Kit as approved. Generators will lift kit values
+    only when this timestamp is set + newer than the last edit."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    workspace.brand_kit_approved_at = datetime.utcnow()
+    db.session.commit()
+    flash("Brand Kit approved — generators will now lift these values into output.", "success")
+    return redirect(url_for("client_brand_kit", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/brand-kit/unapprove", methods=["POST"])
+@login_required
+def client_brand_kit_unapprove(client_id):
+    """Withdraw approval — generators fall back to user-typed
+    brand_context only until re-approved."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    workspace.brand_kit_approved_at = None
+    db.session.commit()
+    flash("Brand Kit set back to draft.", "info")
+    return redirect(url_for("client_brand_kit", client_id=client_id))
 
 
 @app.route("/integrations/calcom/<int:client_id>")
