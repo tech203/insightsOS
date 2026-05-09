@@ -812,9 +812,9 @@
                 <p>PNG, JPG, SVG, or WEBP. Up to 5 MB. Used in the sidebar, the audit PDF topbar, and client-facing report headers.</p>
             </div>
 
-            {% if current_user.agency_logo_filename %}
+            {% if agency_brand and agency_brand.logo_url %}
             <div style="background:#fafafe; border:1px solid #ececf2; border-radius:10px; padding:1rem; text-align:center; margin-bottom:1rem;">
-                <img src="{{ url_for('static', filename='uploads/agency_logos/' + current_user.agency_logo_filename) }}"
+                <img src="{{ agency_brand.logo_url }}"
                      alt="Agency logo"
                      style="max-height:80px; max-width:100%; object-fit:contain;">
             </div>

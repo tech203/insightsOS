@@ -3048,21 +3048,29 @@ def agency_branding(user) -> Dict[str, Any]:
     sidebar use. Always returns the same shape so templates don't
     need to special-case missing fields. Falls back to DarInsights
     branding when white-label is off."""
+    from services.storage import logo_storage
+
+    # Resolve the uploaded logo URL regardless of whether white-label
+    # is active, so the Settings → White-label page can preview the
+    # uploaded file even before the toggle is flipped.
+    raw_logo_url = logo_storage.url(
+        "agency_logos", getattr(user, "agency_logo_filename", None)
+    ) if user else None
+
     if not user or not getattr(user, "is_white_label_enabled", False):
         return {
             "active": False,
             "name": "DarInsights",
             "tagline": "AI Visibility & Content Strategy",
             "website": None,
-            "logo_url": None,
+            # Surface the file even when not active so the upload card
+            # can render its preview. The sidebar / PDF code paths
+            # already gate on `active` before swapping the brand.
+            "logo_url": raw_logo_url,
             "footer_text": None,
             "disclaimer": None,
         }
-    logo_url = None
-    if getattr(user, "agency_logo_filename", None):
-        logo_url = url_for(
-            "static", filename=f"uploads/agency_logos/{user.agency_logo_filename}"
-        )
+    logo_url = raw_logo_url
     return {
         "active": True,
         "name": user.agency_name or "Your Agency",
@@ -3379,6 +3387,14 @@ def generate_referral_code(name, user_id):
 # =========================
 
 
+def _workspace_logo_url(filename):
+    """Resolve a workspace logo to its public URL (S3 or local)."""
+    if not filename:
+        return None
+    from services.storage import logo_storage
+    return logo_storage.url("workspace_logos", filename)
+
+
 def serialize_client_row(client):
     return {
         "id": client.slug,
@@ -3392,8 +3408,7 @@ def serialize_client_row(client):
         "owner_type": client.owner_type or "company",
         "notes": client.notes or "",
         "logo_filename": client.logo_filename,
-        "logo_url": url_for("static", filename=f"uploads/workspace_logos/{
-                client.logo_filename}") if client.logo_filename else None,
+        "logo_url": _workspace_logo_url(client.logo_filename),
         "brand_kit": brand_kit_dict(client),
         "created_at": (
             client.created_at.isoformat() if client.created_at else None
@@ -9152,8 +9167,11 @@ def settings_update_white_label():
 @app.route("/settings/white-label/upload-logo", methods=["POST"])
 @login_required
 def settings_upload_agency_logo():
-    """Save an uploaded agency logo. Clears the existing one if the
-    user uploads a new file."""
+    """Save an uploaded agency logo. Routes through the storage layer
+    (S3 when configured, local disk otherwise) so multi-instance
+    deploys keep logos available across replicas."""
+    from services.storage import logo_storage
+
     file = request.files.get("logo")
     if not file or not file.filename:
         flash("No file selected.", "error")
@@ -9165,17 +9183,16 @@ def settings_upload_agency_logo():
         return redirect(url_for("settings_white_label"))
 
     new_name = f"agency-{current_user.id}-{secrets.token_hex(4)}.{ext}"
-    target_dir = app.config["AGENCY_LOGO_FOLDER"]
-    os.makedirs(target_dir, exist_ok=True)
-    full = os.path.join(target_dir, new_name)
-    file.save(full)
+    try:
+        logo_storage.save("agency_logos", new_name, file)
+    except Exception as exc:
+        logger.warning("Agency logo upload failed: %s", exc)
+        flash("Could not save the logo. Try again.", "error")
+        return redirect(url_for("settings_white_label"))
 
-    # Best-effort cleanup of the previous file.
+    # Best-effort cleanup of the previous file (works on either backend).
     if current_user.agency_logo_filename:
-        try:
-            os.remove(os.path.join(target_dir, current_user.agency_logo_filename))
-        except OSError:
-            pass
+        logo_storage.delete("agency_logos", current_user.agency_logo_filename)
 
     current_user.agency_logo_filename = new_name
     db.session.commit()
@@ -9186,13 +9203,9 @@ def settings_upload_agency_logo():
 @app.route("/settings/white-label/remove-logo", methods=["POST"])
 @login_required
 def settings_remove_agency_logo():
+    from services.storage import logo_storage
     if current_user.agency_logo_filename:
-        try:
-            os.remove(os.path.join(
-                app.config["AGENCY_LOGO_FOLDER"], current_user.agency_logo_filename
-            ))
-        except OSError:
-            pass
+        logo_storage.delete("agency_logos", current_user.agency_logo_filename)
         current_user.agency_logo_filename = None
         db.session.commit()
         flash("Agency logo removed.", "success")
