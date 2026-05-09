@@ -3963,6 +3963,31 @@ def build_client_views():
         if shopify_findings:
             recommended_actions = list(recommended_actions) + shopify_findings
 
+        # GSC + GA-driven recommendations. We read the cached payloads
+        # the integration sync routes already write to the connection
+        # row, so this stays HTTP-free on the render path.
+        try:
+            from services.google_data_recommendations import (
+                build_google_data_recommendations,
+            )
+            gsc_conn = (
+                GoogleSearchConsoleConnection.query.filter_by(
+                    user_id=owner_id, client_id=client.get("id")
+                ).first() if client.get("id") else None
+            )
+            if gsc_conn:
+                google_recs = build_google_data_recommendations(
+                    gsc_payload=gsc_conn.last_sync_payload,
+                    ga_payload=gsc_conn.ga_payload,
+                )
+                if google_recs:
+                    recommended_actions = list(recommended_actions) + google_recs
+        except Exception as exc:
+            logger.warning(
+                "Google data recs failed for client %s: %s",
+                client.get("id"), exc,
+            )
+
         # Stale-content refresh recommendations — feeds the Growth
         # Calendar so it stays self-feeding between fresh audits.
         try:

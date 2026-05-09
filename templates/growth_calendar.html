@@ -96,6 +96,9 @@
                             {% if card.category_tag == 'stale_refresh' %}
                             <span class="growth-calendar-card-pill growth-calendar-card-pill-stale">Stale · refresh</span>
                             {% endif %}
+                            {% if card.category_tag == 'google_data' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-google">Google data</span>
+                            {% endif %}
                             {% if card.kind == 'queue' %}
                                 <span class="growth-calendar-card-status">{{ card.status|replace('_', ' ')|title }}</span>
                             {% else %}
@@ -432,6 +435,12 @@
     background: rgba(252, 165, 0, 0.10);
     color: #8c4a1f;
     border: 1px solid rgba(252, 165, 0, 0.30);
+}
+
+.growth-calendar-card-pill-google {
+    background: rgba(62, 223, 203, 0.10);
+    color: #0E7C6F;
+    border: 1px solid rgba(62, 223, 203, 0.32);
 }
 
 .growth-calendar-card-status {
