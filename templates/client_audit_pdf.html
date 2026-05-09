@@ -876,106 +876,34 @@
             </div>
         </div>
 
+        {# Recommended Actions — only render when there's real data,
+           and only show one column (no more side-by-side filler-Findings
+           panel that bulked the page out when the audit was thin). #}
+        {% if recommended_actions %}
         <div class="section">
-            <h2 class="section-title">Executive Summary</h2>
-            <div class="summary-box">
-                <p>
-                    {% if executive_summary %}
-                        {{ executive_summary }}
-                    {% else %}
-                        This report highlights the current state of the client’s AI visibility, the main coverage gaps,
-                        and the most important actions to improve discoverability, recommendation strength, and prompt-level presence.
-                    {% endif %}
-                </p>
+            <h2 class="section-title">Recommended Actions</h2>
+            <div class="panel">
+                {% for action in recommended_actions[:5] %}
+                <div class="recommendation">
+                    <div class="recommendation-title">{{ action.title if action.title else "Recommended action" }}</div>
+                    <div>{{ action.recommended_fix or action.description or action.summary or action.recommended_action or "Follow this action to improve visibility and content coverage." }}</div>
+                </div>
+                {% endfor %}
             </div>
         </div>
+        {% endif %}
 
+        {# Question Opportunities — only when there's actual data. The
+           old fallback rows ("How much does the service cost?") were
+           generic filler that confused users when their workspace had
+           no real opportunities yet. Page-break dropped — let
+           WeasyPrint flow naturally. #}
+        {% if missing_rows or question_rows %}
         <div class="section">
-            <div class="two-col">
-                <div class="col">
-                    <h2 class="section-title">Key Findings</h2>
-                    <div class="panel">
-                        <div class="finding warning">
-                            <div class="finding-title">Coverage gaps remain</div>
-                            <div>
-                                {% if missing_rows %}
-                                    Brand is still missing from {{ missing_rows|length }} important tracked quer{{ "y" if missing_rows|length == 1 else "ies" }}.
-                                {% else %}
-                                    Important customer questions are not yet fully covered across the site.
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="finding danger">
-                            <div class="finding-title">AI visibility is inconsistent</div>
-                            <div>
-                                {% if latest and latest.visibility_score %}
-                                    Current visibility score suggests uneven presence across tracked answer scenarios.
-                                {% else %}
-                                    Visibility data is limited; a fresh audit is recommended.
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="finding success">
-                            <div class="finding-title">Strongest next move is clear</div>
-                            <div>
-                                {% if top_action %}
-                                    Prioritise "{{ top_action.title }}" first for the strongest immediate improvement path.
-                                {% else %}
-                                    Structured content and clearer coverage are the best next moves.
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <h2 class="section-title">Recommended Actions</h2>
-                    <div class="panel">
-                        {% if recommended_actions %}
-                            {% for action in recommended_actions[:5] %}
-                                <div class="recommendation">
-                                    <div class="recommendation-title">
-                                        {{ action.title if action.title else "Recommended action" }}
-                                    </div>
-                                    <div>
-                                        {{ action.description if action.description else action.summary if action.summary else "Follow this action to improve visibility and content coverage." }}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="recommendation">
-                                <div class="recommendation-title">Create content for missing query coverage</div>
-                                <div>Build content for the prompts and questions where competitors are appearing and the brand is absent.</div>
-                            </div>
-                            <div class="recommendation">
-                                <div class="recommendation-title">Strengthen entity clarity</div>
-                                <div>Improve the consistency of brand signals, value proposition, and structured information across key pages.</div>
-                            </div>
-                            <div class="recommendation">
-                                <div class="recommendation-title">Refresh priority pages</div>
-                                <div>Update top pages to better answer customer questions and improve discoverability in AI responses.</div>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section page-break">
             <h2 class="section-title">Question Opportunities</h2>
-            <p class="section-copy">
-                These are the topics and prompts where stronger content coverage can create the biggest visibility gains.
-            </p>
-
             <table class="data">
                 <thead>
-                    <tr>
-                        <th>Query / Topic</th>
-                        <th>Brand Mentioned</th>
-                        <th>Priority</th>
-                    </tr>
+                    <tr><th>Query / Topic</th><th>Brand Mentioned</th><th>Priority</th></tr>
                 </thead>
                 <tbody>
                     {% if missing_rows %}
@@ -986,50 +914,27 @@
                             <td><span class="pill high">High</span></td>
                         </tr>
                         {% endfor %}
-                    {% elif question_rows %}
+                    {% else %}
                         {% for row in question_rows[:12] %}
                         <tr>
                             <td>{{ row.query if row.query else "Opportunity" }}</td>
-                            <td>
-                                {% if row.latest_brand_mentioned %}
-                                    Yes
-                                {% else %}
-                                    No
-                                {% endif %}
-                            </td>
+                            <td>{{ "Yes" if row.latest_brand_mentioned else "No" }}</td>
                             <td><span class="pill medium">Medium</span></td>
                         </tr>
                         {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td>How much does the service cost?</td>
-                            <td>No</td>
-                            <td><span class="pill high">High</span></td>
-                        </tr>
-                        <tr>
-                            <td>What makes this business different?</td>
-                            <td>No</td>
-                            <td><span class="pill high">High</span></td>
-                        </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
+        {% endif %}
 
+        {# Competitor notes only when present — no boilerplate filler. #}
+        {% if competitor_notes %}
         <div class="section">
             <h2 class="section-title">Competitor / Market Notes</h2>
-            <div class="panel">
-                {% if competitor_notes %}
-                    <p>{{ competitor_notes }}</p>
-                {% else %}
-                    <p>
-                        Competitors are occupying recommendation space for a number of important prompts.
-                        The clearest path forward is to create targeted content that answers high-intent questions
-                        better and more explicitly, while reinforcing brand/entity signals.
-                    </p>
-                {% endif %}
-            </div>
+            <div class="panel"><p>{{ competitor_notes }}</p></div>
         </div>
+        {% endif %}
 
         <div class="footer">
             <div class="footer-grid">
