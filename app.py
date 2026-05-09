@@ -3799,6 +3799,33 @@ def build_client_views():
         if shopify_findings:
             recommended_actions = list(recommended_actions) + shopify_findings
 
+        # Stale-content refresh recommendations — feeds the Growth
+        # Calendar so it stays self-feeding between fresh audits.
+        try:
+            from services.stale_content import find_stale_actions
+            wf_exports = (
+                WebflowExport.query
+                .filter_by(user_id=owner_id, client_id=client.get("id"))
+                .all()
+                if client.get("id") else []
+            )
+            client_queue = get_queue_items(
+                client_id=client.get("id"),
+                user_id=owner_id,
+                include_dismissed=True,
+            ) if client.get("id") else []
+            stale = find_stale_actions(
+                webflow_exports=wf_exports,
+                queue_items=client_queue,
+            )
+            if stale:
+                recommended_actions = list(recommended_actions) + stale
+        except Exception as exc:
+            logger.warning(
+                "Stale-content scan failed for client %s: %s",
+                client.get("id"), exc,
+            )
+
         client_views.append(
             {
                 **client,
