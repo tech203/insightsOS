@@ -52,6 +52,15 @@ PRICES: list[Tuple[str, str, int, str]] = [
     # Add-ons
     ("STRIPE_PRICE_EXTRA_WORKSPACE", "Extra Workspace",           900, "monthly"),
     ("STRIPE_PRICE_EXTRA_SEAT",      "Extra Team Seat",           500, "monthly"),
+    # Modular subscription line items (foundation — not yet surfaced
+    # in the dashboard, but the Prices need to exist in Stripe for the
+    # backend wiring to work end-to-end).
+    ("STRIPE_PRICE_MODULE_ACTION_PLAN", "Action Plan Automation", 1900, "monthly"),
+    ("STRIPE_PRICE_MODULE_WEBSITE",     "Website Module",         2900, "monthly"),
+    ("STRIPE_PRICE_MODULE_ECOMMERCE",   "Ecommerce Module",       2900, "monthly"),
+    ("STRIPE_PRICE_MODULE_MARKETPLACE", "Marketplace Module",     1900, "monthly"),
+    ("STRIPE_PRICE_MODULE_REAL_DATA",   "Real-Data Stack",        2900, "monthly"),
+    ("STRIPE_PRICE_MODULE_AGENCY",      "Agency Module",          4900, "monthly"),
 ]
 
 

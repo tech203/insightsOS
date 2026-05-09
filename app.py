@@ -334,6 +334,49 @@ class Referral(db.Model):
     )
 
 
+class UserModule(db.Model):
+    """A single module subscription for a user.
+
+    Modular billing model: customers buy one Stripe Subscription with
+    one line item per active module. Each line item maps to a row here
+    via stripe_subscription_item_id — that's the granular handle we use
+    to add or remove individual modules without canceling the whole
+    sub.
+
+    Re-subscriptions create new rows so we keep history. Active access
+    is the union of rows where status='active'; see user_has_module()
+    in the helpers section below for the lookup.
+
+    Foundation only — no checkout routes are wired yet. The webhook
+    handler writes rows when a `kind=modules` checkout completes, but
+    until the dashboard surfaces module purchase, this table stays
+    empty in production.
+    """
+    __tablename__ = "user_modules"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    module_slug = db.Column(db.String(50), nullable=False, index=True)
+    stripe_subscription_id = db.Column(db.String(120), nullable=True, index=True)
+    stripe_subscription_item_id = db.Column(
+        db.String(120), nullable=True, unique=True
+    )
+    # Mirror of Stripe values: active | canceled | past_due | incomplete
+    status = db.Column(db.String(30), nullable=False, default="active", index=True)
+    current_period_end = db.Column(db.DateTime, nullable=True)
+    activated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    deactivated_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
 class Client(db.Model):
     __tablename__ = "clients"
 
@@ -4345,6 +4388,45 @@ def get_seat_limit(user) -> int:
     return base + extras
 
 
+def user_active_modules(user) -> set[str]:
+    """Module slugs this user can access right now.
+
+    Union of two sources:
+    1. Explicit UserModule rows with status='active' (modules system).
+    2. Implicit modules unlocked by the user's legacy plan tier
+       (so existing pro/growth customers don't regress while modules
+       stay dark in the dashboard).
+
+    See modules.py for the catalog and PLAN_IMPLICIT_MODULES map.
+    """
+    if not user:
+        return set()
+    from modules import implicit_modules_for_plan
+    implicit = set(implicit_modules_for_plan(getattr(user, "plan", None)))
+    explicit_rows = (
+        UserModule.query
+        .filter_by(user_id=user.id, status="active")
+        .all()
+    )
+    explicit = {row.module_slug for row in explicit_rows}
+    return implicit | explicit
+
+
+def user_has_module(user, module_slug: str) -> bool:
+    """True if `user` has access to `module_slug` (explicit or implicit)."""
+    return (module_slug or "").lower() in user_active_modules(user)
+
+
+def user_has_feature(user, feature_slug: str) -> bool:
+    """True if `user` has access to the module that owns `feature_slug`.
+    Returns False for unknown features — feature gates fail closed."""
+    from modules import module_for_feature
+    module = module_for_feature(feature_slug)
+    if not module:
+        return False
+    return user_has_module(user, module)
+
+
 def grant_monthly_credits_if_due(user) -> int:
     """If `user` is on a paid plan and at least 28 days have passed since
     their last monthly_allowance grant (or they've never received one),
@@ -5955,6 +6037,14 @@ def stripe_webhook():
                 user.extra_workspaces = int(user.extra_workspaces or 0) + 1
             elif kind == "extra_seat":
                 user.extra_seats = int(user.extra_seats or 0) + 1
+            elif kind == "modules":
+                # Multi-line-item subscription. Pull the live subscription
+                # from Stripe to get authoritative line-item IDs (the
+                # checkout.session payload doesn't include them).
+                _sync_user_modules_from_subscription(
+                    user=user,
+                    subscription_id=data.get("subscription"),
+                )
             db.session.commit()
 
             # Referral payout — fires on EVERY paid purchase within the
@@ -5975,20 +6065,159 @@ def stripe_webhook():
             logger.error("Stripe webhook handling failed: %s", exc)
             db.session.rollback()
 
+    elif event_type == "customer.subscription.updated":
+        # Module subscriptions: a line item added or removed via the
+        # billing portal flips UserModule rows accordingly.
+        try:
+            sub_id = data.get("id")
+            if sub_id:
+                _sync_user_modules_for_subscription_id(sub_id, subscription_obj=data)
+                db.session.commit()
+        except Exception as exc:
+            logger.error("Stripe subscription update handling failed: %s", exc)
+            db.session.rollback()
+
     elif event_type == "customer.subscription.deleted":
         try:
             sub_id = data.get("id")
             if sub_id:
+                # Legacy plan subscription path.
                 user = User.query.filter_by(stripe_subscription_id=sub_id).first()
                 if user:
                     user.plan = "free"
                     user.stripe_subscription_id = None
-                    db.session.commit()
+                # Modules path: cancel every active module row tied to
+                # this subscription regardless of plan/customer linkage.
+                module_rows = (
+                    UserModule.query
+                    .filter_by(stripe_subscription_id=sub_id, status="active")
+                    .all()
+                )
+                for row in module_rows:
+                    row.status = "canceled"
+                    row.deactivated_at = datetime.utcnow()
+                db.session.commit()
         except Exception as exc:
             logger.error("Stripe subscription delete handling failed: %s", exc)
             db.session.rollback()
 
     return jsonify({"ok": True})
+
+
+def _sync_user_modules_from_subscription(*, user, subscription_id: Optional[str]) -> None:
+    """Fetch a Stripe subscription and write UserModule rows for each
+    line item. Idempotent: re-running upserts by subscription_item_id."""
+    if not subscription_id or not user:
+        return
+    from services.stripe_helper import _stripe_module, StripeNotConfigured
+    try:
+        stripe = _stripe_module()
+    except StripeNotConfigured:
+        return
+    sub = stripe.Subscription.retrieve(subscription_id)
+    _apply_subscription_to_user_modules(user_id=user.id, subscription=sub)
+
+
+def _sync_user_modules_for_subscription_id(
+    sub_id: str, *, subscription_obj: Optional[Dict[str, Any]] = None
+) -> None:
+    """For subscription.updated webhooks. Resolves the user via existing
+    UserModule rows tied to this subscription_id (or the user table's
+    stripe_subscription_id if this was a legacy-plan sub)."""
+    if not sub_id:
+        return
+    existing = (
+        UserModule.query
+        .filter_by(stripe_subscription_id=sub_id)
+        .first()
+    )
+    user_id: Optional[int] = existing.user_id if existing else None
+    if user_id is None:
+        # No module rows yet — could be a legacy plan sub being updated;
+        # nothing module-side to do.
+        return
+    sub = subscription_obj
+    if sub is None:
+        from services.stripe_helper import _stripe_module, StripeNotConfigured
+        try:
+            stripe = _stripe_module()
+        except StripeNotConfigured:
+            return
+        sub = stripe.Subscription.retrieve(sub_id)
+    _apply_subscription_to_user_modules(user_id=user_id, subscription=sub)
+
+
+def _apply_subscription_to_user_modules(*, user_id: int, subscription: Any) -> None:
+    """Reconcile UserModule rows against a Stripe subscription's line
+    items. Adds rows for new items, marks rows canceled for items that
+    have disappeared, leaves matching rows alone."""
+    from modules import MODULE_CATALOG
+    sub_id = subscription.get("id") if isinstance(subscription, dict) else subscription.id
+    items_raw = (subscription.get("items") if isinstance(subscription, dict) else subscription.items) or {}
+    items_data = items_raw.get("data") if isinstance(items_raw, dict) else getattr(items_raw, "data", []) or []
+    period_end_ts = (
+        subscription.get("current_period_end")
+        if isinstance(subscription, dict)
+        else getattr(subscription, "current_period_end", None)
+    )
+    period_end = (
+        datetime.utcfromtimestamp(int(period_end_ts)) if period_end_ts else None
+    )
+
+    # Build a price_id → module_slug map from the catalog so we can
+    # recognise which line items represent modules vs other line items
+    # the customer might have on the same subscription.
+    price_to_slug: Dict[str, str] = {}
+    for slug, mod in MODULE_CATALOG.items():
+        env_var = mod.get("stripe_price_env")
+        if env_var:
+            price_id = os.getenv(env_var) or ""
+            if price_id:
+                price_to_slug[price_id] = slug
+
+    # Walk live items: upsert one UserModule row per module item.
+    seen_item_ids: set[str] = set()
+    for item in items_data:
+        item_id = item.get("id") if isinstance(item, dict) else item.id
+        price_obj = item.get("price") if isinstance(item, dict) else item.price
+        price_id = (
+            price_obj.get("id") if isinstance(price_obj, dict) else getattr(price_obj, "id", None)
+        )
+        slug = price_to_slug.get(price_id or "")
+        if not slug:
+            continue
+        seen_item_ids.add(item_id)
+        row = (
+            UserModule.query
+            .filter_by(stripe_subscription_item_id=item_id)
+            .first()
+        )
+        if row is None:
+            row = UserModule(
+                user_id=user_id,
+                module_slug=slug,
+                stripe_subscription_id=sub_id,
+                stripe_subscription_item_id=item_id,
+                status="active",
+                current_period_end=period_end,
+                activated_at=datetime.utcnow(),
+            )
+            db.session.add(row)
+        else:
+            row.status = "active"
+            row.current_period_end = period_end
+            row.deactivated_at = None
+
+    # Cancel rows whose items have disappeared from this subscription.
+    stale = (
+        UserModule.query
+        .filter_by(stripe_subscription_id=sub_id, status="active")
+        .all()
+    )
+    for row in stale:
+        if row.stripe_subscription_item_id and row.stripe_subscription_item_id not in seen_item_ids:
+            row.status = "canceled"
+            row.deactivated_at = datetime.utcnow()
 
 
 @app.route("/clients/new", methods=["GET", "POST"])
