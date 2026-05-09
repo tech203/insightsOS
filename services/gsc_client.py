@@ -32,7 +32,13 @@ import requests
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 SEARCH_CONSOLE_API = "https://searchconsole.googleapis.com/v1"
-DEFAULT_SCOPES = "https://www.googleapis.com/auth/webmasters.readonly"
+# Both Search Console + Analytics requested in one consent so users
+# only see one Google permission dialog. Analytics admin scope lists
+# accounts/properties; analytics.readonly serves runReport queries.
+DEFAULT_SCOPES = (
+    "https://www.googleapis.com/auth/webmasters.readonly "
+    "https://www.googleapis.com/auth/analytics.readonly"
+)
 DEFAULT_TIMEOUT = 30
 
 

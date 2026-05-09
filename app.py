@@ -394,6 +394,13 @@ class GoogleSearchConsoleConnection(db.Model):
     last_sync_payload = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
 
+    # Google Analytics 4 reuses the same OAuth grant. ga_property_id is
+    # the picked GA4 property (e.g. "123456789"); ga_payload caches the
+    # 28-day summary for the dashboard.
+    ga_property_id = db.Column(db.String(60), nullable=True)
+    ga_payload = db.Column(db.JSON, nullable=True)
+    ga_synced_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
@@ -10387,6 +10394,157 @@ def gsc_sync(client_id):
         flash(f"Sync failed: {exc}", "error")
 
     return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/ga/<int:client_id>")
+@login_required
+def ga_dashboard(client_id):
+    """GA4 dashboard for a workspace. Reuses the GSC connection row so
+    the user only goes through Google OAuth once for both products."""
+    from pricing import plan_allows_google_search_console
+    from services.ga_client import GA4Client, GAAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "Google Analytics is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+
+    properties: List[Dict[str, Any]] = []
+    error: Optional[str] = None
+    if connection:
+        try:
+            access = _ensure_gsc_access_token(connection)
+            properties = GA4Client(access).list_properties()
+        except GAAPIError as exc:
+            error = str(exc)
+
+    payload = (connection.ga_payload or {}) if connection else {}
+
+    return render_template(
+        "integrations/ga_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        properties=properties,
+        payload=payload,
+        error=error,
+    )
+
+
+@app.route("/integrations/ga/<int:client_id>/select-property", methods=["POST"])
+@login_required
+def ga_select_property(client_id):
+    """Pick a GA4 property and pull a first 28-day summary."""
+    from services.ga_client import GA4Client, GAAPIError, summarize_property
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("Connect Google first from the Search Console page.", "warning")
+        return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+    property_id = (request.form.get("property_id") or "").strip()
+    if not property_id:
+        flash("Please pick a property.", "error")
+        return redirect(url_for("ga_dashboard", client_id=client_id))
+
+    connection.ga_property_id = property_id
+    db.session.commit()
+
+    try:
+        access = _ensure_gsc_access_token(connection)
+        payload = summarize_property(GA4Client(access), property_id=property_id)
+        connection.ga_payload = payload
+        connection.ga_synced_at = datetime.utcnow()
+        flag_modified(connection, "ga_payload")
+        db.session.commit()
+        flash(
+            f"Tracking GA4 property {property_id}. Last 28 days loaded.",
+            "success",
+        )
+    except GAAPIError as exc:
+        flash(f"Picked property, but GA query failed: {exc}", "warning")
+
+    return redirect(url_for("ga_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/ga/<int:client_id>/sync", methods=["POST"])
+@login_required
+def ga_sync(client_id):
+    """Re-pull the 28-day GA summary."""
+    from services.ga_client import GA4Client, GAAPIError, summarize_property
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection or not connection.ga_property_id:
+        flash("Pick a GA property first.", "warning")
+        return redirect(url_for("ga_dashboard", client_id=client_id))
+
+    try:
+        access = _ensure_gsc_access_token(connection)
+        payload = summarize_property(
+            GA4Client(access), property_id=connection.ga_property_id
+        )
+        connection.ga_payload = payload
+        connection.ga_synced_at = datetime.utcnow()
+        flag_modified(connection, "ga_payload")
+        db.session.commit()
+        flash("Google Analytics metrics refreshed.", "success")
+    except GAAPIError as exc:
+        flash(f"GA sync failed: {exc}", "error")
+
+    return redirect(url_for("ga_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/ga/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def ga_disconnect(client_id):
+    """Remove the GA property selection only (keeps the GSC half intact)."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        connection.ga_property_id = None
+        connection.ga_payload = None
+        connection.ga_synced_at = None
+        db.session.commit()
+        flash("Disconnected Google Analytics for this workspace.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 @app.route("/integrations/gsc/<int:client_id>/disconnect", methods=["POST"])
