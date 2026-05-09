@@ -168,7 +168,11 @@
                     · {{ wix.collections_cache | length }} collection(s) detected
                 {% endif %}
             </div>
+            <p class="mc-help">Once connected, ready content_queue items pick up a "Publish to Wix" button automatically. Refresh the collection list if you've created a new CMS collection in Wix.</p>
             <div class="mc-actions">
+                <form method="post" action="{{ url_for('wix_refresh_collections', client_id=workspace.id) }}" style="display:inline;">
+                    <button type="submit" class="mc-btn">Refresh collections</button>
+                </form>
                 <form method="post" action="{{ url_for('wix_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Wix site?');">
                     <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
                 </form>
@@ -204,8 +208,15 @@
         {% if framer %}
             <div class="mc-meta">
                 Project ID: <strong>{{ framer.project_id }}</strong>
+                {% if framer.collections_cache %}
+                    · {{ framer.collections_cache | length }} collection(s) detected
+                {% endif %}
             </div>
+            <p class="mc-help">Once connected, ready content_queue items pick up a "Publish to Framer" button automatically.</p>
             <div class="mc-actions">
+                <form method="post" action="{{ url_for('framer_refresh_collections', client_id=workspace.id) }}" style="display:inline;">
+                    <button type="submit" class="mc-btn">Refresh collections</button>
+                </form>
                 <form method="post" action="{{ url_for('framer_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Framer project?');">
                     <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
                 </form>

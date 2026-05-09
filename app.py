@@ -8062,6 +8062,17 @@ def content_queue_page():
 
     visible_queue_items = items[start:end]
 
+    # Which workspaces have Wix / Framer connections — used to gate
+    # the per-item "Publish to Wix" / "Publish to Framer" buttons.
+    wix_connected_client_ids = {
+        row.client_id
+        for row in WixConnection.query.filter_by(user_id=current_user.id).all()
+    }
+    framer_connected_client_ids = {
+        row.client_id
+        for row in FramerConnection.query.filter_by(user_id=current_user.id).all()
+    }
+
     return render_template(
         "content_queue.html",
         queue_items=visible_queue_items,
@@ -8078,6 +8089,8 @@ def content_queue_page():
         incoming_query=incoming_query,
         incoming_topic=incoming_topic,
         incoming_source=incoming_source,
+        wix_connected_client_ids=wix_connected_client_ids,
+        framer_connected_client_ids=framer_connected_client_ids,
     )
 
 
@@ -8560,6 +8573,86 @@ def publish_queue_item_to_webflow(item_id):
         flash("Publishing failed unexpectedly. Try again.", "error")
 
     return _redirect_to_queue(client_id)
+
+
+def _publish_queue_item_to_module_cms(item_id: str, *, platform: str):
+    """Shared core for publish-to-Wix and publish-to-Framer routes.
+
+    Looks up the queue item, verifies it's `ready` or `draft_generated`,
+    finds the workspace's Wix/Framer connection, calls cms_publisher,
+    and flashes the result. Mirrors the gating used by the Webflow
+    publish path."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+    status = (item.get("status") or "").lower()
+    if status not in {"ready", "draft_generated"}:
+        flash(
+            f"Approve the draft first — only ready items can publish to {platform.title()}.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    if platform == "wix":
+        connection = WixConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first()
+    elif platform == "framer":
+        connection = FramerConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first()
+    else:
+        flash(f"Unknown publish platform: {platform}", "error")
+        return _redirect_to_queue(client_id)
+
+    if not connection:
+        flash(
+            f"No {platform.title()} connection for this workspace. "
+            f"Connect one in the Module connectors page.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    target_collection = (request.form.get("collection_id") or "").strip() or None
+
+    try:
+        from services import cms_publisher
+        if platform == "wix":
+            result = cms_publisher.publish_to_wix(
+                connection=connection, item=item, collection_id=target_collection
+            )
+        else:
+            result = cms_publisher.publish_to_framer(
+                connection=connection, item=item, collection_id=target_collection
+            )
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return _redirect_to_queue(client_id)
+    except Exception as exc:
+        logger.warning("%s publish failed: %s", platform, exc)
+        flash(f"Couldn't publish to {platform.title()}: {exc}", "error")
+        return _redirect_to_queue(client_id)
+
+    flash(
+        f"Published as a draft on {platform.title()} (item ID {result.get('id', '?')}). "
+        "Review and go live from your CMS.",
+        "success",
+    )
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/publish-to-wix", methods=["POST"])
+@login_required
+def publish_queue_item_to_wix(item_id):
+    return _publish_queue_item_to_module_cms(item_id, platform="wix")
+
+
+@app.route("/content-queue/<item_id>/publish-to-framer", methods=["POST"])
+@login_required
+def publish_queue_item_to_framer(item_id):
+    return _publish_queue_item_to_module_cms(item_id, platform="framer")
 
 
 def _parse_content_sections(text):
@@ -12947,6 +13040,39 @@ def wix_connect(client_id):
     return redirect(url_for("module_connectors", client_id=client_id))
 
 
+@app.route("/integrations/wix/<int:client_id>/refresh-collections", methods=["POST"])
+@login_required
+def wix_refresh_collections(client_id):
+    """Re-fetch the Wix CMS collection list and cache it on the
+    connection. Lets the user pick a target collection in the publish
+    UI without DarInsights calling the API on every page render."""
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = WixConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a Wix site first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.wix_client import WixAPIError, WixClient
+
+    try:
+        api = WixClient(api_key=conn.api_key, site_id=conn.site_id)
+        collections = api.list_collections()
+    except WixAPIError as exc:
+        flash(f"Wix collection refresh failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    conn.collections_cache = collections
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Found {len(collections)} Wix collection(s).", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
 @app.route("/integrations/wix/<int:client_id>/disconnect", methods=["POST"])
 @login_required
 def wix_disconnect(client_id):
@@ -13008,6 +13134,38 @@ def framer_connect(client_id):
         )
     db.session.commit()
     flash("Framer project connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/framer/<int:client_id>/refresh-collections", methods=["POST"])
+@login_required
+def framer_refresh_collections(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = FramerConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a Framer project first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.framer_client import FramerAPIError, FramerClient
+
+    try:
+        api = FramerClient(
+            access_token=conn.access_token, project_id=conn.project_id
+        )
+        collections = api.list_collections()
+    except FramerAPIError as exc:
+        flash(f"Framer collection refresh failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    conn.collections_cache = collections
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Found {len(collections)} Framer collection(s).", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
 
 

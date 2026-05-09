@@ -426,6 +426,23 @@
                     {% endif %}
                     <button type="submit" class="btn btn-primary">Publish to Site</button>
                 </form>
+                {% set item_client_id = (item.client_id | int) if item.client_id else None %}
+                {% if item_client_id and item_client_id in wix_connected_client_ids %}
+                <form method="POST" action="{{ url_for('publish_queue_item_to_wix', item_id=item.id) }}" class="publish-inline-form">
+                    {% if active_client_id %}
+                    <input type="hidden" name="client_id" value="{{ active_client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-secondary">Publish to Wix</button>
+                </form>
+                {% endif %}
+                {% if item_client_id and item_client_id in framer_connected_client_ids %}
+                <form method="POST" action="{{ url_for('publish_queue_item_to_framer', item_id=item.id) }}" class="publish-inline-form">
+                    {% if active_client_id %}
+                    <input type="hidden" name="client_id" value="{{ active_client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-secondary">Publish to Framer</button>
+                </form>
+                {% endif %}
                 <form method="POST" action="{{ url_for('publish_content_queue_item', item_id=item.id) }}" class="publish-inline-form">
                     {% if active_client_id %}
                     <input type="hidden" name="client_id" value="{{ active_client_id }}">
