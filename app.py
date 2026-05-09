@@ -839,6 +839,156 @@ class ShopifyConnection(db.Model):
     )
 
 
+class BigCommerceConnection(db.Model):
+    """A self-installed BigCommerce connection scoped to a workspace.
+
+    Auth model is store_hash + access_token (X-Auth-Token). When we
+    eventually publish a public app to the BigCommerce App Marketplace,
+    add OAuth callback fields without disturbing this table.
+    """
+    __tablename__ = "bigcommerce_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    store_hash = db.Column(db.String(120), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    store_meta = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "client_id", name="uq_bigcommerce_user_client"
+        ),
+    )
+
+
+class ShoplineConnection(db.Model):
+    """A custom-app SHOPLINE connection scoped to a workspace.
+
+    Auth model is store_handle (e.g. 'mystore' for mystore.myshopline.com)
+    + access_token. Public-app OAuth flow is additive when we ship
+    DarInsights as a SHOPLINE app.
+    """
+    __tablename__ = "shopline_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    store_handle = db.Column(db.String(120), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    shop_meta = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_shopline_user_client"),
+    )
+
+
+class WixConnection(db.Model):
+    """A Wix headless-API-key connection scoped to a workspace.
+
+    Auth model is api_key + site_id. Switch to Wix App Marketplace
+    OAuth when DarInsights is approved as a Wix app.
+    """
+    __tablename__ = "wix_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    site_id = db.Column(db.String(120), nullable=False)
+    api_key = db.Column(db.Text, nullable=False)
+    site_meta = db.Column(db.JSON, nullable=True)
+    # Cached collection list so the publish UI doesn't call the API on
+    # every page render. Refreshed on demand from a settings button.
+    collections_cache = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_wix_user_client"),
+    )
+
+
+class FramerConnection(db.Model):
+    """A Framer PAT-based connection scoped to a workspace.
+
+    Auth model is access_token + project_id. Framer's CMS API is in
+    beta — surface stays narrow until they ship a stable update API.
+    """
+    __tablename__ = "framer_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    project_id = db.Column(db.String(120), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    project_meta = db.Column(db.JSON, nullable=True)
+    collections_cache = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_framer_user_client"),
+    )
+
+
+class SquarespaceConnection(db.Model):
+    """A Squarespace API-key connection scoped to a workspace.
+
+    Read-only by design: Squarespace's Content API only allows reads
+    for pages/posts, and Commerce write endpoints are limited. Stays
+    narrow until Squarespace ships a real CMS write API.
+    """
+    __tablename__ = "squarespace_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    api_key = db.Column(db.Text, nullable=False)
+    site_meta = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "client_id", name="uq_squarespace_user_client"
+        ),
+    )
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -12476,6 +12626,380 @@ def shopify_disconnect(client_id):
     else:
         flash("No Shopify store to disconnect.", "info")
     return redirect(url_for("client_detail", client_id=client_id))
+
+
+# ===========================================================================
+# Module 2 + 3 connectors — foundation routes
+# ===========================================================================
+# Connect / disconnect for the five new integrations: BigCommerce + SHOPLINE
+# (Module 3 — Ecommerce) and Wix + Framer + Squarespace (Module 2 — Website).
+#
+# Each follows the same pattern: a single hub page (`module_connectors`)
+# renders all five connection forms; per-connector POST routes verify the
+# credentials, persist them, and redirect back. No catalog sync, no
+# audit-pipeline wiring, no write-back yet — those land per-connector when
+# we extend each module past the foundation.
+#
+# All five connectors are untested against live APIs. The first end-to-end
+# deploy needs at minimum a credential round-trip for each.
+
+
+def _workspace_or_redirect(client_id: int):
+    """Common guard for the connector routes — returns the workspace or
+    redirects with a flash if it's not found / not the user's."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return None
+    return workspace
+
+
+@app.route("/client/<int:client_id>/integrations/modules", methods=["GET"])
+@login_required
+def module_connectors(client_id):
+    """Foundation hub for the five Module 2 + Module 3 connectors.
+
+    Each section shows current connection status and a connect form.
+    Disconnect + refresh actions live on this same page via POST routes.
+    """
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    return render_template(
+        "integrations/module_connectors.html",
+        workspace=workspace,
+        bigcommerce=BigCommerceConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        shopline=ShoplineConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        wix=WixConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        framer=FramerConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        squarespace=SquarespaceConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+    )
+
+
+# --- BigCommerce -----------------------------------------------------------
+
+@app.route("/integrations/bigcommerce/<int:client_id>/connect", methods=["POST"])
+@login_required
+def bigcommerce_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.bigcommerce_client import (
+        BigCommerceAPIError,
+        BigCommerceConfigError,
+        verify_connection,
+    )
+
+    store_hash = (request.form.get("store_hash") or "").strip()
+    access_token = (request.form.get("access_token") or "").strip()
+
+    try:
+        meta = verify_connection(store_hash=store_hash, access_token=access_token)
+    except (BigCommerceConfigError, BigCommerceAPIError) as exc:
+        flash(f"BigCommerce connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = BigCommerceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.store_hash = store_hash
+        existing.access_token = access_token
+        existing.store_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            BigCommerceConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                store_hash=store_hash,
+                access_token=access_token,
+                store_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("BigCommerce store connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/bigcommerce/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def bigcommerce_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = BigCommerceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected BigCommerce store.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- SHOPLINE -------------------------------------------------------------
+
+@app.route("/integrations/shopline/<int:client_id>/connect", methods=["POST"])
+@login_required
+def shopline_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.shopline_client import (
+        ShoplineAPIError,
+        ShoplineConfigError,
+        verify_connection,
+    )
+
+    store_handle = (request.form.get("store_handle") or "").strip()
+    access_token = (request.form.get("access_token") or "").strip()
+
+    try:
+        meta = verify_connection(store_handle=store_handle, access_token=access_token)
+    except (ShoplineConfigError, ShoplineAPIError) as exc:
+        flash(f"SHOPLINE connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = ShoplineConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.store_handle = store_handle
+        existing.access_token = access_token
+        existing.shop_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            ShoplineConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                store_handle=store_handle,
+                access_token=access_token,
+                shop_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("SHOPLINE store connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/shopline/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def shopline_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = ShoplineConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected SHOPLINE store.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- Wix ------------------------------------------------------------------
+
+@app.route("/integrations/wix/<int:client_id>/connect", methods=["POST"])
+@login_required
+def wix_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.wix_client import WixAPIError, WixConfigError, verify_connection
+
+    site_id = (request.form.get("site_id") or "").strip()
+    api_key = (request.form.get("api_key") or "").strip()
+
+    try:
+        meta = verify_connection(api_key=api_key, site_id=site_id)
+    except (WixConfigError, WixAPIError) as exc:
+        flash(f"Wix connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = WixConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.site_id = site_id
+        existing.api_key = api_key
+        existing.site_meta = meta
+        existing.collections_cache = meta.get("collections") or []
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            WixConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                site_id=site_id,
+                api_key=api_key,
+                site_meta=meta,
+                collections_cache=meta.get("collections") or [],
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("Wix site connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/wix/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def wix_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = WixConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected Wix site.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- Framer ---------------------------------------------------------------
+
+@app.route("/integrations/framer/<int:client_id>/connect", methods=["POST"])
+@login_required
+def framer_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.framer_client import (
+        FramerAPIError,
+        FramerConfigError,
+        verify_connection,
+    )
+
+    project_id = (request.form.get("project_id") or "").strip()
+    access_token = (request.form.get("access_token") or "").strip()
+
+    try:
+        meta = verify_connection(access_token=access_token, project_id=project_id)
+    except (FramerConfigError, FramerAPIError) as exc:
+        flash(f"Framer connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = FramerConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.project_id = project_id
+        existing.access_token = access_token
+        existing.project_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            FramerConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                project_id=project_id,
+                access_token=access_token,
+                project_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("Framer project connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/framer/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def framer_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = FramerConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected Framer project.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- Squarespace ----------------------------------------------------------
+
+@app.route("/integrations/squarespace/<int:client_id>/connect", methods=["POST"])
+@login_required
+def squarespace_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.squarespace_client import (
+        SquarespaceAPIError,
+        SquarespaceConfigError,
+        verify_connection,
+    )
+
+    api_key = (request.form.get("api_key") or "").strip()
+
+    try:
+        meta = verify_connection(api_key=api_key)
+    except (SquarespaceConfigError, SquarespaceAPIError) as exc:
+        flash(f"Squarespace connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = SquarespaceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.api_key = api_key
+        existing.site_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            SquarespaceConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                api_key=api_key,
+                site_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("Squarespace site connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/squarespace/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def squarespace_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = SquarespaceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected Squarespace site.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
 
 
 if __name__ == "__main__":

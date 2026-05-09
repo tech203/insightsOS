@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Module connectors — {{ workspace.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .mc-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .mc-header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.5rem; }
+    .mc-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
+    .mc-header p { margin: 0; color: #555; max-width: 720px; }
+    .mc-section { background: white; border: 1px solid #ececf2; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .mc-section-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .mc-section-head h2 { margin: 0 0 0.2rem 0; font-size: 1.05rem; }
+    .mc-section-head p { margin: 0; color: #666; font-size: 0.9rem; max-width: 560px; }
+    .mc-status { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+    .mc-status.connected { background: #e6f7ee; color: #146c3a; }
+    .mc-status.disconnected { background: #f3f3f7; color: #555; }
+    .mc-form { display: grid; gap: 0.45rem; }
+    .mc-form-row { display: grid; gap: 0.55rem; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 640px) { .mc-form-row { grid-template-columns: 1fr; } }
+    .mc-form label { font-size: 0.75rem; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mc-form input { padding: 0.55rem 0.75rem; border: 1px solid #d4d4dc; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
+    .mc-form input:focus { outline: 2px solid var(--brand-primary, #3EDFCB); outline-offset: 1px; }
+    .mc-btn { padding: 0.55rem 1.1rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; background: var(--brand-primary, #3EDFCB); color: var(--brand-text-strong, #191929); min-height: 40px; }
+    .mc-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
+    .mc-btn-danger { background: #fdecea; color: #b22424; border: 1px solid transparent; }
+    .mc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.6rem; }
+    .mc-meta { font-size: 0.85rem; color: #555; margin-top: 0.4rem; }
+    .mc-help { font-size: 0.82rem; color: #666; margin: 0.35rem 0 0 0; }
+    .mc-banner { padding: 0.6rem 0.85rem; border-radius: 8px; background: #fff8e0; color: #6a4f00; font-size: 0.85rem; margin: 0 0 1rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mc-page">
+    <div class="mc-header">
+        <div>
+            <h1>Module connectors</h1>
+            <p>Foundation connectors for the Ecommerce and Website modules. These connect your platform credentials so future audit + publish flows can pick them up. Not yet wired into the audit pipeline or the content publish path.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="mc-btn mc-btn-secondary">← Workspace</a>
+        </div>
+    </div>
+
+    <div class="mc-banner">
+        These five connectors are foundation only — connecting verifies your credentials and stores them, but no catalog sync, audit, or publish happens yet. Each will get full module wiring in follow-up releases.
+    </div>
+
+    {# ---------- BigCommerce (Module 3) ---------- #}
+    <section class="mc-section">
+        <div class="mc-section-head">
+            <div>
+                <h2>BigCommerce <span class="mc-status {{ 'connected' if bigcommerce else 'disconnected' }}">{{ 'Connected' if bigcommerce else 'Not connected' }}</span></h2>
+                <p>Module 3 — Ecommerce. Pulls catalog from a BigCommerce store via a Stencil API account token.</p>
+            </div>
+        </div>
+        {% if bigcommerce %}
+            <div class="mc-meta">
+                Store hash: <strong>{{ bigcommerce.store_hash }}</strong>
+                {% if bigcommerce.store_meta and bigcommerce.store_meta.get('name') %}
+                    · {{ bigcommerce.store_meta.name }}
+                {% endif %}
+            </div>
+            <div class="mc-actions">
+                <form method="post" action="{{ url_for('bigcommerce_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this BigCommerce store?');">
+                    <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
+                </form>
+            </div>
+        {% else %}
+            <form class="mc-form" method="post" action="{{ url_for('bigcommerce_connect', client_id=workspace.id) }}">
+                <div class="mc-form-row">
+                    <div>
+                        <label for="bc-store-hash">Store hash</label>
+                        <input id="bc-store-hash" name="store_hash" placeholder="abc123xyz" required>
+                    </div>
+                    <div>
+                        <label for="bc-token">Access token</label>
+                        <input id="bc-token" name="access_token" type="password" required>
+                    </div>
+                </div>
+                <p class="mc-help">Find both in BigCommerce → Settings → API accounts → Create API account (Store-level token).</p>
+                <div class="mc-actions">
+                    <button type="submit" class="mc-btn">Connect BigCommerce</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+
+    {# ---------- SHOPLINE (Module 3) ---------- #}
+    <section class="mc-section">
+        <div class="mc-section-head">
+            <div>
+                <h2>SHOPLINE <span class="mc-status {{ 'connected' if shopline else 'disconnected' }}">{{ 'Connected' if shopline else 'Not connected' }}</span></h2>
+                <p>Module 3 — Ecommerce. Pulls catalog from a SHOPLINE store via a custom-app access token.</p>
+            </div>
+        </div>
+        {% if shopline %}
+            <div class="mc-meta">
+                Store: <strong>{{ shopline.store_handle }}.myshopline.com</strong>
+            </div>
+            <div class="mc-actions">
+                <form method="post" action="{{ url_for('shopline_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this SHOPLINE store?');">
+                    <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
+                </form>
+            </div>
+        {% else %}
+            <form class="mc-form" method="post" action="{{ url_for('shopline_connect', client_id=workspace.id) }}">
+                <div class="mc-form-row">
+                    <div>
+                        <label for="sl-handle">Store handle</label>
+                        <input id="sl-handle" name="store_handle" placeholder="mystore" required>
+                    </div>
+                    <div>
+                        <label for="sl-token">Access token</label>
+                        <input id="sl-token" name="access_token" type="password" required>
+                    </div>
+                </div>
+                <p class="mc-help">Generate a custom app + token in your SHOPLINE merchant admin under Apps → Custom apps.</p>
+                <div class="mc-actions">
+                    <button type="submit" class="mc-btn">Connect SHOPLINE</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+
+    {# ---------- Wix (Module 2) ---------- #}
+    <section class="mc-section">
+        <div class="mc-section-head">
+            <div>
+                <h2>Wix <span class="mc-status {{ 'connected' if wix else 'disconnected' }}">{{ 'Connected' if wix else 'Not connected' }}</span></h2>
+                <p>Module 2 — Website. Connects a Wix site so generated content can be pushed into Wix CMS collections.</p>
+            </div>
+        </div>
+        {% if wix %}
+            <div class="mc-meta">
+                Site ID: <strong>{{ wix.site_id }}</strong>
+                {% if wix.collections_cache %}
+                    · {{ wix.collections_cache | length }} collection(s) detected
+                {% endif %}
+            </div>
+            <div class="mc-actions">
+                <form method="post" action="{{ url_for('wix_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Wix site?');">
+                    <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
+                </form>
+            </div>
+        {% else %}
+            <form class="mc-form" method="post" action="{{ url_for('wix_connect', client_id=workspace.id) }}">
+                <div class="mc-form-row">
+                    <div>
+                        <label for="wix-site">Site ID</label>
+                        <input id="wix-site" name="site_id" placeholder="aaaaaa-1111-..." required>
+                    </div>
+                    <div>
+                        <label for="wix-key">API key</label>
+                        <input id="wix-key" name="api_key" type="password" required>
+                    </div>
+                </div>
+                <p class="mc-help">Generate a permanent API key in Wix → Settings → Headless settings → API keys, and copy your Site ID from the same screen.</p>
+                <div class="mc-actions">
+                    <button type="submit" class="mc-btn">Connect Wix</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+
+    {# ---------- Framer (Module 2) ---------- #}
+    <section class="mc-section">
+        <div class="mc-section-head">
+            <div>
+                <h2>Framer <span class="mc-status {{ 'connected' if framer else 'disconnected' }}">{{ 'Connected' if framer else 'Not connected' }}</span></h2>
+                <p>Module 2 — Website. Connects a Framer project for CMS publishing. Framer's CMS API is in beta — surface stays narrow until they ship a stable update API.</p>
+            </div>
+        </div>
+        {% if framer %}
+            <div class="mc-meta">
+                Project ID: <strong>{{ framer.project_id }}</strong>
+            </div>
+            <div class="mc-actions">
+                <form method="post" action="{{ url_for('framer_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Framer project?');">
+                    <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
+                </form>
+            </div>
+        {% else %}
+            <form class="mc-form" method="post" action="{{ url_for('framer_connect', client_id=workspace.id) }}">
+                <div class="mc-form-row">
+                    <div>
+                        <label for="fr-project">Project ID</label>
+                        <input id="fr-project" name="project_id" placeholder="prj_..." required>
+                    </div>
+                    <div>
+                        <label for="fr-token">Access token</label>
+                        <input id="fr-token" name="access_token" type="password" required>
+                    </div>
+                </div>
+                <p class="mc-help">Generate a Personal Access Token in Framer → Account → API Access.</p>
+                <div class="mc-actions">
+                    <button type="submit" class="mc-btn">Connect Framer</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+
+    {# ---------- Squarespace (Module 2) ---------- #}
+    <section class="mc-section">
+        <div class="mc-section-head">
+            <div>
+                <h2>Squarespace <span class="mc-status {{ 'connected' if squarespace else 'disconnected' }}">{{ 'Connected' if squarespace else 'Not connected' }}</span></h2>
+                <p>Module 2 — Website. Read-only audit connector. Squarespace's Content API doesn't allow writes for pages/posts, so CMS publish isn't supported yet.</p>
+            </div>
+        </div>
+        {% if squarespace %}
+            <div class="mc-actions">
+                <form method="post" action="{{ url_for('squarespace_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Squarespace site?');">
+                    <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
+                </form>
+            </div>
+        {% else %}
+            <form class="mc-form" method="post" action="{{ url_for('squarespace_connect', client_id=workspace.id) }}">
+                <div>
+                    <label for="sq-key">API key</label>
+                    <input id="sq-key" name="api_key" type="password" required>
+                </div>
+                <p class="mc-help">Generate an API key in Squarespace → Settings → Advanced → API Keys (commerce permission required for catalog reads).</p>
+                <div class="mc-actions">
+                    <button type="submit" class="mc-btn">Connect Squarespace</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
