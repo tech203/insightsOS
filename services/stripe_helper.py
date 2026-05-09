@@ -42,7 +42,6 @@ BUNDLE_PRICE_ENV_SUB: Dict[int, str] = {
 
 # Plan slug → env var name for the recurring Stripe Price ID.
 PLAN_PRICE_ENV: Dict[str, str] = {
-    "plus": "STRIPE_PRICE_PLAN_PLUS",
     "pro": "STRIPE_PRICE_PLAN_PRO",
     "growth": "STRIPE_PRICE_PLAN_GROWTH",
 }

@@ -9453,7 +9453,7 @@ def settings_update_profile():
 def settings_update_white_label():
     """Save the agency white-label fields and toggle. Logo upload is
     a separate route so users can save text-only changes without
-    reuploading. Free/Plus users can edit fields but the toggle stays
+    reuploading. Free users can edit fields but the toggle stays
     off until they're on a paid plan — keeps the upgrade nudge clean."""
     enable = request.form.get("enable") == "on"
     name = (request.form.get("agency_name") or "").strip()[:255]
@@ -10945,7 +10945,7 @@ def marketplace_delete_presence(client_id, presence_id):
 # Google Search Console integration
 # =========================
 # OAuth + Search Analytics pulls for verified GSC properties. Pro and
-# Growth plans only — Free and Plus see an upgrade nudge on the
+# Growth plans only — Free sees an upgrade nudge on the
 # workspace card.
 
 

@@ -45,10 +45,10 @@ PRICES: list[Tuple[str, str, int, str]] = [
     ("STRIPE_PRICE_BUNDLE_20_SUB",   "20 credits (Subscriber)", 1900,  "one_time"),
     ("STRIPE_PRICE_BUNDLE_50_SUB",   "50 credits (Subscriber)", 4500,  "one_time"),
     ("STRIPE_PRICE_BUNDLE_100_SUB",  "100 credits (Subscriber)", 8500, "one_time"),
-    # Subscription tiers
-    ("STRIPE_PRICE_PLAN_PLUS",       "DarInsights Plus",         1900, "monthly"),
-    ("STRIPE_PRICE_PLAN_PRO",        "DarInsights Pro",          4900, "monthly"),
-    ("STRIPE_PRICE_PLAN_GROWTH",     "DarInsights Growth",       9900, "monthly"),
+    # Subscription tiers (Pro $29 + Growth $79 — match existing
+    # Stripe Prices when present, otherwise create at these amounts).
+    ("STRIPE_PRICE_PLAN_PRO",        "DarInsights Pro",          2900, "monthly"),
+    ("STRIPE_PRICE_PLAN_GROWTH",     "DarInsights Growth",       7900, "monthly"),
     # Add-ons
     ("STRIPE_PRICE_EXTRA_WORKSPACE", "Extra Workspace",           900, "monthly"),
     ("STRIPE_PRICE_EXTRA_SEAT",      "Extra Team Seat",           500, "monthly"),
