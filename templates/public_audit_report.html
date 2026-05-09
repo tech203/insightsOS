@@ -1,0 +1,224 @@
+{# Public audit report — no auth required. Renders the same data
+   the PDF template uses, in a screen-friendly shell with a
+   "Download PDF" button. Wrapped in noindex so search engines don't
+   start surfacing client reports. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ client.name }} — AI Visibility Audit</title>
+    <meta name="robots" content="noindex,nofollow">
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f6f7fb; color: #191929; line-height: 1.55; }
+        .public-bar {
+            position: sticky; top: 0; z-index: 10;
+            background: white; border-bottom: 1px solid #ececf2;
+            padding: 14px 28px;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        .public-bar-left { display: flex; align-items: center; gap: 0.7rem; }
+        .public-bar-mark {
+            width: 36px; height: 36px; border-radius: 9px;
+            background: linear-gradient(135deg, #3EDFCB 0%, #9D7CE3 100%);
+            color: white; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 17px; letter-spacing: -0.02em;
+        }
+        .public-bar-name { font-weight: 700; font-size: 15px; color: #191929; margin: 0; }
+        .public-bar-meta { font-size: 12px; color: #667085; margin: 0; }
+        .public-bar-cta {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.6rem 1.1rem; border-radius: 8px;
+            background: #3EDFCB; color: #191929; font-weight: 700;
+            text-decoration: none; font-size: 0.92rem;
+        }
+        .public-bar-cta:hover { background: #2BCBB7; }
+
+        .report-page {
+            max-width: 880px; margin: 28px auto; padding: 36px 40px;
+            background: white; border: 1px solid #ececf2; border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
+        }
+        .report-title-band {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            background: #fafafe; padding: 18px 22px; border-radius: 12px;
+            margin-bottom: 22px; border-left: 4px solid #3EDFCB;
+        }
+        .report-title-name {
+            font-size: 28px; font-weight: 800; letter-spacing: -0.01em;
+            margin: 0; line-height: 1.05;
+        }
+        .report-title-sub { margin: 4px 0 0; color: #667085; font-size: 13px; }
+        .report-title-date { color: #667085; font-size: 12px; font-weight: 600; }
+
+        .section { margin-bottom: 26px; }
+        .section h2 {
+            font-size: 16px; font-weight: 700; margin: 0 0 10px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            color: #3EDFCB; padding-bottom: 6px; border-bottom: 1px solid #ececf2;
+        }
+        .section p { margin: 0 0 8px; color: #19294F; }
+
+        .verdict-box {
+            border: 2px solid #b42318; border-radius: 10px;
+            padding: 14px 16px; background: #fef3f2;
+        }
+        .verdict-box.warn { border-color: #9D7CE3; background: rgba(157,124,227,0.10); }
+        .verdict-box.strong { border-color: #3EDFCB; background: rgba(62,223,203,0.10); }
+        .verdict-label {
+            font-size: 12px; font-weight: 800; letter-spacing: 0.05em;
+            color: #b42318; margin-bottom: 6px;
+        }
+        .verdict-box.warn .verdict-label { color: #5D3FBE; }
+        .verdict-box.strong .verdict-label { color: #1AAE99; }
+        .verdict-body { margin: 0; font-size: 13px; line-height: 1.5; }
+
+        .profile-table, .citation-table {
+            width: 100%; border-collapse: collapse; font-size: 13px;
+        }
+        .profile-table th {
+            text-align: left; background: #fafafe;
+            color: #5D3FBE; font-weight: 700; font-size: 11px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            padding: 9px 12px; border-bottom: 1px solid #ececf2; width: 30%;
+        }
+        .profile-table td {
+            padding: 9px 12px; border-bottom: 1px solid #ececf2;
+        }
+        .profile-table tr:last-child th, .profile-table tr:last-child td { border-bottom: 0; }
+        .citation-table thead th {
+            background: #9D7CE3; color: white; font-weight: 700;
+            font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+            padding: 10px 12px; text-align: left;
+        }
+        .citation-table th.center, .citation-table td.center { text-align: center; }
+        .citation-table tbody td {
+            padding: 9px 12px; border-bottom: 1px solid #ececf2;
+        }
+        .citation-table tbody tr:last-child td { border-bottom: 0; }
+        .cited-pill {
+            display: inline-block; padding: 3px 9px; border-radius: 999px;
+            font-size: 10px; font-weight: 800; letter-spacing: 0.05em;
+        }
+        .cited-yes { background: rgba(62,223,203,0.16); color: #1AAE99; }
+        .cited-no { background: #fef3f2; color: #b42318; }
+
+        .report-footer {
+            margin-top: 36px; padding-top: 16px;
+            border-top: 1px solid #ececf2;
+            font-size: 12px; color: #667085;
+            display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+        }
+        @media (max-width: 600px) {
+            .report-page { padding: 24px 18px; margin: 16px 12px; }
+            .report-title-band { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .report-title-name { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="public-bar">
+        <div class="public-bar-left">
+            {% if agency.active and agency.logo_url %}
+                <img src="{{ agency.logo_url }}" alt="{{ agency.name }} logo" style="max-height: 36px; max-width: 140px; object-fit: contain;">
+            {% else %}
+                <span class="public-bar-mark">{{ (client.name or "?")[0]|upper }}</span>
+            {% endif %}
+            <div>
+                <p class="public-bar-name">{{ client.name }}</p>
+                <p class="public-bar-meta">AI Visibility Audit · {{ report_date }}</p>
+            </div>
+        </div>
+        <a href="{{ url_for('public_audit_report_pdf', token=token) }}" class="public-bar-cta">
+            ↓ Download PDF
+        </a>
+    </div>
+
+    <div class="report-page">
+        <div class="report-title-band">
+            <div>
+                <h1 class="report-title-name">AI VISIBILITY AUDIT</h1>
+                <p class="report-title-sub">{{ client.name }}</p>
+            </div>
+            <div class="report-title-date">{{ report_date }}</div>
+        </div>
+
+        {% set norm_score = latest.normalized_score if latest and latest.normalized_score is defined else 0 %}
+
+        <div class="section">
+            <h2>Executive Summary</h2>
+            {% if executive_summary %}
+                <p>{{ executive_summary }}</p>
+            {% else %}
+                <p>This audit evaluates {{ client.name }}'s current visibility across AI search platforms including ChatGPT, Perplexity, Gemini, and Google AI Overview. As more consumers use AI assistants to find products and services, businesses that appear in AI-generated answers gain a significant competitive advantage.</p>
+            {% endif %}
+            {% if citation_rows %}
+                {% set cited_count = (citation_rows | selectattr('cited') | list) | length %}
+                <p>Across {{ citation_rows|length }} test queries, {{ client.name }} was cited in <strong>{{ cited_count }} of {{ citation_rows|length }}</strong>. Where the brand is missing, AI assistants are recommending competitors instead — those leads currently flow elsewhere.</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            {% set verdict_label = "HIGH OPPORTUNITY" if norm_score < 55 else ("MODERATE OPPORTUNITY" if norm_score < 80 else "STRONG VISIBILITY") %}
+            {% set verdict_class = "" if norm_score < 55 else ("warn" if norm_score < 80 else "strong") %}
+            <div class="verdict-box {{ verdict_class }}">
+                <div class="verdict-label">VERDICT: {{ verdict_label }}</div>
+                <p class="verdict-body">
+                    {% if norm_score >= 80 %}
+                        {{ client.name }} is well-represented across AI assistants. Focus on holding the lead and expanding coverage to adjacent queries.
+                    {% elif norm_score >= 55 %}
+                        {{ client.name }} appears intermittently in AI answers. Closing the visibility gaps below would meaningfully shift the share of AI-driven leads.
+                    {% else %}
+                        {{ client.name }} has strong real-world reputation but limited AI visibility. Competitors who optimize now will capture AI-driven leads while {{ client.name }} remains invisible to this growing segment.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Business Profile</h2>
+            <table class="profile-table">
+                <tr><th>Company</th><td>{{ client.name }}</td></tr>
+                <tr><th>Website</th><td>{{ client.website or "—" }}</td></tr>
+                <tr><th>Location</th><td>{{ client.location or "—" }}</td></tr>
+                {% if business_profile.founded_year %}<tr><th>Founded</th><td>{{ business_profile.founded_year }}</td></tr>{% endif %}
+                {% if business_profile.core_services %}<tr><th>Core Services</th><td>{{ business_profile.core_services }}</td></tr>{% elif client.industry and client.industry != 'N/A' %}<tr><th>Industry</th><td>{{ client.industry }}</td></tr>{% endif %}
+                {% if business_profile.google_rating %}
+                <tr><th>Recognition</th><td>{{ business_profile.google_rating }}/5 Google rating{% if business_profile.google_review_count %} ({{ business_profile.google_review_count }} reviews){% endif %}</td></tr>
+                {% endif %}
+            </table>
+        </div>
+
+        {% if citation_rows %}
+        <div class="section">
+            <h2>AI Citation Test Results</h2>
+            <p style="color:#667085; font-size:13px; margin-bottom:8px;">We tested common queries across major AI platforms to assess visibility:</p>
+            <table class="citation-table">
+                <thead>
+                    <tr><th>Test Query</th><th class="center">Cited?</th><th>Who Gets Cited</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in citation_rows %}
+                    <tr>
+                        <td>"{{ row.query }}"</td>
+                        <td class="center"><span class="cited-pill {{ 'cited-yes' if row.cited else 'cited-no' }}">{{ "YES" if row.cited else "NO" }}</span></td>
+                        <td>{{ row.top_competitor or "—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="report-footer">
+            <div>
+                {% if agency.footer_text %}{{ agency.footer_text }}{% elif agency.active and agency.name %}Prepared by {{ agency.name }}{% else %}Prepared with DarInsights{% endif %}
+            </div>
+            {% if agency.disclaimer %}
+            <div style="font-size: 11px; max-width: 60%; text-align: right;">{{ agency.disclaimer }}</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -109,16 +109,26 @@ def tavily_search(query, category="general", max_results=8, search_depth="basic"
     search_depth:
     - basic = faster/cheaper
     - advanced = deeper/more expensive
-    """
-    client = get_tavily_client()
 
-    response = client.search(
-        query=query,
-        max_results=max_results,
-        search_depth=search_depth,
-        include_answer=False,
-        include_raw_content=False,
-    )
+    Returns [] on any error so a single bad query (rate limit, malformed
+    site: clause, transient 500) doesn't crash the entire research pack.
+    """
+    if not query or not query.strip():
+        return []
+    try:
+        client = get_tavily_client()
+        response = client.search(
+            query=query,
+            max_results=max_results,
+            search_depth=search_depth,
+            include_answer=False,
+            include_raw_content=False,
+        )
+    except Exception as exc:
+        # Caller logs the rest of the pack; we just yield no rows for
+        # the failed category and keep going.
+        print(f"Tavily search failed [{category}]: {type(exc).__name__}: {exc}")
+        return []
 
     return normalize_tavily_results(response, query, category)
 
@@ -166,17 +176,25 @@ def search_website_signals(business_name, website, services=None, max_results=8)
 def search_service_pages(business_name, website=None, services=None, location=None, max_results=8):
     """
     Searches for service/product pages.
-    Uses site: search if website is provided.
+    Uses site: search when both website AND service text are provided
+    (Tavily rejects queries that are only site: operators with no
+    search terms).
     """
     website_domain = clean_website_for_site_search(website)
-    service_text = services or ""
+    service_text = (services or "").strip()
 
-    if website_domain:
+    if website_domain and service_text:
         query = f"site:{website_domain} {service_text}"
+    elif website_domain:
+        # site: + a generic search term so Tavily accepts the query.
+        query = f"site:{website_domain} services products"
     elif location:
-        query = f"{business_name} {service_text} {location}"
+        query = f"{business_name} {service_text} {location}".strip()
     else:
-        query = f"{business_name} {service_text}"
+        query = f"{business_name} {service_text}".strip()
+
+    if not query:
+        return []
 
     return tavily_search(query, category="service_pages", max_results=max_results)
 

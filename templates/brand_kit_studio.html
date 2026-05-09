@@ -63,8 +63,30 @@
 
 {% block content %}
 <div class="bk-page">
-    <div class="bk-header">
-        <h1>Brand Kit · {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Saves credits by reducing regenerations.") }}</h1>
+    {% set kit_approved = workspace.brand_kit_approved_at is not none %}
+    {% set kit_dirty = kit_approved and workspace.brand_kit_updated_at and workspace.brand_kit_updated_at > workspace.brand_kit_approved_at %}
+    <div class="bk-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+        <div>
+            <h1 style="margin:0 0 0.35rem 0;">Brand Kit · {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Approve when you're happy with the direction — generators only lift values from approved kits.") }}</h1>
+            {% if kit_approved and not kit_dirty %}
+                <span style="display:inline-block; padding:0.22rem 0.7rem; border-radius:999px; background:rgba(62,223,203,0.16); color:#0E7C6F; font-size:0.78rem; font-weight:700;">✓ Approved · in use</span>
+            {% elif kit_dirty %}
+                <span style="display:inline-block; padding:0.22rem 0.7rem; border-radius:999px; background:rgba(252,165,0,0.14); color:#8c4a1f; font-size:0.78rem; font-weight:700;">Edited since approval — re-approve to apply</span>
+            {% else %}
+                <span style="display:inline-block; padding:0.22rem 0.7rem; border-radius:999px; background:#f0f0f5; color:#555; font-size:0.78rem; font-weight:700;">Draft · not yet applied to generators</span>
+            {% endif %}
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+            {% if kit_approved and not kit_dirty %}
+            <form method="post" action="{{ url_for('client_brand_kit_unapprove', client_id=workspace.id) }}" onsubmit="return confirm('Set the Brand Kit back to draft? Generators will fall back to your typed brand_context until re-approved.');">
+                <button type="submit" class="bk-btn bk-btn-secondary">Unapprove</button>
+            </form>
+            {% else %}
+            <form method="post" action="{{ url_for('client_brand_kit_approve', client_id=workspace.id) }}">
+                <button type="submit" class="bk-btn">Approve Brand Kit</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
 
     <form method="post" action="{{ url_for('client_brand_kit', client_id=workspace.id) }}">

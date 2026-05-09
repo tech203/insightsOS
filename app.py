@@ -228,6 +228,22 @@ class User(UserMixin, db.Model):
     )
 
 
+class PasswordResetToken(db.Model):
+    """One-time password-reset token. Single-use: marked `used_at`
+    when consumed so the same email link can't be replayed. Tokens
+    expire 60 min after issue."""
+    __tablename__ = "password_reset_tokens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    token = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class TeamInvite(db.Model):
     """A pending invite to join an owner's team. The owner sends the
     /team/accept/<token> URL to the invitee; on accept, a User row is
@@ -318,6 +334,49 @@ class Referral(db.Model):
     )
 
 
+class UserModule(db.Model):
+    """A single module subscription for a user.
+
+    Modular billing model: customers buy one Stripe Subscription with
+    one line item per active module. Each line item maps to a row here
+    via stripe_subscription_item_id — that's the granular handle we use
+    to add or remove individual modules without canceling the whole
+    sub.
+
+    Re-subscriptions create new rows so we keep history. Active access
+    is the union of rows where status='active'; see user_has_module()
+    in the helpers section below for the lookup.
+
+    Foundation only — no checkout routes are wired yet. The webhook
+    handler writes rows when a `kind=modules` checkout completes, but
+    until the dashboard surfaces module purchase, this table stays
+    empty in production.
+    """
+    __tablename__ = "user_modules"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    module_slug = db.Column(db.String(50), nullable=False, index=True)
+    stripe_subscription_id = db.Column(db.String(120), nullable=True, index=True)
+    stripe_subscription_item_id = db.Column(
+        db.String(120), nullable=True, unique=True
+    )
+    # Mirror of Stripe values: active | canceled | past_due | incomplete
+    status = db.Column(db.String(30), nullable=False, default="active", index=True)
+    current_period_end = db.Column(db.DateTime, nullable=True)
+    activated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    deactivated_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
 class Client(db.Model):
     __tablename__ = "clients"
 
@@ -353,6 +412,13 @@ class Client(db.Model):
     brand_typography = db.Column(db.String(120), nullable=True)
     brand_imagery_direction = db.Column(db.Text, nullable=True)
     brand_kit_updated_at = db.Column(db.DateTime, nullable=True)
+    # When set, the Brand Kit has been approved by the user — the
+    # blueprint's "Brand Kit → Preview → Approval" loop. Generators
+    # check this before lifting kit values into prompts so unfinished
+    # drafts don't bake half-formed direction into output. Cleared
+    # automatically whenever a kit field changes via the studio so
+    # the user has to re-approve.
+    brand_kit_approved_at = db.Column(db.DateTime, nullable=True)
 
     # Business profile fields enriched via Tavily research — used by
     # the audit PDF's Business Profile table and Executive Summary.
@@ -361,6 +427,13 @@ class Client(db.Model):
     google_review_count = db.Column(db.Integer, nullable=True)
     business_summary = db.Column(db.Text, nullable=True)
     business_profile_updated_at = db.Column(db.DateTime, nullable=True)
+
+    # When set, anyone with the URL /report/<public_share_token> can
+    # view + export the latest audit PDF without logging in. Lets
+    # agencies share polished reports with their clients without
+    # creating user accounts. Owner can revoke at any time.
+    public_share_token = db.Column(db.String(80), nullable=True, unique=True, index=True)
+    public_share_created_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
@@ -763,6 +836,156 @@ class ShopifyConnection(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "client_id", name="uq_shopify_user_client"),
+    )
+
+
+class BigCommerceConnection(db.Model):
+    """A self-installed BigCommerce connection scoped to a workspace.
+
+    Auth model is store_hash + access_token (X-Auth-Token). When we
+    eventually publish a public app to the BigCommerce App Marketplace,
+    add OAuth callback fields without disturbing this table.
+    """
+    __tablename__ = "bigcommerce_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    store_hash = db.Column(db.String(120), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    store_meta = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "client_id", name="uq_bigcommerce_user_client"
+        ),
+    )
+
+
+class ShoplineConnection(db.Model):
+    """A custom-app SHOPLINE connection scoped to a workspace.
+
+    Auth model is store_handle (e.g. 'mystore' for mystore.myshopline.com)
+    + access_token. Public-app OAuth flow is additive when we ship
+    DarInsights as a SHOPLINE app.
+    """
+    __tablename__ = "shopline_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    store_handle = db.Column(db.String(120), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    shop_meta = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_shopline_user_client"),
+    )
+
+
+class WixConnection(db.Model):
+    """A Wix headless-API-key connection scoped to a workspace.
+
+    Auth model is api_key + site_id. Switch to Wix App Marketplace
+    OAuth when DarInsights is approved as a Wix app.
+    """
+    __tablename__ = "wix_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    site_id = db.Column(db.String(120), nullable=False)
+    api_key = db.Column(db.Text, nullable=False)
+    site_meta = db.Column(db.JSON, nullable=True)
+    # Cached collection list so the publish UI doesn't call the API on
+    # every page render. Refreshed on demand from a settings button.
+    collections_cache = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_wix_user_client"),
+    )
+
+
+class FramerConnection(db.Model):
+    """A Framer PAT-based connection scoped to a workspace.
+
+    Auth model is access_token + project_id. Framer's CMS API is in
+    beta — surface stays narrow until they ship a stable update API.
+    """
+    __tablename__ = "framer_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    project_id = db.Column(db.String(120), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    project_meta = db.Column(db.JSON, nullable=True)
+    collections_cache = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_framer_user_client"),
+    )
+
+
+class SquarespaceConnection(db.Model):
+    """A Squarespace API-key connection scoped to a workspace.
+
+    Read-only by design: Squarespace's Content API only allows reads
+    for pages/posts, and Commerce write endpoints are limited. Stays
+    narrow until Squarespace ships a real CMS write API.
+    """
+    __tablename__ = "squarespace_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+    api_key = db.Column(db.Text, nullable=False)
+    site_meta = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "client_id", name="uq_squarespace_user_client"
+        ),
     )
 
 
@@ -3441,22 +3664,40 @@ def brand_kit_dict(client) -> Dict[str, Any]:
             client.brand_kit_updated_at.isoformat()
             if getattr(client, "brand_kit_updated_at", None) else None
         ),
+        "approved_at": (
+            client.brand_kit_approved_at.isoformat()
+            if getattr(client, "brand_kit_approved_at", None) else None
+        ),
     }
 
 
 def brand_kit_context_block(client_or_dict) -> str:
     """Format the Brand Kit fields as a clean text block for prompts.
 
-    Generators (audit, briefs, drafts, AI editing) prepend this so
-    the model gets explicit brand direction instead of leaning on
-    a generic notes blob. Returns empty string when nothing is set —
-    callers can concat without checking for content."""
+    Generators only lift the kit when it's been approved AND the
+    approval timestamp is newer than the last edit — protects against
+    half-formed direction baking into output. Returns empty string
+    otherwise so callers can concat without checking for content."""
+    approved_at = None
+    updated_at = None
     if hasattr(client_or_dict, "brand_audience"):
         kit = brand_kit_dict(client_or_dict)
+        approved_at = getattr(client_or_dict, "brand_kit_approved_at", None)
+        updated_at = getattr(client_or_dict, "brand_kit_updated_at", None)
     elif isinstance(client_or_dict, dict):
         kit = client_or_dict.get("brand_kit") or {}
+        approved_at = kit.get("approved_at")
+        updated_at = kit.get("updated_at")
     else:
         kit = {}
+    # Skip the block when the kit hasn't been approved yet, or when
+    # the user edited after approving (clears approval automatically
+    # in the save handler — but defensive double-check).
+    if not approved_at:
+        return ""
+    if updated_at and approved_at and isinstance(approved_at, datetime) and isinstance(updated_at, datetime):
+        if updated_at > approved_at:
+            return ""
     fields = [
         ("Target audience", kit.get("audience")),
         ("Main offerings", kit.get("services")),
@@ -4297,6 +4538,45 @@ def get_seat_limit(user) -> int:
     return base + extras
 
 
+def user_active_modules(user) -> set[str]:
+    """Module slugs this user can access right now.
+
+    Union of two sources:
+    1. Explicit UserModule rows with status='active' (modules system).
+    2. Implicit modules unlocked by the user's legacy plan tier
+       (so existing pro/growth customers don't regress while modules
+       stay dark in the dashboard).
+
+    See modules.py for the catalog and PLAN_IMPLICIT_MODULES map.
+    """
+    if not user:
+        return set()
+    from modules import implicit_modules_for_plan
+    implicit = set(implicit_modules_for_plan(getattr(user, "plan", None)))
+    explicit_rows = (
+        UserModule.query
+        .filter_by(user_id=user.id, status="active")
+        .all()
+    )
+    explicit = {row.module_slug for row in explicit_rows}
+    return implicit | explicit
+
+
+def user_has_module(user, module_slug: str) -> bool:
+    """True if `user` has access to `module_slug` (explicit or implicit)."""
+    return (module_slug or "").lower() in user_active_modules(user)
+
+
+def user_has_feature(user, feature_slug: str) -> bool:
+    """True if `user` has access to the module that owns `feature_slug`.
+    Returns False for unknown features — feature gates fail closed."""
+    from modules import module_for_feature
+    module = module_for_feature(feature_slug)
+    if not module:
+        return False
+    return user_has_module(user, module)
+
+
 def grant_monthly_credits_if_due(user) -> int:
     """If `user` is on a paid plan and at least 28 days have passed since
     their last monthly_allowance grant (or they've never received one),
@@ -5049,46 +5329,302 @@ def _resolve_business_profile_for_pdf(workspace_row, client_dict):
     }
 
 
-def _citation_table_rows(client_dict, max_rows: int = 5):
-    """Build the AI Citation Test Results table from the workspace's
-    tracked-prompt history. One row per query: query / cited (Y/N) /
-    top competitor citing it. Prefers the most recent
-    PromptCheckSnapshot value when present so the PDF reflects the
-    latest monitor sweep, not the saved-audit snapshot."""
-    domain = (client_dict.get("website_normalized") or "").strip()
-    if not domain:
-        return []
+def _strip_competitor_markdown(raw):
+    """Sanitise competitor strings the AI engines return. The model
+    often answers in markdown bullet form like
+        "**Creamier** – Known for artisanal ice cream..."
+    We want clean brand names — "Creamier" — for the citation table.
+    Strips bold markers, splits on en-dash / colon / parens, and
+    truncates the residual descriptor."""
+    if not raw:
+        return None
+    text = str(raw).strip()
+    # Strip leading list markers and bold markers.
+    text = text.lstrip("-*•· ").rstrip()
+    text = text.replace("**", "").replace("__", "")
+    # Cut off everything after the first "—", "–", " - ", ":", or "(".
+    for sep in ["–", "—", " - ", ":", "("]:
+        if sep in text:
+            text = text.split(sep, 1)[0].strip()
+    # Drop trailing punctuation.
+    text = text.rstrip(".,;").strip()
+    return text or None
 
-    owner_id = effective_owner_id() or current_user.id
-    prompt_rows = (
-        PromptTracking.query.filter_by(user_id=owner_id, domain=domain)
-        .order_by(PromptTracking.created_at.desc())
-        .limit(max_rows)
-        .all()
-    )
+
+def _citation_table_rows(client_dict, max_rows: int = 5):
+    """Build the AI Citation Test Results table.
+
+    Three data sources, in priority order:
+      1. PromptTracking — the Answer Monitor's tracked prompts (most
+         recent monitor sweep). Best when the user has been actively
+         tracking prompts.
+      2. Saved audit's `query_analysis` — the queries the audit
+         pipeline tested against AI engines. Has real "brand mentioned"
+         and "competitors mentioned" data captured during the audit.
+      3. Empty list — table doesn't render.
+
+    For new workspaces with one audit and no monitor activity yet,
+    source #2 is the difference between an empty report and a
+    convincing one.
+    """
+    domain = (client_dict.get("website_normalized") or "").strip()
     out = []
-    for row in prompt_rows:
-        latest_snap = (
-            db.session.query(PromptCheckSnapshot)
-            .filter_by(prompt_tracking_id=row.id)
-            .order_by(PromptCheckSnapshot.checked_at.desc())
-            .first()
+
+    # --- Source 1: tracked prompts ----------------------------------
+    if domain:
+        owner_id = effective_owner_id() or (
+            current_user.id if current_user.is_authenticated else None
         )
-        if latest_snap:
-            cited = bool(latest_snap.brand_mentioned)
-            top = (
-                (latest_snap.competitors_mentioned or [None])[0]
-                if latest_snap.competitors_mentioned else None
+        if owner_id:
+            prompt_rows = (
+                PromptTracking.query.filter_by(user_id=owner_id, domain=domain)
+                .order_by(PromptTracking.created_at.desc())
+                .limit(max_rows)
+                .all()
             )
-        else:
-            cited = (row.mentioned or "").lower() == "yes"
-            top = row.top_competitor or None
+            for row in prompt_rows:
+                latest_snap = (
+                    db.session.query(PromptCheckSnapshot)
+                    .filter_by(prompt_tracking_id=row.id)
+                    .order_by(PromptCheckSnapshot.checked_at.desc())
+                    .first()
+                )
+                if latest_snap:
+                    cited = bool(latest_snap.brand_mentioned)
+                    competitors = latest_snap.competitors_mentioned or []
+                    top = competitors[0] if competitors else None
+                else:
+                    cited = (row.mentioned or "").lower() == "yes"
+                    top = row.top_competitor or None
+                out.append({
+                    "query": row.prompt or "—",
+                    "cited": cited,
+                    "top_competitor": _strip_competitor_markdown(top) or "—",
+                })
+
+    if out:
+        return out
+
+    # --- Source 2: saved audit's query_analysis ---------------------
+    # Pull from the workspace's most recent audit run. The full audit
+    # JSON has the rich per-query results (brand_mentioned + the list
+    # of competitor brands the AI engines named).
+    latest_audit = client_dict.get("latest_audit") or {}
+    rows = latest_audit.get("query_analysis") or []
+    if not rows and latest_audit.get("filename"):
+        # Summary only loaded — read the full file for query_analysis.
+        try:
+            full = read_full_audit_data(latest_audit.get("filename"))
+            if full:
+                rows = full.get("query_analysis") or full.get("ai_answer_results") or []
+        except Exception:
+            rows = []
+
+    for row in rows[:max_rows]:
+        if not isinstance(row, dict):
+            continue
+        comps = row.get("competitors_mentioned") or row.get("competitors") or []
+        top = _strip_competitor_markdown(comps[0]) if comps else None
         out.append({
-            "query": row.prompt or "—",
-            "cited": cited,
+            "query": row.get("query") or "—",
+            "cited": bool(
+                row.get("brand_mentioned")
+                or row.get("latest_brand_mentioned")
+            ),
             "top_competitor": top or "—",
         })
     return out
+
+
+def _extract_brand_names_from_research(snippets, *, brand_name, count=6):
+    """Use OpenAI to pull a clean deduplicated list of competitor
+    brand names out of Tavily's research snippets. Tavily returns
+    listicle articles ("10 best X in Singapore") whose snippets name
+    multiple real brands; we want those names as a list. Falls back
+    to [] silently when OpenAI isn't configured or the call fails."""
+    if not os.getenv("OPENAI_API_KEY") or not snippets:
+        return []
+    joined = "\n\n".join(s for s in snippets if s)[:6000]
+    if not joined.strip():
+        return []
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        prompt = (
+            f"From these web search snippets, extract the {count} most "
+            f"prominent competing business names (excluding '{brand_name}' "
+            f"itself, generic listicle titles, and media outlets). "
+            f"Return JSON only: {{\"brands\": [\"…\", …]}}.\n\n"
+            f"Snippets:\n{joined}"
+        )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system",
+                 "content": "Extract clean brand names from search snippets. Return only real, current brand names — no media outlets, no generic phrases."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,
+            max_tokens=400,
+        )
+        import json as _json
+        parsed = _json.loads(response.choices[0].message.content or "{}")
+        brands = parsed.get("brands") or []
+        return [str(b).strip() for b in brands if isinstance(b, str) and b.strip()][:count]
+    except Exception as exc:
+        logger.warning("Brand-name extraction from research failed: %s", exc)
+        return []
+
+
+def _extract_research_pack_for_pdf(client_dict, latest_audit):
+    """Pull Tavily research data into PDF-ready shapes.
+
+    Returns (top_competitors, competitor_notes):
+      - top_competitors: list of {"name": str, "snippet": str, "url": str}
+        for the dedicated Competitors section. Up to 5 brand names
+        extracted from the Tavily research snippets via LLM, paired
+        with their best-matching source URL.
+      - competitor_notes: a short paragraph naming the top 3
+        competitors. None when no data.
+
+    Reads from latest_audit.research_pack first, then falls back to
+    re-reading the full audit file if the summary doesn't carry the
+    research bundle (older saves).
+    """
+    research = latest_audit.get("research_pack") if latest_audit else None
+    if not research and latest_audit and latest_audit.get("filename"):
+        try:
+            full = read_full_audit_data(latest_audit.get("filename"))
+            if full:
+                research = full.get("research_pack")
+        except Exception:
+            research = None
+
+    if not research:
+        return [], None
+
+    competitors_raw = (research.get("results") or {}).get("competitors") or []
+    if not competitors_raw:
+        return [], None
+
+    # Step 1: pull brand names out of the research snippets via LLM.
+    snippets = [
+        (row.get("snippet") or row.get("content") or "")
+        for row in competitors_raw
+        if isinstance(row, dict)
+    ]
+    brand_name = client_dict.get("name") or client_dict.get("website") or "this brand"
+    extracted_names = _extract_brand_names_from_research(
+        snippets, brand_name=brand_name, count=6
+    )
+
+    # Step 2: for each brand, find the most relevant source row.
+    top_competitors = []
+    seen = set()
+    for name in extracted_names:
+        if not name or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        match = None
+        for row in competitors_raw:
+            if not isinstance(row, dict):
+                continue
+            haystack = (
+                (row.get("title") or "") + " " + (row.get("snippet") or row.get("content") or "")
+            ).lower()
+            if name.lower() in haystack:
+                match = row
+                break
+        snippet = ""
+        url = ""
+        if match:
+            snippet = (match.get("snippet") or match.get("content") or "")[:200]
+            url = match.get("url") or match.get("link") or ""
+        top_competitors.append({
+            "name": name,
+            "url": url,
+            "snippet": snippet,
+        })
+        if len(top_competitors) >= 5:
+            break
+
+    if not top_competitors:
+        return [], None
+
+    names_top3 = ", ".join(c["name"] for c in top_competitors[:3])
+    more = (
+        f" + {len(top_competitors) - 3} more"
+        if len(top_competitors) > 3 else ""
+    )
+    competitor_notes = (
+        f"Web research surfaced these competitors AI assistants cite "
+        f"alongside or ahead of {brand_name}: {names_top3}{more}. The "
+        f"Recommended Actions below target the queries where these "
+        f"names dominate."
+    )
+
+    return top_competitors, competitor_notes
+
+
+def _build_audit_pdf(workspace_row, client, *, agency_override=None):
+    """Render the audit PDF HTML + return (html, filename) so the
+    same rendering serves both the authenticated /export-pdf route
+    and the public /report/<token> route."""
+    business_profile = _resolve_business_profile_for_pdf(workspace_row, client)
+    citation_rows = _citation_table_rows(client, max_rows=5)
+
+    latest = client.get("latest_audit", {})
+    recommended_actions = client.get("recommended_actions", [])
+    question_rows = client.get("question_rows", [])
+    missing_rows = client.get("missing_rows", [])
+    top_action = recommended_actions[0] if recommended_actions else None
+
+    # Tavily research pack — extract real competitor list and a
+    # one-paragraph market summary so the report has substance beyond
+    # the AI citation test. Falls back to the saved audit's
+    # research_pack key when the live latest dict doesn't have it.
+    top_competitors, competitor_notes = _extract_research_pack_for_pdf(
+        client, latest
+    )
+
+    # Use the override agency dict if provided (public-share path —
+    # the workspace owner's branding), otherwise fall back to the
+    # current user's effective branding.
+    agency_payload = agency_override or effective_agency_branding()
+    agency = {
+        "name": agency_payload.get("name") or "Your Agency",
+        "logo_url": agency_payload.get("logo_url"),
+        "website": agency_payload.get("website"),
+        "tagline": agency_payload.get("tagline") or "AI Visibility & Content Strategy",
+        "footer_text": agency_payload.get("footer_text"),
+        "disclaimer": agency_payload.get("disclaimer"),
+        "active": agency_payload.get("active", False),
+    }
+
+    report_date = datetime.utcnow().strftime("%d %b %Y")
+    html = render_template(
+        "client_audit_pdf.html",
+        client=client,
+        latest=latest,
+        recommended_actions=recommended_actions,
+        top_action=top_action,
+        question_rows=question_rows,
+        missing_rows=missing_rows,
+        report_date=report_date,
+        agency=agency,
+        executive_summary=(
+            business_profile.get("executive_summary")
+            or client.get("executive_summary")
+        ),
+        competitor_notes=competitor_notes or client.get("competitor_notes"),
+        top_competitors=top_competitors,
+        business_profile=business_profile,
+        citation_rows=citation_rows,
+    )
+    filename = pdf_filename(f"{client.get('name', 'report')} audit report")
+    fallback = client_audit_pdf_lines(client, latest, recommended_actions, report_date)
+    return html, filename, fallback
 
 
 @app.route("/client/<client_id>/export-pdf")
@@ -5109,43 +5645,114 @@ def export_client_audit_pdf(client_id):
         )
     )
 
-    business_profile = _resolve_business_profile_for_pdf(workspace_row, client)
-    citation_rows = _citation_table_rows(client, max_rows=5)
+    html, filename, fallback = _build_audit_pdf(workspace_row, client)
+    return render_pdf_response(html, filename, fallback_lines=fallback)
 
-    latest = client.get("latest_audit", {})
 
-    recommended_actions = client.get("recommended_actions", [])
-    question_rows = client.get("question_rows", [])
-    missing_rows = client.get("missing_rows", [])
+@app.route("/client/<int:client_id>/share/toggle", methods=["POST"])
+@login_required
+def toggle_public_share(client_id):
+    """Generate or revoke a public share link for the workspace's
+    audit report. The token lives on the Client row so revoke =
+    overwrite. Anyone with the active token can view the report PDF."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    action = (request.form.get("action") or "").lower()
+    if action == "revoke":
+        workspace.public_share_token = None
+        workspace.public_share_created_at = None
+        flash("Public report link revoked.", "success")
+    else:
+        workspace.public_share_token = secrets.token_urlsafe(24)
+        workspace.public_share_created_at = datetime.utcnow()
+        flash("Public report link is live. Copy it to share.", "success")
+    db.session.commit()
+    return redirect(url_for("client_detail", client_id=client_id))
 
-    top_action = recommended_actions[0] if recommended_actions else None
 
-    # White-label agency branding — falls back to DarInsights when off.
-    # Team members see the owner's branding so client-facing PDFs are
-    # consistent across the team.
-    agency_payload = effective_agency_branding()
-    agency = {
-        "name": agency_payload.get("name") or "Your Agency",
-        "logo_url": agency_payload.get("logo_url"),
-        "website": agency_payload.get("website"),
-        "tagline": agency_payload.get("tagline") or "AI Visibility & Content Strategy",
-        "footer_text": agency_payload.get("footer_text"),
-        "disclaimer": agency_payload.get("disclaimer"),
-        "active": agency_payload.get("active", False),
-    }
+@app.route("/report/<token>")
+def public_audit_report(token):
+    """Public-facing audit report — no auth required. Looks up the
+    workspace by token and renders the report HTML inline (download
+    via /report/<token>/pdf). Reuses the owner's white-label branding
+    so the report carries the agency's identity end-to-end."""
+    workspace = Client.query.filter_by(public_share_token=token).one_or_none()
+    if not workspace:
+        abort(404)
 
-    # 🔹 Render HTML
-    report_date = datetime.utcnow().strftime("%d %b %Y")
-    html = render_template(
-        "client_audit_pdf.html",
+    owner = User.query.get(workspace.user_id)
+    agency_payload = agency_branding(owner) if owner else agency_branding(None)
+    client = serialize_client_row(workspace)
+
+    # Build the dict shape the audit PDF template expects. We pull
+    # the latest saved audit for this workspace if there is one.
+    audits = get_saved_audits(user_id=workspace.user_id)
+    matched = [
+        a for a in audits
+        if (a.get("client_id") and str(a.get("client_id")) == str(workspace.id))
+        or a.get("website_normalized") == workspace.website_normalized
+    ]
+    matched = sort_audits(matched, sort_by="saved_at", order="desc") if matched else []
+    latest_audit = matched[0] if matched else {}
+    client["latest_audit"] = latest_audit
+    client["recommended_actions"] = []
+    client["question_rows"] = (latest_audit or {}).get("query_analysis", [])
+    client["missing_rows"] = []
+
+    business_profile = _resolve_business_profile_for_pdf(workspace, client)
+    # Citation rows for the public path: read directly from the
+    # workspace's tracked prompts since current_user isn't authenticated.
+    citation_rows = []
+    if workspace.website_normalized:
+        prompt_rows = (
+            PromptTracking.query.filter_by(
+                user_id=workspace.user_id, domain=workspace.website_normalized
+            )
+            .order_by(PromptTracking.created_at.desc())
+            .limit(5)
+            .all()
+        )
+        for row in prompt_rows:
+            latest_snap = (
+                db.session.query(PromptCheckSnapshot)
+                .filter_by(prompt_tracking_id=row.id)
+                .order_by(PromptCheckSnapshot.checked_at.desc())
+                .first()
+            )
+            if latest_snap:
+                cited = bool(latest_snap.brand_mentioned)
+                top = (latest_snap.competitors_mentioned or [None])[0] if latest_snap.competitors_mentioned else None
+            else:
+                cited = (row.mentioned or "").lower() == "yes"
+                top = row.top_competitor or None
+            citation_rows.append({
+                "query": row.prompt or "—",
+                "cited": cited,
+                "top_competitor": top or "—",
+            })
+
+    return render_template(
+        "public_audit_report.html",
         client=client,
-        latest=latest,
-        recommended_actions=recommended_actions,
-        top_action=top_action,
-        question_rows=question_rows,
-        missing_rows=missing_rows,
-        report_date=report_date,
-        agency=agency,
+        latest=client["latest_audit"],
+        recommended_actions=[],
+        top_action=None,
+        question_rows=client["question_rows"],
+        missing_rows=[],
+        report_date=datetime.utcnow().strftime("%d %b %Y"),
+        agency={
+            "name": agency_payload.get("name") or "Your Agency",
+            "logo_url": agency_payload.get("logo_url"),
+            "website": agency_payload.get("website"),
+            "tagline": agency_payload.get("tagline") or "AI Visibility & Content Strategy",
+            "footer_text": agency_payload.get("footer_text"),
+            "disclaimer": agency_payload.get("disclaimer"),
+            "active": agency_payload.get("active", False),
+        },
         executive_summary=(
             business_profile.get("executive_summary")
             or client.get("executive_summary")
@@ -5153,16 +5760,41 @@ def export_client_audit_pdf(client_id):
         competitor_notes=client.get("competitor_notes"),
         business_profile=business_profile,
         citation_rows=citation_rows,
+        token=token,
     )
 
-    filename = pdf_filename(f"{client.get('name', 'report')} audit report")
-    return render_pdf_response(
-        html,
-        filename,
-        fallback_lines=client_audit_pdf_lines(
-            client, latest, recommended_actions, report_date
-        ),
+
+@app.route("/report/<token>/pdf")
+def public_audit_report_pdf(token):
+    """Same data as the public HTML view, rendered as a PDF."""
+    workspace = Client.query.filter_by(public_share_token=token).one_or_none()
+    if not workspace:
+        abort(404)
+
+    # Reuse the public HTML route's data path then render via WeasyPrint.
+    # Easiest way: hit the route internally so we don't duplicate the
+    # data assembly. Then strip the surrounding "share frame" wrapper.
+    with app.test_request_context(f"/report/{token}"):
+        # re-fetch through the same code path
+        owner = User.query.get(workspace.user_id)
+        agency_payload = agency_branding(owner) if owner else agency_branding(None)
+        client = serialize_client_row(workspace)
+        audits = get_saved_audits(user_id=workspace.user_id)
+        matched = [
+            a for a in audits
+            if (a.get("client_id") and str(a.get("client_id")) == str(workspace.id))
+            or a.get("website_normalized") == workspace.website_normalized
+        ]
+        matched = sort_audits(matched, sort_by="saved_at", order="desc") if matched else []
+        client["latest_audit"] = matched[0] if matched else {}
+        client["recommended_actions"] = []
+        client["question_rows"] = (matched[0] or {}).get("query_analysis", []) if matched else []
+        client["missing_rows"] = []
+
+    html, filename, fallback = _build_audit_pdf(
+        workspace, client, agency_override=agency_payload
     )
+    return render_pdf_response(html, filename, fallback_lines=fallback)
 
 
 @app.route("/clients")
@@ -5760,6 +6392,14 @@ def stripe_webhook():
                 user.extra_workspaces = int(user.extra_workspaces or 0) + 1
             elif kind == "extra_seat":
                 user.extra_seats = int(user.extra_seats or 0) + 1
+            elif kind == "modules":
+                # Multi-line-item subscription. Pull the live subscription
+                # from Stripe to get authoritative line-item IDs (the
+                # checkout.session payload doesn't include them).
+                _sync_user_modules_from_subscription(
+                    user=user,
+                    subscription_id=data.get("subscription"),
+                )
             db.session.commit()
 
             # Referral payout — fires on EVERY paid purchase within the
@@ -5780,20 +6420,159 @@ def stripe_webhook():
             logger.error("Stripe webhook handling failed: %s", exc)
             db.session.rollback()
 
+    elif event_type == "customer.subscription.updated":
+        # Module subscriptions: a line item added or removed via the
+        # billing portal flips UserModule rows accordingly.
+        try:
+            sub_id = data.get("id")
+            if sub_id:
+                _sync_user_modules_for_subscription_id(sub_id, subscription_obj=data)
+                db.session.commit()
+        except Exception as exc:
+            logger.error("Stripe subscription update handling failed: %s", exc)
+            db.session.rollback()
+
     elif event_type == "customer.subscription.deleted":
         try:
             sub_id = data.get("id")
             if sub_id:
+                # Legacy plan subscription path.
                 user = User.query.filter_by(stripe_subscription_id=sub_id).first()
                 if user:
                     user.plan = "free"
                     user.stripe_subscription_id = None
-                    db.session.commit()
+                # Modules path: cancel every active module row tied to
+                # this subscription regardless of plan/customer linkage.
+                module_rows = (
+                    UserModule.query
+                    .filter_by(stripe_subscription_id=sub_id, status="active")
+                    .all()
+                )
+                for row in module_rows:
+                    row.status = "canceled"
+                    row.deactivated_at = datetime.utcnow()
+                db.session.commit()
         except Exception as exc:
             logger.error("Stripe subscription delete handling failed: %s", exc)
             db.session.rollback()
 
     return jsonify({"ok": True})
+
+
+def _sync_user_modules_from_subscription(*, user, subscription_id: Optional[str]) -> None:
+    """Fetch a Stripe subscription and write UserModule rows for each
+    line item. Idempotent: re-running upserts by subscription_item_id."""
+    if not subscription_id or not user:
+        return
+    from services.stripe_helper import _stripe_module, StripeNotConfigured
+    try:
+        stripe = _stripe_module()
+    except StripeNotConfigured:
+        return
+    sub = stripe.Subscription.retrieve(subscription_id)
+    _apply_subscription_to_user_modules(user_id=user.id, subscription=sub)
+
+
+def _sync_user_modules_for_subscription_id(
+    sub_id: str, *, subscription_obj: Optional[Dict[str, Any]] = None
+) -> None:
+    """For subscription.updated webhooks. Resolves the user via existing
+    UserModule rows tied to this subscription_id (or the user table's
+    stripe_subscription_id if this was a legacy-plan sub)."""
+    if not sub_id:
+        return
+    existing = (
+        UserModule.query
+        .filter_by(stripe_subscription_id=sub_id)
+        .first()
+    )
+    user_id: Optional[int] = existing.user_id if existing else None
+    if user_id is None:
+        # No module rows yet — could be a legacy plan sub being updated;
+        # nothing module-side to do.
+        return
+    sub = subscription_obj
+    if sub is None:
+        from services.stripe_helper import _stripe_module, StripeNotConfigured
+        try:
+            stripe = _stripe_module()
+        except StripeNotConfigured:
+            return
+        sub = stripe.Subscription.retrieve(sub_id)
+    _apply_subscription_to_user_modules(user_id=user_id, subscription=sub)
+
+
+def _apply_subscription_to_user_modules(*, user_id: int, subscription: Any) -> None:
+    """Reconcile UserModule rows against a Stripe subscription's line
+    items. Adds rows for new items, marks rows canceled for items that
+    have disappeared, leaves matching rows alone."""
+    from modules import MODULE_CATALOG
+    sub_id = subscription.get("id") if isinstance(subscription, dict) else subscription.id
+    items_raw = (subscription.get("items") if isinstance(subscription, dict) else subscription.items) or {}
+    items_data = items_raw.get("data") if isinstance(items_raw, dict) else getattr(items_raw, "data", []) or []
+    period_end_ts = (
+        subscription.get("current_period_end")
+        if isinstance(subscription, dict)
+        else getattr(subscription, "current_period_end", None)
+    )
+    period_end = (
+        datetime.utcfromtimestamp(int(period_end_ts)) if period_end_ts else None
+    )
+
+    # Build a price_id → module_slug map from the catalog so we can
+    # recognise which line items represent modules vs other line items
+    # the customer might have on the same subscription.
+    price_to_slug: Dict[str, str] = {}
+    for slug, mod in MODULE_CATALOG.items():
+        env_var = mod.get("stripe_price_env")
+        if env_var:
+            price_id = os.getenv(env_var) or ""
+            if price_id:
+                price_to_slug[price_id] = slug
+
+    # Walk live items: upsert one UserModule row per module item.
+    seen_item_ids: set[str] = set()
+    for item in items_data:
+        item_id = item.get("id") if isinstance(item, dict) else item.id
+        price_obj = item.get("price") if isinstance(item, dict) else item.price
+        price_id = (
+            price_obj.get("id") if isinstance(price_obj, dict) else getattr(price_obj, "id", None)
+        )
+        slug = price_to_slug.get(price_id or "")
+        if not slug:
+            continue
+        seen_item_ids.add(item_id)
+        row = (
+            UserModule.query
+            .filter_by(stripe_subscription_item_id=item_id)
+            .first()
+        )
+        if row is None:
+            row = UserModule(
+                user_id=user_id,
+                module_slug=slug,
+                stripe_subscription_id=sub_id,
+                stripe_subscription_item_id=item_id,
+                status="active",
+                current_period_end=period_end,
+                activated_at=datetime.utcnow(),
+            )
+            db.session.add(row)
+        else:
+            row.status = "active"
+            row.current_period_end = period_end
+            row.deactivated_at = None
+
+    # Cancel rows whose items have disappeared from this subscription.
+    stale = (
+        UserModule.query
+        .filter_by(stripe_subscription_id=sub_id, status="active")
+        .all()
+    )
+    for row in stale:
+        if row.stripe_subscription_item_id and row.stripe_subscription_item_id not in seen_item_ids:
+            row.status = "canceled"
+            row.deactivated_at = datetime.utcnow()
 
 
 @app.route("/clients/new", methods=["GET", "POST"])
@@ -6016,9 +6795,20 @@ def client_detail(client_id):
         total_audits=client.get("audit_count", 0),
         total_prompts=len(client.get("tracked_prompts", []) or []),
     )
+    # Pull the ORM row alongside the serialized dict so the template
+    # can read columns the dict doesn't expose (e.g. public_share_token).
+    workspace_row = (
+        Client.query.filter_by(slug=str(client_id), user_id=effective_owner_id())
+        .first()
+        or (
+            Client.query.filter_by(id=int(client_id), user_id=effective_owner_id()).first()
+            if str(client_id).isdigit() else None
+        )
+    )
     return render_template(
         "client_detail.html",
         client=client,
+        workspace_row=workspace_row,
         next_best_action=next_best_action,
     )
 
@@ -6095,6 +6885,109 @@ def signup():
         return redirect(url_for("create_client"))
 
     return render_template("signup.html", error=None)
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Request a password-reset link. Always returns the same flash
+    message regardless of whether the email exists — prevents
+    enumerating accounts. The actual email send is gated on SMTP
+    being configured; without it the flash includes a copy-able URL
+    so dev environments still work."""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        user = User.query.filter_by(email=email).first() if email else None
+
+        # The reveal-nothing response — same regardless of match.
+        generic_flash = (
+            "If an account exists for that email, a reset link is on its way."
+        )
+
+        if user:
+            token = secrets.token_urlsafe(32)
+            db.session.add(
+                PasswordResetToken(
+                    user_id=user.id,
+                    token=token,
+                    expires_at=datetime.utcnow() + timedelta(minutes=60),
+                )
+            )
+            db.session.commit()
+            reset_url = url_for("reset_password", token=token, _external=True)
+
+            from services.email_helper import (
+                is_email_configured, render_password_reset_email, send_email,
+            )
+            delivered = False
+            if is_email_configured():
+                subject, text, html = render_password_reset_email(
+                    user_name=user.name or "", reset_url=reset_url
+                )
+                delivered = send_email(
+                    to=user.email, subject=subject, body_text=text, body_html=html
+                )
+
+            # Dev fallback only: when SMTP isn't configured, surface
+            # the URL inline so the flow can be tested without email
+            # delivery. In a real deploy this branch never fires.
+            if not delivered and not is_email_configured():
+                flash(
+                    f"SMTP isn't configured on this server — copy this reset link: {reset_url}",
+                    "info",
+                )
+                return redirect(url_for("login"))
+
+        flash(generic_flash, "success")
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    """Land here from the email link. Show a simple new-password form
+    and on submit, update the user's password + invalidate the token."""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    record = (
+        PasswordResetToken.query
+        .filter_by(token=token, used_at=None)
+        .filter(PasswordResetToken.expires_at > datetime.utcnow())
+        .first()
+    )
+    if not record:
+        flash(
+            "This reset link is invalid or has expired. Request a new one.",
+            "error",
+        )
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        new = request.form.get("new_password") or ""
+        confirm = request.form.get("confirm_password") or ""
+        if len(new) < 8:
+            flash("Password must be at least 8 characters.", "error")
+            return render_template("reset_password.html", token=token)
+        if new != confirm:
+            flash("Passwords don't match.", "error")
+            return render_template("reset_password.html", token=token)
+
+        user = db.session.get(User, record.user_id)
+        if not user:
+            flash("Account no longer exists.", "error")
+            return redirect(url_for("login"))
+
+        user.password_hash = generate_password_hash(new)
+        record.used_at = datetime.utcnow()
+        db.session.commit()
+        flash("Password updated. You can now sign in with your new password.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", token=token)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -7374,6 +8267,17 @@ def content_queue_page():
 
     visible_queue_items = items[start:end]
 
+    # Which workspaces have Wix / Framer connections — used to gate
+    # the per-item "Publish to Wix" / "Publish to Framer" buttons.
+    wix_connected_client_ids = {
+        row.client_id
+        for row in WixConnection.query.filter_by(user_id=current_user.id).all()
+    }
+    framer_connected_client_ids = {
+        row.client_id
+        for row in FramerConnection.query.filter_by(user_id=current_user.id).all()
+    }
+
     return render_template(
         "content_queue.html",
         queue_items=visible_queue_items,
@@ -7390,6 +8294,8 @@ def content_queue_page():
         incoming_query=incoming_query,
         incoming_topic=incoming_topic,
         incoming_source=incoming_source,
+        wix_connected_client_ids=wix_connected_client_ids,
+        framer_connected_client_ids=framer_connected_client_ids,
     )
 
 
@@ -7872,6 +8778,86 @@ def publish_queue_item_to_webflow(item_id):
         flash("Publishing failed unexpectedly. Try again.", "error")
 
     return _redirect_to_queue(client_id)
+
+
+def _publish_queue_item_to_module_cms(item_id: str, *, platform: str):
+    """Shared core for publish-to-Wix and publish-to-Framer routes.
+
+    Looks up the queue item, verifies it's `ready` or `draft_generated`,
+    finds the workspace's Wix/Framer connection, calls cms_publisher,
+    and flashes the result. Mirrors the gating used by the Webflow
+    publish path."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        abort(404)
+
+    client_id = request.form.get("client_id", "").strip() or item.get("client_id")
+    status = (item.get("status") or "").lower()
+    if status not in {"ready", "draft_generated"}:
+        flash(
+            f"Approve the draft first — only ready items can publish to {platform.title()}.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    if platform == "wix":
+        connection = WixConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first()
+    elif platform == "framer":
+        connection = FramerConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first()
+    else:
+        flash(f"Unknown publish platform: {platform}", "error")
+        return _redirect_to_queue(client_id)
+
+    if not connection:
+        flash(
+            f"No {platform.title()} connection for this workspace. "
+            f"Connect one in the Module connectors page.",
+            "error",
+        )
+        return _redirect_to_queue(client_id)
+
+    target_collection = (request.form.get("collection_id") or "").strip() or None
+
+    try:
+        from services import cms_publisher
+        if platform == "wix":
+            result = cms_publisher.publish_to_wix(
+                connection=connection, item=item, collection_id=target_collection
+            )
+        else:
+            result = cms_publisher.publish_to_framer(
+                connection=connection, item=item, collection_id=target_collection
+            )
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return _redirect_to_queue(client_id)
+    except Exception as exc:
+        logger.warning("%s publish failed: %s", platform, exc)
+        flash(f"Couldn't publish to {platform.title()}: {exc}", "error")
+        return _redirect_to_queue(client_id)
+
+    flash(
+        f"Published as a draft on {platform.title()} (item ID {result.get('id', '?')}). "
+        "Review and go live from your CMS.",
+        "success",
+    )
+    return _redirect_to_queue(client_id)
+
+
+@app.route("/content-queue/<item_id>/publish-to-wix", methods=["POST"])
+@login_required
+def publish_queue_item_to_wix(item_id):
+    return _publish_queue_item_to_module_cms(item_id, platform="wix")
+
+
+@app.route("/content-queue/<item_id>/publish-to-framer", methods=["POST"])
+@login_required
+def publish_queue_item_to_framer(item_id):
+    return _publish_queue_item_to_module_cms(item_id, platform="framer")
 
 
 def _parse_content_sections(text):
@@ -9144,7 +10130,7 @@ def settings_update_profile():
 def settings_update_white_label():
     """Save the agency white-label fields and toggle. Logo upload is
     a separate route so users can save text-only changes without
-    reuploading. Free/Plus users can edit fields but the toggle stays
+    reuploading. Free users can edit fields but the toggle stays
     off until they're on a paid plan — keeps the upgrade nudge clean."""
     enable = request.form.get("enable") == "on"
     name = (request.form.get("agency_name") or "").strip()[:255]
@@ -10528,6 +11514,8 @@ def marketplace_audits_page(client_id):
             ("amazon", "Amazon"),
             ("shopee", "Shopee"),
             ("ebay", "eBay"),
+            ("tiktok_shop", "TikTok Shop"),
+            ("lazada", "Lazada"),
             ("other", "Other"),
         ],
         marketplace_audit_cost=get_action_cost("marketplace_audit"),
@@ -10636,7 +11624,7 @@ def marketplace_delete_presence(client_id, presence_id):
 # Google Search Console integration
 # =========================
 # OAuth + Search Analytics pulls for verified GSC properties. Pro and
-# Growth plans only — Free and Plus see an upgrade nudge on the
+# Growth plans only — Free sees an upgrade nudge on the
 # workspace card.
 
 
@@ -11098,11 +12086,49 @@ def client_brand_kit(client_id):
         workspace.brand_typography = (request.form.get("brand_typography") or "").strip()[:120] or None
         workspace.brand_imagery_direction = (request.form.get("brand_imagery_direction") or "").strip() or None
         workspace.brand_kit_updated_at = datetime.utcnow()
+        # Any save invalidates the prior approval so generators don't
+        # lean on stale direction. The user re-approves once they're
+        # happy with the new state.
+        workspace.brand_kit_approved_at = None
         db.session.commit()
-        flash("Brand Kit saved.", "success")
+        flash("Brand Kit saved. Click Approve when you're ready to use it across generators.", "success")
         return redirect(url_for("client_brand_kit", client_id=client_id))
 
     return render_template("brand_kit_studio.html", workspace=workspace)
+
+
+@app.route("/client/<int:client_id>/brand-kit/approve", methods=["POST"])
+@login_required
+def client_brand_kit_approve(client_id):
+    """Mark the Brand Kit as approved. Generators will lift kit values
+    only when this timestamp is set + newer than the last edit."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    workspace.brand_kit_approved_at = datetime.utcnow()
+    db.session.commit()
+    flash("Brand Kit approved — generators will now lift these values into output.", "success")
+    return redirect(url_for("client_brand_kit", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/brand-kit/unapprove", methods=["POST"])
+@login_required
+def client_brand_kit_unapprove(client_id):
+    """Withdraw approval — generators fall back to user-typed
+    brand_context only until re-approved."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    workspace.brand_kit_approved_at = None
+    db.session.commit()
+    flash("Brand Kit set back to draft.", "info")
+    return redirect(url_for("client_brand_kit", client_id=client_id))
 
 
 @app.route("/integrations/calcom/<int:client_id>")
@@ -11898,6 +12924,582 @@ def shopify_disconnect(client_id):
     else:
         flash("No Shopify store to disconnect.", "info")
     return redirect(url_for("client_detail", client_id=client_id))
+
+
+# ===========================================================================
+# Module 2 + 3 connectors — foundation routes
+# ===========================================================================
+# Connect / disconnect for the five new integrations: BigCommerce + SHOPLINE
+# (Module 3 — Ecommerce) and Wix + Framer + Squarespace (Module 2 — Website).
+#
+# Each follows the same pattern: a single hub page (`module_connectors`)
+# renders all five connection forms; per-connector POST routes verify the
+# credentials, persist them, and redirect back. No catalog sync, no
+# audit-pipeline wiring, no write-back yet — those land per-connector when
+# we extend each module past the foundation.
+#
+# All five connectors are untested against live APIs. The first end-to-end
+# deploy needs at minimum a credential round-trip for each.
+
+
+def _workspace_or_redirect(client_id: int):
+    """Common guard for the connector routes — returns the workspace or
+    redirects with a flash if it's not found / not the user's."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return None
+    return workspace
+
+
+@app.route("/client/<int:client_id>/integrations/modules", methods=["GET"])
+@login_required
+def module_connectors(client_id):
+    """Foundation hub for the five Module 2 + Module 3 connectors.
+
+    Each section shows current connection status and a connect form.
+    Disconnect + refresh actions live on this same page via POST routes.
+    """
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    return render_template(
+        "integrations/module_connectors.html",
+        workspace=workspace,
+        bigcommerce=BigCommerceConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        shopline=ShoplineConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        wix=WixConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        framer=FramerConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+        squarespace=SquarespaceConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first(),
+    )
+
+
+# --- BigCommerce -----------------------------------------------------------
+
+@app.route("/integrations/bigcommerce/<int:client_id>/connect", methods=["POST"])
+@login_required
+def bigcommerce_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.bigcommerce_client import (
+        BigCommerceAPIError,
+        BigCommerceConfigError,
+        verify_connection,
+    )
+
+    store_hash = (request.form.get("store_hash") or "").strip()
+    access_token = (request.form.get("access_token") or "").strip()
+
+    try:
+        meta = verify_connection(store_hash=store_hash, access_token=access_token)
+    except (BigCommerceConfigError, BigCommerceAPIError) as exc:
+        flash(f"BigCommerce connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = BigCommerceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.store_hash = store_hash
+        existing.access_token = access_token
+        existing.store_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            BigCommerceConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                store_hash=store_hash,
+                access_token=access_token,
+                store_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("BigCommerce store connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/bigcommerce/<int:client_id>/sync", methods=["POST"])
+@login_required
+def bigcommerce_sync(client_id):
+    """Pull a page of products from BigCommerce, normalize them, and
+    run the cross-platform ecommerce audit. Findings are stored in
+    `store_meta.audit_summary` for display on the hub page."""
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = BigCommerceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a BigCommerce store first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.bigcommerce_client import (
+        BigCommerceAPIError,
+        BigCommerceClient,
+    )
+    from services.ecommerce_audit_adapter import normalize_bigcommerce_catalog
+    from services.shopify_audit import summarize_catalog
+
+    try:
+        api = BigCommerceClient(
+            store_hash=conn.store_hash, access_token=conn.access_token
+        )
+        raw = api.list_products(limit=100, page=1)
+    except BigCommerceAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    normalized = normalize_bigcommerce_catalog(raw)
+    summary = summarize_catalog(normalized)
+
+    meta = dict(conn.store_meta or {})
+    meta["audit_summary"] = summary
+    meta["last_sync_count"] = len(normalized)
+    conn.store_meta = meta
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Synced {len(normalized)} BigCommerce product(s).", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/bigcommerce/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def bigcommerce_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = BigCommerceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected BigCommerce store.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- SHOPLINE -------------------------------------------------------------
+
+@app.route("/integrations/shopline/<int:client_id>/connect", methods=["POST"])
+@login_required
+def shopline_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.shopline_client import (
+        ShoplineAPIError,
+        ShoplineConfigError,
+        verify_connection,
+    )
+
+    store_handle = (request.form.get("store_handle") or "").strip()
+    access_token = (request.form.get("access_token") or "").strip()
+
+    try:
+        meta = verify_connection(store_handle=store_handle, access_token=access_token)
+    except (ShoplineConfigError, ShoplineAPIError) as exc:
+        flash(f"SHOPLINE connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = ShoplineConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.store_handle = store_handle
+        existing.access_token = access_token
+        existing.shop_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            ShoplineConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                store_handle=store_handle,
+                access_token=access_token,
+                shop_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("SHOPLINE store connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/shopline/<int:client_id>/sync", methods=["POST"])
+@login_required
+def shopline_sync(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = ShoplineConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a SHOPLINE store first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.shopline_client import ShoplineAPIError, ShoplineClient
+    from services.ecommerce_audit_adapter import normalize_shopline_catalog
+    from services.shopify_audit import summarize_catalog
+
+    try:
+        api = ShoplineClient(
+            store_handle=conn.store_handle, access_token=conn.access_token
+        )
+        raw = api.list_products(limit=100, page=1)
+    except ShoplineAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    normalized = normalize_shopline_catalog(raw)
+    summary = summarize_catalog(normalized)
+
+    meta = dict(conn.shop_meta or {})
+    meta["audit_summary"] = summary
+    meta["last_sync_count"] = len(normalized)
+    conn.shop_meta = meta
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Synced {len(normalized)} SHOPLINE product(s).", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/shopline/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def shopline_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = ShoplineConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected SHOPLINE store.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- Wix ------------------------------------------------------------------
+
+@app.route("/integrations/wix/<int:client_id>/connect", methods=["POST"])
+@login_required
+def wix_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.wix_client import WixAPIError, WixConfigError, verify_connection
+
+    site_id = (request.form.get("site_id") or "").strip()
+    api_key = (request.form.get("api_key") or "").strip()
+
+    try:
+        meta = verify_connection(api_key=api_key, site_id=site_id)
+    except (WixConfigError, WixAPIError) as exc:
+        flash(f"Wix connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = WixConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.site_id = site_id
+        existing.api_key = api_key
+        existing.site_meta = meta
+        existing.collections_cache = meta.get("collections") or []
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            WixConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                site_id=site_id,
+                api_key=api_key,
+                site_meta=meta,
+                collections_cache=meta.get("collections") or [],
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("Wix site connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/wix/<int:client_id>/refresh-collections", methods=["POST"])
+@login_required
+def wix_refresh_collections(client_id):
+    """Re-fetch the Wix CMS collection list and cache it on the
+    connection. Lets the user pick a target collection in the publish
+    UI without DarInsights calling the API on every page render."""
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = WixConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a Wix site first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.wix_client import WixAPIError, WixClient
+
+    try:
+        api = WixClient(api_key=conn.api_key, site_id=conn.site_id)
+        collections = api.list_collections()
+    except WixAPIError as exc:
+        flash(f"Wix collection refresh failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    conn.collections_cache = collections
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Found {len(collections)} Wix collection(s).", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/wix/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def wix_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = WixConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected Wix site.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- Framer ---------------------------------------------------------------
+
+@app.route("/integrations/framer/<int:client_id>/connect", methods=["POST"])
+@login_required
+def framer_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.framer_client import (
+        FramerAPIError,
+        FramerConfigError,
+        verify_connection,
+    )
+
+    project_id = (request.form.get("project_id") or "").strip()
+    access_token = (request.form.get("access_token") or "").strip()
+
+    try:
+        meta = verify_connection(access_token=access_token, project_id=project_id)
+    except (FramerConfigError, FramerAPIError) as exc:
+        flash(f"Framer connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = FramerConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.project_id = project_id
+        existing.access_token = access_token
+        existing.project_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            FramerConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                project_id=project_id,
+                access_token=access_token,
+                project_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("Framer project connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/framer/<int:client_id>/refresh-collections", methods=["POST"])
+@login_required
+def framer_refresh_collections(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = FramerConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a Framer project first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.framer_client import FramerAPIError, FramerClient
+
+    try:
+        api = FramerClient(
+            access_token=conn.access_token, project_id=conn.project_id
+        )
+        collections = api.list_collections()
+    except FramerAPIError as exc:
+        flash(f"Framer collection refresh failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    conn.collections_cache = collections
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Found {len(collections)} Framer collection(s).", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/framer/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def framer_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = FramerConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected Framer project.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+# --- Squarespace ----------------------------------------------------------
+
+@app.route("/integrations/squarespace/<int:client_id>/connect", methods=["POST"])
+@login_required
+def squarespace_connect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    from services.squarespace_client import (
+        SquarespaceAPIError,
+        SquarespaceConfigError,
+        verify_connection,
+    )
+
+    api_key = (request.form.get("api_key") or "").strip()
+
+    try:
+        meta = verify_connection(api_key=api_key)
+    except (SquarespaceConfigError, SquarespaceAPIError) as exc:
+        flash(f"Squarespace connect failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    existing = SquarespaceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if existing:
+        existing.api_key = api_key
+        existing.site_meta = meta
+        existing.last_synced_at = datetime.utcnow()
+    else:
+        db.session.add(
+            SquarespaceConnection(
+                user_id=current_user.id,
+                client_id=client_id,
+                api_key=api_key,
+                site_meta=meta,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash("Squarespace site connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/squarespace/<int:client_id>/sync", methods=["POST"])
+@login_required
+def squarespace_sync(client_id):
+    """Squarespace Commerce-only catalog sync — non-commerce sites
+    return an empty list, which is a valid result."""
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = SquarespaceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a Squarespace site first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.squarespace_client import (
+        SquarespaceAPIError,
+        SquarespaceClient,
+    )
+    from services.ecommerce_audit_adapter import normalize_squarespace_catalog
+    from services.shopify_audit import summarize_catalog
+
+    try:
+        api = SquarespaceClient(api_key=conn.api_key)
+        body = api.list_products()
+        raw = body.get("products") or []
+    except SquarespaceAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    normalized = normalize_squarespace_catalog(raw)
+    summary = summarize_catalog(normalized)
+
+    meta = dict(conn.site_meta or {})
+    meta["audit_summary"] = summary
+    meta["last_sync_count"] = len(normalized)
+    conn.site_meta = meta
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    if normalized:
+        flash(f"Synced {len(normalized)} Squarespace product(s).", "success")
+    else:
+        flash(
+            "Sync ran successfully — no commerce products found "
+            "(Squarespace catalog reads only return data for Commerce sites).",
+            "info",
+        )
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/squarespace/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def squarespace_disconnect(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+    conn = SquarespaceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if conn:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Disconnected Squarespace site.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
 
 
 if __name__ == "__main__":

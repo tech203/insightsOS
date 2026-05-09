@@ -26,6 +26,8 @@ MARKETPLACE_LABELS: Dict[str, str] = {
     "amazon": "Amazon",
     "shopee": "Shopee",
     "ebay": "eBay",
+    "tiktok_shop": "TikTok Shop",
+    "lazada": "Lazada",
     "other": "the marketplace",
 }
 
@@ -45,7 +47,7 @@ def _fallback_queries(marketplace: str, shop_name: str, category: str, region: s
         f"Top-rated {cat} sellers on {label}{where} right now",
         f"Recommend a trusted {cat} shop on {label}{where}",
         f"Where can I buy quality {cat} on {label}?",
-        f"Is {shop_name} a good {label} shop for {cat}?",
+        f"Is {shop_name} a good seller on {label} for {cat}?",
     ]
 
 

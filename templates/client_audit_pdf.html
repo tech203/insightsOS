@@ -6,47 +6,69 @@
     <style>
         @page {
             size: A4;
-            margin: 20mm 14mm 22mm 14mm;
+            margin: 18mm 18mm 18mm 18mm;
             @bottom-left {
                 content: "{{ client.name if client and client.name else 'Workspace' }} · AI Visibility Report";
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 9px;
-                color: #667085;
+                font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 8.5px;
+                color: #6b7280;
+                letter-spacing: 0.02em;
             }
             @bottom-right {
-                content: "Page " counter(page) " of " counter(pages);
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 9px;
-                color: #667085;
+                content: "Page " counter(page) " · " counter(pages);
+                font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 8.5px;
+                color: #6b7280;
+                letter-spacing: 0.02em;
             }
         }
         @page :first {
+            margin: 0;
             @bottom-left { content: ""; }
             @bottom-right { content: ""; }
         }
 
         :root {
-            /* DarInsights brand palette — kept consistent with the
-               app surfaces so the printed report doesn't read like a
-               different product. */
-            --text: #191929;
-            --muted: #667085;
+            /* DarInsights brand palette — primary aqua + secondary purple,
+               with a deep navy as the typography anchor and warm/cool
+               supporting tones for state surfaces. Mirrors the app's
+               styles-v2.1.css tokens so the printed and on-screen report
+               read as one product. */
+            --text: #0f172a;
+            --text-strong: #060814;
+            --text-soft: #475569;
+            --muted: #6b7280;
             --line: #e6eaf2;
-            --panel: #fafafe;
+            --line-soft: #eef2f7;
+            --panel: #fafbff;
             --panel-strong: #ffffff;
+
             --brand: #3EDFCB;          /* primary aqua */
-            --brand-soft: rgba(62, 223, 203, 0.12);
-            --brand-deep: #1AAE99;     /* aqua text-friendly tone */
+            --brand-hover: #2BCBB7;
+            --brand-soft: rgba(62, 223, 203, 0.14);
+            --brand-faint: rgba(62, 223, 203, 0.06);
+            --brand-deep: #16a99a;
+            --brand-ink: #0c5e57;
+
             --accent: #9D7CE3;         /* secondary purple */
-            --accent-soft: rgba(157, 124, 227, 0.12);
-            --accent-deep: #5D3FBE;    /* purple text-friendly tone */
-            --success: #1AAE99;
+            --accent-hover: #8866D8;
+            --accent-soft: rgba(157, 124, 227, 0.14);
+            --accent-faint: rgba(157, 124, 227, 0.06);
+            --accent-deep: #6d4cd6;
+            --accent-ink: #41279c;
+
+            --success: #16a99a;
             --success-soft: rgba(62, 223, 203, 0.16);
-            --warn: #8C4A1F;
-            --warn-soft: rgba(252, 165, 0, 0.10);
+            --warn: #b45309;
+            --warn-soft: #fff7ed;
             --danger: #b42318;
             --danger-soft: #fef3f2;
-            --shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
+
+            /* Note: WeasyPrint 68.x ignores box-shadow, so we lean on
+               gradients, accent rules, and color contrast for depth. */
+
+            --gradient-brand: linear-gradient(135deg, #3EDFCB 0%, #6CC9DA 35%, #9D7CE3 100%);
+            --gradient-brand-soft: linear-gradient(135deg, rgba(62, 223, 203, 0.12) 0%, rgba(157, 124, 227, 0.12) 100%);
         }
 
         * {
@@ -54,30 +76,60 @@
         }
 
         html {
-            background: #f3f4f6;
+            background: #ffffff;
         }
 
         body {
             margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
             color: var(--text);
-            font-size: 12px;
-            line-height: 1.5;
-            background: #f3f4f6;
+            font-size: 11.5px;
+            line-height: 1.55;
+            background: #ffffff;
+            -webkit-font-smoothing: antialiased;
         }
 
         .report {
             width: 100%;
             max-width: 1080px;
-            margin: 24px auto;
+            margin: 0 auto;
             background: #ffffff;
-            padding: 28px 32px 36px;
-            border: 1px solid var(--line);
-            border-radius: 20px;
-            box-shadow: var(--shadow);
+            padding: 0 0 36px 0;
         }
 
-        .topbar,
+        /* ---- Premium cover band — full bleed, edge-to-edge gradient.
+           First page only via the body's first .topbar instance. ---- */
+        .topbar {
+            position: relative;
+            background: var(--gradient-brand);
+            color: #ffffff;
+            padding: 22mm 18mm 14mm 18mm;
+            margin: -18mm -18mm 14mm -18mm;
+            border: 0;
+            overflow: hidden;
+        }
+        .topbar::before {
+            /* Subtle vignette so the gradient reads more dimensional. */
+            content: "";
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: radial-gradient(ellipse at top right, rgba(255,255,255,0.18) 0%, transparent 60%);
+        }
+        .topbar::after {
+            /* Hairline divider at the bottom edge for crisp finish. */
+            content: "";
+            position: absolute;
+            left: 18mm;
+            right: 18mm;
+            bottom: 0;
+            height: 1px;
+            background: rgba(255,255,255,0.16);
+        }
+        .topbar-grid {
+            position: relative;
+            z-index: 1;
+        }
+
         .hero,
         .section,
         .metric-card,
@@ -85,12 +137,6 @@
         .recommendation,
         .finding {
             page-break-inside: avoid;
-        }
-
-        .topbar {
-            border-bottom: 1px solid var(--line);
-            padding-bottom: 14px;
-            margin-bottom: 24px;
         }
 
         .topbar-grid {
@@ -109,16 +155,17 @@
         }
 
         .agency-name {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
-            color: var(--text);
+            color: #ffffff;
             margin: 0;
+            letter-spacing: -0.01em;
         }
 
         .agency-tagline {
             margin: 4px 0 0;
-            color: var(--muted);
-            font-size: 11px;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 10.5px;
         }
 
         .agency-logo,
@@ -126,65 +173,74 @@
             max-height: 48px;
             max-width: 180px;
             object-fit: contain;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 10px;
+            border-radius: 10px;
         }
 
-        /* Brand-mark fallback shown when a workspace has no logo
-           uploaded — keeps the topbar feeling intentional rather than
-           empty. Aqua → purple gradient on the brand-text-strong navy. */
+        /* Brand-mark fallback when no logo uploaded. On the dark
+           gradient cover, the white badge with deep navy initial pops. */
         .brand-mark {
             display: inline-block;
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
-            color: #ffffff;
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--text-strong);
             font-weight: 800;
-            font-size: 22px;
-            line-height: 48px;
+            font-size: 23px;
+            line-height: 52px;
             text-align: center;
             letter-spacing: -0.02em;
         }
         .brand-row {
             display: table;
-            border-spacing: 12px 0;
+            border-spacing: 14px 0;
         }
         .brand-row > * {
             display: table-cell;
             vertical-align: middle;
         }
         .brand-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text);
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
             margin: 0;
-            letter-spacing: -0.01em;
+            letter-spacing: -0.02em;
         }
         .brand-meta {
-            margin: 2px 0 0;
+            margin: 4px 0 0;
             font-size: 11px;
-            color: var(--muted);
+            color: rgba(255, 255, 255, 0.78);
+            letter-spacing: 0.01em;
         }
         .report-stamp {
-            font-size: 10px;
+            font-size: 9.5px;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--muted);
+            letter-spacing: 0.14em;
+            color: rgba(255, 255, 255, 0.82);
             font-weight: 700;
             margin: 0;
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
         }
         .report-stamp-date {
             font-size: 13px;
             font-weight: 700;
-            color: var(--text);
-            margin: 4px 0 0;
+            color: #ffffff;
+            margin: 8px 0 0;
+            letter-spacing: 0.01em;
         }
 
         .hero {
             display: table;
-            width: calc(100% + 16px);
-            margin-left: -16px;
-            border-spacing: 16px 0;
-            margin-bottom: 28px;
+            width: calc(100% + 18px);
+            margin-left: -18px;
+            border-spacing: 18px 0;
+            margin-bottom: 8px;
         }
 
         .hero-main,
@@ -194,11 +250,11 @@
         }
 
         .hero-main {
-            width: 66%;
+            width: 62%;
         }
 
         .hero-side {
-            width: 34%;
+            width: 38%;
         }
 
         .eyebrow {
@@ -206,25 +262,27 @@
             padding: 4px 10px;
             border-radius: 999px;
             background: var(--brand-soft);
-            color: var(--brand);
-            font-size: 10px;
+            color: var(--brand-deep);
+            font-size: 9.5px;
             font-weight: 700;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
             margin-bottom: 10px;
         }
 
         .report-title {
             margin: 0;
-            font-size: 30px;
+            font-size: 28px;
             line-height: 1.12;
             font-weight: 800;
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
         }
 
         .report-subtitle {
             margin: 10px 0 0;
-            color: var(--muted);
-            font-size: 13px;
+            color: var(--text-soft);
+            font-size: 12.5px;
             line-height: 1.6;
             max-width: 92%;
         }
@@ -252,71 +310,143 @@
             font-weight: 700;
         }
 
+        /* Premium hero card with the brand gradient as a subtle wash
+           and the SVG score gauge centered. The gauge replaces the
+           old text-only score so the most important metric reads
+           visually first. */
         .hero-card {
-            border: 1px solid #ddd6fe;
-            background: linear-gradient(180deg, #fcfbff 0%, #f5f3ff 100%);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+            border: 1px solid var(--line);
+            background: var(--gradient-brand-soft), #ffffff;
+            border-radius: 16px;
+            padding: 14px 14px 16px;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        .hero-card::before {
+            /* Top accent bar in brand gradient */
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-brand);
         }
 
         .hero-card-label {
             color: var(--muted);
-            font-size: 10px;
+            font-size: 9.5px;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.12em;
             font-weight: 700;
         }
 
-        .hero-score {
-            margin-top: 10px;
-            font-size: 46px;
-            line-height: 1;
+        /* Inline SVG circular gauge — see body markup. The wrapper
+           controls sizing; the SVG itself paints the ring. */
+        .score-gauge {
+            margin: 8px auto 4px;
+            width: 104px;
+            height: 104px;
+            position: relative;
+        }
+        .score-gauge svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        /* Stroke / fill / transform are inlined as SVG attributes
+           in the body markup — WeasyPrint doesn't apply CSS to SVG. */
+        .score-gauge-num {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+            font-size: 28px;
             font-weight: 800;
-            color: var(--brand);
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+        .score-gauge-num small {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+            letter-spacing: 0;
         }
 
+        /* Legacy hero-score still referenced — keep but quiet so
+           if the gauge fails to render, the number is still visible. */
+        .hero-score {
+            margin-top: 10px;
+            font-size: 32px;
+            line-height: 1;
+            font-weight: 800;
+            color: var(--brand-deep);
+        }
         .hero-score small {
-            font-size: 16px;
+            font-size: 14px;
             color: var(--muted);
             font-weight: 700;
         }
 
         .hero-opportunity {
-            margin-top: 10px;
+            margin-top: 4px;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 11.5px;
+            color: var(--brand-deep);
+            text-transform: uppercase;
+            letter-spacing: 0.10em;
         }
 
         .hero-copy {
             margin-top: 10px;
-            color: var(--muted);
+            color: var(--text-soft);
             font-size: 11px;
             line-height: 1.6;
         }
 
+        /* Section spacing + premium eyebrow + accent rule. Each
+           section-title is preceded by a thin aqua bar inline-block
+           via the ::before pseudo so the hierarchy reads at a glance
+           without a busy wrapper element. */
         .section {
-            margin-top: 24px;
+            margin-top: 16px;
         }
 
         .section-title {
-            margin: 0 0 12px;
-            font-size: 18px;
+            margin: 0 0 8px;
+            font-size: 14.5px;
             font-weight: 800;
+            color: var(--text-strong);
+            letter-spacing: -0.01em;
+            position: relative;
+            padding-left: 12px;
+        }
+        .section-title::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 3px;
+            bottom: 3px;
+            width: 3px;
+            border-radius: 2px;
+            background: var(--gradient-brand);
         }
 
         .section-copy {
             margin: -4px 0 12px;
-            color: var(--muted);
+            color: var(--text-soft);
             line-height: 1.6;
         }
 
         .grid-4 {
             display: table;
-            width: calc(100% + 12px);
-            margin-left: -12px;
+            width: calc(100% + 14px);
+            margin-left: -14px;
             table-layout: fixed;
-            border-spacing: 12px 0;
+            border-spacing: 14px 0;
         }
 
         .grid-4 .cell {
@@ -325,59 +455,81 @@
             vertical-align: top;
         }
 
+        /* Metric card — 1px hairline + soft inner highlight + a 3px
+           top accent for a tactile, premium look. The accent rotates
+           between brand colors using nth-child below. */
         .metric-card {
             border: 1px solid var(--line);
             background: var(--panel-strong);
-            border-radius: 18px;
-            padding: 16px;
-            min-height: 112px;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+            border-radius: 12px;
+            padding: 10px 12px 12px;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
         }
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--brand);
+            opacity: 0.85;
+        }
+        .grid-4 .cell:nth-child(1) .metric-card::before { background: var(--brand); }
+        .grid-4 .cell:nth-child(2) .metric-card::before { background: linear-gradient(90deg, var(--brand) 0%, var(--accent) 100%); }
+        .grid-4 .cell:nth-child(3) .metric-card::before { background: var(--accent); }
+        .grid-4 .cell:nth-child(4) .metric-card::before { background: linear-gradient(90deg, var(--accent) 0%, var(--brand) 100%); }
 
         .metric-label {
             color: var(--muted);
-            font-size: 10px;
+            font-size: 9.5px;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.12em;
             font-weight: 700;
         }
 
         .metric-value {
-            margin-top: 8px;
-            font-size: 28px;
+            margin-top: 4px;
+            font-size: 22px;
             line-height: 1;
             font-weight: 800;
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
         }
 
         .metric-copy {
-            margin-top: 8px;
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.55;
+            margin-top: 4px;
+            color: var(--text-soft);
+            font-size: 9.5px;
+            line-height: 1.4;
         }
 
         .panel {
             border: 1px solid var(--line);
             background: var(--panel);
-            border-radius: 18px;
-            padding: 16px;
+            border-radius: 12px;
+            padding: 12px 14px;
         }
 
         .summary-box {
+            border: 1px solid var(--line);
             border-left: 4px solid var(--brand);
-            background: #fcfbff;
-            padding: 14px 14px 14px 16px;
-            border-radius: 12px;
+            background: linear-gradient(180deg, var(--brand-faint) 0%, transparent 80%), #ffffff;
+            padding: 16px 18px;
+            border-radius: 14px;
         }
 
         .summary-box p {
             margin: 0;
             line-height: 1.65;
+            color: var(--text);
         }
 
         .finding {
             margin-bottom: 10px;
-            padding: 12px 14px;
+            padding: 13px 15px;
             border-radius: 14px;
             border: 1px solid var(--line);
             background: #fff;
@@ -390,102 +542,141 @@
         .finding-title {
             font-weight: 700;
             margin-bottom: 4px;
+            color: var(--text-strong);
         }
 
         /* ---- Sample-format report sections ---- */
 
+        /* Title band — eyebrow stamp + title with brand-gradient bar
+           on the left edge for a magazine-style anchor. */
         .audit-title-band {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            background: var(--panel);
-            padding: 18px 22px;
-            border-radius: 12px;
-            margin-bottom: 22px;
-            border-left: 4px solid var(--brand);
+            background: linear-gradient(180deg, var(--brand-faint) 0%, transparent 100%), #ffffff;
+            padding: 14px 18px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+            border: 1px solid var(--line);
+            position: relative;
+            overflow: hidden;
+        }
+        .audit-title-band::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--gradient-brand);
         }
         .audit-title-name {
-            font-size: 30px;
+            font-size: 22px;
             font-weight: 800;
-            letter-spacing: -0.01em;
-            color: var(--text);
+            letter-spacing: -0.02em;
+            color: var(--text-strong);
             margin: 0;
             line-height: 1.05;
         }
         .audit-title-sub {
             margin: 4px 0 0;
-            color: var(--muted);
-            font-size: 13px;
+            color: var(--text-soft);
+            font-size: 11.5px;
+            font-weight: 500;
         }
         .audit-title-date {
-            color: var(--muted);
-            font-size: 12px;
-            font-weight: 600;
+            color: var(--brand-deep);
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
             white-space: nowrap;
             margin-left: 1rem;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--brand-soft);
+            border: 1px solid rgba(62, 223, 203, 0.3);
         }
 
         .exec-summary p {
-            margin: 0 0 8px;
-            line-height: 1.55;
+            margin: 0 0 6px;
+            line-height: 1.5;
             color: var(--text);
+            font-size: 11px;
         }
         .exec-summary p:last-child {
             margin-bottom: 0;
         }
 
+        /* Verdict box — colour-coded by score. Subtle gradient wash
+           plus an accent border that signals state at a glance. */
         .verdict-box {
-            border: 2px solid var(--danger);
-            border-radius: 10px;
-            padding: 14px 16px;
-            background: var(--danger-soft);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 10px 14px;
+            background: linear-gradient(180deg, var(--danger-soft) 0%, transparent 100%), #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+        .verdict-box::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 4px;
+            background: var(--danger);
         }
         .verdict-label {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 800;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.14em;
             color: var(--danger);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
         }
         .verdict-body {
             margin: 0;
             color: var(--text);
             font-size: 12px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         .verdict-warn {
-            border-color: var(--accent);
-            background: var(--accent-soft);
+            border-color: rgba(157, 124, 227, 0.5);
+            background: linear-gradient(180deg, var(--accent-soft) 0%, transparent 100%), #ffffff;
         }
+        .verdict-warn::before { background: var(--accent); }
         .verdict-warn .verdict-label { color: var(--accent-deep); }
         .verdict-strong {
-            border-color: var(--brand);
-            background: var(--brand-soft);
+            border-color: rgba(62, 223, 203, 0.5);
+            background: linear-gradient(180deg, var(--brand-soft) 0%, transparent 100%), #ffffff;
         }
+        .verdict-strong::before { background: var(--brand); }
         .verdict-strong .verdict-label { color: var(--brand-deep); }
 
         .profile-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 4px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
         }
         .profile-table th {
             text-align: left;
             background: var(--panel);
-            color: var(--accent-deep);
+            color: var(--text-soft);
             font-weight: 700;
-            font-size: 11px;
+            font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 9px 12px;
+            letter-spacing: 0.12em;
+            padding: 7px 12px;
             border-bottom: 1px solid var(--line);
-            width: 30%;
+            width: 32%;
         }
         .profile-table td {
-            padding: 9px 12px;
+            padding: 7px 12px;
             border-bottom: 1px solid var(--line);
             color: var(--text);
-            font-size: 12px;
+            font-size: 11px;
         }
         .profile-table tr:last-child th,
         .profile-table tr:last-child td {
@@ -493,67 +684,78 @@
         }
 
         .section-lede {
-            margin: 0 0 8px;
-            color: var(--muted);
-            font-size: 12px;
+            margin: 0 0 10px;
+            color: var(--text-soft);
+            font-size: 11.5px;
         }
 
+        /* Citation table — gradient brand header, alternating row
+           backgrounds, premium typography. */
         .citation-table {
             width: 100%;
-            border-collapse: collapse;
-            border-radius: 8px;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 14px;
             overflow: hidden;
+            border: 1px solid var(--line);
         }
         .citation-table thead th {
-            background: var(--accent);
-            color: white;
+            background: var(--gradient-brand);
+            color: #ffffff;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 10px 12px;
+            letter-spacing: 0.12em;
+            padding: 8px 12px;
             text-align: left;
+            border-bottom: 0;
         }
         .citation-table th.th-center { text-align: center; }
         .citation-table tbody td {
-            padding: 9px 12px;
-            border-bottom: 1px solid var(--line);
+            padding: 7px 12px;
+            border-bottom: 1px solid var(--line-soft);
             color: var(--text);
-            font-size: 12px;
+            font-size: 10.5px;
+        }
+        .citation-table tbody tr:nth-child(even) td {
+            background: var(--panel);
         }
         .citation-table tbody td.td-center { text-align: center; }
         .citation-table tbody tr:last-child td { border-bottom: 0; }
 
         .cited-pill {
             display: inline-block;
-            padding: 3px 9px;
+            padding: 4px 10px;
             border-radius: 999px;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 800;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
         }
         .cited-yes {
             background: var(--brand-soft);
-            color: var(--brand-deep);
+            color: var(--brand-ink);
+            border: 1px solid rgba(62, 223, 203, 0.3);
         }
         .cited-no {
             background: var(--danger-soft);
             color: var(--danger);
+            border: 1px solid rgba(180, 35, 24, 0.18);
         }
 
         .finding.warning {
-            background: var(--accent-soft);
-            border-color: rgba(157, 124, 227, 0.32);
+            background: linear-gradient(180deg, var(--accent-faint) 0%, transparent 100%), #ffffff;
+            border-color: rgba(157, 124, 227, 0.30);
         }
 
         .finding.success {
-            background: var(--brand-soft);
-            border-color: rgba(62, 223, 203, 0.32);
+            background: linear-gradient(180deg, var(--brand-faint) 0%, transparent 100%), #ffffff;
+            border-color: rgba(62, 223, 203, 0.30);
         }
 
         .finding.danger {
             background: var(--danger-soft);
-            border-color: rgba(180, 35, 24, 0.32);
+            border-color: rgba(180, 35, 24, 0.30);
         }
 
         .two-col {
@@ -572,29 +774,35 @@
 
         table.data {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             font-size: 11px;
             background: #fff;
             border: 1px solid var(--line);
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
         }
 
         table.data th,
         table.data td {
-            padding: 10px 10px;
-            border-bottom: 1px solid var(--line);
+            padding: 11px 12px;
+            border-bottom: 1px solid var(--line-soft);
             text-align: left;
             vertical-align: top;
-            line-height: 1.45;
+            line-height: 1.5;
         }
 
         table.data th {
-            background: #f8fafc;
-            color: var(--muted);
-            font-size: 10px;
+            background: var(--panel);
+            color: var(--text-soft);
+            font-size: 9.5px;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.12em;
+            font-weight: 700;
+        }
+
+        table.data tbody tr:nth-child(even) td {
+            background: var(--panel);
         }
 
         table.data tr:last-child td {
@@ -603,33 +811,60 @@
 
         .pill {
             display: inline-block;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 999px;
-            font-size: 10px;
-            font-weight: 700;
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
         }
 
         .pill.high {
             background: var(--danger-soft);
             color: var(--danger);
+            border: 1px solid rgba(180, 35, 24, 0.18);
         }
 
         .pill.medium {
-            background: var(--warn-soft);
-            color: var(--warn);
+            background: var(--accent-soft);
+            color: var(--accent-deep);
+            border: 1px solid rgba(157, 124, 227, 0.25);
         }
 
         .pill.low {
-            background: var(--success-soft);
-            color: var(--success);
+            background: var(--brand-soft);
+            color: var(--brand-ink);
+            border: 1px solid rgba(62, 223, 203, 0.30);
         }
 
+        /* Recommendation card — numbered visual order via the
+           ::before counter so the priority reads at a glance. */
+        .panel { counter-reset: rec-counter; }
+
         .recommendation {
-            margin-bottom: 10px;
-            padding: 12px 14px;
+            margin-bottom: 6px;
+            padding: 9px 12px 9px 40px;
             border: 1px solid var(--line);
-            background: #fff;
-            border-radius: 14px;
+            background: #ffffff;
+            border-radius: 10px;
+            position: relative;
+            counter-increment: rec-counter;
+        }
+        .recommendation::before {
+            content: counter(rec-counter);
+            position: absolute;
+            left: 10px;
+            top: 9px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--gradient-brand);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 10px;
+            text-align: center;
+            line-height: 22px;
+            letter-spacing: 0;
         }
 
         .recommendation:last-child {
@@ -638,15 +873,25 @@
 
         .recommendation-title {
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
+            color: var(--text-strong);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .recommendation > div:last-child {
+            font-size: 10.5px;
+            line-height: 1.45;
+            color: var(--text);
         }
 
+        /* Footer — branded mark on left, page meta on right with a
+           hairline rule above. */
         .footer {
-            margin-top: 28px;
-            padding-top: 12px;
+            margin: 36px 16mm 0;
+            padding: 16px 0 0;
             border-top: 1px solid var(--line);
             font-size: 10px;
-            color: var(--muted);
+            color: var(--text-soft);
         }
 
         .footer-grid {
@@ -662,16 +907,34 @@
 
         .footer-right {
             text-align: right;
+            color: var(--muted);
+        }
+
+        .footer-mark {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 5px;
+            background: var(--gradient-brand);
+            vertical-align: middle;
+            margin-right: 8px;
         }
 
         .small {
-            font-size: 10px;
+            font-size: 9.5px;
             color: var(--muted);
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
         .page-break {
             page-break-before: always;
+        }
+
+        /* Body padding restored after the full-bleed cover.
+           Cover page extends to A4 edge; subsequent pages get the
+           normal 16mm side padding through @page rules above. */
+        .report-body {
+            padding: 0 16mm;
         }
     </style>
 </head>
@@ -714,6 +977,8 @@
                 </div>
             </div>
         </div>
+
+        <div class="report-body">
 
         {# Title block matching the sample format. #}
         <div class="audit-title-band">
@@ -832,8 +1097,30 @@
             <div class="hero-side">
                 <div class="hero-card">
                     <div class="hero-card-label">Overall AEO Score</div>
-                    <div class="hero-score">
-                        {{ norm_score }}<small>/100</small>
+                    {# SVG circular gauge — radius 56, circumference ≈ 351.86.
+                       stroke-dashoffset = circumference * (1 - norm_score/100).
+                       Stroke / fill / transform inlined as SVG attributes
+                       because WeasyPrint doesn't apply CSS to SVG elements. #}
+                    {% set _circ = 351.86 %}
+                    {% set _offset = _circ * (1 - norm_score / 100) %}
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#3EDFCB"/>
+                                    <stop offset="100%" stop-color="#9D7CE3"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56"
+                                    stroke="#e6eaf2" fill="none" stroke-width="12"></circle>
+                            <circle cx="66" cy="66" r="56"
+                                    stroke="url(#gaugeGradient)" fill="none" stroke-width="12"
+                                    stroke-linecap="round"
+                                    stroke-dasharray="{{ _circ }}"
+                                    stroke-dashoffset="{{ '%.2f' | format(_offset) }}"
+                                    transform="rotate(-90 66 66)"></circle>
+                        </svg>
+                        <div class="score-gauge-num">{{ norm_score }}<small>/100</small></div>
                     </div>
                     <div class="hero-opportunity">
                         {{ verdict_label|title }}
@@ -844,33 +1131,39 @@
 
         <div class="section">
             <h2 class="section-title">Score Snapshot</h2>
+            {# Show "—" with a "Not yet measured" note instead of "0.0"
+               when the audit didn't populate a sub-score. A 0/100 reads
+               as broken; "—" reads as "we haven't run that test yet". #}
+            {% set _vis = latest.visibility_score if latest and latest.visibility_score is defined else None %}
+            {% set _cont = latest.content_score if latest and latest.content_score is defined else None %}
+            {% set _sch = latest.schema_score if latest and latest.schema_score is defined else None %}
             <div class="grid-4">
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Overall Score</div>
-                        <div class="metric-value">{{ latest.normalized_score if latest and latest.normalized_score is defined else 0 }}</div>
+                        <div class="metric-value">{{ norm_score }}</div>
                         <div class="metric-copy">Combined AEO performance score.</div>
                     </div>
                 </div>
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Visibility</div>
-                        <div class="metric-value">{{ latest.visibility_score if latest and latest.visibility_score is defined else 0 }}</div>
-                        <div class="metric-copy">Presence across tracked AI answers.</div>
+                        <div class="metric-value">{% if _vis is not none and _vis > 0 %}{{ _vis }}{% else %}—{% endif %}</div>
+                        <div class="metric-copy">{% if _vis is not none and _vis > 0 %}Presence across tracked AI answers.{% else %}No brand mentions detected — see citation results below.{% endif %}</div>
                     </div>
                 </div>
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Content</div>
-                        <div class="metric-value">{{ latest.content_score if latest and latest.content_score is defined else 0 }}</div>
-                        <div class="metric-copy">How well your content covers demand.</div>
+                        <div class="metric-value">{% if _cont is not none and _cont > 0 %}{{ _cont }}{% else %}—{% endif %}</div>
+                        <div class="metric-copy">{% if _cont is not none and _cont > 0 %}How well your content covers demand.{% else %}Not yet measured — re-run the site audit to populate.{% endif %}</div>
                     </div>
                 </div>
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Schema</div>
-                        <div class="metric-value">{{ latest.schema_score if latest and latest.schema_score is defined else 0 }}</div>
-                        <div class="metric-copy">Structured data support for clarity.</div>
+                        <div class="metric-value">{% if _sch is not none and _sch > 0 %}{{ _sch }}{% else %}—{% endif %}</div>
+                        <div class="metric-copy">{% if _sch is not none and _sch > 0 %}Structured data support for clarity.{% else %}No schema detected on the homepage — add Organization + Product markup.{% endif %}</div>
                     </div>
                 </div>
             </div>
@@ -886,7 +1179,12 @@
                 {% for action in recommended_actions[:5] %}
                 <div class="recommendation">
                     <div class="recommendation-title">{{ action.title if action.title else "Recommended action" }}</div>
-                    <div>{{ action.recommended_fix or action.description or action.summary or action.recommended_action or "Follow this action to improve visibility and content coverage." }}</div>
+                    {% set _body = action.recommended_fix or action.description or action.summary or action.recommended_action %}
+                    {% if _body %}
+                    <div>{{ _body }}</div>
+                    {% elif action.why_it_matters %}
+                    <div>{{ action.why_it_matters }}</div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -898,33 +1196,32 @@
            generic filler that confused users when their workspace had
            no real opportunities yet. Page-break dropped — let
            WeasyPrint flow naturally. #}
-        {% if missing_rows or question_rows %}
+        {# Question Opportunities removed — the Citation Test Results
+           table above shows the same per-query findings with richer
+           context (real competitor names per query). Rendering both
+           forced the report onto an extra page without adding signal. #}
+
+        {# Top competitors — populated when the audit's Tavily research
+           pack found real brands. Compact two-column layout to keep
+           the report on three pages. #}
+        {% if top_competitors %}
         <div class="section">
-            <h2 class="section-title">Question Opportunities</h2>
-            <table class="data">
-                <thead>
-                    <tr><th>Query / Topic</th><th>Brand Mentioned</th><th>Priority</th></tr>
-                </thead>
-                <tbody>
-                    {% if missing_rows %}
-                        {% for row in missing_rows[:12] %}
-                        <tr>
-                            <td>{{ row.query if row.query else "Opportunity" }}</td>
-                            <td>No</td>
-                            <td><span class="pill high">High</span></td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        {% for row in question_rows[:12] %}
-                        <tr>
-                            <td>{{ row.query if row.query else "Opportunity" }}</td>
-                            <td>{{ "Yes" if row.latest_brand_mentioned else "No" }}</td>
-                            <td><span class="pill medium">Medium</span></td>
-                        </tr>
-                        {% endfor %}
-                    {% endif %}
-                </tbody>
-            </table>
+            <h2 class="section-title">Top Competitors (Web Research)</h2>
+            <p class="section-lede">Brands AI assistants cite alongside or ahead of you. Sourced via web search.</p>
+            <div class="panel" style="padding: 8px 10px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    {% for comp in top_competitors[:5] %}
+                    <tr>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; width: 30%;">
+                            <strong style="font-size: 11px; color: var(--text-strong);">{{ comp.name }}</strong>
+                        </td>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; font-size: 9.5px; color: var(--accent-deep); word-break: break-all;">
+                            {{ comp.url }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
         </div>
         {% endif %}
 
@@ -936,15 +1233,18 @@
         </div>
         {% endif %}
 
+        </div> {# /.report-body #}
+
         <div class="footer">
             <div class="footer-grid">
                 <div class="footer-left">
+                    <span class="footer-mark"></span>
                     {% if agency and agency.footer_text %}
                         {{ agency.footer_text }}
                     {% elif agency and agency.name %}
-                        Prepared by {{ agency.name }}
+                        Prepared by <strong>{{ agency.name }}</strong>
                     {% else %}
-                        Prepared with DarInsights
+                        Prepared with <strong>DarInsights</strong>
                     {% endif %}
                 </div>
                 <div class="footer-right">
@@ -956,7 +1256,7 @@
                 </div>
             </div>
             {% if agency and agency.disclaimer %}
-                <div class="small" style="margin-top: 8px;">{{ agency.disclaimer }}</div>
+                <div class="small" style="margin-top: 10px;">{{ agency.disclaimer }}</div>
             {% endif %}
         </div>
 

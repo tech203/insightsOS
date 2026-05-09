@@ -73,48 +73,98 @@ def compute_scores(
     ai_answer_results: List[Dict[str, Any]],
     site_findings: Dict[str, Any],
 ) -> Dict[str, Any]:
+    """Build the score sheet for an audit run.
+
+    Scoring philosophy: visibility (does the brand actually show up in
+    AI answers?) is the dominant signal of an *AI Visibility* audit.
+    Every other factor — schema, content, technical hygiene, entity
+    clarity — only matters insofar as it raises the ceiling on
+    visibility. A brand that is never cited cannot have a "moderate"
+    or higher overall score; site hygiene without visibility is just
+    pre-work.
+
+    Two changes from the prior formulation:
+
+    1. All sub-scores are clamped to 0-10 before they enter the
+       weighted sum. Previously content_depth_score etc. could be
+       any number; for White Rabbit, content_depth flowed in at 17
+       and double-counted toward the overall.
+
+    2. The weighted-sum is gated by brand_mention_rate:
+         - 0%  cited  → cap overall at 25
+         - <25%        → cap at 55
+         - <50%        → cap at 75
+       This matches buyer expectation: zero AI citations should never
+       read as "moderate" performance.
+    """
     total_queries = len(ai_answer_results)
-    brand_mentions = sum(1 for row in ai_answer_results if row.get("brand_mentioned", False))
-    total_score = sum(_safe_float(row.get("score", 0.0)) for row in ai_answer_results)
+    brand_mentions = sum(
+        1 for row in ai_answer_results if row.get("brand_mentioned", False)
+    )
+    total_score = sum(
+        _safe_float(row.get("score", 0.0)) for row in ai_answer_results
+    )
     avg_query_score = (total_score / total_queries) if total_queries else 0.0
 
-    content_depth_score = _safe_float(site_findings.get("content_depth_score", 0))
-    schema_score = _safe_float(site_findings.get("schema_score", 0))
-    entity_score = _safe_float(site_findings.get("entity_score", 0))
-    technical_score = _safe_float(site_findings.get("technical_score", 0))
+    # Clamp all site sub-scores to the 0-10 range we document.
+    def _clamp10(v):
+        return max(0.0, min(10.0, _safe_float(v)))
 
-    visibility_score_20 = round((brand_mentions / total_queries) * 20, 1) if total_queries else 0.0
-    content_score_10 = round(content_depth_score, 1)
-    schema_score_10 = round(schema_score, 1)
-    entity_score_10 = round(entity_score, 1)
-    technical_score_10 = round(technical_score, 1)
+    content_score_10 = round(_clamp10(site_findings.get("content_depth_score", 0)), 1)
+    schema_score_10 = round(_clamp10(site_findings.get("schema_score", 0)), 1)
+    entity_score_10 = round(_clamp10(site_findings.get("entity_score", 0)), 1)
+    technical_score_10 = round(_clamp10(site_findings.get("technical_score", 0)), 1)
 
-    normalized_score = round(
-        min(
-            100.0,
-            (
-                visibility_score_20 * 2.8
-                + content_score_10 * 2.0
-                + schema_score_10 * 1.5
-                + entity_score_10 * 1.8
-                + technical_score_10 * 1.2
-                + avg_query_score * 2.0
-            ),
-        ),
+    # Visibility on a 0-100 scale (was previously a 0-20 sub-scale).
+    brand_mention_rate = (
+        (brand_mentions / total_queries) if total_queries else 0.0
+    )
+    visibility_score_100 = round(brand_mention_rate * 100, 1)
+
+    # Site-hygiene composite on a 0-100 scale: average of 4 clamped
+    # 0-10 sub-scores, scaled up to 100.
+    site_hygiene_100 = round(
+        ((content_score_10 + schema_score_10 + entity_score_10 + technical_score_10) / 4) * 10,
         1,
     )
 
+    # Weighted blend: visibility 65%, site hygiene 25%, query-relevance 10%.
+    # Visibility leads because that's the headline finding of an
+    # "AI Visibility Audit" — site hygiene is supporting context.
+    raw_score = (
+        visibility_score_100 * 0.65
+        + site_hygiene_100 * 0.25
+        + min(100.0, avg_query_score * 10) * 0.10
+    )
+
+    # Cap the headline score by visibility tier so a 0-visibility brand
+    # cannot read as "moderate" performance.
+    if brand_mentions == 0:
+        cap = 25.0
+    elif brand_mention_rate < 0.25:
+        cap = 55.0
+    elif brand_mention_rate < 0.50:
+        cap = 75.0
+    else:
+        cap = 100.0
+
+    normalized_score = round(min(cap, raw_score), 1)
+
     return {
         "normalized_score": normalized_score,
-        "visibility_score": visibility_score_20,
+        # Keep visibility_score on the 0-100 scale so the PDF metric
+        # card matches the headline number's units. Old field name
+        # preserved for downstream compatibility.
+        "visibility_score": visibility_score_100,
         "content_score": content_score_10,
         "schema_score": schema_score_10,
         "entity_score": entity_score_10,
         "technical_score": technical_score_10,
         "avg_query_score": round(avg_query_score, 2),
-        "brand_mention_rate": round((brand_mentions / total_queries) * 100, 1) if total_queries else 0.0,
+        "brand_mention_rate": round(brand_mention_rate * 100, 1),
         "total_queries": total_queries,
         "brand_mentions": brand_mentions,
+        "score_cap_applied": cap if cap < 100 else None,
     }
 
 
@@ -296,6 +346,7 @@ def build_audit_payload(
     ai_answer_results: List[Dict[str, Any]],
     previous_ai_answer_results: Optional[List[Dict[str, Any]]] = None,
     raw_audit_data: Optional[Dict[str, Any]] = None,
+    research_pack: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     raw_audit_data = raw_audit_data or {}
 
@@ -322,6 +373,8 @@ def build_audit_payload(
         query_analysis=query_analysis,
         competitor_analysis=competitor_analysis,
         site_findings=site_findings,
+        research_pack=research_pack,
+        industry=industry,
     )
 
     content_opportunities = build_content_opportunities(recommended_actions)
@@ -358,6 +411,7 @@ def build_audit_payload(
         "recommended_actions": recommended_actions,
         "content_opportunities": content_opportunities,
         "ai_answer_results": query_analysis,  # backward-compatible alias
+        "research_pack": research_pack,  # Tavily research bundle (None when key unset)
         "website": website,
         "client_id": client_id,
         "client_name": client_name,

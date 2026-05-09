@@ -43,8 +43,11 @@
     --radius-sm: 12px;
     --radius-pill: 999px;
 
-    /* Shadows */
-    --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.04);
+    /* Shadows — two tiers: cards at rest vs lifted on hover.
+       Premium SaaS cue: shadows are quiet, color-tinted, never heavy. */
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.05);
+    --shadow-elevated: 0 4px 8px rgba(15, 23, 42, 0.06), 0 16px 36px rgba(15, 23, 42, 0.08);
+    --shadow-hairline: 0 1px 0 rgba(15, 23, 42, 0.03);
 
     /* Spacing */
     --space-1: 8px;
@@ -54,6 +57,28 @@
     --space-5: 24px;
     --space-6: 28px;
 
+    /* Motion — one consistent rhythm across the app instead of
+       0.15 / 0.18 / 0.2 / 0.22 / 0.25 sprinkled randomly. */
+    --transition-fast: 0.15s cubic-bezier(0.2, 0, 0, 1);
+    --transition-normal: 0.2s cubic-bezier(0.2, 0, 0, 1);
+    --transition-slow: 0.3s cubic-bezier(0.2, 0, 0, 1);
+
+    /* Status colours (independent of brand to avoid muddling
+       success/warning signals with the aqua/purple identity). */
+    --status-success: #10b981;
+    --status-success-soft: rgba(16, 185, 129, 0.10);
+    --status-warning: #f59e0b;
+    --status-warning-soft: rgba(245, 158, 11, 0.12);
+    --status-danger: #ef4444;
+    --status-danger-soft: rgba(239, 68, 68, 0.10);
+    --status-info: var(--brand-primary);
+    --status-info-soft: var(--brand-primary-soft);
+
+    /* Brand gradient — used for accents on premium cards, the PDF
+       cover, and emphasis pills. Single source so all surfaces match. */
+    --gradient-brand: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    --gradient-brand-soft: linear-gradient(135deg, var(--brand-primary-soft) 0%, var(--brand-secondary-soft) 100%);
+
     /* Layout */
     --container: 1360px;
 }
@@ -61,13 +86,58 @@
 body {
     background: var(--bg-page);
     color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                 Helvetica, Arial, sans-serif;
     margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 h1, h2, h3 {
     color: var(--text-strong);
     margin: 0;
+    letter-spacing: -0.015em;
+}
+
+/* Global focus ring — visible on keyboard navigation, hidden on
+   pointer click. Premium dashboards always handle this; it's the
+   single biggest accessibility tell. */
+:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+button:focus-visible,
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+a:focus-visible {
+    outline-offset: 3px;
+}
+
+/* Global input baseline — consistent height, border, padding,
+   and a clean focus ring so forms across the app feel like one
+   product instead of N different field implementations. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
+textarea,
+select {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-strong);
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px var(--brand-primary-soft);
 }
 
 .page-shell {
@@ -7450,10 +7520,26 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .dashboard-client-card,
 .dashboard-empty-card,
 .dashboard-welcome-card {
-    background: #ffffff;
-    border: 1px solid #e6ebf2;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 20px;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition-normal),
+                border-color var(--transition-normal),
+                box-shadow var(--transition-normal);
+}
+
+/* Interactive cards lift slightly on hover. Static cards
+   (.dashboard-welcome-card, .visibility-scorecard) keep their
+   pose since they're informational rather than tappable. */
+.dashboard-priority-main-card:hover,
+.dashboard-ops-card:hover,
+.dashboard-metric-card:hover,
+.dashboard-next-card:hover,
+.dashboard-client-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-elevated);
 }
 
 .dashboard-welcome-card {
@@ -10135,10 +10221,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .workspace-row-card,
 .workspace-empty-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 22px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition-normal),
+                border-color var(--transition-normal),
+                box-shadow var(--transition-normal);
+}
+
+.workspace-row-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-elevated);
 }
 
 .workspace-list-section {
@@ -10148,14 +10243,16 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .workspace-list-head h2 {
     margin: 0;
-    color: #16243c;
-    font-size: 30px;
-    line-height: 1.1;
+    color: var(--text-strong);
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 800;
 }
 
 .workspace-list-head p {
     margin: 8px 0 0;
-    color: #627084;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -10188,18 +10285,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .workspace-logo-image {
     object-fit: cover;
     display: block;
-    border: 1px solid #e7ebf3;
+    border: 1px solid var(--border-main);
     background: #ffffff;
 }
 
 .workspace-logo-mark {
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    background: var(--gradient-brand);
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
     font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .workspace-info-block {
@@ -10521,18 +10619,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .workspace-logo-image {
     object-fit: cover;
     display: block;
-    border: 1px solid #e7ebf3;
+    border: 1px solid var(--border-main);
     background: #ffffff;
 }
 
 .workspace-logo-mark {
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    background: var(--gradient-brand);
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 26px;
     font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .workspace-chip-row {
@@ -10708,26 +10807,59 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .workspace-modules-grid {
     display: grid;
-    gap: 12px;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
+/* Workspace module cards — hover state with a brand-gradient accent
+   bar slides in from the top, plus a subtle lift and aqua border.
+   The visual reads as "tappable, premium" rather than the previous
+   flat card. */
 .workspace-module-card {
     padding: 18px;
     text-decoration: none;
     color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.workspace-module-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.22s ease;
+}
+
+.workspace-module-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.workspace-module-card:hover::before {
+    transform: scaleX(1);
 }
 
 .workspace-module-card strong {
     display: block;
-    color: #16243c;
-    font-size: 18px;
+    color: var(--text-strong);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .workspace-module-card p {
     margin: 8px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.55;
 }
 
 .section-head.compact {
@@ -10736,16 +10868,17 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .section-head.compact h3 {
     margin: 0;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
-    color: #15233b;
+    color: var(--text-strong);
+    letter-spacing: -0.01em;
 }
 
 .section-head.compact p {
     margin: 6px 0 0;
-    font-size: 14px;
+    font-size: 13.5px;
     line-height: 1.6;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .workspace-snapshot-grid {
@@ -10754,25 +10887,33 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .snapshot-item {
-    padding: 14px;
-    background: #fbfcfe;
+    padding: 14px 16px;
+    background: var(--bg-soft-alt);
+    transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.snapshot-item:hover {
+    border-color: var(--brand-primary);
+    transform: translateY(-1px);
 }
 
 .snapshot-item span {
     display: block;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.10em;
 }
 
 .snapshot-item strong {
     display: block;
     margin-top: 8px;
-    color: #16243c;
-    font-size: 24px;
+    color: var(--text-strong);
+    font-size: 26px;
     font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
 }
 
 .finding-list {
@@ -14288,17 +14429,19 @@ input {
 }
 
 .btn-secondary {
-    min-height: 44px;
-    padding: 0 16px;
-    border: 1px solid #dbe2ee;
-    background: #ffffff;
-    color: #445366;
+    min-height: 46px;
+    padding: 0 18px;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
+    color: var(--text-strong);
+    box-shadow: var(--shadow-hairline);
 }
 
 .btn-secondary:hover {
-    border-color: #cfc4ff;
-    background: #f8f5ff;
-    color: #6d4aff;
+    border-color: var(--brand-primary);
+    background: var(--bg-soft-alt);
+    color: var(--text-strong);
+    transform: translateY(-1px);
 }
 
 .form-actions {
@@ -18739,6 +18882,40 @@ a.btn {
     .brand-style-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* =========================================================
+   Public-share popover (Settings → Share link button)
+   ========================================================= */
+.share-details {
+    position: relative;
+    display: inline-block;
+}
+.share-details summary {
+    list-style: none;
+    cursor: pointer;
+}
+.share-details summary::-webkit-details-marker { display: none; }
+.share-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    min-width: 320px;
+    padding: 0.85rem;
+    background: white;
+    border: 1px solid #ececf2;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+html[data-theme="dark"] .share-popover {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+}
+html[data-theme="dark"] .share-popover input[type="text"] {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-strong);
 }
 
 /* =========================================================

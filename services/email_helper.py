@@ -1,12 +1,11 @@
 """
-SMTP-based transactional email.
+Transactional email — Resend HTTP API or SMTP relay.
 
-No external service dependency — stdlib smtplib + email.message. Set
-the SMTP_* env vars and we route messages through whatever provider
-you've connected (SES, SendGrid SMTP relay, Postmark SMTP, Mailgun
-SMTP, even a Gmail App Password for low-volume).
+Two backends, picked by env. Resend takes priority when
+RESEND_API_KEY is set; otherwise we fall back to stdlib smtplib +
+SMTP_* vars (SES / SendGrid / Postmark / Mailgun / Gmail App Password).
 
-Without SMTP_HOST set, send_email() returns False and the caller
+Without either configured, send_email() returns False and the caller
 falls back to whatever in-app surface they had before (e.g. flashing
 the invite URL for the owner to copy manually).
 """
@@ -23,32 +22,73 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def is_email_configured() -> bool:
-    """True when at minimum SMTP_HOST + SMTP_FROM are set. We don't
-    require user/pass since some relays (internal SMTP, AWS SES from
-    a whitelisted IP) work without them."""
+def _resend_configured() -> bool:
+    key = (os.getenv("RESEND_API_KEY") or "").strip()
+    sender = (os.getenv("RESEND_FROM") or "").strip()
+    return bool(key) and bool(sender) and not key.startswith("your_")
+
+
+def _smtp_configured() -> bool:
     host = (os.getenv("SMTP_HOST") or "").strip()
     sender = (os.getenv("SMTP_FROM") or "").strip()
     return bool(host) and bool(sender) and not host.startswith("your_")
 
 
-def send_email(
+def is_email_configured() -> bool:
+    """True when either Resend or SMTP can deliver mail."""
+    return _resend_configured() or _smtp_configured()
+
+
+def _send_via_resend(
     *,
     to: str,
     subject: str,
     body_text: str,
-    body_html: Optional[str] = None,
-    reply_to: Optional[str] = None,
+    body_html: Optional[str],
+    reply_to: Optional[str],
 ) -> bool:
-    """Send a transactional email. Returns True on success, False
-    when SMTP isn't configured or the send raised. Never raises —
-    callers fall back to their in-app surface on False."""
-    if not is_email_configured():
+    import requests
+
+    payload = {
+        "from": os.getenv("RESEND_FROM"),
+        "to": [to],
+        "subject": subject,
+        "text": body_text,
+    }
+    if body_html:
+        payload["html"] = body_html
+    if reply_to:
+        payload["reply_to"] = reply_to
+
+    try:
+        resp = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {os.getenv('RESEND_API_KEY')}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=20,
+        )
+        if 200 <= resp.status_code < 300:
+            return True
+        logger.warning(
+            "Resend send failed: %s %s", resp.status_code, resp.text[:200]
+        )
+        return False
+    except Exception as exc:
+        logger.warning("Resend send raised: %s", exc)
         return False
 
-    if not to or "@" not in to:
-        return False
 
+def _send_via_smtp(
+    *,
+    to: str,
+    subject: str,
+    body_text: str,
+    body_html: Optional[str],
+    reply_to: Optional[str],
+) -> bool:
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT") or "587")
     username = os.getenv("SMTP_USER") or ""
@@ -87,6 +127,63 @@ def send_email(
     except Exception as exc:
         logger.warning("SMTP send failed: %s", exc)
         return False
+
+
+def send_email(
+    *,
+    to: str,
+    subject: str,
+    body_text: str,
+    body_html: Optional[str] = None,
+    reply_to: Optional[str] = None,
+) -> bool:
+    """Send a transactional email. Returns True on success, False
+    when no backend is configured or the send raised. Never raises —
+    callers fall back to their in-app surface on False."""
+    if not to or "@" not in to:
+        return False
+
+    if _resend_configured():
+        return _send_via_resend(
+            to=to, subject=subject, body_text=body_text,
+            body_html=body_html, reply_to=reply_to,
+        )
+    if _smtp_configured():
+        return _send_via_smtp(
+            to=to, subject=subject, body_text=body_text,
+            body_html=body_html, reply_to=reply_to,
+        )
+    return False
+
+
+def render_password_reset_email(*, user_name: str, reset_url: str) -> tuple[str, str, str]:
+    """Subject + plain-text + HTML body for a password-reset request."""
+    subject = "Reset your DarInsights password"
+    text = (
+        f"Hi {user_name or 'there'},\n\n"
+        "We received a request to reset the password on your DarInsights account.\n"
+        "Click the link below to set a new password. The link expires in 60 minutes.\n\n"
+        f"{reset_url}\n\n"
+        "If you didn't request a password reset, you can safely ignore this email — "
+        "your password stays unchanged."
+    )
+    html = f"""\
+<!DOCTYPE html>
+<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
+  <h1 style="font-size: 22px; margin: 0 0 16px;">Reset your password</h1>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {user_name or 'there'},</p>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
+    We received a request to reset the password on your DarInsights account.
+    Click below to set a new password. <strong>The link expires in 60 minutes.</strong>
+  </p>
+  <p style="margin: 0 0 24px;">
+    <a href="{reset_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset password →</a>
+  </p>
+  <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{reset_url}</p>
+  <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you didn't request a password reset, you can safely ignore this email — your password stays unchanged.</p>
+</body></html>"""
+    return subject, text, html
 
 
 def render_team_invite_email(

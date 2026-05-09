@@ -21,6 +21,9 @@ audit_website = _safe_import("audit_agent", "audit_website")
 calculate_visibility_score = _safe_import("visibility_agent", "calculate_visibility_score")
 build_report = _safe_import("report_agent", "build_report")
 run_ai_answer_test = _safe_import("ai_answer_agent", "run_ai_answer_test")
+run_research_pack = _safe_import("research_engine", "run_research_pack")
+scan_website = _safe_import("services.site_scan", "scan_website")
+brand_context_blurb = _safe_import("services.site_scan", "brand_context_blurb")
 
 def _safe_call(func, *args, **kwargs):
     if not callable(func):
@@ -219,10 +222,28 @@ def run_audit_for_input(
     print("client_name:", client_name)
     print("user_id:", user_id)
 
+    # Step 0: scan the homepage so downstream LLM calls get grounded
+    # in what the brand actually sells, not just the typed industry
+    # field. For a workspace whose industry says "ice cream e-commerce"
+    # but whose homepage is actually a heritage-candy / merchandise
+    # brand, the scan output is what makes the audit honest.
+    site_scan = _safe_call(scan_website, website) or {}
+    brand_ctx = ""
+    if site_scan and site_scan.get("fetched") and brand_context_blurb:
+        brand_ctx = brand_context_blurb(site_scan) or ""
+        print(f"AUDIT: site scan fetched ({len(brand_ctx)} chars of context)")
+        if site_scan.get("title"):
+            print(f"   title='{site_scan.get('title')}'")
+        if site_scan.get("categories"):
+            print(f"   nav categories: {site_scan.get('categories')[:8]}")
+    else:
+        print("AUDIT: site scan unavailable — falling back to industry-only context")
+
     raw_queries = _safe_call(
         generate_queries,
         topic=topic or industry,
         location=location,
+        brand_context=brand_ctx or None,
     )
     print("raw_queries:", raw_queries)
 
@@ -246,6 +267,52 @@ def run_audit_for_input(
     raw_audit = _safe_call(audit_website, website) or {}
     print("raw_audit:", raw_audit)
 
+    # Tavily research pack — populates real competitors, customer
+    # questions, comparison queries, review signals, and AEO gap
+    # analysis from web search. Drives the executive summary and the
+    # citation table's competitor column with real Singapore brands
+    # rather than whatever ChatGPT happens to mention. Skipped silently
+    # when TAVILY_API_KEY isn't set so the audit still runs.
+    research_pack: Optional[Dict[str, Any]] = None
+    if os.getenv("TAVILY_API_KEY") and run_research_pack:
+        brand_for_research = client_name or website
+        try:
+            research_pack = run_research_pack(
+                business_name=brand_for_research,
+                industry=industry,
+                location=location,
+                services=topic,
+                website=website,
+                max_results_each=6,
+            )
+            comp_count = len(
+                ((research_pack or {}).get("results") or {}).get("competitors") or []
+            )
+            print(
+                f"AUDIT: Tavily research pack assembled — "
+                f"{comp_count} competitor result(s)"
+            )
+        except Exception as e:
+            print(f"AUDIT: Tavily research raised — {type(e).__name__}: {e}")
+            research_pack = None
+    else:
+        print("AUDIT: TAVILY_API_KEY missing — skipping Tavily research")
+
+    # If Tavily found real competitors, override the templated ones
+    # produced by competitor_agent (which is also template-based).
+    if research_pack:
+        tavily_competitors = [
+            r.get("title") or r.get("name") or r.get("domain") or ""
+            for r in (research_pack.get("results") or {}).get("competitors") or []
+        ]
+        tavily_competitors = [c for c in tavily_competitors if c][:8]
+        if tavily_competitors:
+            competitors = tavily_competitors
+            print(
+                f"AUDIT: using {len(competitors)} Tavily-discovered "
+                f"competitors over the templated set"
+            )
+
     extracted_scores = _extract_site_scores(raw_audit)
     print("extracted_scores:", extracted_scores)
 
@@ -257,19 +324,31 @@ def run_audit_for_input(
         "title": brand_name
     }
 
-    try:
-        ai_answer_results = run_ai_answer_test(
-            queries_to_test=queries,
-            business_profile=business_profile,
-        ) or []
-        print("REAL AI ANSWER TEST USED")
-        print("ai_answer_results sample:", ai_answer_results[:2])
-    except Exception as e:
-        print("REAL AI ANSWER TEST FAILED:", str(e))
-        ai_answer_results = []
+    # Real AI test runs against ChatGPT (and Perplexity / Gemini if
+    # those keys are set — see ai_answer_agent.ENGINE_REGISTRY). The
+    # heuristic _simulate_ai_answer_results is a fallback that never
+    # actually calls an LLM — only fire it when the real test yields
+    # zero rows so a buyer never silently gets fake data.
+    ai_answer_results: List[Dict[str, Any]] = []
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            ai_answer_results = run_ai_answer_test(
+                queries_to_test=queries,
+                business_profile=business_profile,
+                model="gpt-4o-mini",
+            ) or []
+            print(
+                f"AUDIT: real AI test produced {len(ai_answer_results)} "
+                f"row(s) for {brand_name}"
+            )
+        except Exception as e:
+            print(f"AUDIT: real AI test raised — {type(e).__name__}: {e}")
+            ai_answer_results = []
+    else:
+        print("AUDIT: OPENAI_API_KEY missing — skipping real AI test")
 
     if not ai_answer_results:
-        print("FALLING BACK TO SIMULATED AI ANSWERS")
+        print("AUDIT: falling back to heuristic simulator (no real AI data)")
         ai_answer_results = _simulate_ai_answer_results(
             queries=queries,
             client_name=client_name or website,
@@ -279,6 +358,14 @@ def run_audit_for_input(
         )
 
     print("ai_answer_results count:", len(ai_answer_results))
+
+    # Stitch the site scan onto raw_audit so build_audit_payload
+    # writes it into the saved JSON. The PDF render path will pick
+    # this up to ground the executive summary on the homepage's
+    # actual copy rather than Tavily's inferred description.
+    if site_scan:
+        raw_audit["site_scan"] = site_scan
+        raw_audit["brand_context"] = brand_ctx
 
     payload = build_audit_payload(
         website=website,
@@ -292,7 +379,11 @@ def run_audit_for_input(
         ai_answer_results=ai_answer_results,
         previous_ai_answer_results=None,
         raw_audit_data=raw_audit,
+        research_pack=research_pack,
     )
+    # Also expose the scan outside `site_findings` for easy lookup.
+    payload["site_scan"] = site_scan
+    payload["brand_context"] = brand_ctx
 
     print("PAYLOAD BUILT")
     print("payload keys:", list(payload.keys()))

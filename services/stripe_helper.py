@@ -18,7 +18,7 @@ server" flash to the user.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 
 class StripeNotConfigured(Exception):
@@ -42,7 +42,6 @@ BUNDLE_PRICE_ENV_SUB: Dict[int, str] = {
 
 # Plan slug → env var name for the recurring Stripe Price ID.
 PLAN_PRICE_ENV: Dict[str, str] = {
-    "plus": "STRIPE_PRICE_PLAN_PLUS",
     "pro": "STRIPE_PRICE_PLAN_PRO",
     "growth": "STRIPE_PRICE_PLAN_GROWTH",
 }
@@ -150,6 +149,57 @@ def construct_webhook_event(payload_bytes: bytes, signature_header: str):
     if not secret:
         raise StripeNotConfigured("STRIPE_WEBHOOK_SECRET is not set.")
     return stripe.Webhook.construct_event(payload_bytes, signature_header, secret)
+
+
+def _module_price_id(module_slug: str) -> str:
+    """Resolve the Stripe Price ID for a module slug. Lazy-imports the
+    catalog so this module stays importable without a Flask app context."""
+    from modules import get_module
+    mod = get_module(module_slug)
+    env_var = mod.get("stripe_price_env")
+    if not env_var:
+        raise StripeNotConfigured(f"Unknown module slug: {module_slug}")
+    price_id = os.getenv(env_var)
+    if not price_id:
+        raise StripeNotConfigured(f"{env_var} is not set.")
+    return price_id
+
+
+def create_modules_checkout_session(
+    *,
+    user_id: int,
+    user_email: Optional[str],
+    module_slugs: Iterable[str],
+    success_url: str,
+    cancel_url: str,
+) -> Dict[str, Any]:
+    """Subscription Checkout Session for one or more modules.
+
+    Creates a single subscription with one line item per module slug.
+    Each line item maps to a Stripe `subscription_item` after checkout
+    completes — the webhook handler writes one UserModule row per
+    item, keyed by stripe_subscription_item_id, so individual modules
+    can later be added or removed without canceling the whole sub.
+    """
+    stripe = _stripe_module()
+    slugs: List[str] = [s for s in module_slugs if s]
+    if not slugs:
+        raise StripeNotConfigured("At least one module is required.")
+    line_items = [{"price": _module_price_id(s), "quantity": 1} for s in slugs]
+    session = stripe.checkout.Session.create(
+        mode="subscription",
+        line_items=line_items,
+        client_reference_id=str(user_id),
+        customer_email=user_email,
+        metadata={
+            "kind": "modules",
+            "user_id": str(user_id),
+            "modules": ",".join(slugs),
+        },
+        success_url=success_url,
+        cancel_url=cancel_url,
+    )
+    return {"url": session.url, "id": session.id}
 
 
 def create_billing_portal_session(
