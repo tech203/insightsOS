@@ -57,6 +57,11 @@
             Referrals
         </a>
 
+        <a href="{{ url_for('settings_white_label') }}"
+           class="settings-v3-tab {% if active_settings_section == 'white_label' %}active{% endif %}">
+            White-label
+        </a>
+
         <a href="{{ url_for('settings_preferences') }}"
            class="settings-v3-tab {% if active_settings_section == 'preferences' %}active{% endif %}">
             Preferences
@@ -310,7 +315,7 @@
             </div>
 
             <p style="font-size:0.85rem; color:#555; margin-top:1rem;">
-                Contact support to enable the white-label add-on for your account.
+                <a href="{{ url_for('settings_white_label') }}">Open the White-label tab</a> to set your agency name, logo, tagline, and report footer.
             </p>
         </div>
     </section>
@@ -747,6 +752,66 @@
             });
         })();
     </script>
+    {% endif %}
+
+    {% if active_settings_section == "white_label" %}
+    <section class="settings-v3-grid">
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Agency white-label</h2>
+                <p>Replace the DarInsights brand with your own — across the dashboard sidebar, the audit PDFs, and any client-facing surfaces invited team members see.</p>
+            </div>
+
+            <form method="post" action="{{ url_for('settings_update_white_label') }}" class="settings-v3-form">
+                <label style="display:flex; gap:0.5rem; align-items:center; cursor:pointer; margin-top:0.4rem;">
+                    <input type="checkbox" name="enable" {% if current_user.is_white_label_enabled %}checked{% endif %}>
+                    <span style="font-size:0.95rem; font-weight:600; color:var(--brand-text-strong, #191929);">Enable white-label branding</span>
+                </label>
+                <p style="font-size:0.82rem; color:#666; margin:0 0 0.65rem 0;">When on, the sidebar brand mark, mobile topbar, and PDF reports use your agency's name and logo instead of DarInsights.</p>
+
+                <label for="wl-name">Agency name</label>
+                <input id="wl-name" type="text" name="agency_name" value="{{ current_user.agency_name or '' }}" maxlength="255" placeholder="e.g. Astra Strategy">
+
+                <label for="wl-tagline">Tagline</label>
+                <input id="wl-tagline" type="text" name="agency_tagline" value="{{ current_user.agency_tagline or '' }}" maxlength="255" placeholder="AI Visibility &amp; Content Strategy">
+
+                <label for="wl-website">Website</label>
+                <input id="wl-website" type="text" name="agency_website" value="{{ current_user.agency_website or '' }}" maxlength="500" placeholder="https://your-agency.com">
+
+                <label for="wl-footer">Report footer text</label>
+                <input id="wl-footer" type="text" name="agency_footer" value="{{ current_user.agency_footer or '' }}" maxlength="500" placeholder="© 2026 Your Agency. All rights reserved.">
+
+                <label for="wl-disclaimer">Report disclaimer</label>
+                <input id="wl-disclaimer" type="text" name="agency_disclaimer" value="{{ current_user.agency_disclaimer or '' }}" maxlength="500" placeholder="Insights provided as-is for guidance.">
+
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Save branding</button>
+            </form>
+        </div>
+
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Agency logo</h2>
+                <p>PNG, JPG, SVG, or WEBP. Up to 5 MB. Used in the sidebar, the audit PDF topbar, and client-facing report headers.</p>
+            </div>
+
+            {% if current_user.agency_logo_filename %}
+            <div style="background:#fafafe; border:1px solid #ececf2; border-radius:10px; padding:1rem; text-align:center; margin-bottom:1rem;">
+                <img src="{{ url_for('static', filename='uploads/agency_logos/' + current_user.agency_logo_filename) }}"
+                     alt="Agency logo"
+                     style="max-height:80px; max-width:100%; object-fit:contain;">
+            </div>
+            <form method="post" action="{{ url_for('settings_remove_agency_logo') }}" style="margin-bottom:1rem;" onsubmit="return confirm('Remove the agency logo?');">
+                <button type="submit" class="btn btn-secondary" style="background:#fdecea; color:#b22424; border:none;">Remove current logo</button>
+            </form>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('settings_upload_agency_logo') }}" enctype="multipart/form-data" class="settings-v3-form">
+                <label for="wl-logo">Upload new logo</label>
+                <input id="wl-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.svg,.webp" required>
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Upload</button>
+            </form>
+        </div>
+    </section>
     {% endif %}
 
     {% if active_settings_section == "team" %}

@@ -144,6 +144,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = os.path.join(
     "static", "uploads", "workspace_logos"
 )
+app.config["AGENCY_LOGO_FOLDER"] = os.path.join(
+    "static", "uploads", "agency_logos"
+)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 db = SQLAlchemy(app)
@@ -178,6 +181,14 @@ class User(UserMixin, db.Model):
     plan = db.Column(db.String(50), default="free")
     is_white_label_enabled = db.Column(db.Boolean, default=False)
     agency_name = db.Column(db.String(255), nullable=True)
+    # Agency white-label fields. When is_white_label_enabled=True these
+    # replace the DarInsights brand on PDFs, the sidebar brand mark, and
+    # any client-facing surfaces invited team members see.
+    agency_tagline = db.Column(db.String(255), nullable=True)
+    agency_website = db.Column(db.String(500), nullable=True)
+    agency_footer = db.Column(db.String(500), nullable=True)
+    agency_disclaimer = db.Column(db.String(500), nullable=True)
+    agency_logo_filename = db.Column(db.String(255), nullable=True)
 
     # Set by the Stripe webhook on the first successful checkout so
     # billing-portal sessions can locate the customer.
@@ -2919,6 +2930,47 @@ def ensure_data_dirs():
     os.makedirs(DATA_FOLDER, exist_ok=True)
     os.makedirs(OUTPUTS_FOLDER, exist_ok=True)
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    os.makedirs(app.config["AGENCY_LOGO_FOLDER"], exist_ok=True)
+
+
+def agency_branding(user) -> Dict[str, Any]:
+    """Resolve the agency-branding dict that PDFs and the in-app
+    sidebar use. Always returns the same shape so templates don't
+    need to special-case missing fields. Falls back to DarInsights
+    branding when white-label is off."""
+    if not user or not getattr(user, "is_white_label_enabled", False):
+        return {
+            "active": False,
+            "name": "DarInsights",
+            "tagline": "AI Visibility & Content Strategy",
+            "website": None,
+            "logo_url": None,
+            "footer_text": None,
+            "disclaimer": None,
+        }
+    logo_url = None
+    if getattr(user, "agency_logo_filename", None):
+        logo_url = url_for(
+            "static", filename=f"uploads/agency_logos/{user.agency_logo_filename}"
+        )
+    return {
+        "active": True,
+        "name": user.agency_name or "Your Agency",
+        "tagline": user.agency_tagline or "AI Visibility & Content Strategy",
+        "website": user.agency_website,
+        "logo_url": logo_url,
+        "footer_text": user.agency_footer,
+        "disclaimer": user.agency_disclaimer,
+    }
+
+
+def effective_agency_branding() -> Dict[str, Any]:
+    """Resolve branding for the current request. Team members see the
+    owner's agency branding so client-facing surfaces stay consistent."""
+    if not current_user.is_authenticated:
+        return agency_branding(None)
+    target = effective_owner() or current_user
+    return agency_branding(target)
 
 
 def load_json_file(filepath):
@@ -4701,15 +4753,18 @@ def export_client_audit_pdf(client_id):
 
     top_action = recommended_actions[0] if recommended_actions else None
 
-    # 🔹 Agency (white-label support)
+    # White-label agency branding — falls back to DarInsights when off.
+    # Team members see the owner's branding so client-facing PDFs are
+    # consistent across the team.
+    agency_payload = effective_agency_branding()
     agency = {
-        "name": getattr(current_user, "agency_name", None) or "Your Agency",
-        "logo_url": getattr(current_user, "agency_logo_url", None),
-        "website": getattr(current_user, "agency_website", None),
-        "tagline": getattr(current_user, "agency_tagline", None)
-        or "AI Visibility & Content Strategy",
-        "footer_text": getattr(current_user, "agency_footer", None),
-        "disclaimer": getattr(current_user, "agency_disclaimer", None),
+        "name": agency_payload.get("name") or "Your Agency",
+        "logo_url": agency_payload.get("logo_url"),
+        "website": agency_payload.get("website"),
+        "tagline": agency_payload.get("tagline") or "AI Visibility & Content Strategy",
+        "footer_text": agency_payload.get("footer_text"),
+        "disclaimer": agency_payload.get("disclaimer"),
+        "active": agency_payload.get("active", False),
     }
 
     # 🔹 Render HTML
@@ -8471,6 +8526,7 @@ def inject_template_globals():
             )
         ),
         "action_credit_costs": ACTION_CREDIT_COSTS,
+        "agency_brand": effective_agency_branding(),
     }
 
 
@@ -8652,6 +8708,87 @@ def settings_update_profile():
     db.session.commit()
     flash("Display name updated.", "success")
     return redirect(url_for("settings_page"))
+
+
+@app.route("/settings/white-label/update", methods=["POST"])
+@login_required
+def settings_update_white_label():
+    """Save the agency white-label fields and toggle. Logo upload is
+    a separate route so users can save text-only changes without
+    reuploading. Free/Plus users can edit fields but the toggle stays
+    off until they're on a paid plan — keeps the upgrade nudge clean."""
+    enable = request.form.get("enable") == "on"
+    name = (request.form.get("agency_name") or "").strip()[:255]
+    tagline = (request.form.get("agency_tagline") or "").strip()[:255]
+    website = (request.form.get("agency_website") or "").strip()[:500]
+    footer = (request.form.get("agency_footer") or "").strip()[:500]
+    disclaimer = (request.form.get("agency_disclaimer") or "").strip()[:500]
+
+    current_user.agency_name = name or None
+    current_user.agency_tagline = tagline or None
+    current_user.agency_website = website or None
+    current_user.agency_footer = footer or None
+    current_user.agency_disclaimer = disclaimer or None
+    current_user.is_white_label_enabled = bool(enable)
+    db.session.commit()
+    flash("White-label branding saved.", "success")
+    return redirect(url_for("settings_white_label"))
+
+
+@app.route("/settings/white-label/upload-logo", methods=["POST"])
+@login_required
+def settings_upload_agency_logo():
+    """Save an uploaded agency logo. Clears the existing one if the
+    user uploads a new file."""
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("settings_white_label"))
+
+    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in {"png", "jpg", "jpeg", "svg", "webp"}:
+        flash("Use PNG, JPG, SVG, or WEBP.", "error")
+        return redirect(url_for("settings_white_label"))
+
+    new_name = f"agency-{current_user.id}-{secrets.token_hex(4)}.{ext}"
+    target_dir = app.config["AGENCY_LOGO_FOLDER"]
+    os.makedirs(target_dir, exist_ok=True)
+    full = os.path.join(target_dir, new_name)
+    file.save(full)
+
+    # Best-effort cleanup of the previous file.
+    if current_user.agency_logo_filename:
+        try:
+            os.remove(os.path.join(target_dir, current_user.agency_logo_filename))
+        except OSError:
+            pass
+
+    current_user.agency_logo_filename = new_name
+    db.session.commit()
+    flash("Agency logo uploaded.", "success")
+    return redirect(url_for("settings_white_label"))
+
+
+@app.route("/settings/white-label/remove-logo", methods=["POST"])
+@login_required
+def settings_remove_agency_logo():
+    if current_user.agency_logo_filename:
+        try:
+            os.remove(os.path.join(
+                app.config["AGENCY_LOGO_FOLDER"], current_user.agency_logo_filename
+            ))
+        except OSError:
+            pass
+        current_user.agency_logo_filename = None
+        db.session.commit()
+        flash("Agency logo removed.", "success")
+    return redirect(url_for("settings_white_label"))
+
+
+@app.route("/settings/white-label")
+@login_required
+def settings_white_label():
+    return render_settings_section("white_label")
 
 
 @app.route("/settings/account/change-password", methods=["POST"])

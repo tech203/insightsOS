@@ -558,8 +558,8 @@
                 <div class="topbar-right">
                     <p class="report-stamp">AI Visibility Report</p>
                     <p class="report-stamp-date">{{ report_date }}</p>
-                    {# Agency footer credit only when white-label is on. #}
-                    {% if agency and agency.name and agency.name != "Your Agency" %}
+                    {# Agency footer credit only when white-label is enabled. #}
+                    {% if agency and agency.active and agency.name %}
                         <p class="agency-tagline" style="margin-top:6px;">Prepared by {{ agency.name }}</p>
                     {% endif %}
                 </div>
