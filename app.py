@@ -11066,6 +11066,8 @@ def marketplace_audits_page(client_id):
             ("amazon", "Amazon"),
             ("shopee", "Shopee"),
             ("ebay", "eBay"),
+            ("tiktok_shop", "TikTok Shop"),
+            ("lazada", "Lazada"),
             ("other", "Other"),
         ],
         marketplace_audit_cost=get_action_cost("marketplace_audit"),
