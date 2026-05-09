@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Cal.com — {{ workspace.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .cal-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .cal-header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .cal-card { background: white; border: 1px solid #ececf2; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .cal-empty { background: white; border: 1px dashed #d4d4dc; border-radius: 12px; padding: 2.5rem 1.5rem; }
+    .cal-form { display: grid; gap: 0.5rem; max-width: 520px; margin: 0 auto; }
+    .cal-form label { font-size: 0.78rem; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.4rem; }
+    .cal-form input { padding: 0.55rem 0.75rem; border: 1px solid #d4d4dc; border-radius: 8px; font-size: 16px; }
+    .cal-btn { padding: 0.55rem 1.1rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; background: var(--brand-primary, #3EDFCB); color: var(--brand-text-strong, #191929); min-height: 40px; }
+    .cal-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
+    .cal-btn-danger { background: #fdecea; color: #b22424; }
+    .cal-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .cal-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin: 0.75rem 0 1.25rem 0; }
+    .cal-kpi { background: white; border: 1px solid #ececf2; border-radius: 10px; padding: 0.85rem 1rem; }
+    .cal-kpi-label { font-size: 0.78rem; color: #777; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+    .cal-kpi-value { font-size: 1.6rem; font-weight: 700; margin: 0.15rem 0 0 0; color: var(--brand-text-strong, #191929); }
+    .cal-event-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid #f4f4f8; }
+    .cal-event-row:last-child { border-bottom: 0; }
+    .cal-event-meta { font-size: 0.82rem; color: #666; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cal-page">
+    <div class="cal-header">
+        <div>
+            <h1 style="margin:0 0 0.35rem 0; font-size: 1.55rem;">Cal.com bookings</h1>
+            <p style="margin:0; color:#555; max-width:600px;">Track your booking page metrics for {{ workspace.name }} — event types, recent booking volume, and the public link to share.</p>
+        </div>
+        <div class="cal-actions">
+            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="cal-btn cal-btn-secondary">← Workspace</a>
+            {% if connection %}
+            <form method="post" action="{{ url_for('calcom_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect Cal.com from this workspace?');">
+                <button type="submit" class="cal-btn cal-btn-danger">Disconnect</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not connection %}
+        <div class="cal-card cal-empty">
+            <div style="text-align:center; font-size: 2.4rem; margin-bottom:0.5rem;">🗓</div>
+            <h2 style="text-align:center; margin:0 0 0.4rem 0; font-size: 1.3rem;">Connect Cal.com</h2>
+            <p style="text-align:center; max-width:500px; margin: 0 auto 1.25rem auto; color:#555;">
+                Generate an API key in <em>Cal.com → Settings → Developer</em> and paste it below alongside your Cal.com username. Read-only — we list event types and recent bookings, never create or cancel anything.
+            </p>
+            <form method="post" action="{{ url_for('calcom_connect', client_id=workspace.id) }}" class="cal-form">
+                <label for="cal-username">Cal.com username</label>
+                <input id="cal-username" type="text" name="username" placeholder="your-name" required>
+
+                <label for="cal-api">API key</label>
+                <input id="cal-api" type="password" name="api_key" placeholder="cal_live_..." required>
+
+                <button type="submit" class="cal-btn" style="margin-top:0.6rem;">Connect Cal.com</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="cal-card" style="display:flex; gap:1rem; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
+            <div>
+                <h2 style="margin:0; font-size:1.05rem;">@{{ connection.username }} {% if payload.name %}· {{ payload.name }}{% endif %}</h2>
+                <p style="margin:0.2rem 0 0 0; font-size:0.85rem; color:#666;">
+                    {% if payload.profile_url %}<a href="{{ payload.profile_url }}" target="_blank" rel="noopener">View public booking page ↗</a>{% endif %}
+                    {% if connection.last_synced_at %} · Last synced {{ connection.last_synced_at.strftime('%d %b %Y, %H:%M UTC') }}{% endif %}
+                </p>
+            </div>
+            <form method="post" action="{{ url_for('calcom_sync', client_id=workspace.id) }}">
+                <button type="submit" class="cal-btn">Refresh</button>
+            </form>
+        </div>
+
+        <div class="cal-kpi-row">
+            <div class="cal-kpi">
+                <p class="cal-kpi-label">Bookings (30d)</p>
+                <p class="cal-kpi-value">{{ payload.bookings_30d or 0 }}</p>
+            </div>
+            <div class="cal-kpi">
+                <p class="cal-kpi-label">Event types</p>
+                <p class="cal-kpi-value">{{ (payload.event_types or [])|length }}</p>
+            </div>
+        </div>
+
+        {% if payload.event_types %}
+        <div class="cal-card">
+            <h3 style="margin:0 0 0.6rem 0; font-size:1rem;">Event types</h3>
+            {% for et in payload.event_types %}
+            <div class="cal-event-row">
+                <div>
+                    <strong>{{ et.title or et.slug }}</strong>
+                    <div class="cal-event-meta">
+                        {% if et.length %}{{ et.length }} min{% endif %}
+                        {% if et.price and et.price > 0 %}· {{ et.currency }} {{ '%.2f' | format(et.price / 100.0) }}{% endif %}
+                    </div>
+                </div>
+                {% if et.url %}<a href="{{ et.url }}" target="_blank" rel="noopener" class="cal-btn cal-btn-secondary" style="font-size:0.82rem; padding:0.35rem 0.7rem;">Open ↗</a>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

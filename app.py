@@ -376,6 +376,38 @@ class PromptTracking(db.Model):
     )
 
 
+class CalComConnection(db.Model):
+    """Key-based Cal.com booking connection scoped to a workspace.
+
+    User generates an API key in Cal.com Settings → Developer and
+    pastes it alongside their Cal.com username. Read-only — we list
+    event types and recent bookings, never create/cancel anything.
+    """
+    __tablename__ = "calcom_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    api_key = db.Column(db.Text, nullable=False)
+    username = db.Column(db.String(120), nullable=False)
+    last_payload = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_calcom_user_client"),
+    )
+
+
 class WooCommerceConnection(db.Model):
     """Key-based WooCommerce connection scoped to a workspace.
 
@@ -10593,6 +10625,125 @@ def gsc_sync(client_id):
         flash(f"Sync failed: {exc}", "error")
 
     return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+# =========================
+# Cal.com booking integration
+# =========================
+
+
+@app.route("/integrations/calcom/<int:client_id>")
+@login_required
+def calcom_dashboard(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+    connection = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    payload = (connection.last_payload or {}) if connection else {}
+    return render_template(
+        "integrations/calcom_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        payload=payload,
+    )
+
+
+@app.route("/integrations/calcom/<int:client_id>/connect", methods=["POST"])
+@login_required
+def calcom_connect(client_id):
+    from services.calcom_client import (
+        CalComAPIError, CalComClient, CalComConfigError, summarize,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    api_key = (request.form.get("api_key") or "").strip()
+    username = (request.form.get("username") or "").strip().lstrip("@")
+    if not api_key or not username:
+        flash("API key and Cal.com username are both required.", "error")
+        return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+    try:
+        client = CalComClient(api_key, username)
+        payload = summarize(client)
+    except (CalComConfigError, CalComAPIError) as exc:
+        flash(f"Could not connect Cal.com: {exc}", "error")
+        return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+    existing = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if existing:
+        existing.api_key = api_key
+        existing.username = username
+        existing.last_payload = payload
+        existing.last_synced_at = datetime.utcnow()
+        existing.updated_at = datetime.utcnow()
+    else:
+        db.session.add(
+            CalComConnection(
+                user_id=effective_owner_id() or current_user.id,
+                client_id=client_id,
+                api_key=api_key,
+                username=username,
+                last_payload=payload,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash(f"Connected Cal.com for @{username}.", "success")
+    return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/calcom/<int:client_id>/sync", methods=["POST"])
+@login_required
+def calcom_sync(client_id):
+    from services.calcom_client import CalComAPIError, CalComClient, summarize
+
+    connection = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Cal.com connection on this workspace.", "error")
+        return redirect(url_for("calcom_dashboard", client_id=client_id))
+    try:
+        client = CalComClient(connection.api_key, connection.username)
+        payload = summarize(client)
+        connection.last_payload = payload
+        connection.last_synced_at = datetime.utcnow()
+        flag_modified(connection, "last_payload")
+        db.session.commit()
+        flash("Cal.com data refreshed.", "success")
+    except CalComAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+    return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/calcom/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def calcom_disconnect(client_id):
+    connection = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected Cal.com.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 # =========================
