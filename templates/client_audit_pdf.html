@@ -1233,6 +1233,30 @@
         </div>
         {% endif %}
 
+        {# Top competitors — populated when the audit's Tavily research
+           pack found real brands. Each entry has name + url + snippet. #}
+        {% if top_competitors %}
+        <div class="section">
+            <h2 class="section-title">Top Competitors (Web Research)</h2>
+            <p class="section-lede">Brands AI assistants cite alongside or ahead of you for queries in your category. Sourced via web search, not AI guessing.</p>
+            <div class="panel">
+                {% for comp in top_competitors[:5] %}
+                <div class="finding" style="display: table; width: 100%; margin-bottom: 8px;">
+                    <div style="display: table-cell; vertical-align: top;">
+                        <div class="finding-title">{{ comp.name }}</div>
+                        {% if comp.snippet %}
+                        <div style="font-size: 11px; color: var(--text-soft); line-height: 1.5;">{{ comp.snippet }}</div>
+                        {% endif %}
+                        {% if comp.url %}
+                        <div style="font-size: 10px; color: var(--accent-deep); margin-top: 4px; word-break: break-all;">{{ comp.url }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         {# Competitor notes only when present — no boilerplate filler. #}
         {% if competitor_notes %}
         <div class="section">

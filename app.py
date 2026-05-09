@@ -5436,6 +5436,137 @@ def _citation_table_rows(client_dict, max_rows: int = 5):
     return out
 
 
+def _extract_brand_names_from_research(snippets, *, brand_name, count=6):
+    """Use OpenAI to pull a clean deduplicated list of competitor
+    brand names out of Tavily's research snippets. Tavily returns
+    listicle articles ("10 best X in Singapore") whose snippets name
+    multiple real brands; we want those names as a list. Falls back
+    to [] silently when OpenAI isn't configured or the call fails."""
+    if not os.getenv("OPENAI_API_KEY") or not snippets:
+        return []
+    joined = "\n\n".join(s for s in snippets if s)[:6000]
+    if not joined.strip():
+        return []
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        prompt = (
+            f"From these web search snippets, extract the {count} most "
+            f"prominent competing business names (excluding '{brand_name}' "
+            f"itself, generic listicle titles, and media outlets). "
+            f"Return JSON only: {{\"brands\": [\"…\", …]}}.\n\n"
+            f"Snippets:\n{joined}"
+        )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system",
+                 "content": "Extract clean brand names from search snippets. Return only real, current brand names — no media outlets, no generic phrases."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,
+            max_tokens=400,
+        )
+        import json as _json
+        parsed = _json.loads(response.choices[0].message.content or "{}")
+        brands = parsed.get("brands") or []
+        return [str(b).strip() for b in brands if isinstance(b, str) and b.strip()][:count]
+    except Exception as exc:
+        logger.warning("Brand-name extraction from research failed: %s", exc)
+        return []
+
+
+def _extract_research_pack_for_pdf(client_dict, latest_audit):
+    """Pull Tavily research data into PDF-ready shapes.
+
+    Returns (top_competitors, competitor_notes):
+      - top_competitors: list of {"name": str, "snippet": str, "url": str}
+        for the dedicated Competitors section. Up to 5 brand names
+        extracted from the Tavily research snippets via LLM, paired
+        with their best-matching source URL.
+      - competitor_notes: a short paragraph naming the top 3
+        competitors. None when no data.
+
+    Reads from latest_audit.research_pack first, then falls back to
+    re-reading the full audit file if the summary doesn't carry the
+    research bundle (older saves).
+    """
+    research = latest_audit.get("research_pack") if latest_audit else None
+    if not research and latest_audit and latest_audit.get("filename"):
+        try:
+            full = read_full_audit_data(latest_audit.get("filename"))
+            if full:
+                research = full.get("research_pack")
+        except Exception:
+            research = None
+
+    if not research:
+        return [], None
+
+    competitors_raw = (research.get("results") or {}).get("competitors") or []
+    if not competitors_raw:
+        return [], None
+
+    # Step 1: pull brand names out of the research snippets via LLM.
+    snippets = [
+        (row.get("snippet") or row.get("content") or "")
+        for row in competitors_raw
+        if isinstance(row, dict)
+    ]
+    brand_name = client_dict.get("name") or client_dict.get("website") or "this brand"
+    extracted_names = _extract_brand_names_from_research(
+        snippets, brand_name=brand_name, count=6
+    )
+
+    # Step 2: for each brand, find the most relevant source row.
+    top_competitors = []
+    seen = set()
+    for name in extracted_names:
+        if not name or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        match = None
+        for row in competitors_raw:
+            if not isinstance(row, dict):
+                continue
+            haystack = (
+                (row.get("title") or "") + " " + (row.get("snippet") or row.get("content") or "")
+            ).lower()
+            if name.lower() in haystack:
+                match = row
+                break
+        snippet = ""
+        url = ""
+        if match:
+            snippet = (match.get("snippet") or match.get("content") or "")[:200]
+            url = match.get("url") or match.get("link") or ""
+        top_competitors.append({
+            "name": name,
+            "url": url,
+            "snippet": snippet,
+        })
+        if len(top_competitors) >= 5:
+            break
+
+    if not top_competitors:
+        return [], None
+
+    names_top3 = ", ".join(c["name"] for c in top_competitors[:3])
+    more = (
+        f" + {len(top_competitors) - 3} more"
+        if len(top_competitors) > 3 else ""
+    )
+    competitor_notes = (
+        f"Web research surfaced these competitors AI assistants cite "
+        f"alongside or ahead of {brand_name}: {names_top3}{more}. The "
+        f"Recommended Actions below target the queries where these "
+        f"names dominate."
+    )
+
+    return top_competitors, competitor_notes
+
+
 def _build_audit_pdf(workspace_row, client, *, agency_override=None):
     """Render the audit PDF HTML + return (html, filename) so the
     same rendering serves both the authenticated /export-pdf route
@@ -5448,6 +5579,14 @@ def _build_audit_pdf(workspace_row, client, *, agency_override=None):
     question_rows = client.get("question_rows", [])
     missing_rows = client.get("missing_rows", [])
     top_action = recommended_actions[0] if recommended_actions else None
+
+    # Tavily research pack — extract real competitor list and a
+    # one-paragraph market summary so the report has substance beyond
+    # the AI citation test. Falls back to the saved audit's
+    # research_pack key when the live latest dict doesn't have it.
+    top_competitors, competitor_notes = _extract_research_pack_for_pdf(
+        client, latest
+    )
 
     # Use the override agency dict if provided (public-share path —
     # the workspace owner's branding), otherwise fall back to the
@@ -5478,7 +5617,8 @@ def _build_audit_pdf(workspace_row, client, *, agency_override=None):
             business_profile.get("executive_summary")
             or client.get("executive_summary")
         ),
-        competitor_notes=client.get("competitor_notes"),
+        competitor_notes=competitor_notes or client.get("competitor_notes"),
+        top_competitors=top_competitors,
         business_profile=business_profile,
         citation_rows=citation_rows,
     )

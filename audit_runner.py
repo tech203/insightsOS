@@ -21,6 +21,7 @@ audit_website = _safe_import("audit_agent", "audit_website")
 calculate_visibility_score = _safe_import("visibility_agent", "calculate_visibility_score")
 build_report = _safe_import("report_agent", "build_report")
 run_ai_answer_test = _safe_import("ai_answer_agent", "run_ai_answer_test")
+run_research_pack = _safe_import("research_engine", "run_research_pack")
 
 def _safe_call(func, *args, **kwargs):
     if not callable(func):
@@ -246,6 +247,52 @@ def run_audit_for_input(
     raw_audit = _safe_call(audit_website, website) or {}
     print("raw_audit:", raw_audit)
 
+    # Tavily research pack — populates real competitors, customer
+    # questions, comparison queries, review signals, and AEO gap
+    # analysis from web search. Drives the executive summary and the
+    # citation table's competitor column with real Singapore brands
+    # rather than whatever ChatGPT happens to mention. Skipped silently
+    # when TAVILY_API_KEY isn't set so the audit still runs.
+    research_pack: Optional[Dict[str, Any]] = None
+    if os.getenv("TAVILY_API_KEY") and run_research_pack:
+        brand_for_research = client_name or website
+        try:
+            research_pack = run_research_pack(
+                business_name=brand_for_research,
+                industry=industry,
+                location=location,
+                services=topic,
+                website=website,
+                max_results_each=6,
+            )
+            comp_count = len(
+                ((research_pack or {}).get("results") or {}).get("competitors") or []
+            )
+            print(
+                f"AUDIT: Tavily research pack assembled — "
+                f"{comp_count} competitor result(s)"
+            )
+        except Exception as e:
+            print(f"AUDIT: Tavily research raised — {type(e).__name__}: {e}")
+            research_pack = None
+    else:
+        print("AUDIT: TAVILY_API_KEY missing — skipping Tavily research")
+
+    # If Tavily found real competitors, override the templated ones
+    # produced by competitor_agent (which is also template-based).
+    if research_pack:
+        tavily_competitors = [
+            r.get("title") or r.get("name") or r.get("domain") or ""
+            for r in (research_pack.get("results") or {}).get("competitors") or []
+        ]
+        tavily_competitors = [c for c in tavily_competitors if c][:8]
+        if tavily_competitors:
+            competitors = tavily_competitors
+            print(
+                f"AUDIT: using {len(competitors)} Tavily-discovered "
+                f"competitors over the templated set"
+            )
+
     extracted_scores = _extract_site_scores(raw_audit)
     print("extracted_scores:", extracted_scores)
 
@@ -304,6 +351,7 @@ def run_audit_for_input(
         ai_answer_results=ai_answer_results,
         previous_ai_answer_results=None,
         raw_audit_data=raw_audit,
+        research_pack=research_pack,
     )
 
     print("PAYLOAD BUILT")

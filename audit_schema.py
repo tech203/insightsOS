@@ -296,6 +296,7 @@ def build_audit_payload(
     ai_answer_results: List[Dict[str, Any]],
     previous_ai_answer_results: Optional[List[Dict[str, Any]]] = None,
     raw_audit_data: Optional[Dict[str, Any]] = None,
+    research_pack: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     raw_audit_data = raw_audit_data or {}
 
@@ -322,6 +323,8 @@ def build_audit_payload(
         query_analysis=query_analysis,
         competitor_analysis=competitor_analysis,
         site_findings=site_findings,
+        research_pack=research_pack,
+        industry=industry,
     )
 
     content_opportunities = build_content_opportunities(recommended_actions)
@@ -358,6 +361,7 @@ def build_audit_payload(
         "recommended_actions": recommended_actions,
         "content_opportunities": content_opportunities,
         "ai_answer_results": query_analysis,  # backward-compatible alias
+        "research_pack": research_pack,  # Tavily research bundle (None when key unset)
         "website": website,
         "client_id": client_id,
         "client_name": client_name,
