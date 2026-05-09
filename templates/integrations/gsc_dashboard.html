@@ -113,12 +113,7 @@
 <div class="gsc-page">
     <div class="gsc-header">
         <div>
-            <h1>Google Search Console</h1>
-            <p>
-                Real organic-search performance for {{ workspace.name }} pulled directly from your
-                Google Search Console property — last 28 days of clicks, impressions, CTR, and
-                average position alongside your top queries and pages.
-            </p>
+            <h1>Google Search Console {{ info_tip("Real organic-search data for " + workspace.name + ": clicks, impressions, CTR, avg position, top queries + pages. Last 28 days. Pulled directly from your verified GSC property.") }}</h1>
         </div>
         <div class="gsc-actions">
             <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="gsc-btn gsc-btn-secondary">← Workspace</a>

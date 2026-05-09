@@ -213,8 +213,7 @@
 <div class="answer-monitor-page">
     <div class="am-header">
         <div>
-            <h1>AI Answer Monitor</h1>
-            <p>Track when {{ selected_client.name if selected_client else "your brand" }} is cited in AI answers across the prompts you care about. Each check writes a new snapshot, so the trend stays honest over time.</p>
+            <h1>AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
         </div>
 
         {% if clients|length > 1 %}

@@ -4,8 +4,7 @@
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
-        <h1>Growth Calendar</h1>
-        <p>Plan visibility actions across the next four weeks. Recommendations come from your latest audit; queue items show up the week they were created.</p>
+        <h1>Growth Calendar {{ info_tip("Four-week visibility plan. Recommendations come from your latest audit; queue items show up the week they were scheduled. Auto-refreshes when content goes stale.") }}</h1>
     </div>
 </div>
 {% endblock %}
@@ -18,13 +17,11 @@
 
     <section class="growth-calendar-filter">
         <div class="growth-calendar-filter-copy">
-            <span class="section-kicker">Workspace Filter</span>
+            <span class="section-kicker">Workspace</span>
             {% if selected_client %}
                 <h2>{{ selected_client.name }}</h2>
-                <p>Showing the four-week growth plan for this workspace.</p>
             {% else %}
-                <h2>No workspace selected</h2>
-                <p>Pick a workspace to see its growth plan.</p>
+                <h2>Pick a workspace</h2>
             {% endif %}
         </div>
 

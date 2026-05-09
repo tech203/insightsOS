@@ -29,8 +29,7 @@
 <div class="cal-page">
     <div class="cal-header">
         <div>
-            <h1 style="margin:0 0 0.35rem 0; font-size: 1.55rem;">Cal.com bookings</h1>
-            <p style="margin:0; color:#555; max-width:600px;">Track your booking page metrics for {{ workspace.name }} — event types, recent booking volume, and the public link to share.</p>
+            <h1 style="margin:0 0 0.35rem 0; font-size: 1.55rem;">Cal.com bookings {{ info_tip("Booking page metrics for " + workspace.name + ": event types, last 30-day booking volume, public link to share. Read-only.") }}</h1>
         </div>
         <div class="cal-actions">
             <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="cal-btn cal-btn-secondary">← Workspace</a>

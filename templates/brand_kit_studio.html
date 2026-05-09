@@ -64,8 +64,7 @@
 {% block content %}
 <div class="bk-page">
     <div class="bk-header">
-        <h1>Brand Kit · {{ workspace.name }}</h1>
-        <p>Set brand direction once. Everything that follows — audits, briefs, drafts, AI editing, website generation — pulls from these fields so the output stays on-brand instead of generic.</p>
+        <h1>Brand Kit · {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Saves credits by reducing regenerations.") }}</h1>
     </div>
 
     <form method="post" action="{{ url_for('client_brand_kit', client_id=workspace.id) }}">

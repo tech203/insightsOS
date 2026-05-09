@@ -109,12 +109,7 @@
 {% block content %}
 <div class="mp-page">
     <div class="mp-header">
-        <h1>Marketplace visibility</h1>
-        <p>
-            Track how often {{ workspace.name }}'s storefronts on Etsy, Amazon, Shopee, and eBay get cited
-            when shoppers ask AI assistants for marketplace recommendations. We don't ingest your catalog —
-            we generate marketplace-flavoured queries and check whether your shop is a recommended answer.
-        </p>
+        <h1>Marketplace visibility {{ info_tip("Checks whether " + workspace.name + "'s storefronts on Etsy, Amazon, Shopee, eBay get recommended when shoppers ask AI assistants for marketplace shops. Generated queries — no catalog ingestion needed.") }}</h1>
     </div>
 
     <div class="mp-card">

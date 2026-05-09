@@ -32,8 +32,7 @@
 <div class="ga-page">
     <div class="ga-header">
         <div>
-            <h1>Google Analytics</h1>
-            <p>Real audience and traffic data for {{ workspace.name }} — sessions, engaged users, top pages, and channel mix from your GA4 property.</p>
+            <h1>Google Analytics {{ info_tip("GA4 audience + traffic for " + workspace.name + ": sessions, engaged users, top pages, channel mix. Last 28 days. Shares the same Google connection as Search Console.") }}</h1>
         </div>
         <div class="ga-actions">
             <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="ga-btn ga-btn-secondary">← Workspace</a>

@@ -19147,3 +19147,91 @@ html[data-theme="dark"] .topup-bundle-strike {
 
 /* Visibility scorecard already has a dark gradient — leave it alone in
    dark mode. The kicker pills also keep their toned variants. */
+
+/* =========================================================
+   Info-tooltip ⓘ chip
+   ========================================================= */
+.info-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #d4d4dc;
+    background: white;
+    color: #888;
+    cursor: help;
+    margin-left: 0.3rem;
+    padding: 0;
+    vertical-align: middle;
+    position: relative;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.info-tip:hover,
+.info-tip:focus-visible,
+.info-tip.info-tip-open {
+    color: var(--brand-primary, #3EDFCB);
+    border-color: var(--brand-primary, #3EDFCB);
+    background: rgba(62, 223, 203, 0.08);
+    outline: none;
+}
+.info-tip::after {
+    content: attr(data-info);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #191929;
+    color: #f4f6fb;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    font-weight: 500;
+    width: max-content;
+    max-width: 280px;
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+    z-index: 1000;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+    white-space: normal;
+    cursor: default;
+}
+.info-tip::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #191929;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+}
+.info-tip:hover::after,
+.info-tip:hover::before,
+.info-tip:focus-visible::after,
+.info-tip:focus-visible::before,
+.info-tip.info-tip-open::after,
+.info-tip.info-tip-open::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+html[data-theme="dark"] .info-tip {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-muted);
+}
+html[data-theme="dark"] .info-tip::after {
+    background: #f4f6fb;
+    color: #191929;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="dark"] .info-tip::before { border-top-color: #f4f6fb; }

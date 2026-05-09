@@ -30,8 +30,7 @@
 <div class="woo-page">
     <div class="woo-header">
         <div>
-            <h1>WooCommerce</h1>
-            <p>Audit your WooCommerce catalog for AI-visibility hygiene — thin descriptions, missing alt text, draft products, missing taxonomy. Read-only by design.</p>
+            <h1>WooCommerce {{ info_tip("Audits your WooCommerce catalog for AI-visibility hygiene — thin descriptions, missing alt text, draft products, missing taxonomy. Read-only.") }}</h1>
         </div>
         <div class="woo-actions">
             <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="woo-btn woo-btn-secondary">← Workspace</a>
