@@ -228,6 +228,22 @@ class User(UserMixin, db.Model):
     )
 
 
+class PasswordResetToken(db.Model):
+    """One-time password-reset token. Single-use: marked `used_at`
+    when consumed so the same email link can't be replayed. Tokens
+    expire 60 min after issue."""
+    __tablename__ = "password_reset_tokens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    token = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class TeamInvite(db.Model):
     """A pending invite to join an owner's team. The owner sends the
     /team/accept/<token> URL to the invitee; on accept, a User row is
@@ -6285,6 +6301,109 @@ def signup():
         return redirect(url_for("create_client"))
 
     return render_template("signup.html", error=None)
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Request a password-reset link. Always returns the same flash
+    message regardless of whether the email exists — prevents
+    enumerating accounts. The actual email send is gated on SMTP
+    being configured; without it the flash includes a copy-able URL
+    so dev environments still work."""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        user = User.query.filter_by(email=email).first() if email else None
+
+        # The reveal-nothing response — same regardless of match.
+        generic_flash = (
+            "If an account exists for that email, a reset link is on its way."
+        )
+
+        if user:
+            token = secrets.token_urlsafe(32)
+            db.session.add(
+                PasswordResetToken(
+                    user_id=user.id,
+                    token=token,
+                    expires_at=datetime.utcnow() + timedelta(minutes=60),
+                )
+            )
+            db.session.commit()
+            reset_url = url_for("reset_password", token=token, _external=True)
+
+            from services.email_helper import (
+                is_email_configured, render_password_reset_email, send_email,
+            )
+            delivered = False
+            if is_email_configured():
+                subject, text, html = render_password_reset_email(
+                    user_name=user.name or "", reset_url=reset_url
+                )
+                delivered = send_email(
+                    to=user.email, subject=subject, body_text=text, body_html=html
+                )
+
+            # Dev fallback only: when SMTP isn't configured, surface
+            # the URL inline so the flow can be tested without email
+            # delivery. In a real deploy this branch never fires.
+            if not delivered and not is_email_configured():
+                flash(
+                    f"SMTP isn't configured on this server — copy this reset link: {reset_url}",
+                    "info",
+                )
+                return redirect(url_for("login"))
+
+        flash(generic_flash, "success")
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    """Land here from the email link. Show a simple new-password form
+    and on submit, update the user's password + invalidate the token."""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    record = (
+        PasswordResetToken.query
+        .filter_by(token=token, used_at=None)
+        .filter(PasswordResetToken.expires_at > datetime.utcnow())
+        .first()
+    )
+    if not record:
+        flash(
+            "This reset link is invalid or has expired. Request a new one.",
+            "error",
+        )
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        new = request.form.get("new_password") or ""
+        confirm = request.form.get("confirm_password") or ""
+        if len(new) < 8:
+            flash("Password must be at least 8 characters.", "error")
+            return render_template("reset_password.html", token=token)
+        if new != confirm:
+            flash("Passwords don't match.", "error")
+            return render_template("reset_password.html", token=token)
+
+        user = db.session.get(User, record.user_id)
+        if not user:
+            flash("Account no longer exists.", "error")
+            return redirect(url_for("login"))
+
+        user.password_hash = generate_password_hash(new)
+        record.used_at = datetime.utcnow()
+        db.session.commit()
+        flash("Password updated. You can now sign in with your new password.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", token=token)
 
 
 @app.route("/login", methods=["GET", "POST"])

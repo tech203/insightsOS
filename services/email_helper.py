@@ -89,6 +89,36 @@ def send_email(
         return False
 
 
+def render_password_reset_email(*, user_name: str, reset_url: str) -> tuple[str, str, str]:
+    """Subject + plain-text + HTML body for a password-reset request."""
+    subject = "Reset your DarInsights password"
+    text = (
+        f"Hi {user_name or 'there'},\n\n"
+        "We received a request to reset the password on your DarInsights account.\n"
+        "Click the link below to set a new password. The link expires in 60 minutes.\n\n"
+        f"{reset_url}\n\n"
+        "If you didn't request a password reset, you can safely ignore this email — "
+        "your password stays unchanged."
+    )
+    html = f"""\
+<!DOCTYPE html>
+<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
+  <h1 style="font-size: 22px; margin: 0 0 16px;">Reset your password</h1>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {user_name or 'there'},</p>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
+    We received a request to reset the password on your DarInsights account.
+    Click below to set a new password. <strong>The link expires in 60 minutes.</strong>
+  </p>
+  <p style="margin: 0 0 24px;">
+    <a href="{reset_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset password →</a>
+  </p>
+  <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{reset_url}</p>
+  <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you didn't request a password reset, you can safely ignore this email — your password stays unchanged.</p>
+</body></html>"""
+    return subject, text, html
+
+
 def render_team_invite_email(
     *,
     owner_name: str,
