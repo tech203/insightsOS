@@ -94,6 +94,8 @@ def _check_env_health():
     }
     optional = {
         "PERPLEXITY_API_KEY": "second AI engine for the Answer Monitor",
+        "GOOGLE_CLIENT_ID": "Google Search Console connector (Pro/Growth)",
+        "GOOGLE_CLIENT_SECRET": "Google Search Console connector (Pro/Growth)",
         "WEBFLOW_API_TOKEN": "Webflow publishing",
         "WEBFLOW_SITE_ID": "Webflow publishing",
         "WEBFLOW_COLLECTION_ID": "legacy single-collection export",
@@ -360,6 +362,45 @@ class PromptTracking(db.Model):
 
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
+    )
+
+
+class GoogleSearchConsoleConnection(db.Model):
+    """OAuth-installed Google Search Console connection scoped to a
+    workspace. Stores the long-lived refresh token so we can mint
+    fresh access tokens when they expire (default ~1h validity).
+
+    `site_url` is the verified Search Console property the user picked
+    (e.g. "sc-domain:example.com" or "https://example.com/"). Cached
+    KPI payload + last_synced_at let the dashboard render fast without
+    re-hitting Google on every page view.
+    """
+    __tablename__ = "google_search_console_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    site_url = db.Column(db.String(500), nullable=True)
+    access_token = db.Column(db.Text, nullable=False)
+    refresh_token = db.Column(db.Text, nullable=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+    scope = db.Column(db.Text, nullable=True)
+
+    last_sync_payload = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_gsc_user_client"),
     )
 
 
@@ -10018,6 +10059,356 @@ def marketplace_delete_presence(client_id, presence_id):
         db.session.commit()
         flash("Marketplace listing removed.", "success")
     return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+
+# =========================
+# Google Search Console integration
+# =========================
+# OAuth + Search Analytics pulls for verified GSC properties. Pro and
+# Growth plans only — Free and Plus see an upgrade nudge on the
+# workspace card.
+
+
+def _gsc_redirect_uri() -> str:
+    """OAuth redirect URI Google calls back into. Match the value
+    registered on the OAuth client in the Google Cloud console."""
+    override = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
+    if override:
+        return override
+    return url_for("gsc_oauth_callback", _external=True)
+
+
+def _ensure_gsc_access_token(connection) -> str:
+    """Return a valid access token for this connection, refreshing
+    silently if the cached one is expired or about to expire."""
+    from services.gsc_client import GSCAPIError, refresh_access_token
+
+    now = datetime.utcnow()
+    expires_at = connection.token_expires_at
+    if expires_at and expires_at - now > timedelta(seconds=60):
+        return connection.access_token
+
+    if not connection.refresh_token:
+        raise GSCAPIError(
+            "Access token expired and no refresh token is on file. Reconnect Google Search Console."
+        )
+    payload = refresh_access_token(connection.refresh_token)
+    connection.access_token = payload.get("access_token") or connection.access_token
+    expires_in = int(payload.get("expires_in") or 3600)
+    connection.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+    db.session.commit()
+    return connection.access_token
+
+
+@app.route("/integrations/gsc/connect/<int:client_id>")
+@login_required
+def gsc_connect(client_id):
+    """Kick off the Google Search Console OAuth install for a workspace."""
+    from pricing import plan_allows_google_search_console
+    from services.gsc_client import (
+        GSCConfigError,
+        build_install_url,
+        is_gsc_configured,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "The Google Search Console connector is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    if not is_gsc_configured():
+        flash(
+            "Google Search Console isn't configured on this server yet — "
+            "ask your admin to set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+            "error",
+        )
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    state = secrets.token_urlsafe(24)
+    session["gsc_oauth_state"] = state
+    session["gsc_oauth_client_id"] = client_id
+
+    try:
+        url = build_install_url(redirect_uri=_gsc_redirect_uri(), state=state)
+    except GSCConfigError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    return redirect(url)
+
+
+@app.route("/integrations/gsc/callback")
+@login_required
+def gsc_oauth_callback():
+    """Handle the OAuth callback — exchange code, persist tokens."""
+    from services.gsc_client import (
+        GSCAPIError,
+        GSCConfigError,
+        exchange_code_for_token,
+    )
+
+    expected_state = session.pop("gsc_oauth_state", None)
+    pending_client_id = session.pop("gsc_oauth_client_id", None)
+    if not expected_state or request.args.get("state") != expected_state:
+        flash("Google Search Console state mismatch — please retry.", "error")
+        return redirect(url_for("index"))
+
+    error = request.args.get("error")
+    if error:
+        flash(f"Google declined the connection: {error}", "error")
+        return redirect(url_for("index"))
+
+    code = request.args.get("code")
+    if not code:
+        flash("Missing authorization code from Google.", "error")
+        return redirect(url_for("index"))
+
+    workspace = db.session.get(Client, pending_client_id) if pending_client_id else None
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("The workspace this install was started from could not be found.", "error")
+        return redirect(url_for("index"))
+
+    try:
+        token_payload = exchange_code_for_token(
+            code=code, redirect_uri=_gsc_redirect_uri()
+        )
+    except (GSCConfigError, GSCAPIError) as exc:
+        flash(f"Could not finish Google install: {exc}", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    access = token_payload.get("access_token")
+    refresh = token_payload.get("refresh_token")
+    scope = token_payload.get("scope")
+    expires_in = int(token_payload.get("expires_in") or 3600)
+    if not access:
+        flash("Google did not return an access token.", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    owner_id = effective_owner_id() or current_user.id
+    existing = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=owner_id, client_id=workspace.id
+        ).one_or_none()
+    )
+    if existing:
+        existing.access_token = access
+        if refresh:
+            existing.refresh_token = refresh
+        existing.scope = scope
+        existing.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+        existing.updated_at = datetime.utcnow()
+    else:
+        db.session.add(
+            GoogleSearchConsoleConnection(
+                user_id=owner_id,
+                client_id=workspace.id,
+                access_token=access,
+                refresh_token=refresh,
+                scope=scope,
+                token_expires_at=datetime.utcnow() + timedelta(seconds=expires_in),
+            )
+        )
+    db.session.commit()
+
+    flash("Connected Google Search Console. Pick a property to track below.", "success")
+    return redirect(url_for("gsc_dashboard", client_id=workspace.id))
+
+
+def _refresh_gsc_payload(connection) -> Dict[str, Any]:
+    """Pull aggregate KPIs + top queries + top pages for the connected
+    site. Cached on shop_meta-style fields so the dashboard renders
+    HTTP-free between syncs."""
+    from services.gsc_client import GSCClient
+
+    if not connection.site_url:
+        return {}
+
+    access = _ensure_gsc_access_token(connection)
+    client = GSCClient(access)
+
+    end = datetime.utcnow().date()
+    start = end - timedelta(days=28)
+    start_s = start.isoformat()
+    end_s = end.isoformat()
+
+    totals = client.query_search_analytics(
+        site_url=connection.site_url,
+        start_date=start_s,
+        end_date=end_s,
+        dimensions=None,
+        row_limit=1,
+    )
+    top_queries = client.query_search_analytics(
+        site_url=connection.site_url,
+        start_date=start_s,
+        end_date=end_s,
+        dimensions=["query"],
+        row_limit=10,
+    )
+    top_pages = client.query_search_analytics(
+        site_url=connection.site_url,
+        start_date=start_s,
+        end_date=end_s,
+        dimensions=["page"],
+        row_limit=10,
+    )
+
+    summary = {
+        "site_url": connection.site_url,
+        "range_start": start_s,
+        "range_end": end_s,
+        "totals": totals[0] if totals else {},
+        "top_queries": top_queries,
+        "top_pages": top_pages,
+        "fetched_at": datetime.utcnow().isoformat(),
+    }
+    connection.last_sync_payload = summary
+    connection.last_synced_at = datetime.utcnow()
+    flag_modified(connection, "last_sync_payload")
+    db.session.commit()
+    return summary
+
+
+@app.route("/integrations/gsc/<int:client_id>")
+@login_required
+def gsc_dashboard(client_id):
+    """Workspace-scoped Search Console dashboard."""
+    from pricing import plan_allows_google_search_console
+    from services.gsc_client import GSCAPIError, GSCClient, is_gsc_configured
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "The Google Search Console connector is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+
+    sites: List[Dict[str, Any]] = []
+    error: Optional[str] = None
+    if connection:
+        try:
+            access = _ensure_gsc_access_token(connection)
+            sites = GSCClient(access).list_sites()
+        except GSCAPIError as exc:
+            error = str(exc)
+
+    summary = (connection.last_sync_payload or {}) if connection else {}
+
+    return render_template(
+        "integrations/gsc_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        sites=sites,
+        summary=summary,
+        error=error,
+        gsc_configured=is_gsc_configured(),
+    )
+
+
+@app.route("/integrations/gsc/<int:client_id>/select-site", methods=["POST"])
+@login_required
+def gsc_select_site(client_id):
+    """Save the picked GSC property and pull a first sync."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Google Search Console connection on this workspace.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    site_url = (request.form.get("site_url") or "").strip()
+    if not site_url:
+        flash("Please pick a property.", "error")
+        return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+    connection.site_url = site_url
+    db.session.commit()
+
+    from services.gsc_client import GSCAPIError
+    try:
+        _refresh_gsc_payload(connection)
+        flash(f"Tracking {site_url}. Latest 28 days of data loaded.", "success")
+    except GSCAPIError as exc:
+        flash(f"Picked {site_url}, but couldn't load metrics: {exc}", "warning")
+
+    return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/gsc/<int:client_id>/sync", methods=["POST"])
+@login_required
+def gsc_sync(client_id):
+    """Re-pull the last 28 days of data."""
+    from services.gsc_client import GSCAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection or not connection.site_url:
+        flash("Pick a property first.", "warning")
+        return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+    try:
+        _refresh_gsc_payload(connection)
+        flash("Search Console metrics refreshed.", "success")
+    except GSCAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+
+    return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/gsc/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def gsc_disconnect(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected Google Search Console.", "success")
+    else:
+        flash("No Google Search Console connection on this workspace.", "info")
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 @app.route("/cron/answer-monitor", methods=["POST", "GET"])

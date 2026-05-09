@@ -137,6 +137,7 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "seat_limit": 3,
         "allows_workspace_addon": True,
         "allows_seat_addon": True,
+        "allows_google_search_console": True,
         "tagline": "For consultants who need more credits without more brands.",
         "features": [
             "75 credits / month",
@@ -144,6 +145,7 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
             "3 seats (+$5 / extra seat / month)",
             "25 active queue items",
             "Topup credits at $1 each",
+            "Google Search Console connector",
             "Priority support",
         ],
         "popular": True,
@@ -157,6 +159,7 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "seat_limit": 10,
         "allows_workspace_addon": True,
         "allows_seat_addon": True,
+        "allows_google_search_console": True,
         "tagline": "For agencies running AI visibility for their roster.",
         "features": [
             "175 credits / month",
@@ -164,6 +167,7 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
             "10 seats (+$5 / extra seat / month)",
             "50 active queue items",
             "Topup credits at $1 each",
+            "Google Search Console connector",
             "White-label add-on available",
         ],
         "popular": False,
@@ -208,6 +212,12 @@ def plan_allows_seat_addon(slug: str | None) -> bool:
     """True if the plan supports inviting team members + buying extra
     seats. Pro and Growth only."""
     return bool(get_plan(slug).get("allows_seat_addon", False))
+
+
+def plan_allows_google_search_console(slug: str | None) -> bool:
+    """True if the plan unlocks the Google Search Console connector.
+    Pro and Growth only — Free and Plus see an upgrade nudge."""
+    return bool(get_plan(slug).get("allows_google_search_console", False))
 
 
 def active_queue_limit_for_plan(slug: str | None) -> int:
