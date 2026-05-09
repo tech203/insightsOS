@@ -12735,6 +12735,52 @@ def bigcommerce_connect(client_id):
     return redirect(url_for("module_connectors", client_id=client_id))
 
 
+@app.route("/integrations/bigcommerce/<int:client_id>/sync", methods=["POST"])
+@login_required
+def bigcommerce_sync(client_id):
+    """Pull a page of products from BigCommerce, normalize them, and
+    run the cross-platform ecommerce audit. Findings are stored in
+    `store_meta.audit_summary` for display on the hub page."""
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = BigCommerceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a BigCommerce store first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.bigcommerce_client import (
+        BigCommerceAPIError,
+        BigCommerceClient,
+    )
+    from services.ecommerce_audit_adapter import normalize_bigcommerce_catalog
+    from services.shopify_audit import summarize_catalog
+
+    try:
+        api = BigCommerceClient(
+            store_hash=conn.store_hash, access_token=conn.access_token
+        )
+        raw = api.list_products(limit=100, page=1)
+    except BigCommerceAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    normalized = normalize_bigcommerce_catalog(raw)
+    summary = summarize_catalog(normalized)
+
+    meta = dict(conn.store_meta or {})
+    meta["audit_summary"] = summary
+    meta["last_sync_count"] = len(normalized)
+    conn.store_meta = meta
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Synced {len(normalized)} BigCommerce product(s).", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
 @app.route("/integrations/bigcommerce/<int:client_id>/disconnect", methods=["POST"])
 @login_required
 def bigcommerce_disconnect(client_id):
@@ -12796,6 +12842,46 @@ def shopline_connect(client_id):
         )
     db.session.commit()
     flash("SHOPLINE store connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/shopline/<int:client_id>/sync", methods=["POST"])
+@login_required
+def shopline_sync(client_id):
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = ShoplineConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a SHOPLINE store first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.shopline_client import ShoplineAPIError, ShoplineClient
+    from services.ecommerce_audit_adapter import normalize_shopline_catalog
+    from services.shopify_audit import summarize_catalog
+
+    try:
+        api = ShoplineClient(
+            store_handle=conn.store_handle, access_token=conn.access_token
+        )
+        raw = api.list_products(limit=100, page=1)
+    except ShoplineAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    normalized = normalize_shopline_catalog(raw)
+    summary = summarize_catalog(normalized)
+
+    meta = dict(conn.shop_meta or {})
+    meta["audit_summary"] = summary
+    meta["last_sync_count"] = len(normalized)
+    conn.shop_meta = meta
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Synced {len(normalized)} SHOPLINE product(s).", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
 
 
@@ -12983,6 +13069,57 @@ def squarespace_connect(client_id):
         )
     db.session.commit()
     flash("Squarespace site connected.", "success")
+    return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.route("/integrations/squarespace/<int:client_id>/sync", methods=["POST"])
+@login_required
+def squarespace_sync(client_id):
+    """Squarespace Commerce-only catalog sync — non-commerce sites
+    return an empty list, which is a valid result."""
+    workspace = _workspace_or_redirect(client_id)
+    if workspace is None:
+        return redirect(url_for("index"))
+
+    conn = SquarespaceConnection.query.filter_by(
+        user_id=current_user.id, client_id=client_id
+    ).first()
+    if not conn:
+        flash("Connect a Squarespace site first.", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    from services.squarespace_client import (
+        SquarespaceAPIError,
+        SquarespaceClient,
+    )
+    from services.ecommerce_audit_adapter import normalize_squarespace_catalog
+    from services.shopify_audit import summarize_catalog
+
+    try:
+        api = SquarespaceClient(api_key=conn.api_key)
+        body = api.list_products()
+        raw = body.get("products") or []
+    except SquarespaceAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+        return redirect(url_for("module_connectors", client_id=client_id))
+
+    normalized = normalize_squarespace_catalog(raw)
+    summary = summarize_catalog(normalized)
+
+    meta = dict(conn.site_meta or {})
+    meta["audit_summary"] = summary
+    meta["last_sync_count"] = len(normalized)
+    conn.site_meta = meta
+    conn.last_synced_at = datetime.utcnow()
+    db.session.commit()
+    if normalized:
+        flash(f"Synced {len(normalized)} Squarespace product(s).", "success")
+    else:
+        flash(
+            "Sync ran successfully — no commerce products found "
+            "(Squarespace catalog reads only return data for Commerce sites).",
+            "info",
+        )
     return redirect(url_for("module_connectors", client_id=client_id))
 
 

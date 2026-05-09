@@ -28,6 +28,9 @@
     .mc-meta { font-size: 0.85rem; color: #555; margin-top: 0.4rem; }
     .mc-help { font-size: 0.82rem; color: #666; margin: 0.35rem 0 0 0; }
     .mc-banner { padding: 0.6rem 0.85rem; border-radius: 8px; background: #fff8e0; color: #6a4f00; font-size: 0.85rem; margin: 0 0 1rem 0; }
+    .mc-summary { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.6rem 0 0.4rem 0; }
+    .mc-pill { padding: 0.25rem 0.6rem; border-radius: 999px; background: #eef0fb; color: #2a2a48; font-size: 0.78rem; }
+    .mc-pill.warn { background: #fdf0e6; color: #8c4a1f; }
 </style>
 {% endblock %}
 
@@ -62,7 +65,20 @@
                     · {{ bigcommerce.store_meta.name }}
                 {% endif %}
             </div>
+            {% set bc_audit = (bigcommerce.store_meta or {}).get('audit_summary') %}
+            {% if bc_audit %}
+                <div class="mc-summary">
+                    <span class="mc-pill">{{ bc_audit.total }} product{{ '' if bc_audit.total == 1 else 's' }}</span>
+                    {% if bc_audit.thin_description %}<span class="mc-pill warn">{{ bc_audit.thin_description }} thin description{{ '' if bc_audit.thin_description == 1 else 's' }}</span>{% endif %}
+                    {% if bc_audit.missing_alt_text %}<span class="mc-pill warn">{{ bc_audit.missing_alt_text }} missing alt text</span>{% endif %}
+                    {% if bc_audit.no_images %}<span class="mc-pill warn">{{ bc_audit.no_images }} with no images</span>{% endif %}
+                    {% if bc_audit.drafts %}<span class="mc-pill warn">{{ bc_audit.drafts }} draft</span>{% endif %}
+                </div>
+            {% endif %}
             <div class="mc-actions">
+                <form method="post" action="{{ url_for('bigcommerce_sync', client_id=workspace.id) }}" style="display:inline;">
+                    <button type="submit" class="mc-btn">Sync &amp; audit</button>
+                </form>
                 <form method="post" action="{{ url_for('bigcommerce_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this BigCommerce store?');">
                     <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
                 </form>
@@ -99,7 +115,20 @@
             <div class="mc-meta">
                 Store: <strong>{{ shopline.store_handle }}.myshopline.com</strong>
             </div>
+            {% set sl_audit = (shopline.shop_meta or {}).get('audit_summary') %}
+            {% if sl_audit %}
+                <div class="mc-summary">
+                    <span class="mc-pill">{{ sl_audit.total }} product{{ '' if sl_audit.total == 1 else 's' }}</span>
+                    {% if sl_audit.thin_description %}<span class="mc-pill warn">{{ sl_audit.thin_description }} thin description{{ '' if sl_audit.thin_description == 1 else 's' }}</span>{% endif %}
+                    {% if sl_audit.missing_alt_text %}<span class="mc-pill warn">{{ sl_audit.missing_alt_text }} missing alt text</span>{% endif %}
+                    {% if sl_audit.no_images %}<span class="mc-pill warn">{{ sl_audit.no_images }} with no images</span>{% endif %}
+                    {% if sl_audit.drafts %}<span class="mc-pill warn">{{ sl_audit.drafts }} draft</span>{% endif %}
+                </div>
+            {% endif %}
             <div class="mc-actions">
+                <form method="post" action="{{ url_for('shopline_sync', client_id=workspace.id) }}" style="display:inline;">
+                    <button type="submit" class="mc-btn">Sync &amp; audit</button>
+                </form>
                 <form method="post" action="{{ url_for('shopline_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this SHOPLINE store?');">
                     <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
                 </form>
@@ -210,7 +239,20 @@
             </div>
         </div>
         {% if squarespace %}
+            {% set sq_audit = (squarespace.site_meta or {}).get('audit_summary') %}
+            {% if sq_audit %}
+                <div class="mc-summary">
+                    <span class="mc-pill">{{ sq_audit.total }} product{{ '' if sq_audit.total == 1 else 's' }}</span>
+                    {% if sq_audit.thin_description %}<span class="mc-pill warn">{{ sq_audit.thin_description }} thin description{{ '' if sq_audit.thin_description == 1 else 's' }}</span>{% endif %}
+                    {% if sq_audit.missing_alt_text %}<span class="mc-pill warn">{{ sq_audit.missing_alt_text }} missing alt text</span>{% endif %}
+                    {% if sq_audit.no_images %}<span class="mc-pill warn">{{ sq_audit.no_images }} with no images</span>{% endif %}
+                    {% if sq_audit.drafts %}<span class="mc-pill warn">{{ sq_audit.drafts }} draft</span>{% endif %}
+                </div>
+            {% endif %}
             <div class="mc-actions">
+                <form method="post" action="{{ url_for('squarespace_sync', client_id=workspace.id) }}" style="display:inline;">
+                    <button type="submit" class="mc-btn">Sync &amp; audit</button>
+                </form>
                 <form method="post" action="{{ url_for('squarespace_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Squarespace site?');">
                     <button type="submit" class="mc-btn mc-btn-danger">Disconnect</button>
                 </form>
