@@ -18742,6 +18742,40 @@ a.btn {
 }
 
 /* =========================================================
+   Public-share popover (Settings → Share link button)
+   ========================================================= */
+.share-details {
+    position: relative;
+    display: inline-block;
+}
+.share-details summary {
+    list-style: none;
+    cursor: pointer;
+}
+.share-details summary::-webkit-details-marker { display: none; }
+.share-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    min-width: 320px;
+    padding: 0.85rem;
+    background: white;
+    border: 1px solid #ececf2;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+html[data-theme="dark"] .share-popover {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+}
+html[data-theme="dark"] .share-popover input[type="text"] {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-strong);
+}
+
+/* =========================================================
    Workspace logo upload block (Replace / Remove under the logo)
    ========================================================= */
 .workspace-logo-block {

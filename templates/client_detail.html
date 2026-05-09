@@ -17,6 +17,29 @@
             <a href="{{ url_for('export_client_audit_pdf', client_id=client.id) }}" class="btn btn-secondary">
                 Export PDF
             </a>
+            {# Share toggle — generates a tokenized public URL the user
+               can copy to send to clients without forcing login. #}
+            {% if workspace_row and workspace_row.public_share_token %}
+                {% set share_url = url_for('public_audit_report', token=workspace_row.public_share_token, _external=True) %}
+                <details class="share-details">
+                    <summary class="btn btn-secondary">Share link</summary>
+                    <div class="share-popover">
+                        <p style="font-size:0.78rem; color:#555; margin:0 0 0.4rem 0;">Anyone with this link can view the report. No login required.</p>
+                        <input type="text" readonly value="{{ share_url }}" style="width:100%; padding:0.4rem 0.55rem; border:1px solid #d4d4dc; border-radius:6px; font-size:0.8rem; margin-bottom:0.4rem;" onclick="this.select();">
+                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                            <a href="{{ share_url }}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:0.78rem; padding:0.3rem 0.65rem;">Open ↗</a>
+                            <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;" onsubmit="return confirm('Revoke this link? Anyone with the URL will lose access.');">
+                                <input type="hidden" name="action" value="revoke">
+                                <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.3rem 0.65rem; background:#fdecea; color:#b22424;">Revoke</button>
+                            </form>
+                        </div>
+                    </div>
+                </details>
+            {% else %}
+                <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-secondary">Share link</button>
+                </form>
+            {% endif %}
         {% else %}
             {% if current_user.is_authenticated and current_user.plan != "free" %}
             <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">

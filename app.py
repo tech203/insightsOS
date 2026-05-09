@@ -369,6 +369,13 @@ class Client(db.Model):
     business_summary = db.Column(db.Text, nullable=True)
     business_profile_updated_at = db.Column(db.DateTime, nullable=True)
 
+    # When set, anyone with the URL /report/<public_share_token> can
+    # view + export the latest audit PDF without logging in. Lets
+    # agencies share polished reports with their clients without
+    # creating user accounts. Owner can revoke at any time.
+    public_share_token = db.Column(db.String(80), nullable=True, unique=True, index=True)
+    public_share_created_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
     )
@@ -5116,39 +5123,23 @@ def _citation_table_rows(client_dict, max_rows: int = 5):
     return out
 
 
-@app.route("/client/<client_id>/export-pdf")
-@login_required
-def export_client_audit_pdf(client_id):
-    client = get_client_by_id(client_id)
-    if not client:
-        abort(404)
-
-    # The Client ORM row drives the business-profile cache; client (the
-    # serialised dict) drives the rest of the rendering.
-    workspace_row = (
-        Client.query.filter_by(slug=str(client_id), user_id=effective_owner_id())
-        .first()
-        or (
-            Client.query.filter_by(id=int(client_id), user_id=effective_owner_id()).first()
-            if str(client_id).isdigit() else None
-        )
-    )
-
+def _build_audit_pdf(workspace_row, client, *, agency_override=None):
+    """Render the audit PDF HTML + return (html, filename) so the
+    same rendering serves both the authenticated /export-pdf route
+    and the public /report/<token> route."""
     business_profile = _resolve_business_profile_for_pdf(workspace_row, client)
     citation_rows = _citation_table_rows(client, max_rows=5)
 
     latest = client.get("latest_audit", {})
-
     recommended_actions = client.get("recommended_actions", [])
     question_rows = client.get("question_rows", [])
     missing_rows = client.get("missing_rows", [])
-
     top_action = recommended_actions[0] if recommended_actions else None
 
-    # White-label agency branding — falls back to DarInsights when off.
-    # Team members see the owner's branding so client-facing PDFs are
-    # consistent across the team.
-    agency_payload = effective_agency_branding()
+    # Use the override agency dict if provided (public-share path —
+    # the workspace owner's branding), otherwise fall back to the
+    # current user's effective branding.
+    agency_payload = agency_override or effective_agency_branding()
     agency = {
         "name": agency_payload.get("name") or "Your Agency",
         "logo_url": agency_payload.get("logo_url"),
@@ -5159,7 +5150,6 @@ def export_client_audit_pdf(client_id):
         "active": agency_payload.get("active", False),
     }
 
-    # 🔹 Render HTML
     report_date = datetime.utcnow().strftime("%d %b %Y")
     html = render_template(
         "client_audit_pdf.html",
@@ -5179,15 +5169,179 @@ def export_client_audit_pdf(client_id):
         business_profile=business_profile,
         citation_rows=citation_rows,
     )
-
     filename = pdf_filename(f"{client.get('name', 'report')} audit report")
-    return render_pdf_response(
-        html,
-        filename,
-        fallback_lines=client_audit_pdf_lines(
-            client, latest, recommended_actions, report_date
-        ),
+    fallback = client_audit_pdf_lines(client, latest, recommended_actions, report_date)
+    return html, filename, fallback
+
+
+@app.route("/client/<client_id>/export-pdf")
+@login_required
+def export_client_audit_pdf(client_id):
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    # The Client ORM row drives the business-profile cache; client (the
+    # serialised dict) drives the rest of the rendering.
+    workspace_row = (
+        Client.query.filter_by(slug=str(client_id), user_id=effective_owner_id())
+        .first()
+        or (
+            Client.query.filter_by(id=int(client_id), user_id=effective_owner_id()).first()
+            if str(client_id).isdigit() else None
+        )
     )
+
+    html, filename, fallback = _build_audit_pdf(workspace_row, client)
+    return render_pdf_response(html, filename, fallback_lines=fallback)
+
+
+@app.route("/client/<int:client_id>/share/toggle", methods=["POST"])
+@login_required
+def toggle_public_share(client_id):
+    """Generate or revoke a public share link for the workspace's
+    audit report. The token lives on the Client row so revoke =
+    overwrite. Anyone with the active token can view the report PDF."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    action = (request.form.get("action") or "").lower()
+    if action == "revoke":
+        workspace.public_share_token = None
+        workspace.public_share_created_at = None
+        flash("Public report link revoked.", "success")
+    else:
+        workspace.public_share_token = secrets.token_urlsafe(24)
+        workspace.public_share_created_at = datetime.utcnow()
+        flash("Public report link is live. Copy it to share.", "success")
+    db.session.commit()
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/report/<token>")
+def public_audit_report(token):
+    """Public-facing audit report — no auth required. Looks up the
+    workspace by token and renders the report HTML inline (download
+    via /report/<token>/pdf). Reuses the owner's white-label branding
+    so the report carries the agency's identity end-to-end."""
+    workspace = Client.query.filter_by(public_share_token=token).one_or_none()
+    if not workspace:
+        abort(404)
+
+    owner = User.query.get(workspace.user_id)
+    agency_payload = agency_branding(owner) if owner else agency_branding(None)
+    client = serialize_client_row(workspace)
+
+    # Build the dict shape the audit PDF template expects. We pull
+    # the latest saved audit for this workspace if there is one.
+    audits = get_saved_audits(user_id=workspace.user_id)
+    matched = [
+        a for a in audits
+        if (a.get("client_id") and str(a.get("client_id")) == str(workspace.id))
+        or a.get("website_normalized") == workspace.website_normalized
+    ]
+    matched = sort_audits(matched, sort_by="saved_at", order="desc") if matched else []
+    latest_audit = matched[0] if matched else {}
+    client["latest_audit"] = latest_audit
+    client["recommended_actions"] = []
+    client["question_rows"] = (latest_audit or {}).get("query_analysis", [])
+    client["missing_rows"] = []
+
+    business_profile = _resolve_business_profile_for_pdf(workspace, client)
+    # Citation rows for the public path: read directly from the
+    # workspace's tracked prompts since current_user isn't authenticated.
+    citation_rows = []
+    if workspace.website_normalized:
+        prompt_rows = (
+            PromptTracking.query.filter_by(
+                user_id=workspace.user_id, domain=workspace.website_normalized
+            )
+            .order_by(PromptTracking.created_at.desc())
+            .limit(5)
+            .all()
+        )
+        for row in prompt_rows:
+            latest_snap = (
+                db.session.query(PromptCheckSnapshot)
+                .filter_by(prompt_tracking_id=row.id)
+                .order_by(PromptCheckSnapshot.checked_at.desc())
+                .first()
+            )
+            if latest_snap:
+                cited = bool(latest_snap.brand_mentioned)
+                top = (latest_snap.competitors_mentioned or [None])[0] if latest_snap.competitors_mentioned else None
+            else:
+                cited = (row.mentioned or "").lower() == "yes"
+                top = row.top_competitor or None
+            citation_rows.append({
+                "query": row.prompt or "—",
+                "cited": cited,
+                "top_competitor": top or "—",
+            })
+
+    return render_template(
+        "public_audit_report.html",
+        client=client,
+        latest=client["latest_audit"],
+        recommended_actions=[],
+        top_action=None,
+        question_rows=client["question_rows"],
+        missing_rows=[],
+        report_date=datetime.utcnow().strftime("%d %b %Y"),
+        agency={
+            "name": agency_payload.get("name") or "Your Agency",
+            "logo_url": agency_payload.get("logo_url"),
+            "website": agency_payload.get("website"),
+            "tagline": agency_payload.get("tagline") or "AI Visibility & Content Strategy",
+            "footer_text": agency_payload.get("footer_text"),
+            "disclaimer": agency_payload.get("disclaimer"),
+            "active": agency_payload.get("active", False),
+        },
+        executive_summary=(
+            business_profile.get("executive_summary")
+            or client.get("executive_summary")
+        ),
+        competitor_notes=client.get("competitor_notes"),
+        business_profile=business_profile,
+        citation_rows=citation_rows,
+        token=token,
+    )
+
+
+@app.route("/report/<token>/pdf")
+def public_audit_report_pdf(token):
+    """Same data as the public HTML view, rendered as a PDF."""
+    workspace = Client.query.filter_by(public_share_token=token).one_or_none()
+    if not workspace:
+        abort(404)
+
+    # Reuse the public HTML route's data path then render via WeasyPrint.
+    # Easiest way: hit the route internally so we don't duplicate the
+    # data assembly. Then strip the surrounding "share frame" wrapper.
+    with app.test_request_context(f"/report/{token}"):
+        # re-fetch through the same code path
+        owner = User.query.get(workspace.user_id)
+        agency_payload = agency_branding(owner) if owner else agency_branding(None)
+        client = serialize_client_row(workspace)
+        audits = get_saved_audits(user_id=workspace.user_id)
+        matched = [
+            a for a in audits
+            if (a.get("client_id") and str(a.get("client_id")) == str(workspace.id))
+            or a.get("website_normalized") == workspace.website_normalized
+        ]
+        matched = sort_audits(matched, sort_by="saved_at", order="desc") if matched else []
+        client["latest_audit"] = matched[0] if matched else {}
+        client["recommended_actions"] = []
+        client["question_rows"] = (matched[0] or {}).get("query_analysis", []) if matched else []
+        client["missing_rows"] = []
+
+    html, filename, fallback = _build_audit_pdf(
+        workspace, client, agency_override=agency_payload
+    )
+    return render_pdf_response(html, filename, fallback_lines=fallback)
 
 
 @app.route("/clients")
@@ -6041,9 +6195,20 @@ def client_detail(client_id):
         total_audits=client.get("audit_count", 0),
         total_prompts=len(client.get("tracked_prompts", []) or []),
     )
+    # Pull the ORM row alongside the serialized dict so the template
+    # can read columns the dict doesn't expose (e.g. public_share_token).
+    workspace_row = (
+        Client.query.filter_by(slug=str(client_id), user_id=effective_owner_id())
+        .first()
+        or (
+            Client.query.filter_by(id=int(client_id), user_id=effective_owner_id()).first()
+            if str(client_id).isdigit() else None
+        )
+    )
     return render_template(
         "client_detail.html",
         client=client,
+        workspace_row=workspace_row,
         next_best_action=next_best_action,
     )
 
