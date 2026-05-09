@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4;
-            margin: 22mm 16mm 22mm 16mm;
+            margin: 18mm 18mm 18mm 18mm;
             @bottom-left {
                 content: "{{ client.name if client and client.name else 'Workspace' }} · AI Visibility Report";
                 font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -103,8 +103,8 @@
             position: relative;
             background: var(--gradient-brand);
             color: #ffffff;
-            padding: 36mm 16mm 20mm 16mm;
-            margin: -22mm -16mm 22mm -16mm;
+            padding: 22mm 18mm 14mm 18mm;
+            margin: -18mm -18mm 14mm -18mm;
             border: 0;
             overflow: hidden;
         }
@@ -119,8 +119,8 @@
             /* Hairline divider at the bottom edge for crisp finish. */
             content: "";
             position: absolute;
-            left: 16mm;
-            right: 16mm;
+            left: 18mm;
+            right: 18mm;
             bottom: 0;
             height: 1px;
             background: rgba(255,255,255,0.16);
@@ -317,8 +317,8 @@
         .hero-card {
             border: 1px solid var(--line);
             background: var(--gradient-brand-soft), #ffffff;
-            border-radius: 20px;
-            padding: 22px 22px 24px;
+            border-radius: 16px;
+            padding: 14px 14px 16px;
             position: relative;
             overflow: hidden;
             text-align: center;
@@ -345,9 +345,9 @@
         /* Inline SVG circular gauge — see body markup. The wrapper
            controls sizing; the SVG itself paints the ring. */
         .score-gauge {
-            margin: 12px auto 6px;
-            width: 132px;
-            height: 132px;
+            margin: 8px auto 4px;
+            width: 104px;
+            height: 104px;
             position: relative;
         }
         .score-gauge svg {
@@ -363,14 +363,14 @@
             left: 0;
             right: 0;
             transform: translateY(-50%);
-            font-size: 36px;
+            font-size: 28px;
             font-weight: 800;
             color: var(--text-strong);
             letter-spacing: -0.02em;
             line-height: 1;
         }
         .score-gauge-num small {
-            font-size: 13px;
+            font-size: 11px;
             color: var(--muted);
             font-weight: 700;
             letter-spacing: 0;
@@ -412,25 +412,25 @@
            via the ::before pseudo so the hierarchy reads at a glance
            without a busy wrapper element. */
         .section {
-            margin-top: 26px;
+            margin-top: 16px;
         }
 
         .section-title {
-            margin: 0 0 12px;
-            font-size: 16px;
+            margin: 0 0 8px;
+            font-size: 14.5px;
             font-weight: 800;
             color: var(--text-strong);
             letter-spacing: -0.01em;
             position: relative;
-            padding-left: 14px;
+            padding-left: 12px;
         }
         .section-title::before {
             content: "";
             position: absolute;
             left: 0;
-            top: 4px;
-            bottom: 4px;
-            width: 4px;
+            top: 3px;
+            bottom: 3px;
+            width: 3px;
             border-radius: 2px;
             background: var(--gradient-brand);
         }
@@ -461,9 +461,9 @@
         .metric-card {
             border: 1px solid var(--line);
             background: var(--panel-strong);
-            border-radius: 16px;
-            padding: 16px 16px 18px;
-            min-height: 116px;
+            border-radius: 12px;
+            padding: 10px 12px 12px;
+            min-height: 0;
             position: relative;
             overflow: hidden;
         }
@@ -491,8 +491,8 @@
         }
 
         .metric-value {
-            margin-top: 8px;
-            font-size: 28px;
+            margin-top: 4px;
+            font-size: 22px;
             line-height: 1;
             font-weight: 800;
             color: var(--text-strong);
@@ -500,17 +500,17 @@
         }
 
         .metric-copy {
-            margin-top: 8px;
+            margin-top: 4px;
             color: var(--text-soft);
-            font-size: 10.5px;
-            line-height: 1.55;
+            font-size: 9.5px;
+            line-height: 1.4;
         }
 
         .panel {
             border: 1px solid var(--line);
             background: var(--panel);
-            border-radius: 16px;
-            padding: 18px 20px;
+            border-radius: 12px;
+            padding: 12px 14px;
         }
 
         .summary-box {
@@ -554,9 +554,9 @@
             justify-content: space-between;
             align-items: flex-end;
             background: linear-gradient(180deg, var(--brand-faint) 0%, transparent 100%), #ffffff;
-            padding: 22px 24px;
-            border-radius: 16px;
-            margin-bottom: 22px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            margin-bottom: 14px;
             border: 1px solid var(--line);
             position: relative;
             overflow: hidden;
@@ -567,11 +567,11 @@
             top: 0;
             left: 0;
             bottom: 0;
-            width: 5px;
+            width: 4px;
             background: var(--gradient-brand);
         }
         .audit-title-name {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 800;
             letter-spacing: -0.02em;
             color: var(--text-strong);
@@ -579,9 +579,9 @@
             line-height: 1.05;
         }
         .audit-title-sub {
-            margin: 6px 0 0;
+            margin: 4px 0 0;
             color: var(--text-soft);
-            font-size: 12.5px;
+            font-size: 11.5px;
             font-weight: 500;
         }
         .audit-title-date {
@@ -599,10 +599,10 @@
         }
 
         .exec-summary p {
-            margin: 0 0 10px;
-            line-height: 1.65;
+            margin: 0 0 6px;
+            line-height: 1.5;
             color: var(--text);
-            font-size: 11.5px;
+            font-size: 11px;
         }
         .exec-summary p:last-child {
             margin-bottom: 0;
@@ -612,8 +612,8 @@
            plus an accent border that signals state at a glance. */
         .verdict-box {
             border: 1px solid var(--danger);
-            border-radius: 16px;
-            padding: 16px 20px;
+            border-radius: 12px;
+            padding: 10px 14px;
             background: linear-gradient(180deg, var(--danger-soft) 0%, transparent 100%), #ffffff;
             position: relative;
             overflow: hidden;
@@ -665,18 +665,18 @@
             background: var(--panel);
             color: var(--text-soft);
             font-weight: 700;
-            font-size: 9.5px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.12em;
-            padding: 11px 14px;
+            padding: 7px 12px;
             border-bottom: 1px solid var(--line);
             width: 32%;
         }
         .profile-table td {
-            padding: 11px 14px;
+            padding: 7px 12px;
             border-bottom: 1px solid var(--line);
             color: var(--text);
-            font-size: 11.5px;
+            font-size: 11px;
         }
         .profile-table tr:last-child th,
         .profile-table tr:last-child td {
@@ -703,19 +703,19 @@
             background: var(--gradient-brand);
             color: #ffffff;
             font-weight: 700;
-            font-size: 10px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.12em;
-            padding: 12px 14px;
+            padding: 8px 12px;
             text-align: left;
             border-bottom: 0;
         }
         .citation-table th.th-center { text-align: center; }
         .citation-table tbody td {
-            padding: 11px 14px;
+            padding: 7px 12px;
             border-bottom: 1px solid var(--line-soft);
             color: var(--text);
-            font-size: 11.5px;
+            font-size: 10.5px;
         }
         .citation-table tbody tr:nth-child(even) td {
             background: var(--panel);
@@ -842,28 +842,28 @@
         .panel { counter-reset: rec-counter; }
 
         .recommendation {
-            margin-bottom: 10px;
-            padding: 14px 16px 14px 50px;
+            margin-bottom: 6px;
+            padding: 9px 12px 9px 40px;
             border: 1px solid var(--line);
             background: #ffffff;
-            border-radius: 14px;
+            border-radius: 10px;
             position: relative;
             counter-increment: rec-counter;
         }
         .recommendation::before {
             content: counter(rec-counter);
             position: absolute;
-            left: 14px;
-            top: 13px;
-            width: 26px;
-            height: 26px;
+            left: 10px;
+            top: 9px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             background: var(--gradient-brand);
             color: #ffffff;
             font-weight: 800;
-            font-size: 11px;
+            font-size: 10px;
             text-align: center;
-            line-height: 26px;
+            line-height: 22px;
             letter-spacing: 0;
         }
 
@@ -873,9 +873,15 @@
 
         .recommendation-title {
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             color: var(--text-strong);
-            font-size: 12px;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .recommendation > div:last-child {
+            font-size: 10.5px;
+            line-height: 1.45;
+            color: var(--text);
         }
 
         /* Footer — branded mark on left, page meta on right with a
@@ -1190,69 +1196,31 @@
            generic filler that confused users when their workspace had
            no real opportunities yet. Page-break dropped — let
            WeasyPrint flow naturally. #}
-        {# Filter out the generic placeholder questions that older audit
-           runs sometimes left behind ("How much does the service cost?",
-           "What makes this business different?"). They look like stub
-           fixtures and undermine credibility. #}
-        {% set _stubs = [
-            'how much does the service cost?',
-            'what makes this business different?',
-            'who is this service best for?',
-            'how long does it take?'
-        ] %}
-        {% set _filtered_missing = missing_rows | rejectattr('query', 'in', _stubs) | list if missing_rows else [] %}
-        {% set _filtered_questions = question_rows | rejectattr('query', 'in', _stubs) | list if question_rows else [] %}
-
-        {% if _filtered_missing or _filtered_questions %}
-        <div class="section">
-            <h2 class="section-title">Question Opportunities</h2>
-            <table class="data">
-                <thead>
-                    <tr><th>Query / Topic</th><th>Brand Mentioned</th><th>Priority</th></tr>
-                </thead>
-                <tbody>
-                    {% if _filtered_missing %}
-                        {% for row in _filtered_missing[:12] %}
-                        <tr>
-                            <td>{{ row.query if row.query else "Opportunity" }}</td>
-                            <td>No</td>
-                            <td><span class="pill high">High</span></td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        {% for row in _filtered_questions[:12] %}
-                        <tr>
-                            <td>{{ row.query if row.query else "Opportunity" }}</td>
-                            <td>{{ "Yes" if row.latest_brand_mentioned else "No" }}</td>
-                            <td><span class="pill medium">Medium</span></td>
-                        </tr>
-                        {% endfor %}
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
+        {# Question Opportunities removed — the Citation Test Results
+           table above shows the same per-query findings with richer
+           context (real competitor names per query). Rendering both
+           forced the report onto an extra page without adding signal. #}
 
         {# Top competitors — populated when the audit's Tavily research
-           pack found real brands. Each entry has name + url + snippet. #}
+           pack found real brands. Compact two-column layout to keep
+           the report on three pages. #}
         {% if top_competitors %}
         <div class="section">
             <h2 class="section-title">Top Competitors (Web Research)</h2>
-            <p class="section-lede">Brands AI assistants cite alongside or ahead of you for queries in your category. Sourced via web search, not AI guessing.</p>
-            <div class="panel">
-                {% for comp in top_competitors[:5] %}
-                <div class="finding" style="display: table; width: 100%; margin-bottom: 8px;">
-                    <div style="display: table-cell; vertical-align: top;">
-                        <div class="finding-title">{{ comp.name }}</div>
-                        {% if comp.snippet %}
-                        <div style="font-size: 11px; color: var(--text-soft); line-height: 1.5;">{{ comp.snippet }}</div>
-                        {% endif %}
-                        {% if comp.url %}
-                        <div style="font-size: 10px; color: var(--accent-deep); margin-top: 4px; word-break: break-all;">{{ comp.url }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
+            <p class="section-lede">Brands AI assistants cite alongside or ahead of you. Sourced via web search.</p>
+            <div class="panel" style="padding: 8px 10px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    {% for comp in top_competitors[:5] %}
+                    <tr>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; width: 30%;">
+                            <strong style="font-size: 11px; color: var(--text-strong);">{{ comp.name }}</strong>
+                        </td>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; font-size: 9.5px; color: var(--accent-deep); word-break: break-all;">
+                            {{ comp.url }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
             </div>
         </div>
         {% endif %}
