@@ -254,8 +254,8 @@
 
     <div class="am-engines-banner">
         Active engines: <strong>{{ enabled_engine_labels|join(', ') }}</strong>.
-        {% if enabled_engine_labels|length == 1 %}
-            Web-grounded answers (separate from training-data results) become available when an admin enables the second AI engine — contact support to turn it on.
+        {% if enabled_engine_labels|length < 3 %}
+            More engines mean more reliable trends — contact support to enable additional AI providers (web-grounded + multi-vendor coverage).
         {% else %}
             Each check fans out across all active engines.
         {% endif %}

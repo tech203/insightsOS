@@ -18742,6 +18742,52 @@ a.btn {
 }
 
 /* =========================================================
+   Workspace logo upload block (Replace / Remove under the logo)
+   ========================================================= */
+.workspace-logo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+.workspace-logo-actions {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.workspace-logo-upload-btn,
+.workspace-logo-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #d4d4dc;
+    background: #ffffff;
+    color: #4a4a5a;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.workspace-logo-upload-btn:hover {
+    background: rgba(62, 223, 203, 0.08);
+    border-color: var(--brand-primary, #3EDFCB);
+    color: var(--brand-text-strong, #191929);
+}
+.workspace-logo-remove-btn {
+    background: #fdecea;
+    color: #b22424;
+    border-color: rgba(180, 36, 36, 0.18);
+}
+html[data-theme="dark"] .workspace-logo-upload-btn,
+html[data-theme="dark"] .workspace-logo-remove-btn {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-secondary);
+}
+
+/* =========================================================
    Sidebar SVG icons + rail-collapse mode
    ========================================================= */
 

@@ -32,6 +32,20 @@ ENGINE_REGISTRY = {
         "base_url": "https://api.perplexity.ai",
         "kind": "web",
     },
+    "gemini": {
+        "label": "Gemini",
+        # Gemini exposes an OpenAI-compatible endpoint, so the same
+        # OpenAI() client works — just point base_url at it. Flash is
+        # the cheapest snappy default; users can override the model
+        # per-engine call if they want Pro.
+        "model": "gemini-1.5-flash",
+        "env_key": "GEMINI_API_KEY",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        # Trained-data answers like ChatGPT (no live web grounding by
+        # default — that requires a separate Search-grounding flag we
+        # don't enable for the basic citation check).
+        "kind": "trained",
+    },
 }
 
 DEFAULT_ENGINE = "chatgpt"

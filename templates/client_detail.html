@@ -48,13 +48,28 @@
     <section class="workspace-top-strip">
         <div class="workspace-top-main">
             <div class="workspace-top-brand">
-                {% if client.logo_url %}
-                    <img src="{{ client.logo_url }}" alt="{{ client.name }} logo" class="workspace-logo-image">
-                {% else %}
-                    <div class="workspace-logo-mark">
-                        {{ (client.name[0] if client and client.name else "W")|upper }}
+                <div class="workspace-logo-block">
+                    {% if client.logo_url %}
+                        <img src="{{ client.logo_url }}" alt="{{ client.name }} logo" class="workspace-logo-image">
+                    {% else %}
+                        <div class="workspace-logo-mark">
+                            {{ (client.name[0] if client and client.name else "W")|upper }}
+                        </div>
+                    {% endif %}
+                    <div class="workspace-logo-actions">
+                        <form method="post" action="{{ url_for('upload_workspace_logo', client_id=client.db_id or client.id) }}" enctype="multipart/form-data" style="display:inline;">
+                            <label class="workspace-logo-upload-btn" title="PNG · JPG · SVG · WEBP">
+                                {% if client.logo_url %}Replace{% else %}Upload{% endif %} logo
+                                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg,.webp" onchange="this.form.submit()" style="display:none;">
+                            </label>
+                        </form>
+                        {% if client.logo_url %}
+                        <form method="post" action="{{ url_for('remove_workspace_logo', client_id=client.db_id or client.id) }}" style="display:inline;" onsubmit="return confirm('Remove this workspace logo?');">
+                            <button type="submit" class="workspace-logo-remove-btn">Remove</button>
+                        </form>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
 
                 <div class="workspace-top-copy">
                     <div class="workspace-chip-row">

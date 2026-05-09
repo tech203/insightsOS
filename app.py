@@ -10965,6 +10965,66 @@ def gsc_sync(client_id):
 # =========================
 
 
+@app.route("/client/<int:client_id>/upload-logo", methods=["POST"])
+@login_required
+def upload_workspace_logo(client_id):
+    """Save an uploaded workspace logo. Routes through the storage
+    layer (S3 when configured, local disk otherwise) so the same code
+    path serves single-instance dev and multi-instance production."""
+    from services.storage import logo_storage
+
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in {"png", "jpg", "jpeg", "svg", "webp"}:
+        flash("Use PNG, JPG, SVG, or WEBP.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    new_name = f"workspace-{workspace.id}-{secrets.token_hex(4)}.{ext}"
+    try:
+        logo_storage.save("workspace_logos", new_name, file)
+    except Exception as exc:
+        logger.warning("Workspace logo upload failed: %s", exc)
+        flash("Could not save the logo. Try again.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if workspace.logo_filename:
+        logo_storage.delete("workspace_logos", workspace.logo_filename)
+    workspace.logo_filename = new_name
+    db.session.commit()
+    flash("Workspace logo updated. It'll appear on the audit PDF and dashboard.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/remove-logo", methods=["POST"])
+@login_required
+def remove_workspace_logo(client_id):
+    from services.storage import logo_storage
+
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    if workspace.logo_filename:
+        logo_storage.delete("workspace_logos", workspace.logo_filename)
+        workspace.logo_filename = None
+        db.session.commit()
+        flash("Workspace logo removed.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
 @app.route("/client/<int:client_id>/refresh-profile", methods=["POST"])
 @login_required
 def refresh_business_profile(client_id):
