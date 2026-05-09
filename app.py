@@ -319,6 +319,23 @@ class Client(db.Model):
     notes = db.Column(db.Text, nullable=True)
     logo_filename = db.Column(db.String(255), nullable=True)
 
+    # Brand Kit Studio fields. Structured (one column per attribute)
+    # so generation steps can lift values directly instead of parsing
+    # the legacy `notes` blob. The blueprint calls this "foundational
+    # architecture" — keep these stable.
+    brand_audience = db.Column(db.Text, nullable=True)
+    brand_services = db.Column(db.Text, nullable=True)
+    brand_differentiators = db.Column(db.Text, nullable=True)
+    brand_voice = db.Column(db.String(255), nullable=True)
+    brand_personality = db.Column(db.String(255), nullable=True)
+    brand_avoid = db.Column(db.Text, nullable=True)
+    brand_primary_color = db.Column(db.String(20), nullable=True)
+    brand_secondary_color = db.Column(db.String(20), nullable=True)
+    brand_accent_color = db.Column(db.String(20), nullable=True)
+    brand_typography = db.Column(db.String(120), nullable=True)
+    brand_imagery_direction = db.Column(db.Text, nullable=True)
+    brand_kit_updated_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
     )
@@ -3351,6 +3368,7 @@ def serialize_client_row(client):
         "logo_filename": client.logo_filename,
         "logo_url": url_for("static", filename=f"uploads/workspace_logos/{
                 client.logo_filename}") if client.logo_filename else None,
+        "brand_kit": brand_kit_dict(client),
         "created_at": (
             client.created_at.isoformat() if client.created_at else None
         ),
@@ -3358,6 +3376,59 @@ def serialize_client_row(client):
             client.updated_at.isoformat() if client.updated_at else None
         ),
     }
+
+
+def brand_kit_dict(client) -> Dict[str, Any]:
+    """Read the structured Brand Kit fields off a Client row. Used by
+    serialize_client_row + downstream prompt-builders so generators
+    have a stable shape to lift values from."""
+    if not client:
+        return {}
+    return {
+        "audience": getattr(client, "brand_audience", None),
+        "services": getattr(client, "brand_services", None),
+        "differentiators": getattr(client, "brand_differentiators", None),
+        "voice": getattr(client, "brand_voice", None),
+        "personality": getattr(client, "brand_personality", None),
+        "avoid": getattr(client, "brand_avoid", None),
+        "primary_color": getattr(client, "brand_primary_color", None),
+        "secondary_color": getattr(client, "brand_secondary_color", None),
+        "accent_color": getattr(client, "brand_accent_color", None),
+        "typography": getattr(client, "brand_typography", None),
+        "imagery_direction": getattr(client, "brand_imagery_direction", None),
+        "updated_at": (
+            client.brand_kit_updated_at.isoformat()
+            if getattr(client, "brand_kit_updated_at", None) else None
+        ),
+    }
+
+
+def brand_kit_context_block(client_or_dict) -> str:
+    """Format the Brand Kit fields as a clean text block for prompts.
+
+    Generators (audit, briefs, drafts, AI editing) prepend this so
+    the model gets explicit brand direction instead of leaning on
+    a generic notes blob. Returns empty string when nothing is set —
+    callers can concat without checking for content."""
+    if hasattr(client_or_dict, "brand_audience"):
+        kit = brand_kit_dict(client_or_dict)
+    elif isinstance(client_or_dict, dict):
+        kit = client_or_dict.get("brand_kit") or {}
+    else:
+        kit = {}
+    fields = [
+        ("Target audience", kit.get("audience")),
+        ("Main offerings", kit.get("services")),
+        ("What makes us different", kit.get("differentiators")),
+        ("Voice / tone", kit.get("voice")),
+        ("Personality", kit.get("personality")),
+        ("Avoid", kit.get("avoid")),
+        ("Imagery direction", kit.get("imagery_direction")),
+    ]
+    lines = [f"{label}: {value}" for label, value in fields if value]
+    if not lines:
+        return ""
+    return "Brand Kit:\n" + "\n".join(lines)
 
 
 def get_unique_client_slug(user_id, name):
@@ -5974,6 +6045,14 @@ def generate_client_content_brief(client_id):
             flash("Unable to deduct credits for brief generation.", "warning")
             return redirect(url_for("pricing_page"))
 
+        # Prepend the structured Brand Kit to the brand_context blob so
+        # the generator sees explicit voice / audience / differentiators.
+        kit_block = brand_kit_context_block(client)
+        if kit_block:
+            brand_context = (
+                f"{kit_block}\n\n{brand_context}" if brand_context else kit_block
+            )
+
         try:
             result = generate_content_brief(
                 client_name=client.get("name", ""),
@@ -6338,6 +6417,13 @@ def generate_client_content_draft(client_id):
         ):
             flash("Unable to deduct credits for draft generation.", "warning")
             return redirect(url_for("pricing_page"))
+
+        # Prepend the structured Brand Kit to brand_context.
+        kit_block = brand_kit_context_block(client)
+        if kit_block:
+            brand_context = (
+                f"{kit_block}\n\n{brand_context}" if brand_context else kit_block
+            )
 
         try:
             result = generate_content_draft(
@@ -10630,6 +10716,44 @@ def gsc_sync(client_id):
 # =========================
 # Cal.com booking integration
 # =========================
+
+
+@app.route("/client/<int:client_id>/brand-kit", methods=["GET", "POST"])
+@login_required
+def client_brand_kit(client_id):
+    """Brand Kit Studio — structured brand fields with a live preview.
+
+    Per the blueprint, Brand Kit → Preview is foundational
+    architecture: structured brand direction dramatically improves
+    generation quality across audits, content drafts, AI editing, and
+    website generation. We persist colors / typography / voice /
+    audience / differentiators as discrete columns so downstream
+    steps can lift values directly instead of parsing a notes blob."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+
+    if request.method == "POST":
+        workspace.brand_audience = (request.form.get("brand_audience") or "").strip() or None
+        workspace.brand_services = (request.form.get("brand_services") or "").strip() or None
+        workspace.brand_differentiators = (request.form.get("brand_differentiators") or "").strip() or None
+        workspace.brand_voice = (request.form.get("brand_voice") or "").strip()[:255] or None
+        workspace.brand_personality = (request.form.get("brand_personality") or "").strip()[:255] or None
+        workspace.brand_avoid = (request.form.get("brand_avoid") or "").strip() or None
+        workspace.brand_primary_color = (request.form.get("brand_primary_color") or "").strip()[:20] or None
+        workspace.brand_secondary_color = (request.form.get("brand_secondary_color") or "").strip()[:20] or None
+        workspace.brand_accent_color = (request.form.get("brand_accent_color") or "").strip()[:20] or None
+        workspace.brand_typography = (request.form.get("brand_typography") or "").strip()[:120] or None
+        workspace.brand_imagery_direction = (request.form.get("brand_imagery_direction") or "").strip() or None
+        workspace.brand_kit_updated_at = datetime.utcnow()
+        db.session.commit()
+        flash("Brand Kit saved.", "success")
+        return redirect(url_for("client_brand_kit", client_id=client_id))
+
+    return render_template("brand_kit_studio.html", workspace=workspace)
 
 
 @app.route("/integrations/calcom/<int:client_id>")

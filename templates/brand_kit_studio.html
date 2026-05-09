@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Kit — {{ workspace.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .bk-page { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .bk-header { margin-bottom: 1.5rem; }
+    .bk-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
+    .bk-header p { margin: 0; color: #555; max-width: 640px; }
+    .bk-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 960px) { .bk-layout { grid-template-columns: 1fr; } }
+
+    .bk-card { background: white; border: 1px solid #ececf2; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .bk-card h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
+    .bk-card p.helper { margin: 0 0 0.85rem 0; font-size: 0.85rem; color: #666; }
+
+    .bk-form { display: grid; gap: 0.4rem; }
+    .bk-form label { font-size: 0.78rem; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.5rem; }
+    .bk-form input, .bk-form textarea, .bk-form select {
+        padding: 0.55rem 0.75rem; border: 1px solid #d4d4dc; border-radius: 8px; font-size: 16px; background: white;
+        font-family: inherit;
+    }
+    .bk-form input:focus, .bk-form textarea:focus { outline: 2px solid var(--brand-primary, #3EDFCB); outline-offset: 1px; }
+    .bk-form textarea { resize: vertical; min-height: 70px; }
+
+    .bk-color-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+    .bk-color-row input[type="color"] {
+        width: 100%; height: 38px; padding: 2px; border: 1px solid #d4d4dc; border-radius: 8px; cursor: pointer; background: white;
+    }
+    .bk-color-row input[type="text"] { font-size: 13px; padding: 0.4rem 0.6rem; }
+
+    .bk-btn {
+        padding: 0.6rem 1.2rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+        background: var(--brand-primary, #3EDFCB); color: var(--brand-text-strong, #191929); min-height: 42px;
+    }
+    .bk-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
+
+    /* ---- Live preview ---- */
+    .bk-preview {
+        position: sticky; top: 1.5rem;
+        border-radius: 14px; padding: 1.5rem;
+        background: #fafafe; border: 1px solid #ececf2;
+    }
+    .bk-preview-swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+    .bk-swatch {
+        height: 64px; border-radius: 10px; display: flex; align-items: flex-end; padding: 0.5rem;
+        color: white; font-size: 0.75rem; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .bk-preview-tone {
+        background: white; border: 1px solid #ececf2; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;
+    }
+    .bk-preview-tone h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
+    .bk-preview-tone p { margin: 0; font-size: 0.9rem; color: #444; line-height: 1.55; }
+    .bk-preview-button {
+        display: inline-block; padding: 0.6rem 1.1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+        text-decoration: none;
+    }
+    .bk-meta { font-size: 0.75rem; color: #888; margin-top: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bk-page">
+    <div class="bk-header">
+        <h1>Brand Kit · {{ workspace.name }}</h1>
+        <p>Set brand direction once. Everything that follows — audits, briefs, drafts, AI editing, website generation — pulls from these fields so the output stays on-brand instead of generic.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('client_brand_kit', client_id=workspace.id) }}">
+        <div class="bk-layout">
+            <div>
+                <div class="bk-card">
+                    <h2>Visual identity</h2>
+                    <p class="helper">Colours flow into generated banners, comparison cards, and PDF accents.</p>
+
+                    <label>Primary, secondary, accent colours</label>
+                    <div class="bk-color-row">
+                        <input type="color" name="brand_primary_color" value="{{ workspace.brand_primary_color or '#3EDFCB' }}" oninput="document.getElementById('bk-pri-text').value=this.value; bkSyncPreview();">
+                        <input type="color" name="brand_secondary_color" value="{{ workspace.brand_secondary_color or '#9D7CE3' }}" oninput="document.getElementById('bk-sec-text').value=this.value; bkSyncPreview();">
+                        <input type="color" name="brand_accent_color" value="{{ workspace.brand_accent_color or '#191929' }}" oninput="document.getElementById('bk-acc-text').value=this.value; bkSyncPreview();">
+                    </div>
+                    <div class="bk-color-row" style="margin-top:0.5rem;">
+                        <input id="bk-pri-text" type="text" value="{{ workspace.brand_primary_color or '#3EDFCB' }}" readonly>
+                        <input id="bk-sec-text" type="text" value="{{ workspace.brand_secondary_color or '#9D7CE3' }}" readonly>
+                        <input id="bk-acc-text" type="text" value="{{ workspace.brand_accent_color or '#191929' }}" readonly>
+                    </div>
+
+                    <div class="bk-form">
+                        <label for="bk-typo">Typography direction</label>
+                        <input id="bk-typo" type="text" name="brand_typography" value="{{ workspace.brand_typography or '' }}" placeholder="e.g. Inter for body, IBM Plex Serif for display" oninput="bkSyncPreview()">
+
+                        <label for="bk-imagery">Imagery direction</label>
+                        <textarea id="bk-imagery" name="brand_imagery_direction" placeholder="e.g. Editorial product shots on neutral backgrounds, no people in frame.">{{ workspace.brand_imagery_direction or '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="bk-card">
+                    <h2>Voice &amp; positioning</h2>
+                    <p class="helper">Drives the tone of every AI-generated piece.</p>
+
+                    <div class="bk-form">
+                        <label for="bk-audience">Target audience</label>
+                        <textarea id="bk-audience" name="brand_audience" placeholder="e.g. Independent ceramic shops with 50–500 SKUs, founder-led, US/EU markets.">{{ workspace.brand_audience or '' }}</textarea>
+
+                        <label for="bk-services">Main services / products</label>
+                        <textarea id="bk-services" name="brand_services" placeholder="e.g. Hand-thrown stoneware mugs, gift sets, custom commissions.">{{ workspace.brand_services or '' }}</textarea>
+
+                        <label for="bk-diff">What makes the brand different</label>
+                        <textarea id="bk-diff" name="brand_differentiators" placeholder="e.g. Locally sourced clay, two-week turnaround, founder-signs each piece.">{{ workspace.brand_differentiators or '' }}</textarea>
+
+                        <label for="bk-voice">Voice / tone (one line)</label>
+                        <input id="bk-voice" type="text" name="brand_voice" value="{{ workspace.brand_voice or '' }}" placeholder="e.g. Calm, considered, slightly poetic — never salesy." oninput="bkSyncPreview()">
+
+                        <label for="bk-personality">Personality (3–5 adjectives)</label>
+                        <input id="bk-personality" type="text" name="brand_personality" value="{{ workspace.brand_personality or '' }}" placeholder="e.g. quiet, crafted, warm, intentional, durable">
+
+                        <label for="bk-avoid">Things to avoid</label>
+                        <textarea id="bk-avoid" name="brand_avoid" placeholder="e.g. Hype words like 'revolutionary', exclamation marks, stock product shots.">{{ workspace.brand_avoid or '' }}</textarea>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+                    <button type="submit" class="bk-btn">Save Brand Kit</button>
+                    <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="bk-btn bk-btn-secondary">← Back to workspace</a>
+                </div>
+            </div>
+
+            <div>
+                <div class="bk-preview" id="bkPreview" style="--bk-pri: {{ workspace.brand_primary_color or '#3EDFCB' }}; --bk-sec: {{ workspace.brand_secondary_color or '#9D7CE3' }}; --bk-acc: {{ workspace.brand_accent_color or '#191929' }};">
+                    <h2 style="margin:0 0 0.85rem 0; font-size: 1rem;">Live preview</h2>
+
+                    <div class="bk-preview-swatches">
+                        <div class="bk-swatch" style="background: var(--bk-pri);">Primary</div>
+                        <div class="bk-swatch" style="background: var(--bk-sec);">Secondary</div>
+                        <div class="bk-swatch" style="background: var(--bk-acc);">Accent</div>
+                    </div>
+
+                    <div class="bk-preview-tone">
+                        <h3 style="color: var(--bk-acc);" id="bk-pv-title">Sample headline · {{ workspace.name }}</h3>
+                        <p id="bk-pv-body">A short paragraph rendered in the brand voice.{% if workspace.brand_voice %} Tone: {{ workspace.brand_voice }}.{% endif %}{% if workspace.brand_typography %} Typography: {{ workspace.brand_typography }}.{% endif %}</p>
+                    </div>
+
+                    <a href="#" class="bk-preview-button" style="background: var(--bk-pri); color: var(--bk-acc);">Sample CTA</a>
+                    <a href="#" class="bk-preview-button" style="background: transparent; color: var(--bk-acc); border: 1px solid var(--bk-acc); margin-left: 0.4rem;">Secondary CTA</a>
+
+                    <div class="bk-meta">
+                        {% if workspace.brand_kit_updated_at %}
+                            Last updated {{ workspace.brand_kit_updated_at.strftime('%d %b %Y, %H:%M UTC') }}
+                        {% else %}
+                            Save the kit to lock these values in for downstream generation.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function bkSyncPreview() {
+    var pri = document.querySelector('input[name="brand_primary_color"]').value;
+    var sec = document.querySelector('input[name="brand_secondary_color"]').value;
+    var acc = document.querySelector('input[name="brand_accent_color"]').value;
+    var preview = document.getElementById('bkPreview');
+    if (preview) {
+        preview.style.setProperty('--bk-pri', pri);
+        preview.style.setProperty('--bk-sec', sec);
+        preview.style.setProperty('--bk-acc', acc);
+    }
+    document.getElementById('bk-pri-text').value = pri;
+    document.getElementById('bk-sec-text').value = sec;
+    document.getElementById('bk-acc-text').value = acc;
+
+    var voice = document.getElementById('bk-voice').value;
+    var typo = document.getElementById('bk-typo').value;
+    var body = document.getElementById('bk-pv-body');
+    if (body) {
+        body.innerHTML = 'A short paragraph rendered in the brand voice.' +
+            (voice ? ' Tone: ' + voice + '.' : '') +
+            (typo ? ' Typography: ' + typo + '.' : '');
+    }
+}
+</script>
+{% endblock %}
