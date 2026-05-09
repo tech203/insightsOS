@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Join {{ owner.name }}'s team{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 4rem auto; padding: 2rem 1.5rem;">
+    <h1 style="margin: 0 0 0.5rem 0;">Join {{ owner.name }}'s team</h1>
+    <p style="color: #555; margin: 0 0 1.5rem 0;">
+        You've been invited to join {{ owner.name }}'s team on DarInsights as <strong>{{ invite.email }}</strong>.
+        Team members share workspaces, the credit wallet, and the team's plan.
+    </p>
+
+    {% if already_logged_in %}
+        <p style="color: #555; margin-bottom: 1rem;">You're signed in already. Click below to join the team.</p>
+        <form method="post" action="{{ url_for('team_accept', token=invite.token) }}">
+            <button type="submit" class="btn btn-primary">Join {{ owner.name }}'s team</button>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="margin-left: 0.5rem;">Sign out and accept as a different user</a>
+        </form>
+    {% else %}
+        <form method="post" action="{{ url_for('team_accept', token=invite.token) }}" class="settings-v3-form">
+            <label for="ta-name">Your name</label>
+            <input id="ta-name" type="text" name="name" required>
+
+            <label for="ta-password">Choose a password (8+ chars)</label>
+            <input id="ta-password" type="password" name="password" required minlength="8" autocomplete="new-password">
+
+            <button type="submit" class="btn btn-primary" style="margin-top: 0.65rem;">Create account &amp; join team</button>
+        </form>
+
+        <p style="font-size: 0.85rem; color: #666; margin-top: 1.25rem;">
+            Already have an account with this email?
+            <a href="{{ url_for('login') }}">Sign in first</a>, then return to this invite link.
+        </p>
+    {% endif %}
+</div>
+{% endblock %}

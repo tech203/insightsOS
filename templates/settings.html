@@ -62,7 +62,7 @@
             Preferences
         </a>
 
-        {% if is_internal_user %}
+        {% if plan_allows_seats or is_internal_user %}
         <a href="{{ url_for('settings_team') }}"
            class="settings-v3-tab {% if active_settings_section == 'team' %}active{% endif %}">
             Team
@@ -749,18 +749,125 @@
     </script>
     {% endif %}
 
-    {% if active_settings_section == "team" and is_internal_user %}
+    {% if active_settings_section == "team" %}
     <section class="settings-v3-grid">
+        {% if not plan_allows_seats and not is_internal_user %}
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
                 <h2>Team &amp; access</h2>
-                <p>Multi-user access for this workspace.</p>
+                <p>Inviting team members is available on Pro and Growth plans.</p>
             </div>
             <div class="settings-v3-note-box">
-                Team invites, role permissions, and client-access controls aren't built yet.
-                Single-user access only for now — let us know if you need teammate invites and we'll prioritise it.
+                Pro plans include 3 seats, Growth includes 10. Extra seats are $5 / seat / month.
+                <a href="{{ url_for('pricing_page') }}">Upgrade to invite teammates</a>.
             </div>
         </div>
+        {% else %}
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Team seats</h2>
+                <p>Members and pending invites use the same wallet, plan, and workspaces as the owner.</p>
+            </div>
+
+            <div class="settings-v3-info-list">
+                <div class="settings-v3-info-row">
+                    <span>Used (you + members + pending)</span>
+                    <strong>{{ team_seats_used }}</strong>
+                </div>
+                <div class="settings-v3-info-row">
+                    <span>Plan base</span>
+                    <strong>{{ team_seats_base }}</strong>
+                </div>
+                <div class="settings-v3-info-row">
+                    <span>Extra seats ($5 / mo each)</span>
+                    <strong>{{ current_user.extra_seats or 0 }}</strong>
+                </div>
+                <div class="settings-v3-info-row">
+                    <span>Total available</span>
+                    <strong>{{ team_seats_total }}</strong>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem;">
+                <form method="post" action="{{ url_for('buy_extra_seat') }}" onsubmit="return confirm('Add 1 extra seat at $5 / month?');">
+                    <button type="submit" class="btn btn-primary">+ Add seat ($5 / mo)</button>
+                </form>
+                {% if (current_user.extra_seats or 0) > 0 %}
+                <form method="post" action="{{ url_for('release_extra_seat') }}" onsubmit="return confirm('Release 1 extra seat slot?');">
+                    <button type="submit" class="btn btn-secondary">− Remove an extra seat</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>Invite a teammate</h2>
+                <p>We'll generate a one-time link — copy it and send to your teammate via your usual channel.</p>
+            </div>
+            <form method="post" action="{{ url_for('team_invite') }}" class="settings-v3-form">
+                <label for="team-invite-email">Email</label>
+                <input id="team-invite-email" type="email" name="email" placeholder="teammate@company.com" required>
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Generate invite link</button>
+            </form>
+            <p style="font-size:0.82rem; color:#555; margin-top:0.85rem;">
+                Email delivery isn't built yet — the link is shown to you after submit, ready to copy.
+            </p>
+        </div>
+
+        {% if team_pending_invites or team_active_members %}
+        <div class="settings-v3-panel" style="grid-column: 1 / -1;">
+            <div class="settings-v3-panel-head">
+                <h2>Members &amp; pending invites</h2>
+                <p>Active teammates and outstanding invitations.</p>
+            </div>
+
+            {% if team_active_members %}
+            <h3 style="font-size: 0.95rem; margin: 0.4rem 0 0.5rem 0;">Active</h3>
+            <div class="settings-v3-tx-table">
+                <div class="settings-v3-tx-row settings-v3-tx-head">
+                    <span>Email</span>
+                    <span>Joined</span>
+                    <span>Action</span>
+                </div>
+                {% for member in team_active_members %}
+                <div class="settings-v3-tx-row">
+                    <span>{{ member.email }}</span>
+                    <span>{{ member.created_at.strftime('%d %b %Y') if member.created_at else '—' }}</span>
+                    <span>
+                        <form method="post" action="{{ url_for('team_remove_member', member_id=member.id) }}" style="display:inline;" onsubmit="return confirm('Remove {{ member.email }} from your team?');">
+                            <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.6rem;">Remove</button>
+                        </form>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if team_pending_invites %}
+            <h3 style="font-size: 0.95rem; margin: 1rem 0 0.5rem 0;">Pending invites</h3>
+            <div class="settings-v3-tx-table">
+                <div class="settings-v3-tx-row settings-v3-tx-head">
+                    <span>Email</span>
+                    <span>Invited</span>
+                    <span>Action</span>
+                </div>
+                {% for inv in team_pending_invites %}
+                <div class="settings-v3-tx-row">
+                    <span>{{ inv.email }}</span>
+                    <span>{{ inv.invited_at.strftime('%d %b %Y') if inv.invited_at else '—' }}</span>
+                    <span>
+                        <form method="post" action="{{ url_for('team_revoke_invite', invite_id=inv.id) }}" style="display:inline;" onsubmit="return confirm('Revoke invite for {{ inv.email }}?');">
+                            <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.6rem;">Revoke</button>
+                        </form>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
     </section>
     {% endif %}
 

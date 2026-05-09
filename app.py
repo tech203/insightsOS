@@ -188,6 +188,18 @@ class User(UserMixin, db.Model):
     # customer.subscription.updated webhook.
     extra_workspaces = db.Column(db.Integer, default=0, nullable=False)
 
+    # Extra team seats purchased beyond the plan's base cap (Pro/Growth
+    # only). $5 / extra seat / month.
+    extra_seats = db.Column(db.Integer, default=0, nullable=False)
+
+    # If non-null, this user is a team member belonging to the owner
+    # account at team_owner_id. They see the owner's workspaces and
+    # spend the owner's credits; their own User row exists only for
+    # auth + audit log purposes.
+    team_owner_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True, index=True
+    )
+
     wallet = db.relationship(
         "Wallet",
         backref="user",
@@ -200,6 +212,30 @@ class User(UserMixin, db.Model):
         backref="user",
         lazy=True,
         cascade="all, delete-orphan",
+    )
+
+
+class TeamInvite(db.Model):
+    """A pending invite to join an owner's team. The owner sends the
+    /team/accept/<token> URL to the invitee; on accept, a User row is
+    created (or attached if one with that email already exists) and
+    that user's team_owner_id is set to the inviter.
+
+    `status` lifecycle: pending → accepted | revoked. Pending invites
+    count toward the owner's seat usage so the owner can't oversell."""
+    __tablename__ = "team_invites"
+
+    id = db.Column(db.Integer, primary_key=True)
+    owner_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    email = db.Column(db.String(255), nullable=False)
+    token = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    status = db.Column(db.String(40), default="pending", nullable=False)
+    invited_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    accepted_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
     )
 
 
@@ -3589,8 +3625,10 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
 
 
 def build_client_views():
-    clients = load_clients(user_id=current_user.id)
-    audits = get_saved_audits(user_id=current_user.id)
+    # Team members see the team owner's workspaces; solo users see their own.
+    owner_id = effective_owner_id() or current_user.id
+    clients = load_clients(user_id=owner_id)
+    audits = get_saved_audits(user_id=owner_id)
 
     client_views = []
 
@@ -3845,6 +3883,12 @@ def require_internal_access():
 
 
 def spend_credits(user, amount, tx_type="usage", notes=""):
+    # Team members spend from the owner's wallet — billing is a team
+    # property, not a per-member one.
+    if user and getattr(user, "team_owner_id", None):
+        owner = User.query.get(user.team_owner_id)
+        if owner:
+            user = owner
     wallet = user.wallet
 
     if user_has_unlimited_credits(user):
@@ -3874,6 +3918,52 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     db.session.add(tx)
     db.session.commit()
     return True
+
+
+def effective_owner_id(user=None) -> Optional[int]:
+    """Return the User.id of the account that owns this user's data.
+
+    For team members (team_owner_id set) this is the inviter; for solo
+    users it's the user themselves. Used everywhere queries need to
+    span "the team's" data without leaking a member's view of an owner
+    they don't belong to."""
+    target = user if user is not None else current_user
+    if not target or not target.is_authenticated:
+        return None
+    return getattr(target, "team_owner_id", None) or target.id
+
+
+def effective_owner(user=None):
+    """Return the owning User row (the inviter for team members, or
+    the user themselves)."""
+    target = user if user is not None else current_user
+    if not target or not target.is_authenticated:
+        return None
+    if getattr(target, "team_owner_id", None):
+        return User.query.get(target.team_owner_id)
+    return target
+
+
+def count_team_members(owner_id: int) -> int:
+    """Members + pending invites currently consuming seats for this owner."""
+    members = User.query.filter_by(team_owner_id=owner_id).count()
+    pending = TeamInvite.query.filter_by(
+        owner_user_id=owner_id, status="pending"
+    ).count()
+    # +1 for the owner themselves.
+    return members + pending + 1
+
+
+def get_seat_limit(user) -> int:
+    """Plan base seat cap + extra seats purchased."""
+    if not user:
+        return 1
+    if user.role == "admin" or user.plan == "dev_unlimited":
+        return 999
+    from pricing import seat_limit_for_plan as _seat
+    base = _seat(getattr(user, "plan", "free") or "free")
+    extras = int(getattr(user, "extra_seats", 0) or 0)
+    return base + extras
 
 
 def grant_monthly_credits_if_due(user) -> int:
@@ -3954,10 +4044,16 @@ def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
 def has_enough_credits(user, amount):
     if user_has_unlimited_credits(user):
         return True
-
-    if not user or not user.wallet:
+    if not user:
         return False
-
+    # Check the owner's wallet for team members.
+    if getattr(user, "team_owner_id", None):
+        owner = User.query.get(user.team_owner_id)
+        if not owner or not owner.wallet:
+            return False
+        return owner.wallet.balance >= amount
+    if not user.wallet:
+        return False
     return user.wallet.balance >= amount
 
 
@@ -4635,7 +4731,12 @@ def get_workspace_limit(user):
 
 
 def get_workspace_count(user_id):
-    return Client.query.filter_by(user_id=user_id).count()
+    """Count workspaces against the OWNING account so team members
+    can't accidentally bypass the cap."""
+    user = User.query.get(user_id) if user_id else None
+    target = effective_owner(user) if user else None
+    target_id = target.id if target else user_id
+    return Client.query.filter_by(user_id=target_id).count()
 
 
 def can_create_workspace(user):
@@ -4801,6 +4902,241 @@ def buy_extra_workspace():
     return redirect(url_for("settings_billing"))
 
 
+@app.route("/billing/buy-seat", methods=["POST"])
+@login_required
+def buy_extra_seat():
+    """Purchase one additional team seat ($5/mo recurring)."""
+    from pricing import plan_allows_seat_addon
+
+    if not plan_allows_seat_addon(current_user.plan):
+        flash(
+            "Extra team seats are only available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    stripe_price = os.getenv("STRIPE_PRICE_EXTRA_SEAT")
+    if os.getenv("STRIPE_SECRET_KEY") and stripe_price:
+        try:
+            import stripe as _stripe
+            _stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            session = _stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": stripe_price, "quantity": 1}],
+                client_reference_id=str(current_user.id),
+                customer=current_user.stripe_customer_id or None,
+                customer_email=current_user.email if not current_user.stripe_customer_id else None,
+                metadata={"kind": "extra_seat", "user_id": str(current_user.id)},
+                success_url=url_for("settings_team", _external=True),
+                cancel_url=url_for("settings_team", _external=True),
+            )
+            return redirect(session.url, code=303)
+        except Exception as exc:
+            logger.warning("Extra seat checkout failed: %s", exc)
+            flash("Could not start checkout. Try again in a moment.", "error")
+            return redirect(url_for("settings_team"))
+
+    current_user.extra_seats = int(current_user.extra_seats or 0) + 1
+    db.session.commit()
+    flash(
+        f"Added 1 extra seat (you now have {get_seat_limit(current_user)} total). "
+        "Note: Stripe billing isn't wired yet — this was a dev-mode increment.",
+        "success",
+    )
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/billing/release-seat", methods=["POST"])
+@login_required
+def release_extra_seat():
+    """Release one paid extra seat. Refuses if it would orphan a member
+    (current member count > new total)."""
+    if int(current_user.extra_seats or 0) <= 0:
+        flash("No paid extra seats to release.", "info")
+        return redirect(url_for("settings_team"))
+
+    used = count_team_members(current_user.id)
+    new_total = get_seat_limit(current_user) - 1
+    if used > new_total:
+        flash(
+            f"You're using {used} seats — revoke a member or pending invite first.",
+            "warning",
+        )
+        return redirect(url_for("settings_team"))
+
+    current_user.extra_seats = int(current_user.extra_seats or 0) - 1
+    db.session.commit()
+    flash("Released 1 extra seat.", "success")
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/team/invite", methods=["POST"])
+@login_required
+def team_invite():
+    """Create a pending TeamInvite + return the share URL.
+
+    No email service yet — the owner copies the URL to send manually.
+    Pending invites count toward the seat cap so the owner can't
+    oversubscribe."""
+    from pricing import plan_allows_seat_addon
+    if not plan_allows_seat_addon(current_user.plan):
+        flash(
+            "Team invites are only available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("settings_team"))
+
+    if current_user.team_owner_id:
+        flash("Only the team owner can invite members.", "error")
+        return redirect(url_for("settings_team"))
+
+    email = (request.form.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        flash("Please enter a valid email address.", "error")
+        return redirect(url_for("settings_team"))
+
+    used = count_team_members(current_user.id)
+    if used >= get_seat_limit(current_user):
+        flash(
+            f"You've used all {get_seat_limit(current_user)} seats. "
+            "Buy an extra seat or revoke an existing invite first.",
+            "warning",
+        )
+        return redirect(url_for("settings_team"))
+
+    # Soft-dedupe: don't create a second pending invite for the same email.
+    existing = TeamInvite.query.filter_by(
+        owner_user_id=current_user.id, email=email, status="pending"
+    ).first()
+    if existing:
+        flash(f"An invite is already pending for {email}.", "info")
+        return redirect(url_for("settings_team"))
+
+    invite = TeamInvite(
+        owner_user_id=current_user.id,
+        email=email,
+        token=secrets.token_urlsafe(24),
+        status="pending",
+    )
+    db.session.add(invite)
+    db.session.commit()
+    invite_url = url_for("team_accept", token=invite.token, _external=True)
+    flash(
+        f"Invite created for {email}. Copy this link and send it to them: {invite_url}",
+        "success",
+    )
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/team/accept/<token>", methods=["GET", "POST"])
+def team_accept(token):
+    """Accept a pending invite. If the recipient already has an account
+    matching the invite email and is logged in, attach immediately;
+    otherwise show a tiny acceptance form that creates a new account."""
+    invite = TeamInvite.query.filter_by(token=token, status="pending").first()
+    if not invite:
+        flash("This invite is invalid or has already been used.", "error")
+        return redirect(url_for("login"))
+
+    owner = User.query.get(invite.owner_user_id)
+    if not owner:
+        flash("This invite's owner account could not be found.", "error")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        # Acceptance: either logged-in user (must match email) or new signup.
+        if current_user.is_authenticated:
+            if current_user.email.lower() != invite.email.lower():
+                flash(
+                    f"This invite is for {invite.email}. Sign out first to accept it as that email.",
+                    "error",
+                )
+                return redirect(url_for("team_accept", token=token))
+            if current_user.team_owner_id and current_user.team_owner_id != owner.id:
+                flash("You're already a member of another team.", "error")
+                return redirect(url_for("index"))
+            current_user.team_owner_id = owner.id
+            invite.status = "accepted"
+            invite.accepted_at = datetime.utcnow()
+            invite.accepted_user_id = current_user.id
+            db.session.commit()
+            flash(f"Joined {owner.name}'s team.", "success")
+            return redirect(url_for("index"))
+
+        # New-signup path: create User row + log in + attach.
+        name = (request.form.get("name") or "").strip()
+        password = request.form.get("password") or ""
+        if not name or len(password) < 8:
+            flash("Name and 8+ char password required.", "error")
+            return redirect(url_for("team_accept", token=token))
+        existing = User.query.filter_by(email=invite.email).first()
+        if existing:
+            flash("An account with that email already exists. Log in first to accept.", "error")
+            return redirect(url_for("login"))
+
+        new_user = User(
+            email=invite.email,
+            password_hash=generate_password_hash(password),
+            name=name,
+            referral_code=secrets.token_urlsafe(6),
+            plan="free",
+            team_owner_id=owner.id,
+        )
+        db.session.add(new_user)
+        db.session.flush()
+        # Ensure they have a (zero-balance) wallet so wallet checks don't crash.
+        db.session.add(Wallet(user_id=new_user.id, balance=0))
+        invite.status = "accepted"
+        invite.accepted_at = datetime.utcnow()
+        invite.accepted_user_id = new_user.id
+        db.session.commit()
+        login_user(new_user)
+        flash(f"Account created. You're now part of {owner.name}'s team.", "success")
+        return redirect(url_for("index"))
+
+    return render_template(
+        "team_accept.html",
+        invite=invite,
+        owner=owner,
+        already_logged_in=current_user.is_authenticated,
+    )
+
+
+@app.route("/team/revoke/<int:invite_id>", methods=["POST"])
+@login_required
+def team_revoke_invite(invite_id):
+    """Revoke a pending invite (only the owner can do this)."""
+    invite = TeamInvite.query.filter_by(
+        id=invite_id, owner_user_id=current_user.id
+    ).one_or_none()
+    if not invite:
+        flash("Invite not found.", "error")
+        return redirect(url_for("settings_team"))
+    if invite.status != "pending":
+        flash("Only pending invites can be revoked.", "info")
+        return redirect(url_for("settings_team"))
+    invite.status = "revoked"
+    db.session.commit()
+    flash(f"Revoked invite for {invite.email}.", "success")
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/team/remove-member/<int:member_id>", methods=["POST"])
+@login_required
+def team_remove_member(member_id):
+    """Remove an active team member (frees the seat)."""
+    member = User.query.filter_by(
+        id=member_id, team_owner_id=current_user.id
+    ).one_or_none()
+    if not member:
+        flash("Member not found on your team.", "error")
+        return redirect(url_for("settings_team"))
+    member.team_owner_id = None
+    db.session.commit()
+    flash(f"Removed {member.email} from your team.", "success")
+    return redirect(url_for("settings_team"))
+
+
 @app.route("/billing/release-workspace", methods=["POST"])
 @login_required
 def release_extra_workspace():
@@ -4920,6 +5256,8 @@ def stripe_webhook():
                     grant_monthly_credits_if_due(user)
             elif kind == "extra_workspace":
                 user.extra_workspaces = int(user.extra_workspaces or 0) + 1
+            elif kind == "extra_seat":
+                user.extra_seats = int(user.extra_seats or 0) + 1
             db.session.commit()
         except Exception as exc:
             logger.error("Stripe webhook handling failed: %s", exc)
@@ -8138,6 +8476,35 @@ def render_settings_section(section, **extra_context):
         except Exception:
             workspace_count_used = 0
 
+    from pricing import plan_allows_seat_addon, seat_limit_for_plan
+    team_seats_base = seat_limit_for_plan(user_plan)
+    team_seats_total = (
+        get_seat_limit(current_user) if current_user.is_authenticated else 1
+    )
+    team_seats_used = (
+        count_team_members(current_user.id)
+        if current_user.is_authenticated and not current_user.team_owner_id
+        else 1
+    )
+    team_active_members = []
+    team_pending_invites = []
+    if current_user.is_authenticated and not current_user.team_owner_id:
+        try:
+            team_active_members = (
+                User.query.filter_by(team_owner_id=current_user.id)
+                .order_by(User.created_at.desc())
+                .all()
+            )
+            team_pending_invites = (
+                TeamInvite.query.filter_by(
+                    owner_user_id=current_user.id, status="pending"
+                )
+                .order_by(TeamInvite.invited_at.desc())
+                .all()
+            )
+        except Exception:
+            pass
+
     context = {
         "active_settings_section": section,
         "is_internal_user": is_internal_user,
@@ -8154,6 +8521,12 @@ def render_settings_section(section, **extra_context):
         "workspace_total_limit": workspace_total_limit,
         "plan_allows_addon": plan_allows_workspace_addon(user_plan),
         "extra_workspace_addon_price_usd": EXTRA_WORKSPACE_ADDON_PRICE_USD,
+        "plan_allows_seats": plan_allows_seat_addon(user_plan),
+        "team_seats_base": team_seats_base,
+        "team_seats_total": team_seats_total,
+        "team_seats_used": team_seats_used,
+        "team_active_members": team_active_members,
+        "team_pending_invites": team_pending_invites,
     }
     context.update(extra_context)
 
