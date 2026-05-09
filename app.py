@@ -42,6 +42,7 @@ from next_action_engine import build_next_best_action
 from growth_calendar import weekly_growth_recommendations
 from pricing import (
     ACTION_CREDIT_COSTS,
+    EXTRA_WORKSPACE_ADDON_PRICE_USD,
     PLAN_CATALOG,
     active_queue_limit_for_plan,
     baseline_credit_price,
@@ -51,6 +52,7 @@ from pricing import (
     is_subscriber,
     list_public_plans,
     monthly_credit_allowance,
+    plan_allows_workspace_addon,
     workspace_limit_for_plan,
 )
 from query_idea_generator import generate_query_ideas
@@ -179,6 +181,12 @@ class User(UserMixin, db.Model):
     # billing-portal sessions can locate the customer.
     stripe_customer_id = db.Column(db.String(120), nullable=True)
     stripe_subscription_id = db.Column(db.String(120), nullable=True)
+
+    # Extra workspaces purchased beyond the plan's base cap (paid plans
+    # only). $9 / extra workspace / month — billed via a recurring
+    # Stripe subscription item, count synced from the
+    # customer.subscription.updated webhook.
+    extra_workspaces = db.Column(db.Integer, default=0, nullable=False)
 
     wallet = db.relationship(
         "Wallet",
@@ -4615,11 +4623,15 @@ def report_page(client_id):
 
 
 def get_workspace_limit(user):
+    """Total workspaces this user can create: plan base limit + extra
+    workspaces purchased as add-ons. Admins / dev_unlimited get no cap."""
     if not user:
         return 0
     if user.role == "admin" or user.plan == "dev_unlimited":
         return None
-    return workspace_limit_for_plan(getattr(user, "plan", "free") or "free")
+    base = workspace_limit_for_plan(getattr(user, "plan", "free") or "free")
+    extras = int(getattr(user, "extra_workspaces", 0) or 0)
+    return base + extras
 
 
 def get_workspace_count(user_id):
@@ -4733,6 +4745,93 @@ def stripe_success():
     return redirect(url_for("settings_credits"))
 
 
+@app.route("/billing/buy-workspace", methods=["POST"])
+@login_required
+def buy_extra_workspace():
+    """Purchase one additional workspace beyond the plan's base cap.
+
+    Free plan can't buy add-ons. Stripe-backed when STRIPE_SECRET_KEY +
+    STRIPE_PRICE_EXTRA_WORKSPACE are set; otherwise this is a dev-mode
+    increment so we can test the flow before billing is wired."""
+    if not plan_allows_workspace_addon(current_user.plan):
+        flash(
+            "Extra workspaces are only available on paid plans. "
+            "Upgrade your plan to add more workspaces.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    stripe_price = os.getenv("STRIPE_PRICE_EXTRA_WORKSPACE")
+    if os.getenv("STRIPE_SECRET_KEY") and stripe_price:
+        # Real Stripe path — create a one-off Checkout session that
+        # adds the recurring addon as a subscription item via metadata
+        # the webhook will read.
+        try:
+            import stripe as _stripe
+            _stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            session = _stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": stripe_price, "quantity": 1}],
+                client_reference_id=str(current_user.id),
+                customer=current_user.stripe_customer_id or None,
+                customer_email=current_user.email if not current_user.stripe_customer_id else None,
+                metadata={
+                    "kind": "extra_workspace",
+                    "user_id": str(current_user.id),
+                },
+                success_url=url_for("settings_billing", _external=True),
+                cancel_url=url_for("settings_billing", _external=True),
+            )
+            return redirect(session.url, code=303)
+        except Exception as exc:
+            logger.warning("Extra workspace checkout failed: %s", exc)
+            flash("Could not start checkout. Try again in a moment.", "error")
+            return redirect(url_for("settings_billing"))
+
+    # Dev fallback — increment the count directly so the workspace flow
+    # can be tested before Stripe is configured.
+    current_user.extra_workspaces = int(current_user.extra_workspaces or 0) + 1
+    db.session.commit()
+    flash(
+        f"Added 1 extra workspace (you now have "
+        f"{get_workspace_limit(current_user)} total). "
+        "Note: Stripe billing isn't wired yet — this was a dev-mode increment.",
+        "success",
+    )
+    return redirect(url_for("settings_billing"))
+
+
+@app.route("/billing/release-workspace", methods=["POST"])
+@login_required
+def release_extra_workspace():
+    """Release one paid extra-workspace slot (refund/cancel-style).
+
+    Refuses if the user is currently using more workspaces than the
+    base cap minus 1 (i.e. would orphan a workspace)."""
+    if int(current_user.extra_workspaces or 0) <= 0:
+        flash("No paid extra workspaces to release.", "info")
+        return redirect(url_for("settings_billing"))
+
+    base = workspace_limit_for_plan(current_user.plan)
+    used = get_workspace_count(current_user.id)
+    new_total = base + int(current_user.extra_workspaces) - 1
+    if used > new_total:
+        flash(
+            f"You're using {used} workspaces — delete one before releasing an extra slot.",
+            "warning",
+        )
+        return redirect(url_for("settings_billing"))
+
+    current_user.extra_workspaces = int(current_user.extra_workspaces or 0) - 1
+    db.session.commit()
+    flash(
+        "Released 1 extra workspace. (Stripe billing isn't wired yet — "
+        "in production this would prorate the addon on your next invoice.)",
+        "success",
+    )
+    return redirect(url_for("settings_billing"))
+
+
 @app.route("/stripe/portal", methods=["GET", "POST"])
 @login_required
 def stripe_portal():
@@ -4819,6 +4918,8 @@ def stripe_webhook():
                     user.plan = plan_slug
                     user.stripe_subscription_id = data.get("subscription")
                     grant_monthly_credits_if_due(user)
+            elif kind == "extra_workspace":
+                user.extra_workspaces = int(user.extra_workspaces or 0) + 1
             db.session.commit()
         except Exception as exc:
             logger.error("Stripe webhook handling failed: %s", exc)
@@ -8028,6 +8129,15 @@ def render_settings_section(section, **extra_context):
         else "free"
     )
 
+    workspace_count_used = 0
+    workspace_base_limit = workspace_limit_for_plan(user_plan)
+    workspace_total_limit = get_workspace_limit(current_user) if current_user.is_authenticated else 0
+    if current_user.is_authenticated:
+        try:
+            workspace_count_used = get_workspace_count(current_user.id)
+        except Exception:
+            workspace_count_used = 0
+
     context = {
         "active_settings_section": section,
         "is_internal_user": is_internal_user,
@@ -8039,6 +8149,11 @@ def render_settings_section(section, **extra_context):
         "is_subscriber": is_subscriber(user_plan),
         "baseline_credit_price": baseline_credit_price(user_plan),
         "action_credit_costs": ACTION_CREDIT_COSTS,
+        "workspace_count_used": workspace_count_used,
+        "workspace_base_limit": workspace_base_limit,
+        "workspace_total_limit": workspace_total_limit,
+        "plan_allows_addon": plan_allows_workspace_addon(user_plan),
+        "extra_workspace_addon_price_usd": EXTRA_WORKSPACE_ADDON_PRICE_USD,
     }
     context.update(extra_context)
 

@@ -242,8 +242,58 @@
 
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Workspace add-ons</h2>
-                <p>Optional layers on top of your subscription.</p>
+                <h2>Workspaces</h2>
+                <p>How many workspaces this account can run.</p>
+            </div>
+
+            <div class="settings-v3-info-list">
+                <div class="settings-v3-info-row">
+                    <span>Used</span>
+                    <strong>{{ workspace_count_used or 0 }}</strong>
+                </div>
+                <div class="settings-v3-info-row">
+                    <span>Plan base cap</span>
+                    <strong>{{ workspace_base_limit }}</strong>
+                </div>
+                <div class="settings-v3-info-row">
+                    <span>Extra workspaces ($9 / mo each)</span>
+                    <strong>{{ current_user.extra_workspaces or 0 }}</strong>
+                </div>
+                <div class="settings-v3-info-row">
+                    <span>Total available</span>
+                    <strong>
+                        {% if workspace_total_limit is none %}Unlimited
+                        {% else %}{{ workspace_total_limit }}{% endif %}
+                    </strong>
+                </div>
+            </div>
+
+            {% if plan_allows_addon %}
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem;">
+                <form method="post" action="{{ url_for('buy_extra_workspace') }}" onsubmit="return confirm('Add 1 extra workspace at $9 / month? This is added to your existing subscription.');">
+                    <button type="submit" class="btn btn-primary">+ Add workspace ($9 / mo)</button>
+                </form>
+                {% if (current_user.extra_workspaces or 0) > 0 %}
+                <form method="post" action="{{ url_for('release_extra_workspace') }}" onsubmit="return confirm('Release 1 extra workspace slot? You will need to delete a workspace first if you are currently using more than the base cap.');">
+                    <button type="submit" class="btn btn-secondary">− Remove an extra slot</button>
+                </form>
+                {% endif %}
+            </div>
+            <p style="font-size:0.82rem; color:#555; margin-top:0.85rem;">
+                Each extra workspace bills as a recurring $9 / month addon on your subscription.
+            </p>
+            {% else %}
+            <div class="settings-v3-note-box" style="margin-top:1rem;">
+                Extra workspaces aren't available on the Free plan.
+                <a href="{{ url_for('pricing_page') }}">Upgrade to a paid plan</a> to add more.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="settings-v3-panel">
+            <div class="settings-v3-panel-head">
+                <h2>White-label add-on</h2>
+                <p>Deliver client reports under your own brand.</p>
             </div>
 
             <div class="settings-v3-info-list">
@@ -260,8 +310,7 @@
             </div>
 
             <p style="font-size:0.85rem; color:#555; margin-top:1rem;">
-                The agency white-label add-on lets you deliver client reports under your own brand.
-                Contact support to enable it.
+                Contact support to enable the white-label add-on for your account.
             </p>
         </div>
     </section>

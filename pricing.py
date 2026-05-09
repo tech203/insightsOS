@@ -96,9 +96,10 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "monthly_credits": 0,
         "workspace_limit": 1,
         "active_queue_limit": 3,
+        "allows_workspace_addon": False,
         "tagline": "Run your first audits and see how the system works.",
         "features": [
-            "1 workspace",
+            "1 workspace (no add-ons)",
             "3 active queue items",
             "Topup credits at $2 each",
         ],
@@ -110,10 +111,11 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "monthly_credits": 25,
         "workspace_limit": 3,
         "active_queue_limit": 10,
+        "allows_workspace_addon": True,
         "tagline": "For solo operators getting serious about AI visibility.",
         "features": [
             "25 credits / month",
-            "3 workspaces",
+            "Up to 3 workspaces (+$9 / extra workspace / month)",
             "10 active queue items",
             "Topup credits at $1 each",
             "Multi-engine answer monitor",
@@ -124,12 +126,13 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "label": "Pro",
         "monthly_price_usd": 49,
         "monthly_credits": 75,
-        "workspace_limit": 10,
+        "workspace_limit": 3,
         "active_queue_limit": 25,
-        "tagline": "For consultants and small teams running multiple brands.",
+        "allows_workspace_addon": True,
+        "tagline": "For consultants who need more credits without more brands.",
         "features": [
             "75 credits / month",
-            "10 workspaces",
+            "Up to 3 workspaces (+$9 / extra workspace / month)",
             "25 active queue items",
             "Topup credits at $1 each",
             "Priority support",
@@ -140,12 +143,13 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "label": "Growth",
         "monthly_price_usd": 99,
         "monthly_credits": 175,
-        "workspace_limit": 25,
+        "workspace_limit": 10,
         "active_queue_limit": 50,
+        "allows_workspace_addon": True,
         "tagline": "For agencies running AI visibility for their roster.",
         "features": [
             "175 credits / month",
-            "25 workspaces",
+            "Up to 10 workspaces (+$9 / extra workspace / month)",
             "50 active queue items",
             "Topup credits at $1 each",
             "White-label add-on available",
@@ -153,6 +157,9 @@ PLAN_CATALOG: Dict[str, Dict[str, Any]] = {
         "popular": False,
     },
 }
+
+# Recurring monthly price for an extra workspace beyond the plan cap.
+EXTRA_WORKSPACE_ADDON_PRICE_USD = 9
 
 
 # Public ordering for the pricing page.
@@ -171,6 +178,12 @@ def list_public_plans() -> List[Dict[str, Any]]:
 
 def workspace_limit_for_plan(slug: str | None) -> int:
     return int(get_plan(slug).get("workspace_limit", 1))
+
+
+def plan_allows_workspace_addon(slug: str | None) -> bool:
+    """True if the plan allows buying additional workspaces beyond its
+    base cap. Free is the only tier that doesn't."""
+    return bool(get_plan(slug).get("allows_workspace_addon", False))
 
 
 def active_queue_limit_for_plan(slug: str | None) -> int:
