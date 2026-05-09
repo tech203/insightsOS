@@ -5456,10 +5456,37 @@ def team_invite():
     db.session.add(invite)
     db.session.commit()
     invite_url = url_for("team_accept", token=invite.token, _external=True)
-    flash(
-        f"Invite created for {email}. Copy this link and send it to them: {invite_url}",
-        "success",
+
+    # Try to send the invite email. Falls back to flashing the URL when
+    # SMTP isn't configured so dev environments still work.
+    from services.email_helper import (
+        is_email_configured, render_team_invite_email, send_email,
     )
+    delivered = False
+    if is_email_configured():
+        subject, text, html = render_team_invite_email(
+            owner_name=current_user.name or current_user.email,
+            invitee_email=email,
+            invite_url=invite_url,
+        )
+        delivered = send_email(
+            to=email,
+            subject=subject,
+            body_text=text,
+            body_html=html,
+            reply_to=current_user.email,
+        )
+
+    if delivered:
+        flash(
+            f"Invite emailed to {email}. They'll get a link that expires when accepted.",
+            "success",
+        )
+    else:
+        flash(
+            f"Invite ready for {email}. Copy this link and send it to them: {invite_url}",
+            "success",
+        )
     return redirect(url_for("settings_team"))
 
 
