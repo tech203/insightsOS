@@ -1125,33 +1125,39 @@
 
         <div class="section">
             <h2 class="section-title">Score Snapshot</h2>
+            {# Show "—" with a "Not yet measured" note instead of "0.0"
+               when the audit didn't populate a sub-score. A 0/100 reads
+               as broken; "—" reads as "we haven't run that test yet". #}
+            {% set _vis = latest.visibility_score if latest and latest.visibility_score is defined else None %}
+            {% set _cont = latest.content_score if latest and latest.content_score is defined else None %}
+            {% set _sch = latest.schema_score if latest and latest.schema_score is defined else None %}
             <div class="grid-4">
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Overall Score</div>
-                        <div class="metric-value">{{ latest.normalized_score if latest and latest.normalized_score is defined else 0 }}</div>
+                        <div class="metric-value">{{ norm_score }}</div>
                         <div class="metric-copy">Combined AEO performance score.</div>
                     </div>
                 </div>
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Visibility</div>
-                        <div class="metric-value">{{ latest.visibility_score if latest and latest.visibility_score is defined else 0 }}</div>
-                        <div class="metric-copy">Presence across tracked AI answers.</div>
+                        <div class="metric-value">{% if _vis is not none and _vis > 0 %}{{ _vis }}{% else %}—{% endif %}</div>
+                        <div class="metric-copy">{% if _vis is not none and _vis > 0 %}Presence across tracked AI answers.{% else %}No brand mentions detected — see citation results below.{% endif %}</div>
                     </div>
                 </div>
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Content</div>
-                        <div class="metric-value">{{ latest.content_score if latest and latest.content_score is defined else 0 }}</div>
-                        <div class="metric-copy">How well your content covers demand.</div>
+                        <div class="metric-value">{% if _cont is not none and _cont > 0 %}{{ _cont }}{% else %}—{% endif %}</div>
+                        <div class="metric-copy">{% if _cont is not none and _cont > 0 %}How well your content covers demand.{% else %}Not yet measured — re-run the site audit to populate.{% endif %}</div>
                     </div>
                 </div>
                 <div class="cell">
                     <div class="metric-card">
                         <div class="metric-label">Schema</div>
-                        <div class="metric-value">{{ latest.schema_score if latest and latest.schema_score is defined else 0 }}</div>
-                        <div class="metric-copy">Structured data support for clarity.</div>
+                        <div class="metric-value">{% if _sch is not none and _sch > 0 %}{{ _sch }}{% else %}—{% endif %}</div>
+                        <div class="metric-copy">{% if _sch is not none and _sch > 0 %}Structured data support for clarity.{% else %}No schema detected on the homepage — add Organization + Product markup.{% endif %}</div>
                     </div>
                 </div>
             </div>
@@ -1167,7 +1173,12 @@
                 {% for action in recommended_actions[:5] %}
                 <div class="recommendation">
                     <div class="recommendation-title">{{ action.title if action.title else "Recommended action" }}</div>
-                    <div>{{ action.recommended_fix or action.description or action.summary or action.recommended_action or "Follow this action to improve visibility and content coverage." }}</div>
+                    {% set _body = action.recommended_fix or action.description or action.summary or action.recommended_action %}
+                    {% if _body %}
+                    <div>{{ _body }}</div>
+                    {% elif action.why_it_matters %}
+                    <div>{{ action.why_it_matters }}</div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -1179,7 +1190,20 @@
            generic filler that confused users when their workspace had
            no real opportunities yet. Page-break dropped — let
            WeasyPrint flow naturally. #}
-        {% if missing_rows or question_rows %}
+        {# Filter out the generic placeholder questions that older audit
+           runs sometimes left behind ("How much does the service cost?",
+           "What makes this business different?"). They look like stub
+           fixtures and undermine credibility. #}
+        {% set _stubs = [
+            'how much does the service cost?',
+            'what makes this business different?',
+            'who is this service best for?',
+            'how long does it take?'
+        ] %}
+        {% set _filtered_missing = missing_rows | rejectattr('query', 'in', _stubs) | list if missing_rows else [] %}
+        {% set _filtered_questions = question_rows | rejectattr('query', 'in', _stubs) | list if question_rows else [] %}
+
+        {% if _filtered_missing or _filtered_questions %}
         <div class="section">
             <h2 class="section-title">Question Opportunities</h2>
             <table class="data">
@@ -1187,8 +1211,8 @@
                     <tr><th>Query / Topic</th><th>Brand Mentioned</th><th>Priority</th></tr>
                 </thead>
                 <tbody>
-                    {% if missing_rows %}
-                        {% for row in missing_rows[:12] %}
+                    {% if _filtered_missing %}
+                        {% for row in _filtered_missing[:12] %}
                         <tr>
                             <td>{{ row.query if row.query else "Opportunity" }}</td>
                             <td>No</td>
@@ -1196,7 +1220,7 @@
                         </tr>
                         {% endfor %}
                     {% else %}
-                        {% for row in question_rows[:12] %}
+                        {% for row in _filtered_questions[:12] %}
                         <tr>
                             <td>{{ row.query if row.query else "Opportunity" }}</td>
                             <td>{{ "Yes" if row.latest_brand_mentioned else "No" }}</td>

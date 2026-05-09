@@ -257,19 +257,31 @@ def run_audit_for_input(
         "title": brand_name
     }
 
-    try:
-        ai_answer_results = run_ai_answer_test(
-            queries_to_test=queries,
-            business_profile=business_profile,
-        ) or []
-        print("REAL AI ANSWER TEST USED")
-        print("ai_answer_results sample:", ai_answer_results[:2])
-    except Exception as e:
-        print("REAL AI ANSWER TEST FAILED:", str(e))
-        ai_answer_results = []
+    # Real AI test runs against ChatGPT (and Perplexity / Gemini if
+    # those keys are set — see ai_answer_agent.ENGINE_REGISTRY). The
+    # heuristic _simulate_ai_answer_results is a fallback that never
+    # actually calls an LLM — only fire it when the real test yields
+    # zero rows so a buyer never silently gets fake data.
+    ai_answer_results: List[Dict[str, Any]] = []
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            ai_answer_results = run_ai_answer_test(
+                queries_to_test=queries,
+                business_profile=business_profile,
+                model="gpt-4o-mini",
+            ) or []
+            print(
+                f"AUDIT: real AI test produced {len(ai_answer_results)} "
+                f"row(s) for {brand_name}"
+            )
+        except Exception as e:
+            print(f"AUDIT: real AI test raised — {type(e).__name__}: {e}")
+            ai_answer_results = []
+    else:
+        print("AUDIT: OPENAI_API_KEY missing — skipping real AI test")
 
     if not ai_answer_results:
-        print("FALLING BACK TO SIMULATED AI ANSWERS")
+        print("AUDIT: falling back to heuristic simulator (no real AI data)")
         ai_answer_results = _simulate_ai_answer_results(
             queries=queries,
             client_name=client_name or website,

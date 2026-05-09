@@ -5329,43 +5329,108 @@ def _resolve_business_profile_for_pdf(workspace_row, client_dict):
     }
 
 
-def _citation_table_rows(client_dict, max_rows: int = 5):
-    """Build the AI Citation Test Results table from the workspace's
-    tracked-prompt history. One row per query: query / cited (Y/N) /
-    top competitor citing it. Prefers the most recent
-    PromptCheckSnapshot value when present so the PDF reflects the
-    latest monitor sweep, not the saved-audit snapshot."""
-    domain = (client_dict.get("website_normalized") or "").strip()
-    if not domain:
-        return []
+def _strip_competitor_markdown(raw):
+    """Sanitise competitor strings the AI engines return. The model
+    often answers in markdown bullet form like
+        "**Creamier** – Known for artisanal ice cream..."
+    We want clean brand names — "Creamier" — for the citation table.
+    Strips bold markers, splits on en-dash / colon / parens, and
+    truncates the residual descriptor."""
+    if not raw:
+        return None
+    text = str(raw).strip()
+    # Strip leading list markers and bold markers.
+    text = text.lstrip("-*•· ").rstrip()
+    text = text.replace("**", "").replace("__", "")
+    # Cut off everything after the first "—", "–", " - ", ":", or "(".
+    for sep in ["–", "—", " - ", ":", "("]:
+        if sep in text:
+            text = text.split(sep, 1)[0].strip()
+    # Drop trailing punctuation.
+    text = text.rstrip(".,;").strip()
+    return text or None
 
-    owner_id = effective_owner_id() or current_user.id
-    prompt_rows = (
-        PromptTracking.query.filter_by(user_id=owner_id, domain=domain)
-        .order_by(PromptTracking.created_at.desc())
-        .limit(max_rows)
-        .all()
-    )
+
+def _citation_table_rows(client_dict, max_rows: int = 5):
+    """Build the AI Citation Test Results table.
+
+    Three data sources, in priority order:
+      1. PromptTracking — the Answer Monitor's tracked prompts (most
+         recent monitor sweep). Best when the user has been actively
+         tracking prompts.
+      2. Saved audit's `query_analysis` — the queries the audit
+         pipeline tested against AI engines. Has real "brand mentioned"
+         and "competitors mentioned" data captured during the audit.
+      3. Empty list — table doesn't render.
+
+    For new workspaces with one audit and no monitor activity yet,
+    source #2 is the difference between an empty report and a
+    convincing one.
+    """
+    domain = (client_dict.get("website_normalized") or "").strip()
     out = []
-    for row in prompt_rows:
-        latest_snap = (
-            db.session.query(PromptCheckSnapshot)
-            .filter_by(prompt_tracking_id=row.id)
-            .order_by(PromptCheckSnapshot.checked_at.desc())
-            .first()
+
+    # --- Source 1: tracked prompts ----------------------------------
+    if domain:
+        owner_id = effective_owner_id() or (
+            current_user.id if current_user.is_authenticated else None
         )
-        if latest_snap:
-            cited = bool(latest_snap.brand_mentioned)
-            top = (
-                (latest_snap.competitors_mentioned or [None])[0]
-                if latest_snap.competitors_mentioned else None
+        if owner_id:
+            prompt_rows = (
+                PromptTracking.query.filter_by(user_id=owner_id, domain=domain)
+                .order_by(PromptTracking.created_at.desc())
+                .limit(max_rows)
+                .all()
             )
-        else:
-            cited = (row.mentioned or "").lower() == "yes"
-            top = row.top_competitor or None
+            for row in prompt_rows:
+                latest_snap = (
+                    db.session.query(PromptCheckSnapshot)
+                    .filter_by(prompt_tracking_id=row.id)
+                    .order_by(PromptCheckSnapshot.checked_at.desc())
+                    .first()
+                )
+                if latest_snap:
+                    cited = bool(latest_snap.brand_mentioned)
+                    competitors = latest_snap.competitors_mentioned or []
+                    top = competitors[0] if competitors else None
+                else:
+                    cited = (row.mentioned or "").lower() == "yes"
+                    top = row.top_competitor or None
+                out.append({
+                    "query": row.prompt or "—",
+                    "cited": cited,
+                    "top_competitor": _strip_competitor_markdown(top) or "—",
+                })
+
+    if out:
+        return out
+
+    # --- Source 2: saved audit's query_analysis ---------------------
+    # Pull from the workspace's most recent audit run. The full audit
+    # JSON has the rich per-query results (brand_mentioned + the list
+    # of competitor brands the AI engines named).
+    latest_audit = client_dict.get("latest_audit") or {}
+    rows = latest_audit.get("query_analysis") or []
+    if not rows and latest_audit.get("filename"):
+        # Summary only loaded — read the full file for query_analysis.
+        try:
+            full = read_full_audit_data(latest_audit.get("filename"))
+            if full:
+                rows = full.get("query_analysis") or full.get("ai_answer_results") or []
+        except Exception:
+            rows = []
+
+    for row in rows[:max_rows]:
+        if not isinstance(row, dict):
+            continue
+        comps = row.get("competitors_mentioned") or row.get("competitors") or []
+        top = _strip_competitor_markdown(comps[0]) if comps else None
         out.append({
-            "query": row.prompt or "—",
-            "cited": cited,
+            "query": row.get("query") or "—",
+            "cited": bool(
+                row.get("brand_mentioned")
+                or row.get("latest_brand_mentioned")
+            ),
             "top_competitor": top or "—",
         })
     return out
