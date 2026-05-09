@@ -6,26 +6,47 @@
     <style>
         @page {
             size: A4;
-            margin: 20mm 14mm 18mm 14mm;
+            margin: 20mm 14mm 22mm 14mm;
+            @bottom-left {
+                content: "{{ client.name if client and client.name else 'Workspace' }} · AI Visibility Report";
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 9px;
+                color: #667085;
+            }
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 9px;
+                color: #667085;
+            }
+        }
+        @page :first {
+            @bottom-left { content: ""; }
+            @bottom-right { content: ""; }
         }
 
         :root {
-            --text: #172033;
+            /* DarInsights brand palette — kept consistent with the
+               app surfaces so the printed report doesn't read like a
+               different product. */
+            --text: #191929;
             --muted: #667085;
             --line: #e6eaf2;
-            --panel: #f8fafc;
+            --panel: #fafafe;
             --panel-strong: #ffffff;
-            --brand: #7c3aed;
-            --brand-soft: #f3e8ff;
-            --accent: #ea580c;
-            --accent-soft: #fff7ed;
-            --success: #15803d;
-            --success-soft: #ecfdf3;
-            --warn: #b45309;
-            --warn-soft: #fffbeb;
+            --brand: #3EDFCB;          /* primary aqua */
+            --brand-soft: rgba(62, 223, 203, 0.12);
+            --brand-deep: #1AAE99;     /* aqua text-friendly tone */
+            --accent: #9D7CE3;         /* secondary purple */
+            --accent-soft: rgba(157, 124, 227, 0.12);
+            --accent-deep: #5D3FBE;    /* purple text-friendly tone */
+            --success: #1AAE99;
+            --success-soft: rgba(62, 223, 203, 0.16);
+            --warn: #8C4A1F;
+            --warn-soft: rgba(252, 165, 0, 0.10);
             --danger: #b42318;
             --danger-soft: #fef3f2;
-            --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+            --shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
         }
 
         * {
@@ -102,9 +123,60 @@
 
         .agency-logo,
         .client-logo {
-            max-height: 42px;
-            max-width: 160px;
+            max-height: 48px;
+            max-width: 180px;
             object-fit: contain;
+        }
+
+        /* Brand-mark fallback shown when a workspace has no logo
+           uploaded — keeps the topbar feeling intentional rather than
+           empty. Aqua → purple gradient on the brand-text-strong navy. */
+        .brand-mark {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 22px;
+            line-height: 48px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+        .brand-row {
+            display: table;
+            border-spacing: 12px 0;
+        }
+        .brand-row > * {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .brand-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+        .brand-meta {
+            margin: 2px 0 0;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .report-stamp {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            font-weight: 700;
+            margin: 0;
+        }
+        .report-stamp-date {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 4px 0 0;
         }
 
         .hero {
@@ -321,18 +393,18 @@
         }
 
         .finding.warning {
-            background: var(--warn-soft);
-            border-color: #f5e3b3;
+            background: var(--accent-soft);
+            border-color: rgba(157, 124, 227, 0.32);
         }
 
         .finding.success {
-            background: var(--success-soft);
-            border-color: #ccefdc;
+            background: var(--brand-soft);
+            border-color: rgba(62, 223, 203, 0.32);
         }
 
         .finding.danger {
             background: var(--danger-soft);
-            border-color: #f3c7c4;
+            border-color: rgba(180, 35, 24, 0.32);
         }
 
         .two-col {
@@ -460,24 +532,35 @@
         <div class="topbar">
             <div class="topbar-grid">
                 <div class="topbar-left">
-                    {% if agency and agency.logo_url %}
-                        <img src="{{ agency.logo_url }}" alt="Agency logo" class="agency-logo">
-                    {% elif agency and agency.name %}
-                        <p class="agency-name">{{ agency.name }}</p>
-                    {% else %}
-                        <p class="agency-name">DarInsights Report</p>
-                    {% endif %}
-
-                    {% if agency and agency.tagline %}
-                        <p class="agency-tagline">{{ agency.tagline }}</p>
-                    {% elif agency and agency.website %}
-                        <p class="agency-tagline">{{ agency.website }}</p>
-                    {% endif %}
+                    {# Workspace identity leads — that's the brand the
+                       end-user is reading the report for. Logo if uploaded,
+                       otherwise a generated brand mark using the workspace
+                       initial. #}
+                    <div class="brand-row">
+                        <div>
+                            {% if client and client.logo_url %}
+                                <img src="{{ client.logo_url }}" alt="{{ client.name }} logo" class="client-logo">
+                            {% else %}
+                                <span class="brand-mark">{{ (client.name or "?")[0]|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <p class="brand-name">{{ client.name if client and client.name else "Workspace" }}</p>
+                            {% if client and client.industry %}
+                            <p class="brand-meta">{{ client.industry }}{% if client.location %} · {{ client.location }}{% endif %}</p>
+                            {% elif client and client.location %}
+                            <p class="brand-meta">{{ client.location }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="topbar-right">
-                    {% if client and client.logo_url %}
-                        <img src="{{ client.logo_url }}" alt="Client logo" class="client-logo">
+                    <p class="report-stamp">AI Visibility Report</p>
+                    <p class="report-stamp-date">{{ report_date }}</p>
+                    {# Agency footer credit only when white-label is on. #}
+                    {% if agency and agency.name and agency.name != "Your Agency" %}
+                        <p class="agency-tagline" style="margin-top:6px;">Prepared by {{ agency.name }}</p>
                     {% endif %}
                 </div>
             </div>

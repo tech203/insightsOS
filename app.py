@@ -6222,12 +6222,24 @@ def audit_summary_pdf(summary_filename):
     summary_data = load_json_file(summary_path)
     full_filename = get_matching_full_filename(summary_filename)
     report_date = datetime.utcnow().strftime("%d %b %Y")
+
+    # Pull the workspace context so the PDF can display the workspace
+    # logo and industry alongside the audit data.
+    client_payload = None
+    summary_client_id = summary_data.get("client_id") if summary_data else None
+    if summary_client_id:
+        try:
+            client_payload = get_client_by_id(str(summary_client_id))
+        except Exception:
+            client_payload = None
+
     html = render_template(
         "audit_summary_pdf.html",
         summary_filename=summary_filename,
         full_filename=full_filename,
         data=summary_data,
         report_date=report_date,
+        client=client_payload,
     )
 
     website = summary_data.get("website") or summary_data.get("client_name")

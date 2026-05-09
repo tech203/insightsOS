@@ -6,7 +6,33 @@
     <style>
         @page {
             size: A4;
-            margin: 18mm 14mm;
+            margin: 18mm 14mm 22mm 14mm;
+            @bottom-left {
+                content: "{{ (client.name if client and client.name else (data.get('client_name') or data.get('website') or 'Workspace')) }} · AI Visibility Summary";
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 9px;
+                color: #667085;
+            }
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 9px;
+                color: #667085;
+            }
+        }
+        @page :first {
+            @bottom-left { content: ""; }
+            @bottom-right { content: ""; }
+        }
+
+        :root {
+            --brand: #3EDFCB;
+            --brand-soft: rgba(62, 223, 203, 0.12);
+            --accent: #9D7CE3;
+            --accent-soft: rgba(157, 124, 227, 0.12);
+            --text: #191929;
+            --muted: #667085;
+            --line: #e6eaf2;
         }
 
         * {
@@ -16,10 +42,50 @@
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
-            color: #172033;
+            color: var(--text);
             font-size: 12px;
             line-height: 1.5;
             background: #ffffff;
+        }
+
+        .brand-mark-pdf {
+            display: inline-block;
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 20px;
+            line-height: 44px;
+            text-align: center;
+            letter-spacing: -0.02em;
+            vertical-align: middle;
+        }
+        .client-logo-pdf {
+            max-height: 44px;
+            max-width: 160px;
+            object-fit: contain;
+            vertical-align: middle;
+        }
+        .topbar-brand-row {
+            display: table;
+            border-spacing: 12px 0;
+        }
+        .topbar-brand-row > * {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .topbar-brand-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text);
+        }
+        .topbar-brand-meta {
+            margin: 2px 0 0;
+            font-size: 11px;
+            color: var(--muted);
         }
 
         .report {
@@ -57,8 +123,8 @@
             margin-bottom: 10px;
             padding: 5px 9px;
             border-radius: 999px;
-            background: #fff2ea;
-            color: #e83256;
+            background: var(--accent-soft);
+            color: #5D3FBE;
             font-size: 10px;
             font-weight: 800;
             text-transform: uppercase;
@@ -255,11 +321,23 @@
 <main class="report">
     <header class="topbar">
         <div class="topbar-left">
-            <p class="brand">DarInsights</p>
-            <p class="muted">AI visibility audit summary</p>
+            {% set workspace_name = (client.name if client and client.name else (data.get('client_name') or data.get('website') or 'Workspace')) %}
+            <div class="topbar-brand-row">
+                <div>
+                    {% if client and client.logo_url %}
+                        <img src="{{ client.logo_url }}" alt="{{ workspace_name }} logo" class="client-logo-pdf">
+                    {% else %}
+                        <span class="brand-mark-pdf">{{ (workspace_name or '?')[0]|upper }}</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="topbar-brand-name">{{ workspace_name }}</p>
+                    <p class="topbar-brand-meta">AI visibility audit summary</p>
+                </div>
+            </div>
         </div>
         <div class="topbar-right">
-            <p>{{ report_date }}</p>
+            <p style="font-weight:700; color:var(--text); margin:0 0 2px 0;">{{ report_date }}</p>
             <p>{{ data.get('audit_type', 'Audit')|title }}</p>
         </div>
     </header>
