@@ -18740,3 +18740,544 @@ a.btn {
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================================
+   Workspace logo upload block (Replace / Remove under the logo)
+   ========================================================= */
+.workspace-logo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+.workspace-logo-actions {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.workspace-logo-upload-btn,
+.workspace-logo-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #d4d4dc;
+    background: #ffffff;
+    color: #4a4a5a;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.workspace-logo-upload-btn:hover {
+    background: rgba(62, 223, 203, 0.08);
+    border-color: var(--brand-primary, #3EDFCB);
+    color: var(--brand-text-strong, #191929);
+}
+.workspace-logo-remove-btn {
+    background: #fdecea;
+    color: #b22424;
+    border-color: rgba(180, 36, 36, 0.18);
+}
+html[data-theme="dark"] .workspace-logo-upload-btn,
+html[data-theme="dark"] .workspace-logo-remove-btn {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-secondary);
+}
+
+/* =========================================================
+   Sidebar SVG icons + rail-collapse mode
+   ========================================================= */
+
+/* SVG icon inside .nav-icon — sized to match the unicode icons it replaced
+   but draws in currentColor so the active aqua / hover white states still
+   apply via colour inheritance. */
+.nav-icon-svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+.nav-icon {
+    color: currentColor;
+}
+
+/* Rail-collapse toggle: small button anchored top-right of the sidebar.
+   Shows a doubled-chevron pointing in the direction the click would
+   move the sidebar. */
+.sidebar-rail-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 5;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(233, 238, 248, 0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.sidebar-rail-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+.sidebar-rail-toggle .nav-icon-svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* The rail toggle is a desktop affordance only — on mobile the sidebar
+   already collapses to a slide-in drawer, so the rail mode is moot. */
+@media (max-width: 1199px) {
+    .sidebar-rail-toggle { display: none; }
+}
+
+/* ----- Rail mode: shrinks sidebar to a thin icon strip on desktop. -----
+
+   We keep the same DOM but hide every text label, group heading,
+   footer panel, and chevron, then re-center each remaining icon.
+   Tooltips (.nav-tooltip, already in the markup) become the only way
+   to see what each icon means — they were already visible on hover so
+   nothing extra needed. */
+
+@media (min-width: 1200px) {
+    html[data-sidebar-rail] .app-sidebar {
+        width: 72px;
+        min-width: 72px;
+    }
+    /* The grid container that lives in app-shell uses
+       grid-template-columns based on the sidebar width — match it. */
+    html[data-sidebar-rail] .app-shell {
+        grid-template-columns: 72px 1fr;
+    }
+
+    html[data-sidebar-rail] .sidebar-inner {
+        padding: 18px 10px;
+    }
+
+    /* Hide everything that requires width to read. */
+    html[data-sidebar-rail] .nav-text,
+    html[data-sidebar-rail] .nav-label,
+    html[data-sidebar-rail] .nav-label-toggle,
+    html[data-sidebar-rail] .sidebar-footer,
+    html[data-sidebar-rail] .brand-link strong,
+    html[data-sidebar-rail] .brand-link span:not(.brand-mark),
+    html[data-sidebar-rail] .sidebar-brand-tagline {
+        display: none !important;
+    }
+
+    /* Center the brand mark, keep it tappable as a home link. */
+    html[data-sidebar-rail] .sidebar-brand {
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+    html[data-sidebar-rail] .brand-link {
+        justify-content: center;
+        gap: 0;
+    }
+    html[data-sidebar-rail] .brand-mark {
+        margin: 0 auto;
+    }
+
+    /* Center every nav icon and shrink the row footprint. */
+    html[data-sidebar-rail] .nav-item {
+        justify-content: center;
+        padding: 0;
+        gap: 0;
+        min-height: 44px;
+    }
+    html[data-sidebar-rail] .nav-group-items {
+        gap: 4px;
+    }
+    html[data-sidebar-rail] .nav-group + .nav-group {
+        margin-top: 14px;
+    }
+
+    /* Active-state left bar would float off the edge of the rail; tuck it. */
+    html[data-sidebar-rail] .nav-item.active::before {
+        left: 4px;
+    }
+
+    /* Position the toggle button in the new tighter spot. */
+    html[data-sidebar-rail] .sidebar-rail-toggle {
+        right: 50%;
+        transform: translateX(50%);
+        top: 8px;
+    }
+}
+
+/* =========================================================
+   Dashboard — brand color overrides
+   =========================================================
+   The earlier dashboard styles used a generic Tailwind palette
+   (orange #f97316, blue #60a5fa, etc.). These overrides pull every
+   accent into the brand: aqua #3EDFCB and purple #9D7CE3.
+   Appended at end-of-file so they cascade over the original rules. */
+
+/* Featured "What needs attention" card: aqua tint instead of beige. */
+.dashboard-priority-item-featured {
+    background:
+        radial-gradient(circle at top right, var(--brand-primary-soft), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+    border-color: rgba(62, 223, 203, 0.32);
+}
+
+/* Section kickers: brand purple bg with strong contrast. */
+.dashboard-priority-kicker {
+    background: rgba(157, 124, 227, 0.14);
+    color: #5d3fbe;
+}
+
+/* Big score number on the snapshot card — neutral navy lets the
+   coloured pill carry the band, not the digit. */
+.dashboard-score-value {
+    color: var(--brand-text-strong, #191929);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Score pills: brand-aligned tones for success / warning / danger. */
+.score-pill-success {
+    background: rgba(62, 223, 203, 0.18);
+    color: #0E7C6F;
+}
+.score-pill-warning {
+    background: rgba(157, 124, 227, 0.18);
+    color: #5D3FBE;
+}
+.score-pill-danger {
+    background: rgba(225, 29, 72, 0.10);
+    color: #b91c1c;
+}
+
+/* Score-row fills (Visibility / Content / Entity / Trust) — re-coloured
+   with the two brand accents plus two harmonious complements so the
+   four bars stay visually distinct but read as one palette. */
+.fill-blue {
+    background: linear-gradient(90deg, #5BE6D2 0%, var(--brand-primary, #3EDFCB) 100%);
+}
+.fill-orange {
+    background: linear-gradient(90deg, #B69BEB 0%, var(--brand-secondary, #9D7CE3) 100%);
+}
+.fill-purple {
+    background: linear-gradient(90deg, var(--brand-primary, #3EDFCB) 0%, var(--brand-secondary, #9D7CE3) 100%);
+}
+.fill-green {
+    background: linear-gradient(90deg, #6EE7C7 0%, #2BB8A1 100%);
+}
+
+/* Visibility scorecard pills: keep the variant rule but tone them. */
+.visibility-scorecard-pill-strong {
+    background: rgba(62, 223, 203, 0.22);
+    color: #1AAE99;
+}
+.visibility-scorecard-pill-moderate {
+    background: rgba(157, 124, 227, 0.22);
+    color: #B89BF0;
+}
+.visibility-scorecard-pill-opportunity {
+    background: rgba(252, 165, 165, 0.18);
+    color: #F87171;
+}
+
+/* =========================================================
+   Theme tokens + dark mode
+   =========================================================
+   Semantic tokens drive surfaces that participate in dark mode.
+   Hard-coded colors elsewhere in the stylesheet keep working in
+   light mode unchanged; the dark-mode overrides below target the
+   highest-impact surfaces (page canvas, cards/panels, common text,
+   the recently-built integration pages). Brand accents (aqua, purple)
+   stay constant in both modes — only neutral surfaces flip. */
+
+:root {
+    --theme-canvas: #f6f7fb;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #fafafe;
+    --theme-surface-subtle: #f0f0f5;
+    --theme-text-primary: #191929;
+    --theme-text-secondary: #555;
+    --theme-text-muted: #888;
+    --theme-border-subtle: #ececf2;
+    --theme-border-strong: #d4d4dc;
+    --theme-shadow-card: 0 6px 18px rgba(15, 23, 42, 0.04);
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    --theme-canvas: #0F0F1A;
+    --theme-surface: #1B1B2E;
+    --theme-surface-alt: #232238;
+    --theme-surface-subtle: #14101F;
+    --theme-text-primary: #F4F6FB;
+    --theme-text-secondary: #B8BCC8;
+    --theme-text-muted: #8A8DA0;
+    --theme-border-subtle: rgba(255, 255, 255, 0.08);
+    --theme-border-strong: rgba(255, 255, 255, 0.16);
+    --theme-shadow-card: 0 6px 18px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+}
+
+/* Smooth the swap so it doesn't feel like a hard refresh. */
+html[data-theme] body,
+html[data-theme] .app-main {
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* The active theme toggle button gets a subtle aqua ring. */
+.sidebar-theme-toggle {
+    /* Sits to the left of the rail toggle. */
+    right: 56px;
+}
+html[data-sidebar-rail] .sidebar-theme-toggle {
+    /* In rail mode, stack below the rail toggle. */
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 48px;
+}
+
+/* ---- Dark-mode surface overrides ---- */
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-main {
+    background: var(--theme-canvas);
+    color: var(--theme-text-primary);
+}
+
+/* Card / panel surfaces — the highest-frequency container classes. */
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .settings-v3-panel,
+html[data-theme="dark"] .settings-v3-summary-card,
+html[data-theme="dark"] .settings-v3-active-card,
+html[data-theme="dark"] .settings-v3-metric-card,
+html[data-theme="dark"] .settings-v3-mini-card,
+html[data-theme="dark"] .settings-v3-info-row,
+html[data-theme="dark"] .settings-v3-tx-row,
+html[data-theme="dark"] .dashboard-priority-item,
+html[data-theme="dark"] .dashboard-priority-main-card,
+html[data-theme="dark"] .dashboard-ops-card,
+html[data-theme="dark"] .dashboard-welcome-card,
+html[data-theme="dark"] .summary-stat-card,
+html[data-theme="dark"] .workspace-section-card,
+html[data-theme="dark"] .workspace-summary-grid > *,
+html[data-theme="dark"] .workspace-module-card,
+html[data-theme="dark"] .workspace-next-step-card,
+html[data-theme="dark"] .workspace-top-strip,
+html[data-theme="dark"] .am-card,
+html[data-theme="dark"] .am-stat,
+html[data-theme="dark"] .mp-card,
+html[data-theme="dark"] .shopify-card,
+html[data-theme="dark"] .topup-bundle-card,
+html[data-theme="dark"] .pricing-plan-card,
+html[data-theme="dark"] .pricing-topup-card,
+html[data-theme="dark"] .pricing-hero-card,
+html[data-theme="dark"] .pricing-roi-card,
+html[data-theme="dark"] .pricing-addon-card,
+html[data-theme="dark"] .growth-calendar-week,
+html[data-theme="dark"] .growth-calendar-card,
+html[data-theme="dark"] .shopify-rewrite-card {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+
+/* Settings page hero + tabs row. */
+html[data-theme="dark"] .settings-v3-hero,
+html[data-theme="dark"] .settings-v3-tabs {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .settings-v3-tab {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .settings-v3-tab.active {
+    color: var(--theme-text-primary);
+    background: rgba(62, 223, 203, 0.10);
+}
+html[data-theme="dark"] .settings-v3-note-box {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+}
+
+/* Inline-styled subsurfaces (rgba-style backgrounds inside our newer
+   pages). Targets common light backgrounds via attribute selectors so
+   shopify_products / answer_monitor / marketplace_audits flip too. */
+html[data-theme="dark"] .am-empty,
+html[data-theme="dark"] .mp-empty,
+html[data-theme="dark"] .shopify-empty,
+html[data-theme="dark"] .am-engines-banner {
+    background: var(--theme-surface);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .am-spark-dot.not-cited {
+    background: rgba(255, 255, 255, 0.10);
+}
+html[data-theme="dark"] .am-engine-empty,
+html[data-theme="dark"] .am-engine-score,
+html[data-theme="dark"] .am-prompt-meta,
+html[data-theme="dark"] .mp-presence-meta,
+html[data-theme="dark"] .shopify-product .vendor {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .am-answer-excerpt,
+html[data-theme="dark"] .mp-query-row {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-secondary);
+    border-left-color: var(--theme-border-subtle);
+}
+
+/* Headings / body text inside dark surfaces. */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] strong,
+html[data-theme="dark"] .am-stat-value,
+html[data-theme="dark"] .summary-value,
+html[data-theme="dark"] .topup-bundle-credits,
+html[data-theme="dark"] .topup-bundle-price {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] p,
+html[data-theme="dark"] .summary-copy,
+html[data-theme="dark"] .am-header p,
+html[data-theme="dark"] .mp-header p,
+html[data-theme="dark"] .topup-bundle-rate,
+html[data-theme="dark"] .topup-cost-list li,
+html[data-theme="dark"] .settings-v3-info-row span:first-child {
+    color: var(--theme-text-secondary);
+}
+
+/* Form inputs in dark mode. */
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="email"],
+html[data-theme="dark"] input[type="password"],
+html[data-theme="dark"] input[type="url"],
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-strong);
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: var(--theme-text-muted);
+}
+
+/* Topup cost list separators. */
+html[data-theme="dark"] .topup-cost-list li {
+    border-bottom-color: var(--theme-border-subtle);
+}
+
+/* Strike-through list price + card heads keep their relative tones. */
+html[data-theme="dark"] .topup-bundle-strike {
+    color: var(--theme-text-muted);
+}
+
+/* Visibility scorecard already has a dark gradient — leave it alone in
+   dark mode. The kicker pills also keep their toned variants. */
+
+/* =========================================================
+   Info-tooltip ⓘ chip
+   ========================================================= */
+.info-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #d4d4dc;
+    background: white;
+    color: #888;
+    cursor: help;
+    margin-left: 0.3rem;
+    padding: 0;
+    vertical-align: middle;
+    position: relative;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.info-tip:hover,
+.info-tip:focus-visible,
+.info-tip.info-tip-open {
+    color: var(--brand-primary, #3EDFCB);
+    border-color: var(--brand-primary, #3EDFCB);
+    background: rgba(62, 223, 203, 0.08);
+    outline: none;
+}
+.info-tip::after {
+    content: attr(data-info);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #191929;
+    color: #f4f6fb;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    font-weight: 500;
+    width: max-content;
+    max-width: 280px;
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+    z-index: 1000;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+    white-space: normal;
+    cursor: default;
+}
+.info-tip::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #191929;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+}
+.info-tip:hover::after,
+.info-tip:hover::before,
+.info-tip:focus-visible::after,
+.info-tip:focus-visible::before,
+.info-tip.info-tip-open::after,
+.info-tip.info-tip-open::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+html[data-theme="dark"] .info-tip {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-muted);
+}
+html[data-theme="dark"] .info-tip::after {
+    background: #f4f6fb;
+    color: #191929;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="dark"] .info-tip::before { border-top-color: #f4f6fb; }

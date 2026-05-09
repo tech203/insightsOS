@@ -128,10 +128,59 @@ def _normalize_item(raw):
         "webflow_collection": _normalize_text(raw.get("webflow_collection")) or None,
         "webflow_live_url": _normalize_text(raw.get("webflow_live_url")) or None,
         "og_image_url": _normalize_text(raw.get("og_image_url")) or None,
+        "chat_history": raw.get("chat_history") if isinstance(raw.get("chat_history"), list) else [],
         "user_id": raw.get("user_id"),
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
     }
+
+
+def append_queue_item_chat_messages(item_id, messages, user_id=None):
+    """Append one or more chat messages to a queue item's chat_history.
+
+    Each message is a dict shaped like:
+      {"role": "user"|"assistant", "content": str,
+       "revised_content": str|None, "summary": str|None, "ts": iso}
+    """
+    items = load_queue_items()
+    updated = None
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        history = item.get("chat_history") or []
+        if not isinstance(history, list):
+            history = []
+        for m in messages or []:
+            if isinstance(m, dict):
+                history.append(m)
+        item["chat_history"] = history
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+    if not updated:
+        return None
+    save_queue_items(items)
+    return updated
+
+
+def clear_queue_item_chat_history(item_id, user_id=None):
+    items = load_queue_items()
+    updated = None
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        item["chat_history"] = []
+        item["updated_at"] = _now_iso()
+        updated = item
+        break
+    if not updated:
+        return None
+    save_queue_items(items)
+    return updated
 
 
 def update_queue_item_og_image(item_id, og_image_url, user_id=None):

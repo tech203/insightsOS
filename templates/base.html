@@ -17,6 +17,16 @@
                     __ids.join(" ")
                 );
             }
+            // Restore icon-rail mode (full sidebar collapsed to a thin icon strip).
+            if (sessionStorage.getItem("darInsightsSidebarRail") === "1") {
+                document.documentElement.setAttribute("data-sidebar-rail", "1");
+            }
+            // Restore theme: explicit user choice wins, otherwise follow OS preference.
+            var __t = localStorage.getItem("darInsightsTheme");
+            if (!__t) {
+                __t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+            }
+            document.documentElement.setAttribute("data-theme", __t);
         } catch (_) {}
     </script>
     {% block head %}{% endblock %}
@@ -26,6 +36,49 @@
     {% set current_endpoint = request.endpoint or '' %}
     {% set sidebar_client = focused_client if focused_client is defined and focused_client else none %}
     {% set active_queue_client_id = request.args.get('client_id', '') %}
+
+    {# SVG icon sprite — referenced by .nav-icon-svg via <use href="#i-name">.
+       Heroicons-style outline at 24×24, currentColor. One sprite means
+       changing an icon is a single-place edit. #}
+    <svg width="0" height="0" style="position:absolute;" aria-hidden="true" focusable="false">
+        <defs>
+            <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 12 9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></symbol>
+            <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+            <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></symbol>
+            <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></symbol>
+            <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></symbol>
+            <symbol id="i-radar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 1 1 4.93 19.07"/><path d="M15.54 8.46A5 5 0 1 1 8.46 15.54"/><circle cx="12" cy="12" r="1.5"/></symbol>
+            <symbol id="i-overview" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></symbol>
+            <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+            <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v6a4 4 0 1 1-8 0V4Z"/><path d="M5 6h3M16 6h3"/><path d="M8 18h8"/><path d="M9 14v4M15 14v4"/></symbol>
+            <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+            <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></symbol>
+            <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 12 3h8v8l-9 9-8-8Z"/><circle cx="15.5" cy="8.5" r="1.4"/></symbol>
+            <symbol id="i-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M8.5 14a6 6 0 1 1 7 0c-1 .8-1.5 1.6-1.5 3h-4c0-1.4-.5-2.2-1.5-3Z"/></symbol>
+            <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></symbol>
+            <symbol id="i-doc-stack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="16" rx="2"/><path d="M8 7H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10"/></symbol>
+            <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+            <symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+            <symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></symbol>
+            <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></symbol>
+            <symbol id="i-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h4.5a2 2 0 1 1 0 4H9m0 0h4.5a2 2 0 1 1 0 4H9m1.5-8v10"/></symbol>
+            <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></symbol>
+            <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></symbol>
+            <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.8" fill="currentColor"/></symbol>
+        </defs>
+    </svg>
+
+    {% macro nav_icon(name) -%}
+        <span class="nav-icon"><svg class="nav-icon-svg" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"/></svg></span>
+    {%- endmacro %}
+
+    {# Info-tooltip macro. Drop {{ info_tip("Plain helper text…") }} next
+       to a label or stat to expose detail without cluttering the
+       dashboard. Click toggles the tooltip on touch devices; hover
+       shows it on desktop. #}
+    {% macro info_tip(text) -%}
+        <button type="button" class="info-tip" data-info="{{ text|e }}" aria-label="{{ text|e }}" tabindex="0"><svg width="14" height="14" aria-hidden="true" focusable="false"><use href="#i-info"/></svg></button>
+    {%- endmacro %}
 
     <div class="mobile-topbar">
         <button
@@ -53,7 +106,7 @@
                 {% if sidebar_client %}
                     {{ sidebar_client.name or "Workspace" }}
                 {% else %}
-                    DarInsights
+                    {{ agency_brand.name if agency_brand and agency_brand.name else "DarInsights" }}
                 {% endif %}
             </div>
         </a>
@@ -65,10 +118,32 @@
         <aside class="app-sidebar" id="appSidebar" aria-hidden="true">
             <div class="sidebar-inner">
 
+                <button
+                    type="button"
+                    id="themeToggle"
+                    class="sidebar-rail-toggle sidebar-theme-toggle"
+                    aria-label="Toggle dark mode"
+                    title="Toggle dark mode"
+                >
+                    <svg class="nav-icon-svg" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg>
+                </button>
+
+                <button
+                    type="button"
+                    id="sidebarRailToggle"
+                    class="sidebar-rail-toggle"
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"
+                >
+                    <svg class="nav-icon-svg" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg>
+                </button>
+
                 <div class="sidebar-brand">
-                    <a href="{{ url_for('index') }}" class="brand-link" aria-label="DarInsights dashboard">
+                    <a href="{{ url_for('index') }}" class="brand-link" aria-label="{{ agency_brand.name if agency_brand else 'DarInsights' }} dashboard">
                         <div class="brand-mark">
-                            {% if current_user.is_authenticated %}
+                            {% if agency_brand and agency_brand.active and agency_brand.logo_url %}
+                                <img src="{{ agency_brand.logo_url }}" alt="{{ agency_brand.name }} logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">
+                            {% elif current_user.is_authenticated %}
                                 {{ (current_user.name or current_user.email or "D")[0]|upper }}
                             {% else %}
                                 D
@@ -76,8 +151,8 @@
                         </div>
 
                         <div class="brand-copy">
-                            <strong>DarInsights</strong>
-                            <span>AI Visibility Workspace</span>
+                            <strong>{{ agency_brand.name if agency_brand and agency_brand.name else "DarInsights" }}</strong>
+                            <span>{{ agency_brand.tagline if agency_brand and agency_brand.tagline else "AI Visibility Workspace" }}</span>
                         </div>
                     </a>
                 </div>
@@ -95,7 +170,7 @@
                            class="nav-item {% if current_endpoint in ['index', 'dashboard'] %}active{% endif %}"
                            aria-label="Dashboard"
                            data-label="Dashboard">
-                            <span class="nav-icon">⌂</span>
+                            {{ nav_icon('home') }}
                             <span class="nav-text">Dashboard</span>
                             <span class="nav-tooltip">Dashboard</span>
                         </a>
@@ -104,7 +179,7 @@
                            class="nav-item {% if current_endpoint == 'clients_page' or (current_endpoint == 'create_client') or (current_endpoint in ['client_detail', 'edit_client'] and not sidebar_client) %}active{% endif %}"
                            aria-label="All Workspaces"
                            data-label="All Workspaces">
-                            <span class="nav-icon">▣</span>
+                            {{ nav_icon('grid') }}
                             <span class="nav-text">All Workspaces</span>
                             <span class="nav-tooltip">All Workspaces</span>
                         </a>
@@ -113,7 +188,7 @@
                            class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief'] and not active_queue_client_id %}active{% endif %}"
                            aria-label="All Content Queues"
                            data-label="All Queues">
-                            <span class="nav-icon">☰</span>
+                            {{ nav_icon('list') }}
                             <span class="nav-text">All Queues</span>
                             <span class="nav-tooltip">All Queues</span>
                         </a>
@@ -122,7 +197,7 @@
                            class="nav-item {% if current_endpoint == 'growth_calendar_page' %}active{% endif %}"
                            aria-label="Growth Calendar"
                            data-label="Growth Calendar">
-                            <span class="nav-icon">◫</span>
+                            {{ nav_icon('calendar') }}
                             <span class="nav-text">Growth Calendar</span>
                             <span class="nav-tooltip">Growth Calendar</span>
                         </a>
@@ -131,9 +206,18 @@
                            class="nav-item {% if current_endpoint == 'position_tracking_page' %}active{% endif %}"
                            aria-label="Tracked Prompts"
                            data-label="Tracked Prompts">
-                            <span class="nav-icon">◎</span>
+                            {{ nav_icon('target') }}
                             <span class="nav-text">Tracked Prompts</span>
                             <span class="nav-tooltip">Tracked Prompts</span>
+                        </a>
+
+                        <a href="{{ url_for('answer_monitor_page') }}"
+                           class="nav-item {% if current_endpoint == 'answer_monitor_page' %}active{% endif %}"
+                           aria-label="AI Answer Monitor"
+                           data-label="AI Answer Monitor">
+                            {{ nav_icon('radar') }}
+                            <span class="nav-text">AI Answer Monitor</span>
+                            <span class="nav-tooltip">AI Answer Monitor</span>
                         </a>
                         </div>
                     </div>
@@ -150,7 +234,7 @@
                            class="nav-item {% if current_endpoint == 'client_detail' %}active{% endif %}"
                            aria-label="Workspace Overview"
                            data-label="Overview">
-                            <span class="nav-icon">◉</span>
+                            {{ nav_icon('overview') }}
                             <span class="nav-text">Overview</span>
                             <span class="nav-tooltip">Overview</span>
                         </a>
@@ -159,7 +243,7 @@
                            class="nav-item {% if current_endpoint == 'client_visibility_page' %}active{% endif %}"
                            aria-label="Visibility"
                            data-label="Visibility">
-                            <span class="nav-icon">◔</span>
+                            {{ nav_icon('eye') }}
                             <span class="nav-text">Visibility</span>
                             <span class="nav-tooltip">Visibility</span>
                         </a>
@@ -168,7 +252,7 @@
                            class="nav-item {% if current_endpoint in ['client_competitors_page', 'competitor_page'] %}active{% endif %}"
                            aria-label="Competitors"
                            data-label="Competitors">
-                            <span class="nav-icon">△</span>
+                            {{ nav_icon('trophy') }}
                             <span class="nav-text">Competitors</span>
                             <span class="nav-tooltip">Competitors</span>
                         </a>
@@ -177,7 +261,7 @@
                            class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
                            aria-label="History"
                            data-label="History">
-                            <span class="nav-icon">◷</span>
+                            {{ nav_icon('clock') }}
                             <span class="nav-text">History</span>
                             <span class="nav-tooltip">History</span>
                         </a>
@@ -195,7 +279,7 @@
                            class="nav-item {% if current_endpoint in ['run_client_audit', 'new_audit', 'start_audit'] %}active{% endif %}"
                            aria-label="Run Audit"
                            data-label="Run Audit">
-                            <span class="nav-icon">◈</span>
+                            {{ nav_icon('bolt') }}
                             <span class="nav-text">Run Audit</span>
                             <span class="nav-tooltip">Run Audit</span>
                         </a>
@@ -204,7 +288,7 @@
                            class="nav-item {% if current_endpoint == 'client_brand_context' %}active{% endif %}"
                            aria-label="Brand Context"
                            data-label="Brand Context">
-                            <span class="nav-icon">✦</span>
+                            {{ nav_icon('tag') }}
                             <span class="nav-text">Brand Context</span>
                             <span class="nav-tooltip">Brand Context</span>
                         </a>
@@ -213,7 +297,7 @@
                            class="nav-item {% if current_endpoint == 'client_query_ideas' %}active{% endif %}"
                            aria-label="Query Ideas"
                            data-label="Query Ideas">
-                            <span class="nav-icon">✧</span>
+                            {{ nav_icon('bulb') }}
                             <span class="nav-text">Query Ideas</span>
                             <span class="nav-tooltip">Query Ideas</span>
                         </a>
@@ -222,7 +306,7 @@
                            class="nav-item {% if current_endpoint in ['generate_client_content_brief', 'content_brief_form'] %}active{% endif %}"
                            aria-label="Content Brief"
                            data-label="Content Brief">
-                            <span class="nav-icon">✎</span>
+                            {{ nav_icon('doc') }}
                             <span class="nav-text">Content Brief</span>
                             <span class="nav-tooltip">Content Brief</span>
                         </a>
@@ -231,7 +315,7 @@
                            class="nav-item {% if current_endpoint in ['generate_client_content_draft', 'content_draft_form'] %}active{% endif %}"
                            aria-label="Content Draft"
                            data-label="Content Draft">
-                            <span class="nav-icon">▤</span>
+                            {{ nav_icon('doc-stack') }}
                             <span class="nav-text">Content Draft</span>
                             <span class="nav-tooltip">Content Draft</span>
                         </a>
@@ -240,7 +324,7 @@
                            class="nav-item {% if current_endpoint in ['content_queue_page', 'content_queue', 'view_queue_brief'] and active_queue_client_id == sidebar_client.id|string %}active{% endif %}"
                            aria-label="Workspace Queue"
                            data-label="Queue">
-                            <span class="nav-icon">≣</span>
+                            {{ nav_icon('list') }}
                             <span class="nav-text">Queue</span>
                             <span class="nav-tooltip">Queue</span>
                         </a>
@@ -259,16 +343,25 @@
                            class="nav-item {% if current_endpoint.startswith('settings') %}active{% endif %}"
                            aria-label="Settings"
                            data-label="Settings">
-                            <span class="nav-icon">⚙</span>
+                            {{ nav_icon('cog') }}
                             <span class="nav-text">Settings</span>
                             <span class="nav-tooltip">Settings</span>
+                        </a>
+
+                        <a href="{{ url_for('settings_credits') }}"
+                           class="nav-item {% if current_endpoint == 'settings_credits' %}active{% endif %}"
+                           aria-label="Credits"
+                           data-label="Credits">
+                            {{ nav_icon('coin') }}
+                            <span class="nav-text">Credits</span>
+                            <span class="nav-tooltip">Credits</span>
                         </a>
 
                         <a href="{{ url_for('help_page') }}"
                            class="nav-item {% if current_endpoint == 'help_page' %}active{% endif %}"
                            aria-label="Help"
                            data-label="Help">
-                            <span class="nav-icon">?</span>
+                            {{ nav_icon('bulb') }}
                             <span class="nav-text">Help</span>
                             <span class="nav-tooltip">Help</span>
                         </a>
@@ -342,6 +435,109 @@
             </main>
         </div>
     </div>
+
+    <script>
+        // Wallet balance + credit gate helper. Templates call
+        // __creditCheckBeforeSubmit(this, COST, "label") from form onsubmit
+        // to warn the user before they spend credits they don't have.
+        window.__darInsightsBalance = {% if has_unlimited_credits %}"Unlimited"{% else %}{{ credit_balance_numeric or 0 }}{% endif %};
+        window.__creditCheckBeforeSubmit = function (form, cost, label) {
+            var bal = window.__darInsightsBalance;
+            if (bal === "Unlimited") return confirm(label || ("Continue? This action costs " + cost + " credit" + (cost === 1 ? "" : "s") + "."));
+            if (bal < cost) {
+                alert(
+                    "This action costs " + cost + " credit" + (cost === 1 ? "" : "s") +
+                    " but you only have " + bal + ". Top up to continue."
+                );
+                window.location.href = "{{ url_for('settings_credits') }}";
+                return false;
+            }
+            return confirm(label || ("This action costs " + cost + " credit" + (cost === 1 ? "" : "s") + ". Continue?"));
+        };
+    </script>
+
+    <script>
+        // Info-tooltip: click toggles a popover on touch devices, hover
+        // handles it on desktop via CSS. One open at a time — clicking
+        // a different chip or anywhere else closes the active one.
+        document.addEventListener("DOMContentLoaded", function () {
+            var openTip = null;
+            function close() {
+                if (openTip) { openTip.classList.remove("info-tip-open"); openTip = null; }
+            }
+            document.addEventListener("click", function (e) {
+                var btn = e.target.closest && e.target.closest(".info-tip");
+                if (!btn) { close(); return; }
+                e.stopPropagation();
+                if (openTip === btn) { close(); return; }
+                close();
+                btn.classList.add("info-tip-open");
+                openTip = btn;
+            });
+            document.addEventListener("keydown", function (e) {
+                if (e.key === "Escape") close();
+            });
+        });
+    </script>
+
+    <script>
+        // Theme toggle: explicit user choice persists in localStorage and
+        // wins over OS preference. Swaps the icon (moon ⇄ sun) and emits
+        // a custom event so the Preferences-tab toggle stays in sync.
+        document.addEventListener("DOMContentLoaded", function () {
+            var btn = document.getElementById("themeToggle");
+            if (!btn) return;
+            var icon = btn.querySelector("use");
+            function syncIcon() {
+                var dark = document.documentElement.getAttribute("data-theme") === "dark";
+                if (icon) {
+                    icon.setAttribute("href", dark ? "#i-sun" : "#i-moon");
+                }
+                btn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+                btn.setAttribute("title", dark ? "Switch to light mode" : "Switch to dark mode");
+            }
+            syncIcon();
+            btn.addEventListener("click", function () {
+                var dark = document.documentElement.getAttribute("data-theme") === "dark";
+                var next = dark ? "light" : "dark";
+                document.documentElement.setAttribute("data-theme", next);
+                try { localStorage.setItem("darInsightsTheme", next); } catch (_) {}
+                syncIcon();
+                window.dispatchEvent(new CustomEvent("darInsightsThemeChange", { detail: next }));
+            });
+        });
+    </script>
+
+    <script>
+        // Sidebar rail-collapse toggle: persists across requests, swaps the
+        // chevron icon, and updates aria-label so screen readers announce
+        // the new action ("Expand sidebar" once collapsed).
+        document.addEventListener("DOMContentLoaded", function () {
+            var railBtn = document.getElementById("sidebarRailToggle");
+            if (!railBtn) return;
+            var icon = railBtn.querySelector("use");
+            function syncIcon() {
+                var collapsed = document.documentElement.hasAttribute("data-sidebar-rail");
+                if (icon) {
+                    icon.setAttribute("href", collapsed ? "#i-chevron-right" : "#i-chevron-left");
+                }
+                railBtn.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+                railBtn.setAttribute("title", collapsed ? "Expand sidebar" : "Collapse sidebar");
+            }
+            syncIcon();
+            railBtn.addEventListener("click", function () {
+                var collapsed = document.documentElement.hasAttribute("data-sidebar-rail");
+                if (collapsed) {
+                    document.documentElement.removeAttribute("data-sidebar-rail");
+                    sessionStorage.removeItem("darInsightsSidebarRail");
+                } else {
+                    document.documentElement.setAttribute("data-sidebar-rail", "1");
+                    sessionStorage.setItem("darInsightsSidebarRail", "1");
+                }
+                syncIcon();
+            });
+        });
+    </script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {

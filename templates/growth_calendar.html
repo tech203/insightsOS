@@ -4,8 +4,7 @@
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
-        <h1>Growth Calendar</h1>
-        <p>Plan visibility actions across the next four weeks. Recommendations come from your latest audit; queue items show up the week they were created.</p>
+        <h1>Growth Calendar {{ info_tip("Four-week visibility plan. Recommendations come from your latest audit; queue items show up the week they were scheduled. Auto-refreshes when content goes stale.") }}</h1>
     </div>
 </div>
 {% endblock %}
@@ -18,13 +17,11 @@
 
     <section class="growth-calendar-filter">
         <div class="growth-calendar-filter-copy">
-            <span class="section-kicker">Workspace Filter</span>
+            <span class="section-kicker">Workspace</span>
             {% if selected_client %}
                 <h2>{{ selected_client.name }}</h2>
-                <p>Showing the four-week growth plan for this workspace.</p>
             {% else %}
-                <h2>No workspace selected</h2>
-                <p>Pick a workspace to see its growth plan.</p>
+                <h2>Pick a workspace</h2>
             {% endif %}
         </div>
 
@@ -90,6 +87,18 @@
                             <span class="growth-calendar-card-pill growth-calendar-card-pill-{{ card.priority|default('medium') }}">
                                 {{ card.priority|default('medium')|title }}
                             </span>
+                            {% if card.category_tag == 'ecommerce' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-ecom">Ecom</span>
+                            {% endif %}
+                            {% if card.category_tag == 'ecommerce_product' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-ecom">From your store</span>
+                            {% endif %}
+                            {% if card.category_tag == 'stale_refresh' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-stale">Stale · refresh</span>
+                            {% endif %}
+                            {% if card.category_tag == 'google_data' %}
+                            <span class="growth-calendar-card-pill growth-calendar-card-pill-google">Google data</span>
+                            {% endif %}
                             {% if card.kind == 'queue' %}
                                 <span class="growth-calendar-card-status">{{ card.status|replace('_', ' ')|title }}</span>
                             {% else %}
@@ -414,6 +423,24 @@
 .growth-calendar-card-pill-low {
     background: rgba(16, 185, 129, 0.10);
     color: #047857;
+}
+
+.growth-calendar-card-pill-ecom {
+    background: rgba(157, 124, 227, 0.12);
+    color: #6745f5;
+    border: 1px solid rgba(157, 124, 227, 0.32);
+}
+
+.growth-calendar-card-pill-stale {
+    background: rgba(252, 165, 0, 0.10);
+    color: #8c4a1f;
+    border: 1px solid rgba(252, 165, 0, 0.30);
+}
+
+.growth-calendar-card-pill-google {
+    background: rgba(62, 223, 203, 0.10);
+    color: #0E7C6F;
+    border: 1px solid rgba(62, 223, 203, 0.32);
 }
 
 .growth-calendar-card-status {

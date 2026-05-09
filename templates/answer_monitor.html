@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}AI Answer Monitor — {{ selected_client.name if selected_client else "Workspaces" }}{% endblock %}
+
+{% block head %}
+<style>
+    .answer-monitor-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+    .am-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        margin-bottom: 1.25rem;
+    }
+    .am-header h1 {
+        margin: 0 0 0.35rem 0;
+        font-size: 1.55rem;
+    }
+    .am-header p {
+        margin: 0;
+        color: #555;
+        max-width: 560px;
+    }
+    .am-stat-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .am-stat {
+        background: white;
+        border: 1px solid #ececf2;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+    }
+    .am-stat-label {
+        font-size: 0.78rem;
+        color: #777;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0;
+    }
+    .am-stat-value {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin: 0.15rem 0 0 0;
+        color: var(--brand-text-strong, #191929);
+    }
+    .am-card {
+        background: white;
+        border: 1px solid #ececf2;
+        border-radius: 12px;
+        padding: 1.25rem 1.25rem 1rem;
+        margin-bottom: 1rem;
+    }
+    .am-card-head {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .am-prompt-text {
+        font-weight: 600;
+        margin: 0 0 0.35rem 0;
+        font-size: 1.02rem;
+        line-height: 1.35;
+    }
+    .am-prompt-meta {
+        display: flex;
+        gap: 0.75rem;
+        font-size: 0.82rem;
+        color: #666;
+        flex-wrap: wrap;
+    }
+    .am-pill {
+        display: inline-block;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #eef0fb;
+        color: #2a2a48;
+    }
+    .am-pill.cited { background: #e6f7f1; color: #1f7a5f; }
+    .am-pill.not-cited { background: #f7e6e6; color: #8a3030; }
+    .am-pill.gained { background: #e6f7f1; color: #1f7a5f; }
+    .am-pill.lost { background: #f7e6e6; color: #8a3030; }
+    .am-pill.stable { background: #f0f0f5; color: #444; }
+    .am-pill.first { background: #fdf0e6; color: #8c4a1f; }
+    .am-spark {
+        display: flex;
+        gap: 4px;
+        align-items: flex-end;
+        height: 28px;
+        margin: 0.65rem 0 0.5rem 0;
+    }
+    .am-spark-dot {
+        width: 16px;
+        border-radius: 3px;
+        background: #d8d8e0;
+    }
+    .am-spark-dot.cited { background: var(--brand-primary, #3EDFCB); }
+    .am-spark-dot.not-cited { background: #d8d8e0; }
+    .am-spark-empty {
+        font-size: 0.82rem;
+        color: #888;
+        margin: 0.5rem 0;
+    }
+    .am-actions {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+    .am-btn {
+        padding: 0.5rem 0.95rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+        background: var(--brand-primary, #3EDFCB);
+        color: var(--brand-text-strong, #191929);
+        min-height: 38px;
+    }
+    .am-btn-secondary {
+        background: white;
+        border: 1px solid #d4d4dc;
+        color: #333;
+    }
+    .am-empty {
+        background: white;
+        border: 1px dashed #d4d4dc;
+        border-radius: 12px;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #555;
+    }
+    .am-answer-excerpt {
+        margin: 0.6rem 0 0 0;
+        font-size: 0.86rem;
+        color: #555;
+        background: #fafafe;
+        border-radius: 8px;
+        padding: 0.6rem 0.75rem;
+        border-left: 3px solid #ececf2;
+    }
+    .am-workspace-picker {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .am-engine-row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        margin-top: 0.4rem;
+        flex-wrap: wrap;
+    }
+    .am-engine-label {
+        font-size: 0.78rem;
+        color: #444;
+        font-weight: 600;
+        min-width: 86px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .am-engine-tag {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: var(--brand-secondary, #9D7CE3);
+        color: white;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+    .am-engine-empty {
+        font-size: 0.78rem;
+        color: #999;
+    }
+    .am-engine-score {
+        font-size: 0.78rem;
+        color: #555;
+    }
+    .am-engines-banner {
+        background: #f6f6fa;
+        border: 1px dashed #d4d4dc;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        color: #555;
+        margin-bottom: 1rem;
+    }
+    .am-workspace-picker select {
+        padding: 0.45rem 0.7rem;
+        border-radius: 8px;
+        border: 1px solid #d4d4dc;
+        font-size: 0.92rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="answer-monitor-page">
+    <div class="am-header">
+        <div>
+            <h1>AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
+        </div>
+
+        {% if clients|length > 1 %}
+        <form class="am-workspace-picker" method="get" action="{{ url_for('answer_monitor_page') }}">
+            <label for="am-client" style="font-size:0.82rem; color:#666;">Workspace</label>
+            <select id="am-client" name="client_id" onchange="this.form.submit()">
+                {% for c in clients %}
+                <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if selected_client and prompts %}
+    <div class="am-stat-row">
+        <div class="am-stat">
+            <p class="am-stat-label">Tracked prompts</p>
+            <p class="am-stat-value">{{ prompts|length }}</p>
+        </div>
+        <div class="am-stat">
+            <p class="am-stat-label">Cited in last check</p>
+            <p class="am-stat-value">{{ summary.cited_now }}</p>
+        </div>
+        <div class="am-stat">
+            <p class="am-stat-label">Newly cited</p>
+            <p class="am-stat-value">{{ summary.gained }}</p>
+        </div>
+        <div class="am-stat">
+            <p class="am-stat-label">Lost citations</p>
+            <p class="am-stat-value">{{ summary.lost }}</p>
+        </div>
+        <div class="am-stat">
+            <p class="am-stat-label">Avg. visibility score</p>
+            <p class="am-stat-value">{{ summary.avg_score }}</p>
+        </div>
+    </div>
+
+    <div class="am-engines-banner">
+        Active engines: <strong>{{ enabled_engine_labels|join(', ') }}</strong>.
+        {% if enabled_engine_labels|length < 3 %}
+            More engines mean more reliable trends — contact support to enable additional AI providers (web-grounded + multi-vendor coverage).
+        {% else %}
+            Each check fans out across all active engines.
+        {% endif %}
+    </div>
+
+    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" style="margin-bottom:1rem;" onsubmit="return __creditCheckBeforeSubmit(this, 2, 'Re-run every tracked prompt across every active engine? Costs 2 credits.');">
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <button type="submit" class="am-btn">Run all checks now</button>
+    </form>
+
+    {% for prompt in prompts %}
+    <article class="am-card">
+        <div class="am-card-head">
+            <div style="flex: 1 1 60%;">
+                <p class="am-prompt-text">{{ prompt.prompt }}</p>
+                <div class="am-prompt-meta">
+                    {% if prompt.latest %}
+                        {% if prompt.latest.brand_mentioned %}
+                            <span class="am-pill cited">Cited</span>
+                        {% else %}
+                            <span class="am-pill not-cited">Not cited</span>
+                        {% endif %}
+                        {% if prompt.change %}
+                            <span class="am-pill {{ prompt.change|lower|replace(' ', '-') }}">{{ prompt.change }}</span>
+                        {% endif %}
+                        <span>Score {{ prompt.latest.score }}</span>
+                        {% if prompt.latest.brand_position %}
+                            <span>Position #{{ prompt.latest.brand_position }}</span>
+                        {% endif %}
+                        {% if prompt.latest.competitors %}
+                            <span>Competitors: {{ prompt.latest.competitors[:3]|join(', ') }}{% if prompt.latest.competitors|length > 3 %}…{% endif %}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="am-pill first">No checks yet</span>
+                    {% endif %}
+                    {% if prompt.last_checked %}
+                        <span>· {{ prompt.last_checked }}</span>
+                    {% endif %}
+                </div>
+
+                {% if prompt.engines %}
+                    {% for engine_view in prompt.engines %}
+                    <div class="am-engine-row">
+                        <span class="am-engine-label">
+                            {{ engine_view.label }}
+                            {% if engine_view.kind == 'web' %}<span class="am-engine-tag">web-grounded</span>{% endif %}
+                        </span>
+                        {% if engine_view.history %}
+                        <div class="am-spark" title="Last {{ engine_view.history|length }} checks via {{ engine_view.label }} (oldest → newest)">
+                            {% for snap in engine_view.history %}
+                                <div class="am-spark-dot {% if snap.brand_mentioned %}cited{% else %}not-cited{% endif %}" style="height: {{ 12 + (snap.score * 1.2)|round|int }}px;" title="{{ snap.checked_at.strftime('%d %b') if snap.checked_at else '' }} · {% if snap.brand_mentioned %}Cited{% else %}Not cited{% endif %} · score {{ snap.score }}"></div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="am-engine-empty">No history</span>
+                        {% endif %}
+                        {% if engine_view.latest %}
+                            {% if engine_view.latest.brand_mentioned %}
+                                <span class="am-pill cited">Cited</span>
+                            {% else %}
+                                <span class="am-pill not-cited">Not cited</span>
+                            {% endif %}
+                            <span class="am-engine-score">Score {{ engine_view.latest.score }}</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="am-spark-empty">No history yet — run a check to start tracking the trend.</p>
+                {% endif %}
+
+                {% if prompt.latest and prompt.latest.answer_excerpt %}
+                    <p class="am-answer-excerpt">{{ prompt.latest.answer_excerpt[:280] }}{% if prompt.latest.answer_excerpt|length > 280 %}…{% endif %}</p>
+                {% endif %}
+            </div>
+
+            <div class="am-actions">
+                <form method="post" action="{{ url_for('answer_monitor_run_single', prompt_id=prompt.id) }}">
+                    <button type="submit" class="am-btn am-btn-secondary">Re-run check</button>
+                </form>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+
+    {% elif selected_client %}
+    <div class="am-empty">
+        <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">No tracked prompts yet for {{ selected_client.name }}</p>
+        <p style="margin:0 0 1.25rem 0; max-width:480px; margin-left:auto; margin-right:auto;">
+            Add the questions you want to monitor — anything a prospect might ask an AI assistant about your business — then run checks here to see how often you get cited.
+        </p>
+        <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
+            <a href="{{ url_for('position_tracking_page', client_id=selected_client.id) }}" class="am-btn">Add tracked prompts</a>
+            <a href="{{ url_for('run_client_audit', client_id=selected_client.id) }}" class="am-btn am-btn-secondary">Run an audit first</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="am-empty">
+        <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">Create a workspace to start monitoring</p>
+        <p style="margin:0 0 1.25rem 0;">Each workspace tracks a different brand or website.</p>
+        <a href="{{ url_for('create_client') }}" class="am-btn">Create your first workspace</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

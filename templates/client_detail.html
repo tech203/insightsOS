@@ -48,13 +48,28 @@
     <section class="workspace-top-strip">
         <div class="workspace-top-main">
             <div class="workspace-top-brand">
-                {% if client.logo_url %}
-                    <img src="{{ client.logo_url }}" alt="{{ client.name }} logo" class="workspace-logo-image">
-                {% else %}
-                    <div class="workspace-logo-mark">
-                        {{ (client.name[0] if client and client.name else "W")|upper }}
+                <div class="workspace-logo-block">
+                    {% if client.logo_url %}
+                        <img src="{{ client.logo_url }}" alt="{{ client.name }} logo" class="workspace-logo-image">
+                    {% else %}
+                        <div class="workspace-logo-mark">
+                            {{ (client.name[0] if client and client.name else "W")|upper }}
+                        </div>
+                    {% endif %}
+                    <div class="workspace-logo-actions">
+                        <form method="post" action="{{ url_for('upload_workspace_logo', client_id=client.db_id or client.id) }}" enctype="multipart/form-data" style="display:inline;">
+                            <label class="workspace-logo-upload-btn" title="PNG · JPG · SVG · WEBP">
+                                {% if client.logo_url %}Replace{% else %}Upload{% endif %} logo
+                                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg,.webp" onchange="this.form.submit()" style="display:none;">
+                            </label>
+                        </form>
+                        {% if client.logo_url %}
+                        <form method="post" action="{{ url_for('remove_workspace_logo', client_id=client.db_id or client.id) }}" style="display:inline;" onsubmit="return confirm('Remove this workspace logo?');">
+                            <button type="submit" class="workspace-logo-remove-btn">Remove</button>
+                        </form>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
 
                 <div class="workspace-top-copy">
                     <div class="workspace-chip-row">
@@ -188,6 +203,41 @@
     <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="workspace-module-card">
         <strong>History</strong>
         <p>Review past audit runs and progress over time.</p>
+    </a>
+
+    <a href="{{ url_for('shopify_products', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Shopify</strong>
+        <p>Connect your Shopify store so audits can read your live product catalog.</p>
+    </a>
+
+    <a href="{{ url_for('woocommerce_dashboard', client_id=client.id) }}" class="workspace-module-card">
+        <strong>WooCommerce</strong>
+        <p>Audit your WooCommerce catalog for AI-visibility hygiene. Read-only.</p>
+    </a>
+
+    <a href="{{ url_for('calcom_dashboard', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Cal.com</strong>
+        <p>Track booking volume + event types and surface the public booking link.</p>
+    </a>
+
+    <a href="{{ url_for('client_brand_kit', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Brand Kit Studio</strong>
+        <p>Set colours, voice, audience, and differentiators once — every AI generation reads from here.</p>
+    </a>
+
+    <a href="{{ url_for('marketplace_audits_page', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Marketplace Visibility</strong>
+        <p>Track how your Etsy / Amazon / Shopee shop is cited in AI answers.</p>
+    </a>
+
+    <a href="{{ url_for('gsc_dashboard', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Google Search Console</strong>
+        <p>Pull real organic-search performance directly from Google. Pro &amp; Growth plans.</p>
+    </a>
+
+    <a href="{{ url_for('ga_dashboard', client_id=client.id) }}" class="workspace-module-card">
+        <strong>Google Analytics</strong>
+        <p>Sessions, users, top pages, and channel mix from your GA4 property. Pro &amp; Growth plans.</p>
     </a>
 </section>
 

@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Connected Store · {{ workspace.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .shopify-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+    .shopify-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .shopify-header h1 {
+        margin: 0 0 0.35rem 0;
+        font-size: 1.6rem;
+    }
+    .shopify-header p {
+        margin: 0;
+        color: var(--brand-text-strong, #191929);
+        opacity: 0.7;
+    }
+    .shopify-card {
+        background: white;
+        border: 1px solid #e8e8ee;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .shopify-empty {
+        text-align: center;
+        padding: 2.5rem 1rem;
+    }
+    .shopify-empty h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.2rem;
+    }
+    .shopify-empty p {
+        margin: 0 auto 1.25rem auto;
+        max-width: 460px;
+        color: #555;
+    }
+    .shopify-connect-form {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+    .shopify-connect-form input[type="text"] {
+        flex: 1 1 240px;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid #d4d4dc;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+    .shopify-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.6rem 1.1rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        cursor: pointer;
+        background: var(--brand-primary, #3EDFCB);
+        color: var(--brand-text-strong, #191929);
+        min-height: 44px;
+    }
+    .shopify-btn-secondary {
+        background: white;
+        border: 1px solid #d4d4dc;
+        color: #333;
+    }
+    .shopify-btn-danger {
+        background: #fdecea;
+        color: #b22424;
+    }
+    .shopify-meta {
+        display: flex;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+        color: #555;
+        margin-top: 0.5rem;
+    }
+    .shopify-meta span strong { color: #111; }
+    .shopify-products {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    .shopify-product {
+        border: 1px solid #ececf2;
+        border-radius: 10px;
+        padding: 0.85rem;
+        background: #fdfdff;
+    }
+    .shopify-product-image {
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 6px;
+        background: #f0f0f5;
+        background-size: cover;
+        background-position: center;
+        margin-bottom: 0.6rem;
+    }
+    .shopify-product h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.95rem;
+        line-height: 1.3;
+    }
+    .shopify-product .vendor {
+        font-size: 0.8rem;
+        color: #777;
+    }
+    .shopify-product .status-pill {
+        display: inline-block;
+        margin-top: 0.4rem;
+        padding: 2px 8px;
+        font-size: 0.72rem;
+        border-radius: 999px;
+        background: #eef7f4;
+        color: #1f7a5f;
+        text-transform: capitalize;
+    }
+    .shopify-error {
+        padding: 0.85rem 1rem;
+        background: #fdecea;
+        color: #b22424;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .shopify-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .shopify-findings {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    .shopify-finding {
+        border: 1px solid #ececf2;
+        border-left: 4px solid var(--brand-secondary, #9D7CE3);
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        background: #fafafe;
+    }
+    .shopify-finding.priority-high { border-left-color: #d24b4b; background: #fef7f7; }
+    .shopify-finding.priority-medium { border-left-color: var(--brand-secondary, #9D7CE3); }
+    .shopify-finding.priority-low { border-left-color: #8a8a99; }
+    .shopify-finding-title {
+        font-weight: 600;
+        margin: 0 0 0.25rem 0;
+        font-size: 0.95rem;
+    }
+    .shopify-finding-meta {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+        color: #777;
+    }
+    .shopify-finding-fix {
+        font-size: 0.88rem;
+        color: #333;
+        margin: 0.25rem 0 0 0;
+    }
+    .shopify-summary {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin: 0.75rem 0 0 0;
+        font-size: 0.85rem;
+    }
+    .shopify-summary-pill {
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        background: #eef0fb;
+        color: #2a2a48;
+    }
+    .shopify-summary-pill.warn { background: #fdf0e6; color: #8c4a1f; }
+
+    .shopify-rewrite-card {
+        border: 1px solid #e8e8ee;
+        border-radius: 10px;
+        padding: 0.85rem;
+        margin-bottom: 0.65rem;
+        background: #fdfdff;
+    }
+    .shopify-rewrite-diff {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-top: 0.5rem;
+    }
+    @media (max-width: 720px) {
+        .shopify-rewrite-diff {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shopify-page">
+    <div class="shopify-header">
+        <div>
+            <h1>Connected store</h1>
+            <p>{{ workspace.name }}</p>
+        </div>
+        <div class="shopify-actions">
+            <a class="shopify-btn shopify-btn-secondary" href="{{ url_for('client_detail', client_id=workspace.id) }}">← Back to workspace</a>
+            {% if connection %}
+            <form method="post" action="{{ url_for('shopify_disconnect', client_id=workspace.id) }}" style="display:inline;" onsubmit="return confirm('Disconnect this store? Your access token will be removed.');">
+                <button type="submit" class="shopify-btn shopify-btn-danger">Disconnect</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if error %}
+        <div class="shopify-error">{{ error }}</div>
+    {% endif %}
+
+    {% if connection and not has_write_scope %}
+        <div class="shopify-error" style="background:#fff5e6; color:#7a4a14;">
+            This store was connected with read-only access. To enable one-click fixes (like auto-filling alt text),
+            <a href="{{ url_for('shopify_connect', client_id=workspace.id, shop=connection.shop_domain) }}" style="color:inherit; text-decoration:underline;">reconnect the store</a>.
+        </div>
+    {% endif %}
+
+    {% if not connection %}
+        <div class="shopify-card shopify-empty" style="padding: 3rem 1.5rem;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛒</div>
+            <h2 style="font-size: 1.4rem; margin-bottom: 0.6rem;">Connect your store to start</h2>
+            <p style="font-size: 1rem; max-width: 480px; margin: 0 auto 1.5rem auto;">
+                Link your store so audits can read your live product catalog. Once connected, we'll surface
+                what's hurting AI visibility (thin descriptions, missing alt text, draft products) and let you
+                fix them in one click.
+            </p>
+            <form class="shopify-connect-form" method="get" action="{{ url_for('shopify_connect', client_id=workspace.id) }}">
+                <input type="text" name="shop" placeholder="my-store.myshopify.com" required>
+                <button type="submit" class="shopify-btn">Connect store</button>
+            </form>
+            <p style="font-size: 0.78rem; color: #888; margin-top: 1rem;">
+                Read-only access by default. We never charge anything to your store.
+            </p>
+        </div>
+    {% else %}
+        <div class="shopify-card">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; align-items:flex-start;">
+                <div>
+                    <h2 style="margin:0 0 0.35rem 0; font-size:1.15rem;">{{ connection.shop_domain }}</h2>
+                    <div class="shopify-meta">
+                        {% if connection.shop_meta and connection.shop_meta.name %}
+                            <span><strong>{{ connection.shop_meta.name }}</strong></span>
+                        {% endif %}
+                        {% if connection.shop_meta and connection.shop_meta.country_name %}
+                            <span>{{ connection.shop_meta.country_name }}</span>
+                        {% endif %}
+                        {% if connection.shop_meta and connection.shop_meta.currency %}
+                            <span>{{ connection.shop_meta.currency }}</span>
+                        {% endif %}
+                        {% if connection.last_synced_at %}
+                            <span>Last synced {{ connection.last_synced_at.strftime('%d %b %Y, %H:%M') }} UTC</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('shopify_sync_products', client_id=workspace.id) }}" style="display:inline;">
+                    <button type="submit" class="shopify-btn">Refresh catalog</button>
+                </form>
+            </div>
+
+            {% if summary %}
+                <div class="shopify-summary">
+                    <span class="shopify-summary-pill"><strong>{{ summary.total }}</strong> products</span>
+                    {% if summary.active %}<span class="shopify-summary-pill"><strong>{{ summary.active }}</strong> active</span>{% endif %}
+                    {% if summary.drafts %}<span class="shopify-summary-pill warn"><strong>{{ summary.drafts }}</strong> drafts</span>{% endif %}
+                    {% if summary.thin_description %}<span class="shopify-summary-pill warn"><strong>{{ summary.thin_description }}</strong> thin descriptions</span>{% endif %}
+                    {% if summary.missing_alt_text %}<span class="shopify-summary-pill warn"><strong>{{ summary.missing_alt_text }}</strong> missing alt text</span>{% endif %}
+                    {% if summary.no_images %}<span class="shopify-summary-pill warn"><strong>{{ summary.no_images }}</strong> no images</span>{% endif %}
+                </div>
+            {% endif %}
+
+            {% if findings %}
+                <div style="margin-top: 1.5rem;">
+                    <h3 style="margin:0 0 0.4rem 0; font-size:1rem;">What this catalog tells us</h3>
+                    <p style="margin:0; font-size:0.88rem; color:#666;">These findings are now wired into your action plan and growth calendar.</p>
+                    <div class="shopify-findings">
+                        {% for finding in findings %}
+                        <div class="shopify-finding priority-{{ finding.priority }}">
+                            <div class="shopify-finding-meta">
+                                <span>{{ finding.priority }}</span>
+                                <span>·</span>
+                                <span>{{ finding.credits_required }} credits</span>
+                                {% if finding.difficulty %}<span>·</span><span>{{ finding.difficulty }}</span>{% endif %}
+                            </div>
+                            <p class="shopify-finding-title">{{ finding.title }}</p>
+                            <p class="shopify-finding-fix">{{ finding.recommended_fix }}</p>
+                            {% if 'alt text' in finding.title|lower and has_write_scope and summary.missing_alt_text %}
+                            <form method="post" action="{{ url_for('shopify_fix_alt_text', client_id=workspace.id) }}" style="margin-top:0.65rem; display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;" onsubmit="return __creditCheckBeforeSubmit(this, 2, 'Generate alt text and write it back to your store? Costs 2 credits.');">
+                                <button type="submit" class="shopify-btn">Auto-fill alt text now</button>
+                                <span style="font-size:0.8rem; color:#777;">Uses AI vision when OpenAI is configured.</span>
+                            </form>
+                            {% endif %}
+
+                            {% if 'thin product descriptions' in finding.title|lower and summary.thin_description %}
+                            <form method="post" action="{{ url_for('shopify_descriptions_preview', client_id=workspace.id) }}" style="margin-top:0.65rem; display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;" onsubmit="return confirm('Generate AI-rewritten descriptions for every product with a thin description? Preview is free; applying costs {{ description_rewrite_cost }} credits.');">
+                                <button type="submit" class="shopify-btn">Generate description previews</button>
+                                <span style="font-size:0.8rem; color:#777;">You'll review each rewrite before anything is written to your store.</span>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if description_proposals %}
+            <div style="margin-top: 1.5rem;">
+                <h3 style="margin:0 0 0.4rem 0; font-size:1rem;">Review description rewrites</h3>
+                <p style="margin:0 0 0.85rem 0; font-size:0.88rem; color:#666;">
+                    Tick the rewrites you want to push to your store. Applying costs {{ description_rewrite_cost }} credits regardless of how many you select.
+                </p>
+                <form method="post" action="{{ url_for('shopify_descriptions_apply', client_id=workspace.id) }}" onsubmit="return __creditCheckBeforeSubmit(this, {{ description_rewrite_cost }}, 'Push the selected description rewrites to your store? This overwrites existing descriptions and costs {{ description_rewrite_cost }} credits.');">
+                    {% for proposal in description_proposals %}
+                    <div class="shopify-rewrite-card">
+                        <label style="display:flex; gap:0.6rem; align-items:flex-start; cursor:pointer;">
+                            <input type="checkbox" name="apply_product_id" value="{{ proposal.product_id }}" checked style="margin-top:0.3rem;">
+                            <div style="flex:1;">
+                                <strong style="font-size:0.95rem;">{{ proposal.title }}</strong>
+                                <div class="shopify-rewrite-diff">
+                                    <div>
+                                        <div style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.05em; color:#999; margin-bottom:0.2rem;">Current</div>
+                                        <div style="background:#f6f6fa; border-radius:6px; padding:0.5rem; font-size:0.82rem; color:#555; min-height:60px; max-height:160px; overflow:auto;">
+                                            {% if proposal.original_html %}{{ proposal.original_html|safe }}{% else %}<em>No description</em>{% endif %}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--brand-text-strong, #191929); margin-bottom:0.2rem;">Proposed</div>
+                                        <div style="background:#f0fffd; border:1px solid #cdf2ec; border-radius:6px; padding:0.5rem; font-size:0.82rem; color:#222; min-height:60px; max-height:160px; overflow:auto;">
+                                            {{ proposal.proposed_html|safe }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="shopify-btn">Apply selected rewrites ({{ description_rewrite_cost }} credits)</button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% if products %}
+                <div class="shopify-products">
+                    {% for product in products %}
+                    <div class="shopify-product">
+                        {% set image = product.image.src if product.image else '' %}
+                        <div class="shopify-product-image" {% if image %}style="background-image:url('{{ image }}');"{% endif %}></div>
+                        <h3>{{ product.title or 'Untitled product' }}</h3>
+                        {% if product.vendor %}<div class="vendor">{{ product.vendor }}</div>{% endif %}
+                        {% if product.status %}<span class="status-pill">{{ product.status }}</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color:#666; margin-top:1rem;">No products returned yet — try Refresh catalog.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

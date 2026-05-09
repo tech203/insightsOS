@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}WooCommerce — {{ workspace.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .woo-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .woo-header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.5rem; }
+    .woo-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
+    .woo-header p { margin: 0; color: #555; max-width: 600px; }
+    .woo-card { background: white; border: 1px solid #ececf2; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .woo-empty { background: white; border: 1px dashed #d4d4dc; border-radius: 12px; padding: 2.5rem 1.5rem; }
+    .woo-form { display: grid; gap: 0.5rem; max-width: 520px; margin: 0 auto; }
+    .woo-form label { font-size: 0.78rem; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.4rem; }
+    .woo-form input { padding: 0.55rem 0.75rem; border: 1px solid #d4d4dc; border-radius: 8px; font-size: 16px; }
+    .woo-form input:focus { outline: 2px solid var(--brand-primary, #3EDFCB); outline-offset: 1px; }
+    .woo-btn { padding: 0.55rem 1.1rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; background: var(--brand-primary, #3EDFCB); color: var(--brand-text-strong, #191929); min-height: 40px; }
+    .woo-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
+    .woo-btn-danger { background: #fdecea; color: #b22424; }
+    .woo-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .woo-summary { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 0.75rem 0 1rem 0; }
+    .woo-pill { padding: 0.3rem 0.7rem; border-radius: 999px; background: #eef0fb; color: #2a2a48; font-size: 0.85rem; }
+    .woo-pill.warn { background: #fdf0e6; color: #8c4a1f; }
+    .woo-finding { border: 1px solid #ececf2; border-left: 4px solid var(--brand-secondary, #9D7CE3); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 0.65rem; background: #fafafe; }
+    .woo-finding.priority-high { border-left-color: #d24b4b; background: #fef7f7; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="woo-page">
+    <div class="woo-header">
+        <div>
+            <h1>WooCommerce {{ info_tip("Audits your WooCommerce catalog for AI-visibility hygiene — thin descriptions, missing alt text, draft products, missing taxonomy. Read-only.") }}</h1>
+        </div>
+        <div class="woo-actions">
+            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="woo-btn woo-btn-secondary">← Workspace</a>
+            {% if connection %}
+            <form method="post" action="{{ url_for('woocommerce_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this WooCommerce store?');">
+                <button type="submit" class="woo-btn woo-btn-danger">Disconnect</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not connection %}
+        <div class="woo-card woo-empty">
+            <div style="text-align:center; font-size: 2.4rem; margin-bottom: 0.5rem;">🪵</div>
+            <h2 style="text-align:center; margin:0 0 0.4rem 0; font-size: 1.3rem;">Connect your WooCommerce store</h2>
+            <p style="text-align:center; max-width: 480px; margin: 0 auto 1.25rem auto; color:#555;">
+                Generate a <strong>read-only</strong> Consumer Key + Secret in your WordPress admin under
+                <em>WooCommerce → Settings → Advanced → REST API</em> and paste them below. We never receive your WP admin password.
+            </p>
+            <form method="post" action="{{ url_for('woocommerce_connect', client_id=workspace.id) }}" class="woo-form">
+                <label for="woo-url">Store URL</label>
+                <input id="woo-url" type="text" name="store_url" placeholder="https://your-store.com" required>
+
+                <label for="woo-ck">Consumer Key</label>
+                <input id="woo-ck" type="text" name="consumer_key" placeholder="ck_..." required>
+
+                <label for="woo-cs">Consumer Secret</label>
+                <input id="woo-cs" type="password" name="consumer_secret" placeholder="cs_..." required>
+
+                <button type="submit" class="woo-btn" style="margin-top: 0.6rem;">Connect store</button>
+            </form>
+        </div>
+    {% else %}
+        {% set summary = payload.summary or {} %}
+        <div class="woo-card" style="display:flex; gap:1rem; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
+            <div>
+                <h2 style="margin:0 0 0.25rem 0; font-size:1.05rem;">{{ connection.store_url }}</h2>
+                <p style="margin:0; font-size:0.85rem; color:#666;">
+                    {% if connection.last_synced_at %}Last synced {{ connection.last_synced_at.strftime('%d %b %Y, %H:%M UTC') }}{% endif %}
+                </p>
+                <div class="woo-summary">
+                    <span class="woo-pill"><strong>{{ summary.total or 0 }}</strong> products</span>
+                    {% if summary.active %}<span class="woo-pill"><strong>{{ summary.active }}</strong> active</span>{% endif %}
+                    {% if summary.drafts %}<span class="woo-pill warn"><strong>{{ summary.drafts }}</strong> drafts</span>{% endif %}
+                    {% if summary.thin_description %}<span class="woo-pill warn"><strong>{{ summary.thin_description }}</strong> thin descriptions</span>{% endif %}
+                    {% if summary.missing_alt_text %}<span class="woo-pill warn"><strong>{{ summary.missing_alt_text }}</strong> missing alt text</span>{% endif %}
+                </div>
+            </div>
+            <form method="post" action="{{ url_for('woocommerce_sync', client_id=workspace.id) }}">
+                <button type="submit" class="woo-btn">Refresh catalog</button>
+            </form>
+        </div>
+
+        {% if payload.findings %}
+        <div class="woo-card">
+            <h3 style="margin:0 0 0.4rem 0; font-size:1rem;">What this catalog tells us</h3>
+            <p style="margin:0 0 0.85rem 0; color:#666; font-size:0.88rem;">These findings are wired into your action plan and Growth Calendar.</p>
+            {% for finding in payload.findings %}
+            <div class="woo-finding priority-{{ finding.priority }}">
+                <div style="font-size:0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color:#777;">
+                    {{ finding.priority }} · {{ finding.credits_required }} credits · {{ finding.difficulty }}
+                </div>
+                <p style="font-weight:600; margin: 0.25rem 0 0.3rem 0;">{{ finding.title }}</p>
+                <p style="margin:0; font-size:0.88rem; color:#444;">{{ finding.recommended_fix }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="woo-card">
+            <p style="margin:0; color:#555;">No findings yet. Try Refresh catalog if you've recently changed products on Woo.</p>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

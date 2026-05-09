@@ -57,3 +57,7 @@ zopfli==0.4.1
 tavily-python
 python-dotenv
 openai
+# Optional — only imported when S3_BUCKET is set. Pulled in here so
+# `pip install -r requirements.txt` covers production deploys; local
+# dev without S3 doesn't actually load it at runtime.
+boto3>=1.34

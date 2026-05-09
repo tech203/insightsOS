@@ -217,6 +217,90 @@ def _shorten_title(title: str, max_len: int = 110) -> str:
     return title[: max_len - 3].rstrip() + "..."
 
 
+_ECOM_KEYWORDS = (
+    "ecommerce", "e-commerce", "e commerce",
+    "shopify", "shoplazza", "woocommerce", "magento", "bigcommerce",
+    "shop", "store", "marketplace",
+    "retail", "online retail",
+)
+
+
+def _is_ecommerce_industry(industry: Optional[str]) -> bool:
+    if not industry:
+        return False
+    text = str(industry).lower()
+    return any(kw in text for kw in _ECOM_KEYWORDS)
+
+
+def _ecommerce_actions(client_name: str, industry: str) -> List[Dict[str, Any]]:
+    """Ecommerce-specific recommendations injected when the workspace's
+    industry mentions ecommerce, store, marketplace, etc.
+
+    These complement (not replace) the score-based audit actions. Each
+    action gets category_tag="ecommerce" so the calendar / queue UI can
+    pill them distinctly without us inventing new core categories.
+    """
+    short_industry = (industry or "").lower().replace("e-commerce", "ecom")[:60] or "your store"
+
+    def _tag(action: Dict[str, Any]) -> Dict[str, Any]:
+        action["category_tag"] = "ecommerce"
+        return action
+
+    raw = [
+        _make_action(
+            category="comparison_opportunity",
+            title="Build comparison content for your top product categories",
+            issue="Shoppers researching alternatives don't have a side-by-side guide on your site.",
+            why_it_matters="AI answer engines surface comparison pages for 'X vs Y' and 'best X for Y' queries; without your own, competitor-led pages win.",
+            recommended_fix="Create a comparison page for your two highest-revenue product categories (or top SKU vs nearest alternative).",
+            suggested_content_type="comparison_page",
+            impact_score=15,
+            difficulty="medium",
+        ),
+        _make_action(
+            category="content_gap",
+            title="Add a buying guide for your main product line",
+            issue="There's no top-of-funnel buying guide that explains how to choose between options.",
+            why_it_matters="Buying guides capture high-intent informational traffic and feed AI answers for 'how to choose…' queries.",
+            recommended_fix=f"Write a buying guide for {short_industry} buyers — sizing / fit / use case / price tier — and link it from category pages.",
+            suggested_content_type="guide",
+            impact_score=12,
+            difficulty="medium",
+        ),
+        _make_action(
+            category="faq_opportunity",
+            title="Generate FAQ blocks for product / category pages",
+            issue="Product detail pages don't surface common pre-purchase questions.",
+            why_it_matters="FAQ schema is one of the strongest AI-readable signals; well-structured FAQs feed Featured Snippets and AI Overviews directly.",
+            recommended_fix="Add a FAQ section (with FAQPage schema) on top categories — shipping, returns, sizing, materials.",
+            suggested_content_type="faq_page",
+            impact_score=11,
+            difficulty="easy",
+        ),
+        _make_action(
+            category="schema_fix",
+            title="Audit Product schema across listings",
+            issue="Without complete Product / Offer schema, AI answer engines can't pull price, availability, or rating reliably.",
+            why_it_matters="Product-rich results in AI answers (price, stock, ratings) require valid schema. Missing fields silently demote you in AI surfaces.",
+            recommended_fix="Run a structured-data check on top product URLs and fix missing fields (Product, Offer, AggregateRating, BreadcrumbList).",
+            impact_score=10,
+            difficulty="easy",
+        ),
+        _make_action(
+            category="content_gap",
+            title="Create 'best X for Y use case' landing pages",
+            issue="Use-case landing pages capture niche AI-answer demand that broad category pages miss.",
+            why_it_matters="AI answer engines reward specificity. 'Best for travel', 'Best for gifting', 'Best for sensitive skin' often outrank generic category pages in AI surfaces.",
+            recommended_fix="Identify two or three high-intent 'best for' searches in your category and build dedicated landing pages.",
+            suggested_content_type="landing_page",
+            impact_score=12,
+            difficulty="medium",
+        ),
+    ]
+
+    return [_tag(a) for a in raw]
+
+
 def build_recommended_actions(
     *,
     client_name: str,
@@ -226,6 +310,7 @@ def build_recommended_actions(
     competitor_analysis: Dict[str, Any],
     site_findings: Dict[str, Any],
     research_pack: Optional[Dict[str, Any]] = None,
+    industry: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Builds an AI Visibility Action Plan.
@@ -687,6 +772,10 @@ def build_recommended_actions(
                 credits_required=6,
             )
         )
+
+    # Ecommerce-specific recommendations, gated on industry keywords.
+    if _is_ecommerce_industry(industry):
+        actions.extend(_ecommerce_actions(client_name, industry or ""))
 
     return _unique_actions(actions)
 

@@ -4,8 +4,7 @@
 {% block page_header %}
 <div class="page-header-standard dashboard-page-header-minimal">
     <div class="page-header-copy">
-        <h1>Dashboard</h1>
-        <p>Review what needs attention, check current visibility signals, and move straight into the next task.</p>
+        <h1>Dashboard {{ info_tip("Your at-a-glance view: AI visibility score, the next best action, and what's queued. Open a workspace for the full audit.") }}</h1>
     </div>
 </div>
 {% endblock %}
@@ -83,11 +82,11 @@
             <span class="visibility-scorecard-takeaway-label">Takeaway</span>
             <p>
                 {% if aeo_score >= 80 %}
-                    Strong overall visibility. Focus on holding your position by tracking new prompt clusters and refreshing high-impact content.
+                    Strong visibility — hold the lead and expand to new query clusters.
                 {% elif aeo_score >= 55 %}
-                    Visibility is developing. Prioritise the gaps in {% if vis_score < cont_score %}Visibility{% else %}Content{% endif %} first — that will move the needle fastest.
+                    Developing. Close the {% if vis_score < cont_score %}Visibility{% else %}Content{% endif %} gap first to move the needle.
                 {% else %}
-                    Significant visibility upside. Run an audit refresh, fill the highest-impact content gaps, and start tracking the queries you most want to win.
+                    Significant upside. Re-audit, fill content gaps, and start tracking the queries you want to win.
                 {% endif %}
             </p>
         </div>
@@ -143,19 +142,15 @@
     <section class="dashboard-priority-v3">
         <div class="dashboard-priority-main-card">
             <div class="dashboard-section-head">
-                <h2>What needs attention now</h2>
-                <p>Start with the highest-value task instead of browsing through the workspace.</p>
+                <h2>What needs attention now {{ info_tip("Top three things to do — derived from your latest audit, content queue, and workspace state. Click any card to jump straight in.") }}</h2>
             </div>
 
             <div class="dashboard-priority-grid">
                 <article class="dashboard-priority-item dashboard-priority-item-featured">
-                    <span class="dashboard-priority-kicker">Latest Audit</span>
+                    <span class="dashboard-priority-kicker">Latest Audit {{ info_tip("AI visibility audit — checks how AI assistants cite your brand for tracked queries, then ranks the gaps to fix first.") }}</span>
 
                     {% if total_audits and total_audits > 0 %}
                         <h3>Review your latest audit</h3>
-                        <p>
-                            Open the latest audit findings, check the score breakdown, and see what should be fixed first.
-                        </p>
                         <div class="dashboard-priority-actions">
                             {% if primary_client %}
                                 <a href="{{ url_for('client_detail', client_id=primary_client.id) }}" class="btn btn-primary">
@@ -181,11 +176,8 @@
                 </article>
 
                 <article class="dashboard-priority-item">
-                    <span class="dashboard-priority-kicker">Content Queue</span>
+                    <span class="dashboard-priority-kicker">Content Queue {{ info_tip("Briefs and drafts in flight: ideas → drafted → ready → published. Click in to triage what's blocked.") }}</span>
                     <h3>Check queued work</h3>
-                    <p>
-                        Review what is waiting, in progress, ready for publishing, or blocked in the content workflow.
-                    </p>
                     <div class="dashboard-priority-actions">
                         <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
                             Open Queue
@@ -194,17 +186,12 @@
                 </article>
 
                 <article class="dashboard-priority-item">
-                    <span class="dashboard-priority-kicker">Workspaces</span>
+                    <span class="dashboard-priority-kicker">Workspaces {{ info_tip("Each workspace tracks one brand or website — its own audits, prompts, content queue, and integrations.") }}</span>
                     {% if has_clients %}
                         <h3>{{ total_clients or clients|length }} active workspace{% if (total_clients or clients|length) != 1 %}s{% endif %}</h3>
-                        <p>
-                            Open a workspace to review visibility, tracked prompts, competitors, and content actions.
-                        </p>
                     {% else %}
                         <h3>No workspace yet</h3>
-                        <p>
-                            Create your first workspace to organise audits, tracking, content opportunities, and reports.
-                        </p>
+                        <p style="font-size: 0.88rem; color: #666;">Create one to start tracking AI visibility.</p>
                     {% endif %}
                     <div class="dashboard-priority-actions">
                         {% if has_clients %}
@@ -249,7 +236,7 @@
             <div class="dashboard-score-breakdown">
                 <div class="score-row">
                     <div class="score-row-top">
-                        <span>Visibility</span>
+                        <span>Visibility {{ info_tip("How often AI assistants mention your brand for the queries you track. Higher = more presence in answers.") }}</span>
                         <strong>{{ vis_score }}</strong>
                     </div>
                     <div class="score-row-track">
@@ -259,7 +246,7 @@
 
                 <div class="score-row">
                     <div class="score-row-top">
-                        <span>Content</span>
+                        <span>Content {{ info_tip("Coverage of buyer intent — service pages, FAQs, comparison pages, guides. Higher = AI engines have more to cite.") }}</span>
                         <strong>{{ cont_score }}</strong>
                     </div>
                     <div class="score-row-track">
@@ -269,7 +256,7 @@
 
                 <div class="score-row">
                     <div class="score-row-top">
-                        <span>Entity</span>
+                        <span>Entity {{ info_tip("How clearly your business identity reads — name, location, services, structured data. Helps AI understand who you are.") }}</span>
                         <strong>{{ ent_score }}</strong>
                     </div>
                     <div class="score-row-track">
@@ -279,7 +266,7 @@
 
                 <div class="score-row">
                     <div class="score-row-top">
-                        <span>Trust</span>
+                        <span>Trust {{ info_tip("Reviews, third-party mentions, directory presence — the signals that make AI engines confident enough to recommend you.") }}</span>
                         <strong>{{ tr_score }}</strong>
                     </div>
                     <div class="score-row-track">

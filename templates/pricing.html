@@ -31,139 +31,67 @@
         <div class="pricing-hero-side">
             <div class="pricing-logic-card">
                 <span class="pricing-logic-label">How billing works</span>
-                <strong class="pricing-logic-value">Plans + Credits + Add-ons</strong>
+                <strong class="pricing-logic-value">Plan + credits + add-ons</strong>
                 <p class="pricing-logic-text">
-                    Plans unlock your workspace level. Credits power key actions. The Agency add-on unlocks white-label and client-facing delivery.
+                    The plan unlocks features. Credits power individual AI actions (audits, drafts, edits). Add-ons (extra workspaces, seats, white-label) layer on as needed.
                 </p>
             </div>
         </div>
     </section>
 
 <section class="pricing-roi-card">
-
     <div class="roi-copy">
         <span class="pricing-badge pricing-badge-primary">ROI</span>
-
-        <h2>This pays for itself with one client</h2>
-
-        <p>
-            If your visibility improvements bring just <strong>1 additional customer</strong>,
-            your subscription is already covered.
-        </p>
-
-        <ul class="roi-points">
-            <li>1 new client → covers Pro plan</li>
-            <li>Consistent content → compounds visibility</li>
-            <li>Better AI presence → higher trust & conversions</li>
-        </ul>
+        <h2>One new client covers the year.</h2>
+        <p>If AI visibility brings you a single additional customer at a typical $500+ value, the Pro plan is paid back ten times over.</p>
     </div>
 
     <div class="roi-math">
-        <div class="roi-box">
-            <span>Avg client value</span>
-            <strong>$500+</strong>
-        </div>
-
-        <div class="roi-box">
-            <span>Pro plan</span>
-            <strong>$29</strong>
-        </div>
-
-        <div class="roi-box highlight">
-            <span>ROI</span>
-            <strong>17×+</strong>
-        </div>
+        <div class="roi-box"><span>Avg client value</span><strong>$500+</strong></div>
+        <div class="roi-box"><span>Pro plan / mo</span><strong>$49</strong></div>
+        <div class="roi-box highlight"><span>ROI</span><strong>10×+</strong></div>
     </div>
-
 </section>
 
 <section class="pricing-section" id="main-plans">
     <div class="pricing-section-head">
         <h2>Main Plans</h2>
-        <p>For self-serve businesses, solo operators, and growing teams.</p>
     </div>
 
         <div class="pricing-plan-grid">
-
-            <article class="pricing-plan-card">
+            {% for plan in plans %}
+            <article class="pricing-plan-card {% if plan.popular %}featured{% endif %}">
                 <div class="pricing-plan-top">
-                    <span class="pricing-plan-name">Free</span>
-                    <span class="pricing-plan-badge">Starter</span>
-                </div>
-
-                <div class="pricing-price-block">
-                    <strong>US$0</strong>
-                    <small>to start</small>
-                </div>
-
-                <p class="pricing-plan-desc">
-                    Best for trying the product and running your first audits.
-                </p>
-
-                <div class="pricing-feature-list">
-                    <div class="pricing-feature-item">3 starter credits</div>
-                    <div class="pricing-feature-item">Basic audit reports</div>
-                    <div class="pricing-feature-item">Standard branding</div>
-                    <div class="pricing-feature-item">Limited history</div>
-                </div>
-
-                <a href="{{ url_for('index') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Get Started</a>
-            </article>
-
-            <article class="pricing-plan-card featured">
-                <div class="pricing-plan-top">
-                    <span class="pricing-plan-name">Pro</span>
+                    <span class="pricing-plan-name">{{ plan.label }}</span>
+                    {% if plan.popular %}
                     <span class="pricing-plan-badge featured-badge">Most Popular</span>
+                    {% elif plan.slug == 'free' %}
+                    <span class="pricing-plan-badge">Starter</span>
+                    {% endif %}
                 </div>
 
                 <div class="pricing-price-block">
-                    <strong>US$29</strong>
-                    <small>per month</small>
+                    <strong>US${{ plan.monthly_price_usd }}</strong>
+                    <small>{% if plan.monthly_price_usd == 0 %}to start{% else %}per month{% endif %}</small>
                 </div>
 
-                <p class="pricing-plan-desc">
-                    Designed to help you consistently improve visibility and generate new business.
-                    One client win can cover your entire subscription.
-                </p>
+                <p class="pricing-plan-desc">{{ plan.tagline }}</p>
 
                 <div class="pricing-feature-list">
-                    <div class="pricing-feature-item">20 monthly credits</div>
-                    <div class="pricing-feature-item">Buy extra credits anytime</div>
-                    <div class="pricing-feature-item">Content brief + draft workflow</div>
-                    <div class="pricing-feature-item">Better history and workflow access</div>
+                    {% for feature in plan.features %}
+                    <div class="pricing-feature-item">{{ feature }}</div>
+                    {% endfor %}
                 </div>
 
-                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary full-width-btn">Start Growing Visibility</a>
+                {% if plan.slug == 'free' %}
+                <a href="{{ url_for('signup') }}" class="btn btn-secondary full-width-btn">Get Started</a>
+                {% else %}
+                <a href="{{ url_for('stripe_checkout_plan', plan_slug=plan.slug) }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} full-width-btn">
+                    {% if current_plan == plan.slug %}Current Plan{% else %}Choose {{ plan.label }}{% endif %}
+                </a>
+                {% endif %}
             </article>
-
-            <article class="pricing-plan-card">
-                <div class="pricing-plan-top">
-                    <span class="pricing-plan-name">Growth</span>
-                    <span class="pricing-plan-badge">Heavy Use</span>
-                </div>
-
-                <div class="pricing-price-block">
-                    <div class="roi-inline">
-                        Just 1 client → pays for this plan
-                    </div>
-                    <strong>US$79</strong>
-                    <small>per month</small>
-                </div>
-
-                <p class="pricing-plan-desc">
-                    For teams or higher-volume usage.
-                </p>
-
-                <div class="pricing-feature-list">
-                    <div class="pricing-feature-item">75 monthly credits</div>
-                    <div class="pricing-feature-item">Good for small teams</div>
-                    <div class="pricing-feature-item">Faster workflow throughput</div>
-                    <div class="pricing-feature-item">More operating flexibility</div>
-                </div>
-
-                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Choose Growth</a>
-            </article>
-
+            {% endfor %}
         </div>
     </section>
 

@@ -94,6 +94,7 @@ def _action_to_card(action: Dict[str, Any], offset_in_week: int) -> Dict[str, An
         "priority": _clean(action.get("priority"), "medium"),
         "credits_required": action.get("credits_required") or 0,
         "category": _clean(action.get("category"), "growth"),
+        "category_tag": _clean(action.get("category_tag")),
         "day_offset": offset_in_week,
     }
 

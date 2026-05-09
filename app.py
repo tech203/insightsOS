@@ -10,6 +10,8 @@ from content_queue import (
     update_queue_item_schedule,
     update_queue_item_og_image,
     update_queue_item_webflow_export,
+    append_queue_item_chat_messages,
+    clear_queue_item_chat_history,
     delete_queue_item,
     transition_queue_item,
 )
@@ -19,6 +21,8 @@ from content_brief_generator import generate_content_brief
 from audit_runner import run_audit_for_input
 import json
 import logging
+import secrets
+from typing import Any, Dict, List, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import (
     LoginManager,
@@ -36,6 +40,21 @@ from action_engine import (
 )
 from next_action_engine import build_next_best_action
 from growth_calendar import weekly_growth_recommendations
+from pricing import (
+    ACTION_CREDIT_COSTS,
+    EXTRA_WORKSPACE_ADDON_PRICE_USD,
+    PLAN_CATALOG,
+    active_queue_limit_for_plan,
+    baseline_credit_price,
+    get_action_cost,
+    get_bundles_for_plan,
+    get_plan,
+    is_subscriber,
+    list_public_plans,
+    monthly_credit_allowance,
+    plan_allows_workspace_addon,
+    workspace_limit_for_plan,
+)
 from query_idea_generator import generate_query_ideas
 from flask import (
     Flask,
@@ -49,7 +68,7 @@ from flask import (
     session,
     make_response,
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 from tavily import TavilyClient
 from urllib.parse import urlparse
 from website_page_builder import generate_structured_website_page
@@ -74,6 +93,9 @@ def _check_env_health():
         "TAVILY_API_KEY": "competitor and web research",
     }
     optional = {
+        "PERPLEXITY_API_KEY": "second AI engine for the Answer Monitor",
+        "GOOGLE_CLIENT_ID": "Google Search Console connector (Pro/Growth)",
+        "GOOGLE_CLIENT_SECRET": "Google Search Console connector (Pro/Growth)",
         "WEBFLOW_API_TOKEN": "Webflow publishing",
         "WEBFLOW_SITE_ID": "Webflow publishing",
         "WEBFLOW_COLLECTION_ID": "legacy single-collection export",
@@ -83,6 +105,8 @@ def _check_env_health():
         "WEBFLOW_LOCATION_COLLECTION_ID": "location-page publishing",
         "PLACID_API_TOKEN": "visual generation (OG images, banners)",
         "PLACID_TEMPLATE_UUID_OG": "OG image template for queue items",
+        "SHOPIFY_API_KEY": "Shopify store OAuth + product sync",
+        "SHOPIFY_API_SECRET": "Shopify store OAuth + product sync",
     }
 
     missing_required = [(k, why) for k, why in required.items() if not os.getenv(k)]
@@ -120,6 +144,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = os.path.join(
     "static", "uploads", "workspace_logos"
 )
+app.config["AGENCY_LOGO_FOLDER"] = os.path.join(
+    "static", "uploads", "agency_logos"
+)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 db = SQLAlchemy(app)
@@ -154,6 +181,37 @@ class User(UserMixin, db.Model):
     plan = db.Column(db.String(50), default="free")
     is_white_label_enabled = db.Column(db.Boolean, default=False)
     agency_name = db.Column(db.String(255), nullable=True)
+    # Agency white-label fields. When is_white_label_enabled=True these
+    # replace the DarInsights brand on PDFs, the sidebar brand mark, and
+    # any client-facing surfaces invited team members see.
+    agency_tagline = db.Column(db.String(255), nullable=True)
+    agency_website = db.Column(db.String(500), nullable=True)
+    agency_footer = db.Column(db.String(500), nullable=True)
+    agency_disclaimer = db.Column(db.String(500), nullable=True)
+    agency_logo_filename = db.Column(db.String(255), nullable=True)
+
+    # Set by the Stripe webhook on the first successful checkout so
+    # billing-portal sessions can locate the customer.
+    stripe_customer_id = db.Column(db.String(120), nullable=True)
+    stripe_subscription_id = db.Column(db.String(120), nullable=True)
+
+    # Extra workspaces purchased beyond the plan's base cap (paid plans
+    # only). $9 / extra workspace / month — billed via a recurring
+    # Stripe subscription item, count synced from the
+    # customer.subscription.updated webhook.
+    extra_workspaces = db.Column(db.Integer, default=0, nullable=False)
+
+    # Extra team seats purchased beyond the plan's base cap (Pro/Growth
+    # only). $5 / extra seat / month.
+    extra_seats = db.Column(db.Integer, default=0, nullable=False)
+
+    # If non-null, this user is a team member belonging to the owner
+    # account at team_owner_id. They see the owner's workspaces and
+    # spend the owner's credits; their own User row exists only for
+    # auth + audit log purposes.
+    team_owner_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True, index=True
+    )
 
     wallet = db.relationship(
         "Wallet",
@@ -167,6 +225,30 @@ class User(UserMixin, db.Model):
         backref="user",
         lazy=True,
         cascade="all, delete-orphan",
+    )
+
+
+class TeamInvite(db.Model):
+    """A pending invite to join an owner's team. The owner sends the
+    /team/accept/<token> URL to the invitee; on accept, a User row is
+    created (or attached if one with that email already exists) and
+    that user's team_owner_id is set to the inviter.
+
+    `status` lifecycle: pending → accepted | revoked. Pending invites
+    count toward the owner's seat usage so the owner can't oversell."""
+    __tablename__ = "team_invites"
+
+    id = db.Column(db.Integer, primary_key=True)
+    owner_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    email = db.Column(db.String(255), nullable=False)
+    token = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    status = db.Column(db.String(40), default="pending", nullable=False)
+    invited_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    accepted_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
     )
 
 
@@ -198,6 +280,16 @@ class CreditTransaction(db.Model):
 
 
 class Referral(db.Model):
+    """Referral payout record.
+
+    Reward model: the referrer earns 25% of the dollar value the
+    referred user pays (subscription or credit bundle), capped to
+    purchases made within 30 days of signup. Free signups earn
+    nothing — the reward only ever fires when the referred user
+    actually pays. Each successful payment within the window creates
+    a new Referral row in `rewarded` status; status `expired` records
+    a window that closed without any payment.
+    """
     __tablename__ = "referrals"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -208,9 +300,17 @@ class Referral(db.Model):
         db.Integer, db.ForeignKey("users.id"), nullable=False
     )
     referral_code = db.Column(db.String(50), nullable=False)
+    # pending → rewarded | expired
     status = db.Column(db.String(50), default="pending", nullable=False)
-    reward_amount_referrer = db.Column(db.Integer, default=0, nullable=False)
-    reward_amount_referred = db.Column(db.Integer, default=0, nullable=False)
+    # Dollar amount the referred user paid on this triggering purchase
+    # (cents not used — Stripe gives us amount_total in cents, we
+    # divide on persist).
+    referred_payment_usd = db.Column(db.Numeric(10, 2), nullable=True)
+    # 25% of referred_payment_usd, in credits (1 credit = $1 baseline).
+    reward_credits_referrer = db.Column(db.Integer, default=0, nullable=False)
+    # Stripe object that triggered the reward (Checkout Session id),
+    # so the same payment can never grant the referrer twice.
+    stripe_event_ref = db.Column(db.String(120), nullable=True)
     qualified_at = db.Column(db.DateTime, nullable=True)
     rewarded_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(
@@ -236,6 +336,31 @@ class Client(db.Model):
     owner_type = db.Column(db.String(100), nullable=False, default="company")
     notes = db.Column(db.Text, nullable=True)
     logo_filename = db.Column(db.String(255), nullable=True)
+
+    # Brand Kit Studio fields. Structured (one column per attribute)
+    # so generation steps can lift values directly instead of parsing
+    # the legacy `notes` blob. The blueprint calls this "foundational
+    # architecture" — keep these stable.
+    brand_audience = db.Column(db.Text, nullable=True)
+    brand_services = db.Column(db.Text, nullable=True)
+    brand_differentiators = db.Column(db.Text, nullable=True)
+    brand_voice = db.Column(db.String(255), nullable=True)
+    brand_personality = db.Column(db.String(255), nullable=True)
+    brand_avoid = db.Column(db.Text, nullable=True)
+    brand_primary_color = db.Column(db.String(20), nullable=True)
+    brand_secondary_color = db.Column(db.String(20), nullable=True)
+    brand_accent_color = db.Column(db.String(20), nullable=True)
+    brand_typography = db.Column(db.String(120), nullable=True)
+    brand_imagery_direction = db.Column(db.Text, nullable=True)
+    brand_kit_updated_at = db.Column(db.DateTime, nullable=True)
+
+    # Business profile fields enriched via Tavily research — used by
+    # the audit PDF's Business Profile table and Executive Summary.
+    founded_year = db.Column(db.String(10), nullable=True)
+    google_rating = db.Column(db.String(20), nullable=True)
+    google_review_count = db.Column(db.Integer, nullable=True)
+    business_summary = db.Column(db.Text, nullable=True)
+    business_profile_updated_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
@@ -291,6 +416,186 @@ class PromptTracking(db.Model):
 
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
+    )
+
+
+class CalComConnection(db.Model):
+    """Key-based Cal.com booking connection scoped to a workspace.
+
+    User generates an API key in Cal.com Settings → Developer and
+    pastes it alongside their Cal.com username. Read-only — we list
+    event types and recent bookings, never create/cancel anything.
+    """
+    __tablename__ = "calcom_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    api_key = db.Column(db.Text, nullable=False)
+    username = db.Column(db.String(120), nullable=False)
+    last_payload = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_calcom_user_client"),
+    )
+
+
+class WooCommerceConnection(db.Model):
+    """Key-based WooCommerce connection scoped to a workspace.
+
+    The store admin generates a read-only Consumer Key + Consumer
+    Secret in WooCommerce → Settings → Advanced → REST API and pastes
+    them into our connect form. We never receive or store the WP
+    admin password — only the scoped REST keys.
+    """
+    __tablename__ = "woocommerce_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    store_url = db.Column(db.String(500), nullable=False)
+    consumer_key = db.Column(db.Text, nullable=False)
+    consumer_secret = db.Column(db.Text, nullable=False)
+
+    last_audit_payload = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_woo_user_client"),
+    )
+
+
+class GoogleSearchConsoleConnection(db.Model):
+    """OAuth-installed Google Search Console connection scoped to a
+    workspace. Stores the long-lived refresh token so we can mint
+    fresh access tokens when they expire (default ~1h validity).
+
+    `site_url` is the verified Search Console property the user picked
+    (e.g. "sc-domain:example.com" or "https://example.com/"). Cached
+    KPI payload + last_synced_at let the dashboard render fast without
+    re-hitting Google on every page view.
+    """
+    __tablename__ = "google_search_console_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    site_url = db.Column(db.String(500), nullable=True)
+    access_token = db.Column(db.Text, nullable=False)
+    refresh_token = db.Column(db.Text, nullable=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+    scope = db.Column(db.Text, nullable=True)
+
+    last_sync_payload = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    # Google Analytics 4 reuses the same OAuth grant. ga_property_id is
+    # the picked GA4 property (e.g. "123456789"); ga_payload caches the
+    # 28-day summary for the dashboard.
+    ga_property_id = db.Column(db.String(60), nullable=True)
+    ga_payload = db.Column(db.JSON, nullable=True)
+    ga_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_gsc_user_client"),
+    )
+
+
+class MarketplacePresence(db.Model):
+    """A user's storefront on a third-party marketplace (Etsy, Amazon,
+    Shopee, eBay). One row per (workspace, marketplace) — workspaces
+    can have multiple presences across marketplaces.
+
+    We don't ingest the catalog; the value is checking how the storefront
+    surfaces in AI answers, similar to the AI Answer Monitor but with
+    marketplace-flavoured prompts."""
+    __tablename__ = "marketplace_presences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    # One of: etsy, amazon, shopee, ebay, other
+    marketplace = db.Column(db.String(40), nullable=False)
+    shop_name = db.Column(db.String(255), nullable=True)
+    shop_url = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(120), nullable=True)
+    region = db.Column(db.String(80), nullable=True)
+
+    # Latest aggregate visibility from the most recent audit.
+    last_visibility_score = db.Column(db.Integer, nullable=True)
+    last_audit_payload = db.Column(db.JSON, nullable=True)
+    last_audited_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PromptCheckSnapshot(db.Model):
+    """Point-in-time result of running a tracked prompt against an AI
+    answer engine. One row per check; the latest values also live on
+    PromptTracking but the snapshot table is the source of truth for
+    the trend line shown in the Answer Monitor."""
+    __tablename__ = "prompt_check_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prompt_tracking_id = db.Column(
+        db.Integer,
+        db.ForeignKey("prompt_tracking.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=True, index=True
+    )
+
+    engine = db.Column(db.String(60), nullable=True)
+    brand_mentioned = db.Column(db.Boolean, default=False, nullable=False)
+    brand_position = db.Column(db.Integer, nullable=True)
+    score = db.Column(db.Integer, default=0, nullable=False)
+    answer_type = db.Column(db.String(60), nullable=True)
+    competitors_mentioned = db.Column(db.JSON, nullable=True)
+    answer_excerpt = db.Column(db.Text, nullable=True)
+
+    checked_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False, index=True
     )
 
 
@@ -415,6 +720,49 @@ class WebflowExport(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class ShopifyConnection(db.Model):
+    """An OAuth-installed Shopify connection scoped to a workspace.
+
+    The shop is where the user runs their store; the access_token is what
+    we use to call Admin REST. Stored per (user, client) so different
+    workspaces can be wired to different stores.
+    """
+    __tablename__ = "shopify_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    # e.g. "my-store.myshopify.com"
+    shop_domain = db.Column(db.String(255), nullable=False)
+
+    # Access token from the OAuth callback. Stored as plain text — production
+    # deployments should encrypt at rest (or move to a secrets manager).
+    access_token = db.Column(db.Text, nullable=False)
+
+    # Comma-separated scopes the token was granted with.
+    scope = db.Column(db.Text, nullable=True)
+
+    # Cached store metadata (name, country, plan, etc.).
+    shop_meta = db.Column(db.JSON, nullable=True)
+
+    # Last time we successfully synced products.
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_shopify_user_client"),
     )
 
 
@@ -2504,7 +2852,12 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
             "technical_issues": full_data.get("technical_issues", [])
         },
         research_pack=research_pack,
+        industry=client.get("industry", ""),
     )
+
+    shopify_findings = _shopify_findings_for_client(user_id, client_id)
+    if shopify_findings:
+        actions = list(actions) + shopify_findings
 
     opportunities = build_content_opportunities(actions)
 
@@ -2687,6 +3040,55 @@ def ensure_data_dirs():
     os.makedirs(DATA_FOLDER, exist_ok=True)
     os.makedirs(OUTPUTS_FOLDER, exist_ok=True)
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    os.makedirs(app.config["AGENCY_LOGO_FOLDER"], exist_ok=True)
+
+
+def agency_branding(user) -> Dict[str, Any]:
+    """Resolve the agency-branding dict that PDFs and the in-app
+    sidebar use. Always returns the same shape so templates don't
+    need to special-case missing fields. Falls back to DarInsights
+    branding when white-label is off."""
+    from services.storage import logo_storage
+
+    # Resolve the uploaded logo URL regardless of whether white-label
+    # is active, so the Settings → White-label page can preview the
+    # uploaded file even before the toggle is flipped.
+    raw_logo_url = logo_storage.url(
+        "agency_logos", getattr(user, "agency_logo_filename", None)
+    ) if user else None
+
+    if not user or not getattr(user, "is_white_label_enabled", False):
+        return {
+            "active": False,
+            "name": "DarInsights",
+            "tagline": "AI Visibility & Content Strategy",
+            "website": None,
+            # Surface the file even when not active so the upload card
+            # can render its preview. The sidebar / PDF code paths
+            # already gate on `active` before swapping the brand.
+            "logo_url": raw_logo_url,
+            "footer_text": None,
+            "disclaimer": None,
+        }
+    logo_url = raw_logo_url
+    return {
+        "active": True,
+        "name": user.agency_name or "Your Agency",
+        "tagline": user.agency_tagline or "AI Visibility & Content Strategy",
+        "website": user.agency_website,
+        "logo_url": logo_url,
+        "footer_text": user.agency_footer,
+        "disclaimer": user.agency_disclaimer,
+    }
+
+
+def effective_agency_branding() -> Dict[str, Any]:
+    """Resolve branding for the current request. Team members see the
+    owner's agency branding so client-facing surfaces stay consistent."""
+    if not current_user.is_authenticated:
+        return agency_branding(None)
+    target = effective_owner() or current_user
+    return agency_branding(target)
 
 
 def load_json_file(filepath):
@@ -2985,6 +3387,14 @@ def generate_referral_code(name, user_id):
 # =========================
 
 
+def _workspace_logo_url(filename):
+    """Resolve a workspace logo to its public URL (S3 or local)."""
+    if not filename:
+        return None
+    from services.storage import logo_storage
+    return logo_storage.url("workspace_logos", filename)
+
+
 def serialize_client_row(client):
     return {
         "id": client.slug,
@@ -2998,8 +3408,8 @@ def serialize_client_row(client):
         "owner_type": client.owner_type or "company",
         "notes": client.notes or "",
         "logo_filename": client.logo_filename,
-        "logo_url": url_for("static", filename=f"uploads/workspace_logos/{
-                client.logo_filename}") if client.logo_filename else None,
+        "logo_url": _workspace_logo_url(client.logo_filename),
+        "brand_kit": brand_kit_dict(client),
         "created_at": (
             client.created_at.isoformat() if client.created_at else None
         ),
@@ -3007,6 +3417,59 @@ def serialize_client_row(client):
             client.updated_at.isoformat() if client.updated_at else None
         ),
     }
+
+
+def brand_kit_dict(client) -> Dict[str, Any]:
+    """Read the structured Brand Kit fields off a Client row. Used by
+    serialize_client_row + downstream prompt-builders so generators
+    have a stable shape to lift values from."""
+    if not client:
+        return {}
+    return {
+        "audience": getattr(client, "brand_audience", None),
+        "services": getattr(client, "brand_services", None),
+        "differentiators": getattr(client, "brand_differentiators", None),
+        "voice": getattr(client, "brand_voice", None),
+        "personality": getattr(client, "brand_personality", None),
+        "avoid": getattr(client, "brand_avoid", None),
+        "primary_color": getattr(client, "brand_primary_color", None),
+        "secondary_color": getattr(client, "brand_secondary_color", None),
+        "accent_color": getattr(client, "brand_accent_color", None),
+        "typography": getattr(client, "brand_typography", None),
+        "imagery_direction": getattr(client, "brand_imagery_direction", None),
+        "updated_at": (
+            client.brand_kit_updated_at.isoformat()
+            if getattr(client, "brand_kit_updated_at", None) else None
+        ),
+    }
+
+
+def brand_kit_context_block(client_or_dict) -> str:
+    """Format the Brand Kit fields as a clean text block for prompts.
+
+    Generators (audit, briefs, drafts, AI editing) prepend this so
+    the model gets explicit brand direction instead of leaning on
+    a generic notes blob. Returns empty string when nothing is set —
+    callers can concat without checking for content."""
+    if hasattr(client_or_dict, "brand_audience"):
+        kit = brand_kit_dict(client_or_dict)
+    elif isinstance(client_or_dict, dict):
+        kit = client_or_dict.get("brand_kit") or {}
+    else:
+        kit = {}
+    fields = [
+        ("Target audience", kit.get("audience")),
+        ("Main offerings", kit.get("services")),
+        ("What makes us different", kit.get("differentiators")),
+        ("Voice / tone", kit.get("voice")),
+        ("Personality", kit.get("personality")),
+        ("Avoid", kit.get("avoid")),
+        ("Imagery direction", kit.get("imagery_direction")),
+    ]
+    lines = [f"{label}: {value}" for label, value in fields if value]
+    if not lines:
+        return ""
+    return "Brand Kit:\n" + "\n".join(lines)
 
 
 def get_unique_client_slug(user_id, name):
@@ -3441,8 +3904,10 @@ def build_query_level_comparison(latest_summary_audit, previous_summary_audit):
 
 
 def build_client_views():
-    clients = load_clients(user_id=current_user.id)
-    audits = get_saved_audits(user_id=current_user.id)
+    # Team members see the team owner's workspaces; solo users see their own.
+    owner_id = effective_owner_id() or current_user.id
+    clients = load_clients(user_id=owner_id)
+    audits = get_saved_audits(user_id=owner_id)
 
     client_views = []
 
@@ -3504,7 +3969,67 @@ def build_client_views():
                 ]
             },
             site_findings={},
+            industry=client.get("industry", ""),
         )
+
+        shopify_findings = _shopify_findings_for_client(
+            current_user.id, client.get("id")
+        )
+        if shopify_findings:
+            recommended_actions = list(recommended_actions) + shopify_findings
+
+        # GSC + GA-driven recommendations. We read the cached payloads
+        # the integration sync routes already write to the connection
+        # row, so this stays HTTP-free on the render path.
+        try:
+            from services.google_data_recommendations import (
+                build_google_data_recommendations,
+            )
+            gsc_conn = (
+                GoogleSearchConsoleConnection.query.filter_by(
+                    user_id=owner_id, client_id=client.get("id")
+                ).first() if client.get("id") else None
+            )
+            if gsc_conn:
+                google_recs = build_google_data_recommendations(
+                    gsc_payload=gsc_conn.last_sync_payload,
+                    ga_payload=gsc_conn.ga_payload,
+                )
+                if google_recs:
+                    recommended_actions = list(recommended_actions) + google_recs
+        except Exception as exc:
+            logger.warning(
+                "Google data recs failed for client %s: %s",
+                client.get("id"), exc,
+            )
+
+        # Stale-content refresh recommendations — feeds the Growth
+        # Calendar so it stays self-feeding between fresh audits.
+        try:
+            from services.stale_content import find_stale_actions
+            wf_exports = (
+                WebflowExport.query
+                .filter_by(user_id=owner_id, client_id=client.get("id"))
+                .all()
+                if client.get("id") else []
+            )
+            client_queue = get_queue_items(
+                client_id=client.get("id"),
+                user_id=owner_id,
+                include_dismissed=True,
+            ) if client.get("id") else []
+            stale = find_stale_actions(
+                webflow_exports=wf_exports,
+                queue_items=client_queue,
+            )
+            if stale:
+                recommended_actions = list(recommended_actions) + stale
+        except Exception as exc:
+            logger.warning(
+                "Stale-content scan failed for client %s: %s",
+                client.get("id"), exc,
+            )
+
         client_views.append(
             {
                 **client,
@@ -3598,24 +4123,15 @@ def user_has_unlimited_credits(user):
 def get_active_queue_limit(user):
     """
     Controls how many active content queue items each plan can have.
-    Published/archived items do not count.
+    Published/archived items do not count. Reads from PLAN_CATALOG so
+    bumping a tier's limit is a one-line edit in pricing.py.
     """
     if not user:
         return 3
-
     if user_has_unlimited_credits(user):
         return 999
-
     plan = getattr(user, "plan", "free") or "free"
-
-    limits = {
-        "free": 3,
-        "pro": 10,
-        "growth": 25,
-        "dev_unlimited": 999,
-    }
-
-    return limits.get(plan, 3)
+    return active_queue_limit_for_plan(plan)
 
 
 def is_active_queue_status(status):
@@ -3698,6 +4214,12 @@ def require_internal_access():
 
 
 def spend_credits(user, amount, tx_type="usage", notes=""):
+    # Team members spend from the owner's wallet — billing is a team
+    # property, not a per-member one.
+    if user and getattr(user, "team_owner_id", None):
+        owner = User.query.get(user.team_owner_id)
+        if owner:
+            user = owner
     wallet = user.wallet
 
     if user_has_unlimited_credits(user):
@@ -3729,62 +4251,229 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     return True
 
 
+def effective_owner_id(user=None) -> Optional[int]:
+    """Return the User.id of the account that owns this user's data.
+
+    For team members (team_owner_id set) this is the inviter; for solo
+    users it's the user themselves. Used everywhere queries need to
+    span "the team's" data without leaking a member's view of an owner
+    they don't belong to."""
+    target = user if user is not None else current_user
+    if not target or not target.is_authenticated:
+        return None
+    return getattr(target, "team_owner_id", None) or target.id
+
+
+def effective_owner(user=None):
+    """Return the owning User row (the inviter for team members, or
+    the user themselves)."""
+    target = user if user is not None else current_user
+    if not target or not target.is_authenticated:
+        return None
+    if getattr(target, "team_owner_id", None):
+        return User.query.get(target.team_owner_id)
+    return target
+
+
+def count_team_members(owner_id: int) -> int:
+    """Members + pending invites currently consuming seats for this owner."""
+    members = User.query.filter_by(team_owner_id=owner_id).count()
+    pending = TeamInvite.query.filter_by(
+        owner_user_id=owner_id, status="pending"
+    ).count()
+    # +1 for the owner themselves.
+    return members + pending + 1
+
+
+def get_seat_limit(user) -> int:
+    """Plan base seat cap + extra seats purchased."""
+    if not user:
+        return 1
+    if user.role == "admin" or user.plan == "dev_unlimited":
+        return 999
+    from pricing import seat_limit_for_plan as _seat
+    base = _seat(getattr(user, "plan", "free") or "free")
+    extras = int(getattr(user, "extra_seats", 0) or 0)
+    return base + extras
+
+
+def grant_monthly_credits_if_due(user) -> int:
+    """If `user` is on a paid plan and at least 28 days have passed since
+    their last monthly_allowance grant (or they've never received one),
+    credit their wallet with the plan's allowance and record the
+    transaction. Returns the number of credits granted (0 if not due)."""
+    if not user or not getattr(user, "plan", None):
+        return 0
+    monthly = monthly_credit_allowance(user.plan)
+    if monthly <= 0:
+        return 0
+
+    last_grant = (
+        CreditTransaction.query
+        .filter_by(user_id=user.id, type="monthly_allowance")
+        .order_by(CreditTransaction.created_at.desc())
+        .first()
+    )
+    now = datetime.utcnow()
+    if last_grant and (now - last_grant.created_at).days < 28:
+        return 0
+
+    if not user.wallet:
+        user.wallet = Wallet(user_id=user.id, balance=0)
+        db.session.add(user.wallet)
+        db.session.flush()
+
+    user.wallet.balance += monthly
+    db.session.add(
+        CreditTransaction(
+            user_id=user.id,
+            type="monthly_allowance",
+            amount=monthly,
+            balance_after=user.wallet.balance,
+            notes=f"Monthly allowance — {get_plan(user.plan).get('label', user.plan)} plan",
+        )
+    )
+    db.session.commit()
+    return monthly
+
+
+@app.before_request
+def _maybe_grant_monthly_credits():
+    """Top up paid users with their monthly allowance once per period."""
+    if not current_user.is_authenticated:
+        return
+    # Cheap fast-path: skip if the request is for static assets.
+    if request.endpoint and request.endpoint.startswith("static"):
+        return
+    try:
+        grant_monthly_credits_if_due(current_user)
+    except Exception as exc:
+        logger.warning("Monthly credit grant failed for user %s: %s", current_user.id, exc)
+
+
+def has_enough_credits_for(user, action_key: str) -> bool:
+    """Convenience: does the user have enough credits for a named action?"""
+    from pricing import get_action_cost
+    return has_enough_credits(user, get_action_cost(action_key))
+
+
+def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
+    """Deduct the canonical credit cost for an action. Returns False
+    if the wallet doesn't have the funds (caller should flash + bail)."""
+    from pricing import get_action_cost
+    cost = get_action_cost(action_key)
+    if cost <= 0:
+        return True
+    return spend_credits(
+        user,
+        cost,
+        tx_type=f"usage_{action_key}",
+        notes=notes or action_key.replace("_", " ").title(),
+    )
+
+
 def has_enough_credits(user, amount):
     if user_has_unlimited_credits(user):
         return True
-
-    if not user or not user.wallet:
+    if not user:
         return False
-
+    # Check the owner's wallet for team members.
+    if getattr(user, "team_owner_id", None):
+        owner = User.query.get(user.team_owner_id)
+        if not owner or not owner.wallet:
+            return False
+        return owner.wallet.balance >= amount
+    if not user.wallet:
+        return False
     return user.wallet.balance >= amount
 
 
-def award_referral_if_qualified(user):
-    referral = Referral.query.filter_by(
-        referred_user_id=user.id, status="pending"
-    ).first()
-    if not referral:
+REFERRAL_WINDOW_DAYS = 30
+REFERRAL_PAYOUT_RATE = 0.25  # 25% of paid value
+
+
+def award_referral_for_payment(
+    *,
+    referred_user,
+    amount_usd: float,
+    stripe_event_ref: str = "",
+) -> bool:
+    """Apply the 25% referral reward when the referred user makes a
+    paid purchase within the 30-day window from their signup.
+
+    Returns True when a reward was granted, False otherwise. Every
+    qualifying payment creates its own Referral row, so a referrer
+    keeps earning on each subsequent purchase the referred user makes
+    inside the window (subscriptions + credit bundles)."""
+    if not referred_user:
+        return False
+    if not getattr(referred_user, "referred_by_user_id", None):
+        return False
+    if amount_usd is None or amount_usd <= 0:
         return False
 
-    referrer = User.query.get(referral.referrer_user_id)
-    referred_user = User.query.get(referral.referred_user_id)
-
-    if (
-        not referrer
-        or not referrer.wallet
-        or not referred_user
-        or not referred_user.wallet
-    ):
+    # Window check — measured from the referred user's signup.
+    signed_up_at = getattr(referred_user, "created_at", None)
+    if signed_up_at and (datetime.utcnow() - signed_up_at).days >= REFERRAL_WINDOW_DAYS:
         return False
 
-    referrer.wallet.balance += referral.reward_amount_referrer
+    # Idempotency — never reward the same Stripe session twice.
+    if stripe_event_ref:
+        already = Referral.query.filter_by(
+            stripe_event_ref=stripe_event_ref
+        ).first()
+        if already:
+            return False
+
+    referrer = User.query.get(referred_user.referred_by_user_id)
+    if not referrer:
+        return False
+    if not referrer.wallet:
+        referrer.wallet = Wallet(user_id=referrer.id, balance=0)
+        db.session.add(referrer.wallet)
+        db.session.flush()
+
+    # 1 credit ≈ $1 of value for subscribers, $0.50 for free-plan
+    # users at the topup-bundle level. The referrer's reward is
+    # measured in credits (1 credit = $1 = direct offset), regardless
+    # of the referred user's plan tier — they earn what they pay.
+    reward_credits = max(1, int(round(amount_usd * REFERRAL_PAYOUT_RATE)))
+
+    referrer.wallet.balance += reward_credits
     db.session.add(
         CreditTransaction(
             user_id=referrer.id,
             type="referral_bonus",
-            amount=referral.reward_amount_referrer,
+            amount=reward_credits,
             balance_after=referrer.wallet.balance,
-            notes=f"Referral reward for user {referred_user.email}",
+            notes=(
+                f"Referral reward (25% of ${amount_usd:.2f} paid by "
+                f"{referred_user.email})"
+            ),
         )
     )
-
-    referred_user.wallet.balance += referral.reward_amount_referred
     db.session.add(
-        CreditTransaction(
-            user_id=referred_user.id,
-            type="referral_bonus",
-            amount=referral.reward_amount_referred,
-            balance_after=referred_user.wallet.balance,
-            notes="Referral bonus after qualification",
+        Referral(
+            referrer_user_id=referrer.id,
+            referred_user_id=referred_user.id,
+            referral_code=referrer.referral_code or "",
+            status="rewarded",
+            referred_payment_usd=round(amount_usd, 2),
+            reward_credits_referrer=reward_credits,
+            stripe_event_ref=stripe_event_ref or None,
+            qualified_at=datetime.utcnow(),
+            rewarded_at=datetime.utcnow(),
         )
     )
-
-    referral.status = "rewarded"
-    referral.qualified_at = datetime.utcnow()
-    referral.rewarded_at = datetime.utcnow()
-
     db.session.commit()
     return True
+
+
+def award_referral_if_qualified(user):
+    """Backward-compat shim — old callers still expect this name.
+    The new model only awards on paid purchases, so a non-payment
+    signup hook is a no-op now."""
+    return False
 
 
 def get_focused_client_for_user(user):
@@ -3976,9 +4665,49 @@ def help_page():
 
 
 @app.route("/pricing")
-@login_required
 def pricing_page():
-    return render_template("pricing.html")
+    """Public pricing page — renders the plan catalog."""
+    current_plan = (
+        getattr(current_user, "plan", None)
+        if current_user.is_authenticated
+        else None
+    )
+    return render_template(
+        "pricing.html",
+        plans=list_public_plans(),
+        current_plan=current_plan,
+    )
+
+
+@app.route("/subscribe/<plan_slug>", methods=["GET"])
+@login_required
+def start_subscription(plan_slug):
+    """Begin a subscription change. Without Stripe wired up, this is a
+    dev-mode plan switch that records a CreditTransaction for audit
+    visibility. The Stripe checkout flow plugs in here later."""
+    plan = get_plan(plan_slug)
+    if plan_slug not in PLAN_CATALOG or plan_slug == "free":
+        flash("That plan isn't available.", "error")
+        return redirect(url_for("pricing_page"))
+
+    # Stripe placeholder: when STRIPE_SECRET_KEY + price IDs are wired,
+    # redirect to a Stripe Checkout session here. For now we set the plan
+    # directly and grant the first month's allowance immediately.
+    if os.getenv("STRIPE_SECRET_KEY"):
+        # TODO: redirect to stripe.checkout.Session.create(...)
+        pass
+
+    current_user.plan = plan_slug
+    db.session.commit()
+    granted = grant_monthly_credits_if_due(current_user)
+    if granted:
+        flash(
+            f"Welcome to {plan['label']} — {granted} credits added to your wallet.",
+            "success",
+        )
+    else:
+        flash(f"You're now on the {plan['label']} plan.", "success")
+    return redirect(url_for("settings_billing"))
 
 
 @app.route("/growth-calendar")
@@ -4278,6 +5007,90 @@ def dev_set_plan(plan):
     return redirect(request.referrer or url_for("index"))
 
 
+def _resolve_business_profile_for_pdf(workspace_row, client_dict):
+    """Lazy-enrich the workspace's business profile if it's missing or
+    stale, then return a flat dict the PDF template reads from."""
+    from services.business_profile_research import (
+        is_profile_stale, research_business_profile,
+    )
+
+    if workspace_row and is_profile_stale(workspace_row):
+        try:
+            data = research_business_profile(
+                name=workspace_row.name,
+                website=workspace_row.website,
+                location=workspace_row.location,
+            )
+            if data:
+                if data.get("founded_year"):
+                    workspace_row.founded_year = data["founded_year"]
+                if data.get("google_rating"):
+                    workspace_row.google_rating = data["google_rating"]
+                if data.get("google_review_count") is not None:
+                    workspace_row.google_review_count = data["google_review_count"]
+                if data.get("executive_summary"):
+                    workspace_row.business_summary = data["executive_summary"]
+                if data.get("core_services") and not workspace_row.brand_services:
+                    workspace_row.brand_services = data["core_services"]
+                workspace_row.business_profile_updated_at = datetime.utcnow()
+                db.session.commit()
+        except Exception as exc:
+            logger.warning("Business profile research failed: %s", exc)
+
+    return {
+        "founded_year": getattr(workspace_row, "founded_year", None),
+        "google_rating": getattr(workspace_row, "google_rating", None),
+        "google_review_count": getattr(workspace_row, "google_review_count", None),
+        "core_services": (
+            getattr(workspace_row, "brand_services", None)
+            or client_dict.get("brand_kit", {}).get("services")
+        ),
+        "executive_summary": getattr(workspace_row, "business_summary", None),
+    }
+
+
+def _citation_table_rows(client_dict, max_rows: int = 5):
+    """Build the AI Citation Test Results table from the workspace's
+    tracked-prompt history. One row per query: query / cited (Y/N) /
+    top competitor citing it. Prefers the most recent
+    PromptCheckSnapshot value when present so the PDF reflects the
+    latest monitor sweep, not the saved-audit snapshot."""
+    domain = (client_dict.get("website_normalized") or "").strip()
+    if not domain:
+        return []
+
+    owner_id = effective_owner_id() or current_user.id
+    prompt_rows = (
+        PromptTracking.query.filter_by(user_id=owner_id, domain=domain)
+        .order_by(PromptTracking.created_at.desc())
+        .limit(max_rows)
+        .all()
+    )
+    out = []
+    for row in prompt_rows:
+        latest_snap = (
+            db.session.query(PromptCheckSnapshot)
+            .filter_by(prompt_tracking_id=row.id)
+            .order_by(PromptCheckSnapshot.checked_at.desc())
+            .first()
+        )
+        if latest_snap:
+            cited = bool(latest_snap.brand_mentioned)
+            top = (
+                (latest_snap.competitors_mentioned or [None])[0]
+                if latest_snap.competitors_mentioned else None
+            )
+        else:
+            cited = (row.mentioned or "").lower() == "yes"
+            top = row.top_competitor or None
+        out.append({
+            "query": row.prompt or "—",
+            "cited": cited,
+            "top_competitor": top or "—",
+        })
+    return out
+
+
 @app.route("/client/<client_id>/export-pdf")
 @login_required
 def export_client_audit_pdf(client_id):
@@ -4285,25 +5098,40 @@ def export_client_audit_pdf(client_id):
     if not client:
         abort(404)
 
-    # 🔹 Get latest audit data
+    # The Client ORM row drives the business-profile cache; client (the
+    # serialised dict) drives the rest of the rendering.
+    workspace_row = (
+        Client.query.filter_by(slug=str(client_id), user_id=effective_owner_id())
+        .first()
+        or (
+            Client.query.filter_by(id=int(client_id), user_id=effective_owner_id()).first()
+            if str(client_id).isdigit() else None
+        )
+    )
+
+    business_profile = _resolve_business_profile_for_pdf(workspace_row, client)
+    citation_rows = _citation_table_rows(client, max_rows=5)
+
     latest = client.get("latest_audit", {})
 
-    # 🔹 Safe fallbacks
     recommended_actions = client.get("recommended_actions", [])
     question_rows = client.get("question_rows", [])
     missing_rows = client.get("missing_rows", [])
 
     top_action = recommended_actions[0] if recommended_actions else None
 
-    # 🔹 Agency (white-label support)
+    # White-label agency branding — falls back to DarInsights when off.
+    # Team members see the owner's branding so client-facing PDFs are
+    # consistent across the team.
+    agency_payload = effective_agency_branding()
     agency = {
-        "name": getattr(current_user, "agency_name", None) or "Your Agency",
-        "logo_url": getattr(current_user, "agency_logo_url", None),
-        "website": getattr(current_user, "agency_website", None),
-        "tagline": getattr(current_user, "agency_tagline", None)
-        or "AI Visibility & Content Strategy",
-        "footer_text": getattr(current_user, "agency_footer", None),
-        "disclaimer": getattr(current_user, "agency_disclaimer", None),
+        "name": agency_payload.get("name") or "Your Agency",
+        "logo_url": agency_payload.get("logo_url"),
+        "website": agency_payload.get("website"),
+        "tagline": agency_payload.get("tagline") or "AI Visibility & Content Strategy",
+        "footer_text": agency_payload.get("footer_text"),
+        "disclaimer": agency_payload.get("disclaimer"),
+        "active": agency_payload.get("active", False),
     }
 
     # 🔹 Render HTML
@@ -4318,8 +5146,13 @@ def export_client_audit_pdf(client_id):
         missing_rows=missing_rows,
         report_date=report_date,
         agency=agency,
-        executive_summary=client.get("executive_summary"),
+        executive_summary=(
+            business_profile.get("executive_summary")
+            or client.get("executive_summary")
+        ),
         competitor_notes=client.get("competitor_notes"),
+        business_profile=business_profile,
+        citation_rows=citation_rows,
     )
 
     filename = pdf_filename(f"{client.get('name', 'report')} audit report")
@@ -4361,25 +5194,24 @@ def report_page(client_id):
 
 
 def get_workspace_limit(user):
+    """Total workspaces this user can create: plan base limit + extra
+    workspaces purchased as add-ons. Admins / dev_unlimited get no cap."""
     if not user:
         return 0
-
     if user.role == "admin" or user.plan == "dev_unlimited":
         return None
-
-    limits = {
-        "free": 1,
-        "starter": 3,
-        "pro": 10,
-        "growth": 10,
-        "agency": 25,
-    }
-
-    return limits.get(user.plan, 1)
+    base = workspace_limit_for_plan(getattr(user, "plan", "free") or "free")
+    extras = int(getattr(user, "extra_workspaces", 0) or 0)
+    return base + extras
 
 
 def get_workspace_count(user_id):
-    return Client.query.filter_by(user_id=user_id).count()
+    """Count workspaces against the OWNING account so team members
+    can't accidentally bypass the cap."""
+    user = User.query.get(user_id) if user_id else None
+    target = effective_owner(user) if user else None
+    target_id = target.id if target else user_id
+    return Client.query.filter_by(user_id=target_id).count()
 
 
 def can_create_workspace(user):
@@ -4392,43 +5224,576 @@ def can_create_workspace(user):
     return count < limit, limit, count
 
 
-@app.route("/create-checkout-session")
+# =========================
+# Stripe checkout (bundles + subscriptions)
+# =========================
+# Three routes:
+#   /stripe/checkout/bundle/<credits>  — one-time topup
+#   /stripe/checkout/plan/<plan_slug>  — recurring subscription
+#   /stripe/webhook                    — credits land + plans flip here
+# Plus /stripe/portal so the user can self-serve cancel / payment method.
+
+
+@app.route("/stripe/checkout/bundle/<int:credits>", methods=["GET", "POST"])
 @login_required
-def create_checkout_session():
+def stripe_checkout_bundle(credits):
+    from services.stripe_helper import (
+        StripeNotConfigured,
+        create_bundle_checkout_session,
+        is_stripe_configured,
+    )
+
+    if not is_stripe_configured():
+        flash(
+            "Stripe isn't configured on this server yet. Reach out to support to top up credits.",
+            "error",
+        )
+        return redirect(url_for("settings_credits"))
+
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            mode="payment",  # simple one-time payment
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                            "name": "DarInsights Pro Upgrade",
-                        },
-                        "unit_amount": 2900,  # $29.00
-                    },
-                    "quantity": 1,
-                }
-            ],
-            success_url=url_for("payment_success", _external=True),
+        result = create_bundle_checkout_session(
+            user_id=current_user.id,
+            user_email=current_user.email,
+            credits=credits,
+            is_subscriber=is_subscriber(getattr(current_user, "plan", "free")),
+            success_url=url_for("stripe_success", _external=True),
+            cancel_url=url_for("settings_credits", _external=True),
+        )
+    except StripeNotConfigured as exc:
+        flash(f"Topup unavailable: {exc}", "error")
+        return redirect(url_for("settings_credits"))
+    except Exception as exc:
+        logger.warning("Stripe bundle checkout failed: %s", exc)
+        flash("Could not start checkout. Try again in a moment.", "error")
+        return redirect(url_for("settings_credits"))
+
+    return redirect(result["url"], code=303)
+
+
+@app.route("/stripe/checkout/plan/<plan_slug>", methods=["GET", "POST"])
+@login_required
+def stripe_checkout_plan(plan_slug):
+    from services.stripe_helper import (
+        StripeNotConfigured,
+        create_subscription_checkout_session,
+        is_stripe_configured,
+    )
+
+    if plan_slug not in PLAN_CATALOG or plan_slug == "free":
+        flash("That plan isn't available.", "error")
+        return redirect(url_for("pricing_page"))
+
+    if not is_stripe_configured():
+        # Dev fallback: flip the plan immediately so the demo flow works
+        # without Stripe wired up. Production deployments should always
+        # have STRIPE_SECRET_KEY set so this branch never fires.
+        return redirect(url_for("start_subscription", plan_slug=plan_slug))
+
+    try:
+        result = create_subscription_checkout_session(
+            user_id=current_user.id,
+            user_email=current_user.email,
+            plan_slug=plan_slug,
+            success_url=url_for("stripe_success", _external=True),
             cancel_url=url_for("pricing_page", _external=True),
         )
+    except StripeNotConfigured as exc:
+        flash(f"Plan checkout unavailable: {exc}", "error")
+        return redirect(url_for("pricing_page"))
+    except Exception as exc:
+        logger.warning("Stripe subscription checkout failed: %s", exc)
+        flash("Could not start checkout. Try again in a moment.", "error")
+        return redirect(url_for("pricing_page"))
 
-        return redirect(session.url, code=303)
-
-    except Exception as e:
-        return str(e)
+    return redirect(result["url"], code=303)
 
 
-@app.route("/payment-success")
+@app.route("/stripe/success")
 @login_required
-def payment_success():
-    current_user.plan = "pro"
-    db.session.commit()
+def stripe_success():
+    """Landing page after Stripe Checkout completes. Note: the wallet
+    update happens in the webhook, so this page just confirms receipt
+    and redirects to the credits view."""
+    flash(
+        "Payment received — credits will land in your wallet within a few seconds.",
+        "success",
+    )
+    return redirect(url_for("settings_credits"))
 
-    flash("Upgrade successful! You now have full access 🚀", "success")
-    return redirect(url_for("index"))
+
+@app.route("/billing/buy-workspace", methods=["POST"])
+@login_required
+def buy_extra_workspace():
+    """Purchase one additional workspace beyond the plan's base cap.
+
+    Free plan can't buy add-ons. Stripe-backed when STRIPE_SECRET_KEY +
+    STRIPE_PRICE_EXTRA_WORKSPACE are set; otherwise this is a dev-mode
+    increment so we can test the flow before billing is wired."""
+    if not plan_allows_workspace_addon(current_user.plan):
+        flash(
+            "Extra workspaces are only available on paid plans. "
+            "Upgrade your plan to add more workspaces.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    stripe_price = os.getenv("STRIPE_PRICE_EXTRA_WORKSPACE")
+    if os.getenv("STRIPE_SECRET_KEY") and stripe_price:
+        # Real Stripe path — create a one-off Checkout session that
+        # adds the recurring addon as a subscription item via metadata
+        # the webhook will read.
+        try:
+            import stripe as _stripe
+            _stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            session = _stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": stripe_price, "quantity": 1}],
+                client_reference_id=str(current_user.id),
+                customer=current_user.stripe_customer_id or None,
+                customer_email=current_user.email if not current_user.stripe_customer_id else None,
+                metadata={
+                    "kind": "extra_workspace",
+                    "user_id": str(current_user.id),
+                },
+                success_url=url_for("settings_billing", _external=True),
+                cancel_url=url_for("settings_billing", _external=True),
+            )
+            return redirect(session.url, code=303)
+        except Exception as exc:
+            logger.warning("Extra workspace checkout failed: %s", exc)
+            flash("Could not start checkout. Try again in a moment.", "error")
+            return redirect(url_for("settings_billing"))
+
+    # Dev fallback — increment the count directly so the workspace flow
+    # can be tested before Stripe is configured.
+    current_user.extra_workspaces = int(current_user.extra_workspaces or 0) + 1
+    db.session.commit()
+    flash(
+        f"Added 1 extra workspace (you now have "
+        f"{get_workspace_limit(current_user)} total). "
+        "Note: Stripe billing isn't wired yet — this was a dev-mode increment.",
+        "success",
+    )
+    return redirect(url_for("settings_billing"))
+
+
+@app.route("/billing/buy-seat", methods=["POST"])
+@login_required
+def buy_extra_seat():
+    """Purchase one additional team seat ($5/mo recurring)."""
+    from pricing import plan_allows_seat_addon
+
+    if not plan_allows_seat_addon(current_user.plan):
+        flash(
+            "Extra team seats are only available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    stripe_price = os.getenv("STRIPE_PRICE_EXTRA_SEAT")
+    if os.getenv("STRIPE_SECRET_KEY") and stripe_price:
+        try:
+            import stripe as _stripe
+            _stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            session = _stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": stripe_price, "quantity": 1}],
+                client_reference_id=str(current_user.id),
+                customer=current_user.stripe_customer_id or None,
+                customer_email=current_user.email if not current_user.stripe_customer_id else None,
+                metadata={"kind": "extra_seat", "user_id": str(current_user.id)},
+                success_url=url_for("settings_team", _external=True),
+                cancel_url=url_for("settings_team", _external=True),
+            )
+            return redirect(session.url, code=303)
+        except Exception as exc:
+            logger.warning("Extra seat checkout failed: %s", exc)
+            flash("Could not start checkout. Try again in a moment.", "error")
+            return redirect(url_for("settings_team"))
+
+    current_user.extra_seats = int(current_user.extra_seats or 0) + 1
+    db.session.commit()
+    flash(
+        f"Added 1 extra seat (you now have {get_seat_limit(current_user)} total). "
+        "Note: Stripe billing isn't wired yet — this was a dev-mode increment.",
+        "success",
+    )
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/billing/release-seat", methods=["POST"])
+@login_required
+def release_extra_seat():
+    """Release one paid extra seat. Refuses if it would orphan a member
+    (current member count > new total)."""
+    if int(current_user.extra_seats or 0) <= 0:
+        flash("No paid extra seats to release.", "info")
+        return redirect(url_for("settings_team"))
+
+    used = count_team_members(current_user.id)
+    new_total = get_seat_limit(current_user) - 1
+    if used > new_total:
+        flash(
+            f"You're using {used} seats — revoke a member or pending invite first.",
+            "warning",
+        )
+        return redirect(url_for("settings_team"))
+
+    current_user.extra_seats = int(current_user.extra_seats or 0) - 1
+    db.session.commit()
+    flash("Released 1 extra seat.", "success")
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/team/invite", methods=["POST"])
+@login_required
+def team_invite():
+    """Create a pending TeamInvite + return the share URL.
+
+    No email service yet — the owner copies the URL to send manually.
+    Pending invites count toward the seat cap so the owner can't
+    oversubscribe."""
+    from pricing import plan_allows_seat_addon
+    if not plan_allows_seat_addon(current_user.plan):
+        flash(
+            "Team invites are only available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("settings_team"))
+
+    if current_user.team_owner_id:
+        flash("Only the team owner can invite members.", "error")
+        return redirect(url_for("settings_team"))
+
+    email = (request.form.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        flash("Please enter a valid email address.", "error")
+        return redirect(url_for("settings_team"))
+
+    used = count_team_members(current_user.id)
+    if used >= get_seat_limit(current_user):
+        flash(
+            f"You've used all {get_seat_limit(current_user)} seats. "
+            "Buy an extra seat or revoke an existing invite first.",
+            "warning",
+        )
+        return redirect(url_for("settings_team"))
+
+    # Soft-dedupe: don't create a second pending invite for the same email.
+    existing = TeamInvite.query.filter_by(
+        owner_user_id=current_user.id, email=email, status="pending"
+    ).first()
+    if existing:
+        flash(f"An invite is already pending for {email}.", "info")
+        return redirect(url_for("settings_team"))
+
+    invite = TeamInvite(
+        owner_user_id=current_user.id,
+        email=email,
+        token=secrets.token_urlsafe(24),
+        status="pending",
+    )
+    db.session.add(invite)
+    db.session.commit()
+    invite_url = url_for("team_accept", token=invite.token, _external=True)
+
+    # Try to send the invite email. Falls back to flashing the URL when
+    # SMTP isn't configured so dev environments still work.
+    from services.email_helper import (
+        is_email_configured, render_team_invite_email, send_email,
+    )
+    delivered = False
+    if is_email_configured():
+        subject, text, html = render_team_invite_email(
+            owner_name=current_user.name or current_user.email,
+            invitee_email=email,
+            invite_url=invite_url,
+        )
+        delivered = send_email(
+            to=email,
+            subject=subject,
+            body_text=text,
+            body_html=html,
+            reply_to=current_user.email,
+        )
+
+    if delivered:
+        flash(
+            f"Invite emailed to {email}. They'll get a link that expires when accepted.",
+            "success",
+        )
+    else:
+        flash(
+            f"Invite ready for {email}. Copy this link and send it to them: {invite_url}",
+            "success",
+        )
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/team/accept/<token>", methods=["GET", "POST"])
+def team_accept(token):
+    """Accept a pending invite. If the recipient already has an account
+    matching the invite email and is logged in, attach immediately;
+    otherwise show a tiny acceptance form that creates a new account."""
+    invite = TeamInvite.query.filter_by(token=token, status="pending").first()
+    if not invite:
+        flash("This invite is invalid or has already been used.", "error")
+        return redirect(url_for("login"))
+
+    owner = User.query.get(invite.owner_user_id)
+    if not owner:
+        flash("This invite's owner account could not be found.", "error")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        # Acceptance: either logged-in user (must match email) or new signup.
+        if current_user.is_authenticated:
+            if current_user.email.lower() != invite.email.lower():
+                flash(
+                    f"This invite is for {invite.email}. Sign out first to accept it as that email.",
+                    "error",
+                )
+                return redirect(url_for("team_accept", token=token))
+            if current_user.team_owner_id and current_user.team_owner_id != owner.id:
+                flash("You're already a member of another team.", "error")
+                return redirect(url_for("index"))
+            current_user.team_owner_id = owner.id
+            invite.status = "accepted"
+            invite.accepted_at = datetime.utcnow()
+            invite.accepted_user_id = current_user.id
+            db.session.commit()
+            flash(f"Joined {owner.name}'s team.", "success")
+            return redirect(url_for("index"))
+
+        # New-signup path: create User row + log in + attach.
+        name = (request.form.get("name") or "").strip()
+        password = request.form.get("password") or ""
+        if not name or len(password) < 8:
+            flash("Name and 8+ char password required.", "error")
+            return redirect(url_for("team_accept", token=token))
+        existing = User.query.filter_by(email=invite.email).first()
+        if existing:
+            flash("An account with that email already exists. Log in first to accept.", "error")
+            return redirect(url_for("login"))
+
+        new_user = User(
+            email=invite.email,
+            password_hash=generate_password_hash(password),
+            name=name,
+            referral_code=secrets.token_urlsafe(6),
+            plan="free",
+            team_owner_id=owner.id,
+        )
+        db.session.add(new_user)
+        db.session.flush()
+        # Ensure they have a (zero-balance) wallet so wallet checks don't crash.
+        db.session.add(Wallet(user_id=new_user.id, balance=0))
+        invite.status = "accepted"
+        invite.accepted_at = datetime.utcnow()
+        invite.accepted_user_id = new_user.id
+        db.session.commit()
+        login_user(new_user)
+        flash(f"Account created. You're now part of {owner.name}'s team.", "success")
+        return redirect(url_for("index"))
+
+    return render_template(
+        "team_accept.html",
+        invite=invite,
+        owner=owner,
+        already_logged_in=current_user.is_authenticated,
+    )
+
+
+@app.route("/team/revoke/<int:invite_id>", methods=["POST"])
+@login_required
+def team_revoke_invite(invite_id):
+    """Revoke a pending invite (only the owner can do this)."""
+    invite = TeamInvite.query.filter_by(
+        id=invite_id, owner_user_id=current_user.id
+    ).one_or_none()
+    if not invite:
+        flash("Invite not found.", "error")
+        return redirect(url_for("settings_team"))
+    if invite.status != "pending":
+        flash("Only pending invites can be revoked.", "info")
+        return redirect(url_for("settings_team"))
+    invite.status = "revoked"
+    db.session.commit()
+    flash(f"Revoked invite for {invite.email}.", "success")
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/team/remove-member/<int:member_id>", methods=["POST"])
+@login_required
+def team_remove_member(member_id):
+    """Remove an active team member (frees the seat)."""
+    member = User.query.filter_by(
+        id=member_id, team_owner_id=current_user.id
+    ).one_or_none()
+    if not member:
+        flash("Member not found on your team.", "error")
+        return redirect(url_for("settings_team"))
+    member.team_owner_id = None
+    db.session.commit()
+    flash(f"Removed {member.email} from your team.", "success")
+    return redirect(url_for("settings_team"))
+
+
+@app.route("/billing/release-workspace", methods=["POST"])
+@login_required
+def release_extra_workspace():
+    """Release one paid extra-workspace slot (refund/cancel-style).
+
+    Refuses if the user is currently using more workspaces than the
+    base cap minus 1 (i.e. would orphan a workspace)."""
+    if int(current_user.extra_workspaces or 0) <= 0:
+        flash("No paid extra workspaces to release.", "info")
+        return redirect(url_for("settings_billing"))
+
+    base = workspace_limit_for_plan(current_user.plan)
+    used = get_workspace_count(current_user.id)
+    new_total = base + int(current_user.extra_workspaces) - 1
+    if used > new_total:
+        flash(
+            f"You're using {used} workspaces — delete one before releasing an extra slot.",
+            "warning",
+        )
+        return redirect(url_for("settings_billing"))
+
+    current_user.extra_workspaces = int(current_user.extra_workspaces or 0) - 1
+    db.session.commit()
+    flash(
+        "Released 1 extra workspace. (Stripe billing isn't wired yet — "
+        "in production this would prorate the addon on your next invoice.)",
+        "success",
+    )
+    return redirect(url_for("settings_billing"))
+
+
+@app.route("/stripe/portal", methods=["GET", "POST"])
+@login_required
+def stripe_portal():
+    from services.stripe_helper import (
+        StripeNotConfigured,
+        create_billing_portal_session,
+        is_stripe_configured,
+    )
+
+    if not is_stripe_configured() or not getattr(current_user, "stripe_customer_id", None):
+        flash(
+            "Open the billing portal after your first Stripe checkout. "
+            "If you've already paid, contact support.",
+            "info",
+        )
+        return redirect(url_for("settings_billing"))
+
+    try:
+        result = create_billing_portal_session(
+            customer_id=current_user.stripe_customer_id,
+            return_url=url_for("settings_billing", _external=True),
+        )
+    except StripeNotConfigured as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("settings_billing"))
+
+    return redirect(result["url"], code=303)
+
+
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    """Receive checkout.session.completed events and credit the wallet
+    or flip the plan accordingly. Always returns 200 once parsed so
+    Stripe doesn't retry on application errors."""
+    from services.stripe_helper import StripeNotConfigured, construct_webhook_event
+
+    payload = request.get_data()
+    signature = request.headers.get("Stripe-Signature", "")
+    try:
+        event = construct_webhook_event(payload, signature)
+    except StripeNotConfigured as exc:
+        logger.warning("Stripe webhook hit but not configured: %s", exc)
+        return jsonify({"ok": False, "error": "not_configured"}), 503
+    except Exception as exc:
+        logger.warning("Stripe webhook signature check failed: %s", exc)
+        return jsonify({"ok": False, "error": "invalid_signature"}), 400
+
+    event_type = event.get("type") or ""
+    data = (event.get("data") or {}).get("object") or {}
+
+    if event_type == "checkout.session.completed":
+        try:
+            metadata = data.get("metadata") or {}
+            kind = metadata.get("kind")
+            user_id = int(metadata.get("user_id") or 0)
+            user = db.session.get(User, user_id) if user_id else None
+            if not user:
+                return jsonify({"ok": True, "ignored": "user_not_found"})
+
+            customer_id = data.get("customer")
+            if customer_id and not user.stripe_customer_id:
+                user.stripe_customer_id = customer_id
+
+            if kind == "bundle":
+                credits = int(metadata.get("credits") or 0)
+                if credits > 0:
+                    if not user.wallet:
+                        user.wallet = Wallet(user_id=user.id, balance=0)
+                        db.session.add(user.wallet)
+                        db.session.flush()
+                    user.wallet.balance += credits
+                    db.session.add(
+                        CreditTransaction(
+                            user_id=user.id,
+                            type="topup_bundle",
+                            amount=credits,
+                            balance_after=user.wallet.balance,
+                            notes=f"Stripe topup: {credits} credits",
+                        )
+                    )
+            elif kind == "subscription":
+                plan_slug = metadata.get("plan_slug")
+                if plan_slug in PLAN_CATALOG and plan_slug != "free":
+                    user.plan = plan_slug
+                    user.stripe_subscription_id = data.get("subscription")
+                    grant_monthly_credits_if_due(user)
+            elif kind == "extra_workspace":
+                user.extra_workspaces = int(user.extra_workspaces or 0) + 1
+            elif kind == "extra_seat":
+                user.extra_seats = int(user.extra_seats or 0) + 1
+            db.session.commit()
+
+            # Referral payout — fires on EVERY paid purchase within the
+            # 30-day signup window. amount_total is in cents per Stripe.
+            try:
+                amount_total = data.get("amount_total")
+                if amount_total is not None and kind in (
+                    "bundle", "subscription", "extra_workspace", "extra_seat"
+                ):
+                    award_referral_for_payment(
+                        referred_user=user,
+                        amount_usd=float(amount_total) / 100.0,
+                        stripe_event_ref=data.get("id") or "",
+                    )
+            except Exception as exc:
+                logger.warning("Referral payout failed: %s", exc)
+        except Exception as exc:
+            logger.error("Stripe webhook handling failed: %s", exc)
+            db.session.rollback()
+
+    elif event_type == "customer.subscription.deleted":
+        try:
+            sub_id = data.get("id")
+            if sub_id:
+                user = User.query.filter_by(stripe_subscription_id=sub_id).first()
+                if user:
+                    user.plan = "free"
+                    user.stripe_subscription_id = None
+                    db.session.commit()
+        except Exception as exc:
+            logger.error("Stripe subscription delete handling failed: %s", exc)
+            db.session.rollback()
+
+    return jsonify({"ok": True})
 
 
 @app.route("/clients/new", methods=["GET", "POST"])
@@ -4723,8 +6088,11 @@ def signup():
         db.session.commit()
 
         login_user(user)
-        flash("Account created successfully. You received 3 starter credits.")
-        return redirect(url_for("index"))
+        flash(
+            "Welcome! Set up your first workspace to run an audit.",
+            "success",
+        )
+        return redirect(url_for("create_client"))
 
     return render_template("signup.html", error=None)
 
@@ -4797,14 +6165,14 @@ def run_client_audit(client_id):
                 view_mode=view_mode,
             )
 
-        if not has_enough_credits(current_user, 1):
+        if not has_enough_credits_for(current_user, "audit_run"):
             flash(
                 "You don’t have enough credits to run another audit.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(current_user, 1, notes="Client audit run"):
+        if not spend_credits_for(current_user, "audit_run", notes="Client audit run"):
             flash("Unable to deduct credits for audit.", "warning")
             return redirect(url_for("pricing_page"))
 
@@ -4913,18 +6281,26 @@ def generate_client_content_brief(client_id):
                 form_data=request.form,
             )
 
-        if not has_enough_credits(current_user, 1):
+        if not has_enough_credits_for(current_user, "content_brief"):
             flash(
                 "You don’t have enough credits to generate another brief.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(
-            current_user, 1, notes="Content brief generation"
+        if not spend_credits_for(
+            current_user, "content_brief", notes="Content brief generation"
         ):
             flash("Unable to deduct credits for brief generation.", "warning")
             return redirect(url_for("pricing_page"))
+
+        # Prepend the structured Brand Kit to the brand_context blob so
+        # the generator sees explicit voice / audience / differentiators.
+        kit_block = brand_kit_context_block(client)
+        if kit_block:
+            brand_context = (
+                f"{kit_block}\n\n{brand_context}" if brand_context else kit_block
+            )
 
         try:
             result = generate_content_brief(
@@ -5278,18 +6654,25 @@ def generate_client_content_draft(client_id):
                 form_data=request.form,
             )
 
-        if not has_enough_credits(current_user, 2):
+        if not has_enough_credits_for(current_user, "content_draft"):
             flash(
                 "You don’t have enough credits to generate another draft.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(
-            current_user, 2, notes="Content draft generation"
+        if not spend_credits_for(
+            current_user, "content_draft", notes="Content draft generation"
         ):
             flash("Unable to deduct credits for draft generation.", "warning")
             return redirect(url_for("pricing_page"))
+
+        # Prepend the structured Brand Kit to brand_context.
+        kit_block = brand_kit_context_block(client)
+        if kit_block:
+            brand_context = (
+                f"{kit_block}\n\n{brand_context}" if brand_context else kit_block
+            )
 
         try:
             result = generate_content_draft(
@@ -5371,12 +6754,24 @@ def audit_summary_pdf(summary_filename):
     summary_data = load_json_file(summary_path)
     full_filename = get_matching_full_filename(summary_filename)
     report_date = datetime.utcnow().strftime("%d %b %Y")
+
+    # Pull the workspace context so the PDF can display the workspace
+    # logo and industry alongside the audit data.
+    client_payload = None
+    summary_client_id = summary_data.get("client_id") if summary_data else None
+    if summary_client_id:
+        try:
+            client_payload = get_client_by_id(str(summary_client_id))
+        except Exception:
+            client_payload = None
+
     html = render_template(
         "audit_summary_pdf.html",
         summary_filename=summary_filename,
         full_filename=full_filename,
         data=summary_data,
         report_date=report_date,
+        client=client_payload,
     )
 
     website = summary_data.get("website") or summary_data.get("client_name")
@@ -6479,23 +7874,182 @@ def publish_queue_item_to_webflow(item_id):
     return _redirect_to_queue(client_id)
 
 
+def _parse_content_sections(text):
+    """Split a content blob into addressable sections.
+
+    Recognises markdown headings (#, ##, ###) and numbered headings like
+    "1. Page Title" or "5. FAQ Section" — what the brief / draft generators
+    actually produce. Each section spans from its heading line up to (but
+    not including) the next heading. Returns a list of dicts:
+
+        {idx, title, body, start, end, header_line}
+
+    Where start/end are character offsets in the original text. If the text
+    has no detectable headings, returns a single-section list covering the
+    whole text with title "Document".
+    """
+    import re
+
+    if not text:
+        return []
+
+    lines = text.split("\n")
+    # Build line-start offsets so we can compute character ranges.
+    offsets = []
+    pos = 0
+    for line in lines:
+        offsets.append(pos)
+        pos += len(line) + 1  # +1 for the newline
+
+    md_header_re = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$")
+    numbered_re = re.compile(r"^\s*(\d+)\.\s+(.{2,80})\s*$")
+    # Treat **Bold Heading** lines (used in many of our drafts) as headings too,
+    # but only if they're the entire line.
+    bold_re = re.compile(r"^\s*\*\*(.+?)\*\*\s*$")
+
+    headings = []
+    for i, line in enumerate(lines):
+        m = md_header_re.match(line)
+        if m:
+            headings.append({"line_idx": i, "title": m.group(2).strip(), "raw": line})
+            continue
+        m = numbered_re.match(line)
+        if m:
+            headings.append({"line_idx": i, "title": m.group(2).strip(), "raw": line})
+            continue
+        m = bold_re.match(line)
+        if m:
+            headings.append({"line_idx": i, "title": m.group(1).strip(), "raw": line})
+            continue
+
+    if not headings:
+        return [{
+            "idx": 0,
+            "title": "Document",
+            "body": text,
+            "start": 0,
+            "end": len(text),
+            "header_line": None,
+        }]
+
+    sections = []
+    for n, h in enumerate(headings):
+        start_line = h["line_idx"]
+        end_line = (
+            headings[n + 1]["line_idx"] if n + 1 < len(headings) else len(lines)
+        )
+        start_char = offsets[start_line]
+        end_char = offsets[end_line] if end_line < len(offsets) else len(text)
+        body = text[start_char:end_char]
+        sections.append({
+            "idx": n,
+            "title": h["title"][:80],
+            "body": body,
+            "start": start_char,
+            "end": end_char,
+            "header_line": h["raw"],
+        })
+    return sections
+
+
+def _replace_section_text(full_text, sections, target_idx, replacement):
+    """Patch a section's text back into the full document at its original
+    range. If target_idx is out of bounds, returns the full_text unchanged."""
+    if target_idx is None or not sections:
+        return replacement
+    if target_idx < 0 or target_idx >= len(sections):
+        return full_text
+    sec = sections[target_idx]
+    before = full_text[: sec["start"]]
+    after = full_text[sec["end"]:]
+    # Make sure the replacement ends with a newline so the next section starts
+    # on its own line.
+    if replacement and not replacement.endswith("\n"):
+        replacement = replacement + "\n"
+    return before + replacement + after
+
+
+@app.route("/content-queue/<item_id>/ai-edit/sections", methods=["GET"])
+@login_required
+def ai_edit_sections(item_id):
+    """Return the parsed sections of a queue item's content for the
+    section picker."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        return jsonify({"ok": False, "error": "Queue item not found."}), 404
+    sections = _parse_content_sections(item.get("content") or "")
+    return jsonify({
+        "ok": True,
+        "sections": [
+            {"idx": s["idx"], "title": s["title"]}
+            for s in sections
+        ],
+    })
+
+
+@app.route("/content-queue/<item_id>/ai-edit/history", methods=["GET"])
+@login_required
+def ai_edit_history(item_id):
+    """Return the persisted chat history + current content for the modal."""
+    item = get_queue_item_by_id(item_id, user_id=current_user.id)
+    if not item:
+        return jsonify({"ok": False, "error": "Queue item not found."}), 404
+    return jsonify({
+        "ok": True,
+        "current_content": item.get("content") or "",
+        "chat_history": item.get("chat_history") or [],
+    })
+
+
+@app.route("/content-queue/<item_id>/ai-edit/clear", methods=["POST"])
+@login_required
+def ai_edit_clear_history(item_id):
+    """Clear the persisted chat for an item."""
+    if not clear_queue_item_chat_history(item_id, user_id=current_user.id):
+        return jsonify({"ok": False, "error": "Queue item not found."}), 404
+    return jsonify({"ok": True})
+
+
 @app.route("/content-queue/<item_id>/ai-edit", methods=["POST"])
 @login_required
 def ai_edit_queue_item(item_id):
-    """Run a one-shot AI revision against a queue item's content.
-
-    Returns JSON:
-      { "ok": True,  "revised_content": "...", "summary": "Short note on what changed" }
-      { "ok": False, "error":  "..." }
-    """
+    """Multi-turn AI revision: append the user's instruction to the queue
+    item's chat history, send the whole conversation as context, persist the
+    AI's response with its proposed revised_content. Returns the full updated
+    chat history so the modal can re-render."""
     item = get_queue_item_by_id(item_id, user_id=current_user.id)
     if not item:
         return jsonify({"ok": False, "error": "Queue item not found."}), 404
 
-    instruction = (request.form.get("instruction") or
-                   (request.get_json(silent=True) or {}).get("instruction") or "").strip()
+    instruction = (
+        request.form.get("instruction")
+        or (request.get_json(silent=True) or {}).get("instruction")
+        or ""
+    ).strip()
     if not instruction:
         return jsonify({"ok": False, "error": "Please describe the edit you want."}), 400
+
+    if not has_enough_credits_for(current_user, "ai_edit_turn"):
+        return jsonify({
+            "ok": False,
+            "error": (
+                f"You need {get_action_cost('ai_edit_turn')} credit "
+                "to send another AI edit. Top up to continue."
+            ),
+        }), 402
+
+    # Optional section scope. -1 / None / blank = whole document.
+    raw_target = (
+        request.form.get("target_section_idx")
+        or (request.get_json(silent=True) or {}).get("target_section_idx")
+        or ""
+    )
+    try:
+        target_section_idx = int(raw_target) if raw_target not in ("", None) else None
+    except (TypeError, ValueError):
+        target_section_idx = None
+    if target_section_idx is not None and target_section_idx < 0:
+        target_section_idx = None
 
     current_content = item.get("content") or ""
     if not current_content:
@@ -6504,32 +8058,87 @@ def ai_edit_queue_item(item_id):
     if not os.getenv("OPENAI_API_KEY"):
         return jsonify({"ok": False, "error": "AI editing isn't set up on this site yet. Reach out to your admin."}), 503
 
+    history = item.get("chat_history") or []
+
+    # Use the latest revised content as the working document, falling back to
+    # the queue item's content. This keeps the "section idx" stable across
+    # turns since headings rarely shift.
+    latest_content = current_content
+    for entry in history:
+        if entry.get("role") == "assistant" and entry.get("revised_content"):
+            latest_content = entry["revised_content"]
+
+    sections = _parse_content_sections(latest_content)
+    target_section = None
+    if target_section_idx is not None and 0 <= target_section_idx < len(sections):
+        target_section = sections[target_section_idx]
+
+    user_turn = {
+        "role": "user",
+        "content": instruction,
+        "target_section_idx": target_section_idx,
+        "target_section_title": (target_section or {}).get("title"),
+        "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+    }
+
     try:
         from openai import OpenAI
         client = OpenAI()
 
-        system_prompt = (
-            "You are an editor revising marketing content based on a user's instruction.\n"
-            "Return strict JSON with exactly these keys:\n"
-            "  - revised_content: the full revised content, in the same format as the original (markdown if input is markdown, prose if input is prose, etc.)\n"
-            "  - summary: a one-sentence note on what you changed.\n"
-            "Preserve any structured sections (titles, headings, FAQ Q&A) the original had. "
-            "Do not add lorem ipsum. If the instruction is unclear, make a sensible best-effort revision."
-        )
+        if target_section:
+            system_prompt = (
+                "You are an editor revising one specific section of a marketing document.\n"
+                "The user gives instructions about that section only. Return strict JSON:\n"
+                "  - revised_section: the full revised section (keep its heading line if it had one)\n"
+                "  - summary: one short sentence on what you changed in this turn.\n"
+                "Don't add other sections. Don't reformat the heading style — keep it as the original section had it. "
+                "Don't add lorem ipsum. Make a best-effort revision if the instruction is fuzzy."
+            )
+            scoped_text = target_section["body"]
+            scope_label = f"section \"{target_section['title']}\""
+        else:
+            system_prompt = (
+                "You are an editor revising marketing content across multiple turns.\n"
+                "The user gives instructions; you return a revised version of the content.\n"
+                "Return strict JSON:\n"
+                "  - revised_content: the full revised content, in the same format as the original\n"
+                "  - summary: one short sentence on what you changed in this turn.\n"
+                "Preserve any structured sections the original had. Don't add lorem ipsum. "
+                "Make a best-effort revision if the instruction is fuzzy."
+            )
+            scoped_text = latest_content
+            scope_label = "whole document"
 
-        user_prompt = (
-            f"INSTRUCTION:\n{instruction}\n\n"
-            f"ORIGINAL CONTENT:\n{current_content}\n\n"
-            "Return revised_content + summary as JSON."
-        )
+        oai_messages = [{"role": "system", "content": system_prompt}]
+        for entry in history:
+            role = entry.get("role")
+            if role == "user":
+                tail = ""
+                if entry.get("target_section_title"):
+                    tail = f" [scope: {entry.get('target_section_title')}]"
+                oai_messages.append({
+                    "role": "user",
+                    "content": (entry.get("content") or "") + tail,
+                })
+            elif role == "assistant":
+                oai_messages.append({
+                    "role": "assistant",
+                    "content": entry.get("summary") or "(revised the content)",
+                })
+
+        oai_messages.append({
+            "role": "user",
+            "content": (
+                f"NEW INSTRUCTION ({scope_label}): {instruction}\n\n"
+                f"TEXT TO REVISE:\n{scoped_text}\n\n"
+                "Return JSON with the right key per the system prompt."
+            ),
+        })
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+            messages=oai_messages,
             temperature=0.4,
         )
 
@@ -6539,21 +8148,63 @@ def ai_edit_queue_item(item_id):
         except Exception:
             parsed = {}
 
-        revised = (parsed.get("revised_content") or "").strip()
-        summary = (parsed.get("summary") or "").strip()
+        # Section-scoped responses come back under revised_section; whole-doc
+        # under revised_content. Accept either to be forgiving.
+        if target_section:
+            revised_piece = (
+                parsed.get("revised_section")
+                or parsed.get("revised_content")
+                or ""
+            ).strip()
+            if revised_piece:
+                revised = _replace_section_text(
+                    latest_content, sections, target_section_idx, revised_piece
+                )
+            else:
+                revised = ""
+        else:
+            revised = (
+                parsed.get("revised_content")
+                or parsed.get("revised_section")
+                or ""
+            ).strip()
+
+        summary = (parsed.get("summary") or "").strip() or "Revised the content."
 
         if not revised:
+            # Persist just the user turn so the conversation stays consistent.
+            append_queue_item_chat_messages(
+                item_id, [user_turn], user_id=current_user.id
+            )
             return jsonify({
                 "ok": False,
                 "error": "AI didn't return a usable revision. Try rephrasing your instruction.",
             }), 502
 
+        assistant_turn = {
+            "role": "assistant",
+            "content": summary,
+            "summary": summary,
+            "revised_content": revised,
+            "target_section_idx": target_section_idx,
+            "target_section_title": (target_section or {}).get("title"),
+            "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        }
+
+        updated = append_queue_item_chat_messages(
+            item_id, [user_turn, assistant_turn], user_id=current_user.id
+        )
+
+        spend_credits_for(
+            current_user,
+            "ai_edit_turn",
+            notes=f"AI edit turn: queue item {item_id}",
+        )
+
         return jsonify({
             "ok": True,
-            "original_content": current_content,
-            "revised_content": revised,
-            "summary": summary,
-            "instruction": instruction,
+            "current_content": current_content,
+            "chat_history": (updated or {}).get("chat_history") or history + [user_turn, assistant_turn],
         })
 
     except Exception as e:
@@ -6600,6 +8251,14 @@ def generate_queue_item_visual(item_id):
         )
         return _redirect_to_queue(client_id)
 
+    if not has_enough_credits_for(current_user, "visual_generation"):
+        flash(
+            f"You need {get_action_cost('visual_generation')} credit to "
+            "generate a visual. Top up to continue.",
+            "warning",
+        )
+        return _redirect_to_queue(client_id)
+
     try:
         from services.placid_client import (
             PlacidClient,
@@ -6627,6 +8286,11 @@ def generate_queue_item_visual(item_id):
         if status == "finished" and image_url:
             update_queue_item_og_image(
                 item_id, og_image_url=image_url, user_id=current_user.id
+            )
+            spend_credits_for(
+                current_user,
+                "visual_generation",
+                notes=f"Visual generation: queue item {item_id}",
             )
 
             # If this item already lives in the CMS, also push the image to
@@ -7091,14 +8755,14 @@ def new_audit():
                 view_mode=view_mode,
             )
 
-        if not has_enough_credits(current_user, 1):
+        if not has_enough_credits_for(current_user, "audit_run"):
             flash(
                 "You don’t have enough credits to run another audit.",
                 "warning",
             )
             return redirect(url_for("pricing_page"))
 
-        if not spend_credits(current_user, 1, notes="New audit run"):
+        if not spend_credits_for(current_user, "audit_run", notes="New audit run"):
             flash("Unable to deduct credits for audit.", "warning")
             return redirect(url_for("pricing_page"))
 
@@ -7271,16 +8935,27 @@ def inject_template_globals():
         "focused_client": focused_client,
         "can_run_audit": (
             current_user.is_authenticated
-            and (has_unlimited_credits or credit_balance_numeric >= 1)
+            and (
+                has_unlimited_credits
+                or credit_balance_numeric >= ACTION_CREDIT_COSTS["audit_run"]
+            )
         ),
         "can_generate_brief": (
             current_user.is_authenticated
-            and (has_unlimited_credits or credit_balance_numeric >= 1)
+            and (
+                has_unlimited_credits
+                or credit_balance_numeric >= ACTION_CREDIT_COSTS["content_brief"]
+            )
         ),
         "can_generate_draft": (
             current_user.is_authenticated
-            and (has_unlimited_credits or credit_balance_numeric >= 2)
+            and (
+                has_unlimited_credits
+                or credit_balance_numeric >= ACTION_CREDIT_COSTS["content_draft"]
+            )
         ),
+        "action_credit_costs": ACTION_CREDIT_COSTS,
+        "agency_brand": effective_agency_branding(),
     }
 
 
@@ -7331,6 +9006,50 @@ def render_settings_section(section, **extra_context):
         except Exception:
             referrals_made = []
 
+    user_plan = (
+        getattr(current_user, "plan", "free")
+        if current_user.is_authenticated
+        else "free"
+    )
+
+    workspace_count_used = 0
+    workspace_base_limit = workspace_limit_for_plan(user_plan)
+    workspace_total_limit = get_workspace_limit(current_user) if current_user.is_authenticated else 0
+    if current_user.is_authenticated:
+        try:
+            workspace_count_used = get_workspace_count(current_user.id)
+        except Exception:
+            workspace_count_used = 0
+
+    from pricing import plan_allows_seat_addon, seat_limit_for_plan
+    team_seats_base = seat_limit_for_plan(user_plan)
+    team_seats_total = (
+        get_seat_limit(current_user) if current_user.is_authenticated else 1
+    )
+    team_seats_used = (
+        count_team_members(current_user.id)
+        if current_user.is_authenticated and not current_user.team_owner_id
+        else 1
+    )
+    team_active_members = []
+    team_pending_invites = []
+    if current_user.is_authenticated and not current_user.team_owner_id:
+        try:
+            team_active_members = (
+                User.query.filter_by(team_owner_id=current_user.id)
+                .order_by(User.created_at.desc())
+                .all()
+            )
+            team_pending_invites = (
+                TeamInvite.query.filter_by(
+                    owner_user_id=current_user.id, status="pending"
+                )
+                .order_by(TeamInvite.invited_at.desc())
+                .all()
+            )
+        except Exception:
+            pass
+
     context = {
         "active_settings_section": section,
         "is_internal_user": is_internal_user,
@@ -7338,6 +9057,21 @@ def render_settings_section(section, **extra_context):
         "referral_link": referral_link,
         "credit_history": credit_history,
         "referrals_made": referrals_made,
+        "topup_bundles": get_bundles_for_plan(user_plan),
+        "is_subscriber": is_subscriber(user_plan),
+        "baseline_credit_price": baseline_credit_price(user_plan),
+        "action_credit_costs": ACTION_CREDIT_COSTS,
+        "workspace_count_used": workspace_count_used,
+        "workspace_base_limit": workspace_base_limit,
+        "workspace_total_limit": workspace_total_limit,
+        "plan_allows_addon": plan_allows_workspace_addon(user_plan),
+        "extra_workspace_addon_price_usd": EXTRA_WORKSPACE_ADDON_PRICE_USD,
+        "plan_allows_seats": plan_allows_seat_addon(user_plan),
+        "team_seats_base": team_seats_base,
+        "team_seats_total": team_seats_total,
+        "team_seats_used": team_seats_used,
+        "team_active_members": team_active_members,
+        "team_pending_invites": team_pending_invites,
     }
     context.update(extra_context)
 
@@ -7384,6 +9118,129 @@ def settings_preferences():
 @login_required
 def settings_team():
     return render_settings_section("team")
+
+
+@app.route("/settings/profile/update", methods=["POST"])
+@login_required
+def settings_update_profile():
+    """Update the user's display name. Email is treated as immutable for
+    now since it's also the login identifier — changing it warrants a
+    re-verification flow we haven't built."""
+    new_name = (request.form.get("name") or "").strip()
+    if not new_name:
+        flash("Name can't be empty.", "error")
+        return redirect(url_for("settings_page"))
+    if len(new_name) > 200:
+        flash("Name is too long.", "error")
+        return redirect(url_for("settings_page"))
+    current_user.name = new_name
+    db.session.commit()
+    flash("Display name updated.", "success")
+    return redirect(url_for("settings_page"))
+
+
+@app.route("/settings/white-label/update", methods=["POST"])
+@login_required
+def settings_update_white_label():
+    """Save the agency white-label fields and toggle. Logo upload is
+    a separate route so users can save text-only changes without
+    reuploading. Free/Plus users can edit fields but the toggle stays
+    off until they're on a paid plan — keeps the upgrade nudge clean."""
+    enable = request.form.get("enable") == "on"
+    name = (request.form.get("agency_name") or "").strip()[:255]
+    tagline = (request.form.get("agency_tagline") or "").strip()[:255]
+    website = (request.form.get("agency_website") or "").strip()[:500]
+    footer = (request.form.get("agency_footer") or "").strip()[:500]
+    disclaimer = (request.form.get("agency_disclaimer") or "").strip()[:500]
+
+    current_user.agency_name = name or None
+    current_user.agency_tagline = tagline or None
+    current_user.agency_website = website or None
+    current_user.agency_footer = footer or None
+    current_user.agency_disclaimer = disclaimer or None
+    current_user.is_white_label_enabled = bool(enable)
+    db.session.commit()
+    flash("White-label branding saved.", "success")
+    return redirect(url_for("settings_white_label"))
+
+
+@app.route("/settings/white-label/upload-logo", methods=["POST"])
+@login_required
+def settings_upload_agency_logo():
+    """Save an uploaded agency logo. Routes through the storage layer
+    (S3 when configured, local disk otherwise) so multi-instance
+    deploys keep logos available across replicas."""
+    from services.storage import logo_storage
+
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("settings_white_label"))
+
+    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in {"png", "jpg", "jpeg", "svg", "webp"}:
+        flash("Use PNG, JPG, SVG, or WEBP.", "error")
+        return redirect(url_for("settings_white_label"))
+
+    new_name = f"agency-{current_user.id}-{secrets.token_hex(4)}.{ext}"
+    try:
+        logo_storage.save("agency_logos", new_name, file)
+    except Exception as exc:
+        logger.warning("Agency logo upload failed: %s", exc)
+        flash("Could not save the logo. Try again.", "error")
+        return redirect(url_for("settings_white_label"))
+
+    # Best-effort cleanup of the previous file (works on either backend).
+    if current_user.agency_logo_filename:
+        logo_storage.delete("agency_logos", current_user.agency_logo_filename)
+
+    current_user.agency_logo_filename = new_name
+    db.session.commit()
+    flash("Agency logo uploaded.", "success")
+    return redirect(url_for("settings_white_label"))
+
+
+@app.route("/settings/white-label/remove-logo", methods=["POST"])
+@login_required
+def settings_remove_agency_logo():
+    from services.storage import logo_storage
+    if current_user.agency_logo_filename:
+        logo_storage.delete("agency_logos", current_user.agency_logo_filename)
+        current_user.agency_logo_filename = None
+        db.session.commit()
+        flash("Agency logo removed.", "success")
+    return redirect(url_for("settings_white_label"))
+
+
+@app.route("/settings/white-label")
+@login_required
+def settings_white_label():
+    return render_settings_section("white_label")
+
+
+@app.route("/settings/account/change-password", methods=["POST"])
+@login_required
+def settings_change_password():
+    """Change the user's password. Requires the current password to
+    avoid drive-by changes if a session is hijacked."""
+    current = request.form.get("current_password") or ""
+    new = request.form.get("new_password") or ""
+    confirm = request.form.get("confirm_password") or ""
+
+    if not check_password_hash(current_user.password_hash, current):
+        flash("Current password is incorrect.", "error")
+        return redirect(url_for("settings_account"))
+    if len(new) < 8:
+        flash("New password must be at least 8 characters.", "error")
+        return redirect(url_for("settings_account"))
+    if new != confirm:
+        flash("New password and confirmation don't match.", "error")
+        return redirect(url_for("settings_account"))
+
+    current_user.password_hash = generate_password_hash(new)
+    db.session.commit()
+    flash("Password updated.", "success")
+    return redirect(url_for("settings_account"))
 
 
 # =========================
@@ -7842,6 +9699,2205 @@ def webflow_export_service(item_id):
             "success": False,
             "message": "Export failed"
         }), 500
+
+
+# =========================
+# Shopify integration routes
+# =========================
+# Connect a workspace to a Shopify store via OAuth, then pull products via
+# the Admin REST API. Persists the access token in `shopify_connections`
+# so subsequent audits can read store data without re-asking the user.
+
+
+def _shopify_redirect_uri() -> str:
+    """The OAuth redirect URI Shopify will call back into.
+
+    Must match the value registered on the app in the Shopify Partners
+    dashboard. Allow override for local dev via env, fall back to the
+    request host."""
+    override = os.getenv("SHOPIFY_REDIRECT_URI")
+    if override:
+        return override
+    return url_for("shopify_oauth_callback", _external=True)
+
+
+@app.route("/integrations/shopify/connect/<int:client_id>")
+@login_required
+def shopify_connect(client_id):
+    """Kick off the Shopify OAuth install for a workspace.
+
+    Expects ?shop=foo.myshopify.com (or just ?shop=foo). Redirects the
+    user to Shopify's authorization screen."""
+    from services.shopify_client import (
+        ShopifyConfigError,
+        build_install_url,
+        is_shopify_configured,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    if not is_shopify_configured():
+        flash(
+            "Shopify is not yet configured on this server. "
+            "Set SHOPIFY_API_KEY and SHOPIFY_API_SECRET to enable store connections.",
+            "error",
+        )
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    shop = (request.args.get("shop") or "").strip()
+    if not shop:
+        flash("Please enter your store URL (e.g. my-store.myshopify.com).", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    state = secrets.token_urlsafe(24)
+    session["shopify_oauth_state"] = state
+    session["shopify_oauth_client_id"] = client_id
+
+    try:
+        install_url = build_install_url(
+            shop=shop,
+            redirect_uri=_shopify_redirect_uri(),
+            state=state,
+        )
+    except ShopifyConfigError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    return redirect(install_url)
+
+
+@app.route("/integrations/shopify/callback")
+@login_required
+def shopify_oauth_callback():
+    """Handle the Shopify OAuth callback.
+
+    Verifies HMAC, exchanges the temporary code for an access token,
+    and persists a ShopifyConnection row scoped to the user + workspace
+    that initiated the install."""
+    from services.shopify_client import (
+        ShopifyAdminClient,
+        ShopifyAPIError,
+        ShopifyConfigError,
+        _normalize_shop_domain,
+        exchange_code_for_token,
+        verify_hmac,
+    )
+
+    params = {k: v for k, v in request.args.items()}
+
+    expected_state = session.pop("shopify_oauth_state", None)
+    pending_client_id = session.pop("shopify_oauth_client_id", None)
+    if not expected_state or params.get("state") != expected_state:
+        flash("Shopify install state mismatch — please retry the connection.", "error")
+        return redirect(url_for("index"))
+
+    if not verify_hmac(params):
+        flash("Shopify HMAC verification failed.", "error")
+        return redirect(url_for("index"))
+
+    workspace = db.session.get(Client, pending_client_id) if pending_client_id else None
+    if not workspace or workspace.user_id != current_user.id:
+        flash("The workspace this install was started from could not be found.", "error")
+        return redirect(url_for("index"))
+
+    shop_domain = _normalize_shop_domain(params.get("shop") or "")
+    code = params.get("code")
+    if not shop_domain or not code:
+        flash("Missing shop or code in Shopify callback.", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    try:
+        token_payload = exchange_code_for_token(shop_domain, code)
+    except (ShopifyConfigError, ShopifyAPIError) as exc:
+        flash(f"Could not finish Shopify install: {exc}", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    access_token = token_payload.get("access_token")
+    if not access_token:
+        flash("Shopify did not return an access token.", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    shop_meta: Dict[str, Any] = {}
+    try:
+        admin = ShopifyAdminClient(shop_domain, access_token)
+        shop_meta = admin.get_shop()
+    except ShopifyAPIError as exc:
+        logger.warning("Shopify get_shop after install failed: %s", exc)
+
+    existing = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=workspace.id
+        ).one_or_none()
+    )
+    if existing:
+        existing.shop_domain = shop_domain
+        existing.access_token = access_token
+        existing.scope = token_payload.get("scope")
+        existing.shop_meta = shop_meta or existing.shop_meta
+        existing.updated_at = datetime.utcnow()
+    else:
+        db.session.add(
+            ShopifyConnection(
+                user_id=current_user.id,
+                client_id=workspace.id,
+                shop_domain=shop_domain,
+                access_token=access_token,
+                scope=token_payload.get("scope"),
+                shop_meta=shop_meta or None,
+            )
+        )
+    db.session.commit()
+
+    flash(f"Connected Shopify store {shop_domain}.", "success")
+    return redirect(url_for("shopify_products", client_id=workspace.id))
+
+
+def _refresh_shopify_findings(connection: "ShopifyConnection", products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Run the catalog audit, persist the findings on the connection, and
+    return them. Persisting the findings (not the full product list) keeps
+    the calendar render path fast: subsequent renders just read shop_meta."""
+    from services.shopify_audit import find_shopify_action_items, summarize_catalog
+
+    findings = find_shopify_action_items(products)
+    summary = summarize_catalog(products)
+
+    meta = dict(connection.shop_meta or {})
+    meta["cached_findings"] = findings
+    meta["cached_summary"] = summary
+    meta["cached_findings_at"] = datetime.utcnow().isoformat()
+    connection.shop_meta = meta
+    flag_modified(connection, "shop_meta")
+    return findings
+
+
+def _shopify_findings_for_client(user_id: int, client_id: Optional[int]) -> List[Dict[str, Any]]:
+    """Return cached Shopify findings for a workspace (empty list if none).
+
+    Reads the shop_meta payload set by the products view / sync route, so
+    no HTTP round-trip happens on the render path."""
+    if not client_id:
+        return []
+    try:
+        connection = (
+            ShopifyConnection.query.filter_by(user_id=user_id, client_id=client_id)
+            .one_or_none()
+        )
+    except Exception:
+        return []
+    if not connection or not connection.shop_meta:
+        return []
+    findings = connection.shop_meta.get("cached_findings") if isinstance(connection.shop_meta, dict) else None
+    if isinstance(findings, list):
+        return findings
+    return []
+
+
+@app.route("/integrations/shopify/sync/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_sync_products(client_id):
+    """Pull the latest product list from the connected store."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        return jsonify(
+            {"success": False, "message": "No Shopify store connected for this workspace."}
+        ), 400
+
+    try:
+        admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+        products = admin.list_products(limit=50)
+    except ShopifyAPIError as exc:
+        return jsonify({"success": False, "message": str(exc)}), 502
+
+    findings = _refresh_shopify_findings(connection, products)
+    connection.last_synced_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify(
+        {
+            "success": True,
+            "shop_domain": connection.shop_domain,
+            "count": len(products),
+            "findings_count": len(findings),
+            "synced_at": connection.last_synced_at.isoformat(),
+        }
+    )
+
+
+@app.route("/integrations/shopify/products/<int:client_id>")
+@login_required
+def shopify_products(client_id):
+    """Render the connected store's products for an audit-ready view."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+
+    from services.shopify_client import scope_has
+
+    products: List[Dict[str, Any]] = []
+    findings: List[Dict[str, Any]] = []
+    summary: Dict[str, Any] = {}
+    error: Optional[str] = None
+    has_write_scope = bool(connection and scope_has(connection.scope, "write_products"))
+    if connection:
+        try:
+            admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+            products = admin.list_products(limit=50)
+            findings = _refresh_shopify_findings(connection, products)
+            summary = (connection.shop_meta or {}).get("cached_summary", {}) if isinstance(connection.shop_meta, dict) else {}
+            connection.last_synced_at = datetime.utcnow()
+            db.session.commit()
+        except ShopifyAPIError as exc:
+            error = str(exc)
+            findings = _shopify_findings_for_client(current_user.id, client_id)
+            summary = (connection.shop_meta or {}).get("cached_summary", {}) if isinstance(connection.shop_meta, dict) else {}
+
+    description_proposals = []
+    if connection and isinstance(connection.shop_meta, dict):
+        description_proposals = connection.shop_meta.get("cached_description_proposals") or []
+
+    return render_template(
+        "integrations/shopify_products.html",
+        workspace=workspace,
+        connection=connection,
+        products=products,
+        findings=findings,
+        summary=summary,
+        error=error,
+        has_write_scope=has_write_scope,
+        description_proposals=description_proposals,
+        description_rewrite_cost=get_action_cost("description_rewrite_batch"),
+    )
+
+
+def _generate_alt_text(product: Dict[str, Any], image_index: int) -> str:
+    """Build a short, descriptive alt text from the product fields.
+
+    Strategy: lead with product title (the strongest known signal), append
+    vendor/type if present and not already in the title. Used as a fast,
+    deterministic fallback when AI generation isn't available."""
+    title = (product.get("title") or "").strip()
+    vendor = (product.get("vendor") or "").strip()
+    product_type = (product.get("product_type") or "").strip()
+
+    parts = [title or "Product image"]
+    extras = []
+    title_lower = title.lower()
+    if product_type and product_type.lower() not in title_lower:
+        extras.append(product_type)
+    if vendor and vendor.lower() not in title_lower:
+        extras.append(f"by {vendor}")
+    if extras:
+        parts.append(" ".join(extras))
+    base = " — ".join(parts)
+    if image_index > 0:
+        base = f"{base} (view {image_index + 1})"
+    return base[:240]
+
+
+def _generate_alt_text_ai(
+    product: Dict[str, Any],
+    image_url: str,
+    image_index: int,
+) -> Optional[str]:
+    """Ask gpt-4o-mini (vision) to describe the product image in one
+    factual sentence, grounded in the product context.
+
+    Returns None on any failure — caller is responsible for falling
+    back to the template-based generator."""
+    if not os.getenv("OPENAI_API_KEY") or not image_url:
+        return None
+
+    title = (product.get("title") or "").strip()
+    vendor = (product.get("vendor") or "").strip()
+    product_type = (product.get("product_type") or "").strip()
+
+    context_parts = [f"Product title: {title or 'unknown'}"]
+    if product_type:
+        context_parts.append(f"Product type: {product_type}")
+    if vendor:
+        context_parts.append(f"Vendor: {vendor}")
+    context = " | ".join(context_parts)
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.2,
+            max_tokens=80,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You write concise, factual image alt text for ecommerce product photos. "
+                        "Lead with the product, then describe visible attributes (color, material, "
+                        "shape, key features). One sentence, under 25 words, no marketing language, "
+                        "no leading 'image of' or 'photo of'. Plain text only."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": f"Context: {context}"},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                },
+            ],
+        )
+        alt = (response.choices[0].message.content or "").strip()
+        # Strip trailing punctuation that some models add and quotes
+        alt = alt.strip().strip('"').strip("'")
+        if not alt:
+            return None
+        if image_index > 0:
+            alt = f"{alt} (view {image_index + 1})"
+        return alt[:240]
+    except Exception as exc:
+        logger.warning("AI alt-text generation failed: %s", exc)
+        return None
+
+
+@app.route("/integrations/shopify/fix/alt-text/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_fix_alt_text(client_id):
+    """Auto-fill missing alt text on every product image in the store.
+
+    Safe write-back: alt is purely additive metadata, the route only
+    touches images whose alt is empty, and Shopify retains the previous
+    value in image history if the user wants to revert."""
+    from services.shopify_client import (
+        ShopifyAdminClient,
+        ShopifyAPIError,
+        scope_has,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Shopify store connected for this workspace.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if not scope_has(connection.scope, "write_products"):
+        flash(
+            "This store was connected before write access was enabled. "
+            "Please reconnect the store to grant the write_products scope.",
+            "error",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    if not has_enough_credits_for(current_user, "alt_text_fix_batch"):
+        flash(
+            f"You need {get_action_cost('alt_text_fix_batch')} credits to run "
+            "an alt-text fix. Top up to continue.",
+            "warning",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+    try:
+        products = admin.list_products(limit=50)
+    except ShopifyAPIError as exc:
+        flash(f"Could not load products: {exc}", "error")
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    patched = 0
+    failed = 0
+    for product in products:
+        product_id = product.get("id")
+        if not product_id:
+            continue
+        images = product.get("images") or []
+        for idx, image in enumerate(images):
+            if not isinstance(image, dict):
+                continue
+            existing_alt = (image.get("alt") or "").strip()
+            if existing_alt:
+                continue
+            image_id = image.get("id")
+            if not image_id:
+                continue
+            image_src = (image.get("src") or "").strip()
+            alt_text = (
+                _generate_alt_text_ai(product, image_src, idx)
+                or _generate_alt_text(product, idx)
+            )
+            try:
+                admin.update_product_image_alt(product_id, image_id, alt_text)
+                patched += 1
+            except ShopifyAPIError as exc:
+                logger.warning(
+                    "Shopify alt-text PUT failed for product %s image %s: %s",
+                    product_id, image_id, exc,
+                )
+                failed += 1
+
+    if patched:
+        try:
+            refreshed = admin.list_products(limit=50)
+            _refresh_shopify_findings(connection, refreshed)
+            connection.last_synced_at = datetime.utcnow()
+            db.session.commit()
+        except ShopifyAPIError as exc:
+            logger.warning("Refresh after alt-text fix failed: %s", exc)
+
+    ai_used = bool(os.getenv("OPENAI_API_KEY"))
+    source_label = "AI-generated alt text" if ai_used else "alt text"
+
+    if patched:
+        spend_credits_for(
+            current_user,
+            "alt_text_fix_batch",
+            notes=f"Alt-text fix: {patched} images",
+        )
+
+    if patched and not failed:
+        flash(f"Filled {source_label} on {patched} product image{'s' if patched != 1 else ''}.", "success")
+    elif patched and failed:
+        flash(
+            f"Filled alt text on {patched} image{'s' if patched != 1 else ''}; "
+            f"{failed} update{'s' if failed != 1 else ''} failed.",
+            "warning",
+        )
+    elif failed:
+        flash(f"Could not update any images ({failed} failures).", "error")
+    else:
+        flash("No images needed alt text — your catalog is already covered.", "info")
+
+    return redirect(url_for("shopify_products", client_id=client_id))
+
+
+# =========================
+# AI Answer Monitor routes
+# =========================
+# Track how the brand surfaces in AI answer engines over time. Each
+# check writes a PromptCheckSnapshot row; the monitor page renders a
+# sparkline-style history per tracked prompt, plus a "Run all checks
+# now" button that re-runs every prompt for the workspace.
+
+
+def _run_answer_check_for_id(
+    prompt_id: int, brand_name: str
+) -> Optional[List[Dict[str, Any]]]:
+    """Internal helper that loads a prompt row and runs a check across
+    every enabled AI engine.
+
+    Returns the list of per-engine snapshots, or None when the prompt
+    isn't found or doesn't belong to the current user. An empty list
+    means no engines were enabled or every backend errored out."""
+    from ai_answer_agent import enabled_engines, simulate_ai_answer
+    from services.answer_monitor import run_answer_check
+
+    row = PromptTracking.query.filter_by(
+        id=prompt_id, user_id=current_user.id
+    ).one_or_none()
+    if not row:
+        return None
+
+    engines = enabled_engines() or ["chatgpt"]
+    try:
+        return run_answer_check(
+            db=db,
+            PromptTracking=PromptTracking,
+            PromptCheckSnapshot=PromptCheckSnapshot,
+            simulate_ai_answer=simulate_ai_answer,
+            prompt_row=row,
+            brand_name=brand_name,
+            engines=engines,
+        )
+    except Exception as exc:
+        logger.warning("Answer check failed for prompt %s: %s", prompt_id, exc)
+        return None
+
+
+@app.route("/answer-monitor")
+@login_required
+def answer_monitor_page():
+    """Render the AI Answer Monitor for the selected workspace."""
+    from services.answer_monitor import (
+        load_history_for_prompts,
+        summarize_history,
+    )
+
+    requested_client_id = request.args.get("client_id", "").strip()
+    clients = build_client_views()
+    view_mode = get_view_mode(current_user)
+    focused_client = get_focused_client_for_user(current_user)
+
+    selected_client = None
+    if requested_client_id:
+        selected_client = next(
+            (c for c in clients if str(c.get("id")) == str(requested_client_id)),
+            None,
+        )
+    if not selected_client and view_mode == "single" and focused_client:
+        selected_client = focused_client
+    if not selected_client and clients:
+        selected_client = clients[0]
+
+    domain = ""
+    if selected_client:
+        domain = normalize_website(selected_client.get("website", "")) or ""
+
+    rows: List[PromptTracking] = []
+    if domain:
+        rows = (
+            PromptTracking.query.filter_by(
+                user_id=current_user.id, domain=domain
+            )
+            .order_by(PromptTracking.created_at.desc())
+            .all()
+        )
+
+    from ai_answer_agent import enabled_engines, engine_label, ENGINE_REGISTRY
+
+    history = load_history_for_prompts(
+        db=db,
+        PromptCheckSnapshot=PromptCheckSnapshot,
+        prompt_ids=[r.id for r in rows],
+    )
+    summary = summarize_history(history)
+
+    enabled = enabled_engines() or ["chatgpt"]
+    enabled_labels = [engine_label(e) for e in enabled]
+
+    prompt_views: List[Dict[str, Any]] = []
+    for row in rows:
+        per_engine_history = history.get(row.id, {})
+        engines_in_view: List[Dict[str, Any]] = []
+        for slug, snapshots in per_engine_history.items():
+            latest = snapshots[-1] if snapshots else None
+            engines_in_view.append(
+                {
+                    "slug": slug,
+                    "label": engine_label(slug),
+                    "kind": (ENGINE_REGISTRY.get(slug) or {}).get("kind", "trained"),
+                    "history": snapshots,
+                    "latest": latest,
+                }
+            )
+        # Stable order: registered engines first (in registry order), then any extras.
+        order = list(ENGINE_REGISTRY.keys())
+        engines_in_view.sort(
+            key=lambda e: (order.index(e["slug"]) if e["slug"] in order else 99)
+        )
+
+        # Pick a representative latest for the headline citation pill.
+        latest_overall = None
+        for ev in engines_in_view:
+            if ev["latest"] and (
+                latest_overall is None
+                or ev["latest"]["score"] > latest_overall["score"]
+            ):
+                latest_overall = ev["latest"]
+
+        prompt_views.append(
+            {
+                "id": row.id,
+                "prompt": row.prompt,
+                "platform": row.platform or "AI assistant",
+                "topic": row.topic,
+                "last_checked": row.last_checked,
+                "change": row.change,
+                "mentioned": row.mentioned,
+                "score": row.prompt_score,
+                "score_band": row.score_band,
+                "brand_position": row.brand_position,
+                "top_competitor": row.top_competitor,
+                "engines": engines_in_view,
+                "latest": latest_overall,
+            }
+        )
+
+    return render_template(
+        "answer_monitor.html",
+        clients=clients,
+        selected_client=selected_client,
+        prompts=prompt_views,
+        summary=summary,
+        domain=domain,
+        enabled_engines=enabled,
+        enabled_engine_labels=enabled_labels,
+    )
+
+
+@app.route("/answer-monitor/run-all", methods=["POST"])
+@login_required
+def answer_monitor_run_all():
+    """Re-run every tracked prompt in the selected workspace."""
+    client_id = request.form.get("client_id", "").strip()
+    selected_client = get_client_by_id(client_id) if client_id else None
+    if not selected_client:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("answer_monitor_page"))
+
+    domain = normalize_website(selected_client.get("website", "")) or ""
+    if not domain:
+        flash("This workspace has no website set, so AI answer checks can't run.", "error")
+        return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+    brand_name = (selected_client.get("name") or "").strip() or domain
+    rows = (
+        PromptTracking.query.filter_by(user_id=current_user.id, domain=domain)
+        .all()
+    )
+    if not rows:
+        flash("No tracked prompts to check yet for this workspace.", "info")
+        return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+    if not has_enough_credits_for(current_user, "answer_monitor_run_all"):
+        flash(
+            f"You need {get_action_cost('answer_monitor_run_all')} credits "
+            "to re-run every prompt. Top up to continue.",
+            "warning",
+        )
+        return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+    succeeded = 0
+    failed = 0
+    total_snapshots = 0
+    engines_seen: set = set()
+    for row in rows:
+        result = _run_answer_check_for_id(row.id, brand_name)
+        if not result:
+            failed += 1
+        else:
+            succeeded += 1
+            total_snapshots += len(result)
+            for snap in result:
+                if snap.get("engine_label"):
+                    engines_seen.add(snap["engine_label"])
+
+    engines_label = (
+        " across " + ", ".join(sorted(engines_seen)) if engines_seen else ""
+    )
+
+    if succeeded:
+        spend_credits_for(
+            current_user,
+            "answer_monitor_run_all",
+            notes=f"Answer monitor sweep: {succeeded} prompts × {len(engines_seen) or 1} engines",
+        )
+
+    if succeeded and not failed:
+        flash(
+            f"Checked {succeeded} prompt{'s' if succeeded != 1 else ''}{engines_label} "
+            f"({total_snapshots} snapshots saved).",
+            "success",
+        )
+    elif succeeded and failed:
+        flash(
+            f"Checked {succeeded}; {failed} failed. Verify OPENAI_API_KEY / PERPLEXITY_API_KEY.",
+            "warning",
+        )
+    else:
+        flash(
+            "Could not run any checks. Set OPENAI_API_KEY (and optionally PERPLEXITY_API_KEY).",
+            "error",
+        )
+
+    return redirect(url_for("answer_monitor_page", client_id=client_id))
+
+
+@app.route("/answer-monitor/run/<int:prompt_id>", methods=["POST"])
+@login_required
+def answer_monitor_run_single(prompt_id):
+    """Re-run a single tracked prompt."""
+    row = PromptTracking.query.filter_by(
+        id=prompt_id, user_id=current_user.id
+    ).one_or_none()
+    if not row:
+        flash("Tracked prompt not found.", "error")
+        return redirect(url_for("answer_monitor_page"))
+
+    selected_client = None
+    if row.domain:
+        for client in build_client_views():
+            if normalize_website(client.get("website", "")) == row.domain:
+                selected_client = client
+                break
+
+    brand_name = (
+        (selected_client.get("name") if selected_client else None)
+        or row.domain
+        or "this brand"
+    )
+
+    if not has_enough_credits_for(current_user, "answer_monitor_run_single"):
+        flash(
+            f"You need {get_action_cost('answer_monitor_run_single')} credit "
+            "to re-run that check. Top up to continue.",
+            "warning",
+        )
+        redirect_client_id = (
+            str(selected_client.get("id")) if selected_client else ""
+        )
+        return redirect(
+            url_for("answer_monitor_page", client_id=redirect_client_id)
+        )
+
+    result = _run_answer_check_for_id(prompt_id, brand_name)
+    if not result:
+        flash("Could not run that check. Verify OPENAI_API_KEY is set.", "error")
+    else:
+        spend_credits_for(
+            current_user,
+            "answer_monitor_run_single",
+            notes=f"Answer monitor: prompt #{prompt_id}",
+        )
+        cited_engines = [
+            snap["engine_label"] for snap in result if snap["brand_mentioned"]
+        ]
+        if cited_engines:
+            flash(
+                f"Cited in {', '.join(cited_engines)}.",
+                "success",
+            )
+        else:
+            flash(
+                f"Not cited in {', '.join(snap['engine_label'] for snap in result)}.",
+                "warning",
+            )
+
+    redirect_client_id = (
+        str(selected_client.get("id")) if selected_client else ""
+    )
+    return redirect(
+        url_for("answer_monitor_page", client_id=redirect_client_id)
+    )
+
+
+# =========================
+# Marketplace presence audits
+# =========================
+# Track AI visibility for the user's storefronts on third-party
+# marketplaces (Etsy, Amazon, Shopee, eBay). We don't ingest the
+# catalog — we generate marketplace-flavoured prompts and check how
+# often the shop is cited.
+
+
+@app.route("/marketplace-audits/<int:client_id>")
+@login_required
+def marketplace_audits_page(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    presences = (
+        MarketplacePresence.query
+        .filter_by(user_id=current_user.id, client_id=client_id)
+        .order_by(MarketplacePresence.created_at.desc())
+        .all()
+    )
+    return render_template(
+        "marketplace_audits.html",
+        workspace=workspace,
+        presences=presences,
+        marketplace_options=[
+            ("etsy", "Etsy"),
+            ("amazon", "Amazon"),
+            ("shopee", "Shopee"),
+            ("ebay", "eBay"),
+            ("other", "Other"),
+        ],
+        marketplace_audit_cost=get_action_cost("marketplace_audit"),
+    )
+
+
+@app.route("/marketplace-audits/<int:client_id>/add", methods=["POST"])
+@login_required
+def marketplace_add_presence(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    marketplace = (request.form.get("marketplace") or "").strip().lower()
+    shop_url = (request.form.get("shop_url") or "").strip()
+    shop_name = (request.form.get("shop_name") or "").strip()
+    category = (request.form.get("category") or "").strip()
+    region = (request.form.get("region") or "").strip()
+
+    if marketplace not in {"etsy", "amazon", "shopee", "ebay", "other"} or not shop_url:
+        flash("Please pick a marketplace and paste your shop URL.", "error")
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    presence = MarketplacePresence(
+        user_id=current_user.id,
+        client_id=client_id,
+        marketplace=marketplace,
+        shop_name=shop_name or None,
+        shop_url=shop_url,
+        category=category or None,
+        region=region or None,
+    )
+    db.session.add(presence)
+    db.session.commit()
+    flash(f"Linked {presence.shop_name or presence.shop_url}.", "success")
+    return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+
+@app.route("/marketplace-audits/<int:client_id>/run/<int:presence_id>", methods=["POST"])
+@login_required
+def marketplace_run_audit(client_id, presence_id):
+    """Run the marketplace audit for one presence row."""
+    from ai_answer_agent import enabled_engines, simulate_ai_answer
+    from services.marketplace_audit import run_marketplace_audit
+
+    presence = MarketplacePresence.query.filter_by(
+        id=presence_id, user_id=current_user.id, client_id=client_id
+    ).one_or_none()
+    if not presence:
+        flash("That marketplace listing wasn't found.", "error")
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    if not has_enough_credits_for(current_user, "marketplace_audit"):
+        flash(
+            f"You need {get_action_cost('marketplace_audit')} credits to "
+            "run a marketplace audit.",
+            "warning",
+        )
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    engines = enabled_engines() or ["chatgpt"]
+    try:
+        payload = run_marketplace_audit(
+            presence=presence,
+            simulate_ai_answer=simulate_ai_answer,
+            engines=engines,
+        )
+    except Exception as exc:
+        logger.warning("Marketplace audit failed: %s", exc)
+        flash("Could not run that marketplace audit. Verify OPENAI_API_KEY.", "error")
+        return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    presence.last_audit_payload = payload
+    presence.last_visibility_score = payload.get("visibility_score")
+    presence.last_audited_at = datetime.utcnow()
+    db.session.commit()
+
+    spend_credits_for(
+        current_user,
+        "marketplace_audit",
+        notes=f"Marketplace audit: {presence.marketplace}/{presence.shop_name or presence.shop_url}",
+    )
+    flash(
+        f"Audit complete — {payload['visibility_score']}% visibility across "
+        f"{len(payload['queries'])} queries.",
+        "success",
+    )
+    return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+
+@app.route("/marketplace-audits/<int:client_id>/delete/<int:presence_id>", methods=["POST"])
+@login_required
+def marketplace_delete_presence(client_id, presence_id):
+    presence = MarketplacePresence.query.filter_by(
+        id=presence_id, user_id=current_user.id, client_id=client_id
+    ).one_or_none()
+    if presence:
+        db.session.delete(presence)
+        db.session.commit()
+        flash("Marketplace listing removed.", "success")
+    return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+
+# =========================
+# Google Search Console integration
+# =========================
+# OAuth + Search Analytics pulls for verified GSC properties. Pro and
+# Growth plans only — Free and Plus see an upgrade nudge on the
+# workspace card.
+
+
+def _gsc_redirect_uri() -> str:
+    """OAuth redirect URI Google calls back into. Match the value
+    registered on the OAuth client in the Google Cloud console."""
+    override = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
+    if override:
+        return override
+    return url_for("gsc_oauth_callback", _external=True)
+
+
+def _ensure_gsc_access_token(connection) -> str:
+    """Return a valid access token for this connection, refreshing
+    silently if the cached one is expired or about to expire."""
+    from services.gsc_client import GSCAPIError, refresh_access_token
+
+    now = datetime.utcnow()
+    expires_at = connection.token_expires_at
+    if expires_at and expires_at - now > timedelta(seconds=60):
+        return connection.access_token
+
+    if not connection.refresh_token:
+        raise GSCAPIError(
+            "Access token expired and no refresh token is on file. Reconnect Google Search Console."
+        )
+    payload = refresh_access_token(connection.refresh_token)
+    connection.access_token = payload.get("access_token") or connection.access_token
+    expires_in = int(payload.get("expires_in") or 3600)
+    connection.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+    db.session.commit()
+    return connection.access_token
+
+
+@app.route("/integrations/gsc/connect/<int:client_id>")
+@login_required
+def gsc_connect(client_id):
+    """Kick off the Google Search Console OAuth install for a workspace."""
+    from pricing import plan_allows_google_search_console
+    from services.gsc_client import (
+        GSCConfigError,
+        build_install_url,
+        is_gsc_configured,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "The Google Search Console connector is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    if not is_gsc_configured():
+        flash(
+            "Google Search Console isn't configured on this server yet — "
+            "ask your admin to set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+            "error",
+        )
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    state = secrets.token_urlsafe(24)
+    session["gsc_oauth_state"] = state
+    session["gsc_oauth_client_id"] = client_id
+
+    try:
+        url = build_install_url(redirect_uri=_gsc_redirect_uri(), state=state)
+    except GSCConfigError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    return redirect(url)
+
+
+@app.route("/integrations/gsc/callback")
+@login_required
+def gsc_oauth_callback():
+    """Handle the OAuth callback — exchange code, persist tokens."""
+    from services.gsc_client import (
+        GSCAPIError,
+        GSCConfigError,
+        exchange_code_for_token,
+    )
+
+    expected_state = session.pop("gsc_oauth_state", None)
+    pending_client_id = session.pop("gsc_oauth_client_id", None)
+    if not expected_state or request.args.get("state") != expected_state:
+        flash("Google Search Console state mismatch — please retry.", "error")
+        return redirect(url_for("index"))
+
+    error = request.args.get("error")
+    if error:
+        flash(f"Google declined the connection: {error}", "error")
+        return redirect(url_for("index"))
+
+    code = request.args.get("code")
+    if not code:
+        flash("Missing authorization code from Google.", "error")
+        return redirect(url_for("index"))
+
+    workspace = db.session.get(Client, pending_client_id) if pending_client_id else None
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("The workspace this install was started from could not be found.", "error")
+        return redirect(url_for("index"))
+
+    try:
+        token_payload = exchange_code_for_token(
+            code=code, redirect_uri=_gsc_redirect_uri()
+        )
+    except (GSCConfigError, GSCAPIError) as exc:
+        flash(f"Could not finish Google install: {exc}", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    access = token_payload.get("access_token")
+    refresh = token_payload.get("refresh_token")
+    scope = token_payload.get("scope")
+    expires_in = int(token_payload.get("expires_in") or 3600)
+    if not access:
+        flash("Google did not return an access token.", "error")
+        return redirect(url_for("client_detail", client_id=workspace.id))
+
+    owner_id = effective_owner_id() or current_user.id
+    existing = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=owner_id, client_id=workspace.id
+        ).one_or_none()
+    )
+    if existing:
+        existing.access_token = access
+        if refresh:
+            existing.refresh_token = refresh
+        existing.scope = scope
+        existing.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+        existing.updated_at = datetime.utcnow()
+    else:
+        db.session.add(
+            GoogleSearchConsoleConnection(
+                user_id=owner_id,
+                client_id=workspace.id,
+                access_token=access,
+                refresh_token=refresh,
+                scope=scope,
+                token_expires_at=datetime.utcnow() + timedelta(seconds=expires_in),
+            )
+        )
+    db.session.commit()
+
+    flash("Connected Google Search Console. Pick a property to track below.", "success")
+    return redirect(url_for("gsc_dashboard", client_id=workspace.id))
+
+
+def _refresh_gsc_payload(connection) -> Dict[str, Any]:
+    """Pull aggregate KPIs + top queries + top pages for the connected
+    site. Cached on shop_meta-style fields so the dashboard renders
+    HTTP-free between syncs."""
+    from services.gsc_client import GSCClient
+
+    if not connection.site_url:
+        return {}
+
+    access = _ensure_gsc_access_token(connection)
+    client = GSCClient(access)
+
+    end = datetime.utcnow().date()
+    start = end - timedelta(days=28)
+    start_s = start.isoformat()
+    end_s = end.isoformat()
+
+    totals = client.query_search_analytics(
+        site_url=connection.site_url,
+        start_date=start_s,
+        end_date=end_s,
+        dimensions=None,
+        row_limit=1,
+    )
+    top_queries = client.query_search_analytics(
+        site_url=connection.site_url,
+        start_date=start_s,
+        end_date=end_s,
+        dimensions=["query"],
+        row_limit=10,
+    )
+    top_pages = client.query_search_analytics(
+        site_url=connection.site_url,
+        start_date=start_s,
+        end_date=end_s,
+        dimensions=["page"],
+        row_limit=10,
+    )
+
+    summary = {
+        "site_url": connection.site_url,
+        "range_start": start_s,
+        "range_end": end_s,
+        "totals": totals[0] if totals else {},
+        "top_queries": top_queries,
+        "top_pages": top_pages,
+        "fetched_at": datetime.utcnow().isoformat(),
+    }
+    connection.last_sync_payload = summary
+    connection.last_synced_at = datetime.utcnow()
+    flag_modified(connection, "last_sync_payload")
+    db.session.commit()
+    return summary
+
+
+@app.route("/integrations/gsc/<int:client_id>")
+@login_required
+def gsc_dashboard(client_id):
+    """Workspace-scoped Search Console dashboard."""
+    from pricing import plan_allows_google_search_console
+    from services.gsc_client import GSCAPIError, GSCClient, is_gsc_configured
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "The Google Search Console connector is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+
+    sites: List[Dict[str, Any]] = []
+    error: Optional[str] = None
+    if connection:
+        try:
+            access = _ensure_gsc_access_token(connection)
+            sites = GSCClient(access).list_sites()
+        except GSCAPIError as exc:
+            error = str(exc)
+
+    summary = (connection.last_sync_payload or {}) if connection else {}
+
+    return render_template(
+        "integrations/gsc_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        sites=sites,
+        summary=summary,
+        error=error,
+        gsc_configured=is_gsc_configured(),
+    )
+
+
+@app.route("/integrations/gsc/<int:client_id>/select-site", methods=["POST"])
+@login_required
+def gsc_select_site(client_id):
+    """Save the picked GSC property and pull a first sync."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Google Search Console connection on this workspace.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    site_url = (request.form.get("site_url") or "").strip()
+    if not site_url:
+        flash("Please pick a property.", "error")
+        return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+    connection.site_url = site_url
+    db.session.commit()
+
+    from services.gsc_client import GSCAPIError
+    try:
+        _refresh_gsc_payload(connection)
+        flash(f"Tracking {site_url}. Latest 28 days of data loaded.", "success")
+    except GSCAPIError as exc:
+        flash(f"Picked {site_url}, but couldn't load metrics: {exc}", "warning")
+
+    return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/gsc/<int:client_id>/sync", methods=["POST"])
+@login_required
+def gsc_sync(client_id):
+    """Re-pull the last 28 days of data."""
+    from services.gsc_client import GSCAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection or not connection.site_url:
+        flash("Pick a property first.", "warning")
+        return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+    try:
+        _refresh_gsc_payload(connection)
+        flash("Search Console metrics refreshed.", "success")
+    except GSCAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+
+    return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+# =========================
+# Cal.com booking integration
+# =========================
+
+
+@app.route("/client/<int:client_id>/upload-logo", methods=["POST"])
+@login_required
+def upload_workspace_logo(client_id):
+    """Save an uploaded workspace logo. Routes through the storage
+    layer (S3 when configured, local disk otherwise) so the same code
+    path serves single-instance dev and multi-instance production."""
+    from services.storage import logo_storage
+
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in {"png", "jpg", "jpeg", "svg", "webp"}:
+        flash("Use PNG, JPG, SVG, or WEBP.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    new_name = f"workspace-{workspace.id}-{secrets.token_hex(4)}.{ext}"
+    try:
+        logo_storage.save("workspace_logos", new_name, file)
+    except Exception as exc:
+        logger.warning("Workspace logo upload failed: %s", exc)
+        flash("Could not save the logo. Try again.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if workspace.logo_filename:
+        logo_storage.delete("workspace_logos", workspace.logo_filename)
+    workspace.logo_filename = new_name
+    db.session.commit()
+    flash("Workspace logo updated. It'll appear on the audit PDF and dashboard.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/remove-logo", methods=["POST"])
+@login_required
+def remove_workspace_logo(client_id):
+    from services.storage import logo_storage
+
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    if workspace.logo_filename:
+        logo_storage.delete("workspace_logos", workspace.logo_filename)
+        workspace.logo_filename = None
+        db.session.commit()
+        flash("Workspace logo removed.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/refresh-profile", methods=["POST"])
+@login_required
+def refresh_business_profile(client_id):
+    """Manually re-run the Tavily-driven business profile enrichment.
+    Auto-runs lazily when the audit PDF is opened, but an explicit
+    button is useful when the user has updated their website / Google
+    Business Profile and wants the next PDF to reflect that."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    try:
+        from services.business_profile_research import research_business_profile
+        data = research_business_profile(
+            name=workspace.name,
+            website=workspace.website,
+            location=workspace.location,
+        ) or {}
+        if data.get("founded_year"):
+            workspace.founded_year = data["founded_year"]
+        if data.get("google_rating"):
+            workspace.google_rating = data["google_rating"]
+        if data.get("google_review_count") is not None:
+            workspace.google_review_count = data["google_review_count"]
+        if data.get("executive_summary"):
+            workspace.business_summary = data["executive_summary"]
+        if data.get("core_services") and not workspace.brand_services:
+            workspace.brand_services = data["core_services"]
+        workspace.business_profile_updated_at = datetime.utcnow()
+        db.session.commit()
+        flash("Business profile refreshed from web research.", "success")
+    except Exception as exc:
+        logger.warning("Business profile refresh failed: %s", exc)
+        flash(
+            "Couldn't refresh the profile. Make sure TAVILY_API_KEY and OPENAI_API_KEY are set.",
+            "error",
+        )
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/brand-kit", methods=["GET", "POST"])
+@login_required
+def client_brand_kit(client_id):
+    """Brand Kit Studio — structured brand fields with a live preview.
+
+    Per the blueprint, Brand Kit → Preview is foundational
+    architecture: structured brand direction dramatically improves
+    generation quality across audits, content drafts, AI editing, and
+    website generation. We persist colors / typography / voice /
+    audience / differentiators as discrete columns so downstream
+    steps can lift values directly instead of parsing a notes blob."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+
+    if request.method == "POST":
+        workspace.brand_audience = (request.form.get("brand_audience") or "").strip() or None
+        workspace.brand_services = (request.form.get("brand_services") or "").strip() or None
+        workspace.brand_differentiators = (request.form.get("brand_differentiators") or "").strip() or None
+        workspace.brand_voice = (request.form.get("brand_voice") or "").strip()[:255] or None
+        workspace.brand_personality = (request.form.get("brand_personality") or "").strip()[:255] or None
+        workspace.brand_avoid = (request.form.get("brand_avoid") or "").strip() or None
+        workspace.brand_primary_color = (request.form.get("brand_primary_color") or "").strip()[:20] or None
+        workspace.brand_secondary_color = (request.form.get("brand_secondary_color") or "").strip()[:20] or None
+        workspace.brand_accent_color = (request.form.get("brand_accent_color") or "").strip()[:20] or None
+        workspace.brand_typography = (request.form.get("brand_typography") or "").strip()[:120] or None
+        workspace.brand_imagery_direction = (request.form.get("brand_imagery_direction") or "").strip() or None
+        workspace.brand_kit_updated_at = datetime.utcnow()
+        db.session.commit()
+        flash("Brand Kit saved.", "success")
+        return redirect(url_for("client_brand_kit", client_id=client_id))
+
+    return render_template("brand_kit_studio.html", workspace=workspace)
+
+
+@app.route("/integrations/calcom/<int:client_id>")
+@login_required
+def calcom_dashboard(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+    connection = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    payload = (connection.last_payload or {}) if connection else {}
+    return render_template(
+        "integrations/calcom_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        payload=payload,
+    )
+
+
+@app.route("/integrations/calcom/<int:client_id>/connect", methods=["POST"])
+@login_required
+def calcom_connect(client_id):
+    from services.calcom_client import (
+        CalComAPIError, CalComClient, CalComConfigError, summarize,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    api_key = (request.form.get("api_key") or "").strip()
+    username = (request.form.get("username") or "").strip().lstrip("@")
+    if not api_key or not username:
+        flash("API key and Cal.com username are both required.", "error")
+        return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+    try:
+        client = CalComClient(api_key, username)
+        payload = summarize(client)
+    except (CalComConfigError, CalComAPIError) as exc:
+        flash(f"Could not connect Cal.com: {exc}", "error")
+        return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+    existing = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if existing:
+        existing.api_key = api_key
+        existing.username = username
+        existing.last_payload = payload
+        existing.last_synced_at = datetime.utcnow()
+        existing.updated_at = datetime.utcnow()
+    else:
+        db.session.add(
+            CalComConnection(
+                user_id=effective_owner_id() or current_user.id,
+                client_id=client_id,
+                api_key=api_key,
+                username=username,
+                last_payload=payload,
+                last_synced_at=datetime.utcnow(),
+            )
+        )
+    db.session.commit()
+    flash(f"Connected Cal.com for @{username}.", "success")
+    return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/calcom/<int:client_id>/sync", methods=["POST"])
+@login_required
+def calcom_sync(client_id):
+    from services.calcom_client import CalComAPIError, CalComClient, summarize
+
+    connection = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Cal.com connection on this workspace.", "error")
+        return redirect(url_for("calcom_dashboard", client_id=client_id))
+    try:
+        client = CalComClient(connection.api_key, connection.username)
+        payload = summarize(client)
+        connection.last_payload = payload
+        connection.last_synced_at = datetime.utcnow()
+        flag_modified(connection, "last_payload")
+        db.session.commit()
+        flash("Cal.com data refreshed.", "success")
+    except CalComAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+    return redirect(url_for("calcom_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/calcom/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def calcom_disconnect(client_id):
+    connection = (
+        CalComConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected Cal.com.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+# =========================
+# WooCommerce integration
+# =========================
+# Key-based, read-only. Reuses services.shopify_audit by normalising
+# WooCommerce products into the Shopify-shaped dict the audit expects.
+
+
+def _refresh_woocommerce_findings(connection, products):
+    """Run the catalog audit on normalised products and persist."""
+    from services.shopify_audit import find_shopify_action_items, summarize_catalog
+    from services.woocommerce_client import normalize_woo_product_to_shopify_shape
+
+    normalised = [normalize_woo_product_to_shopify_shape(p) for p in (products or [])]
+    findings = find_shopify_action_items(normalised)
+    summary = summarize_catalog(normalised)
+
+    payload = {
+        "store_url": connection.store_url,
+        "summary": summary,
+        "findings": findings,
+        "fetched_at": datetime.utcnow().isoformat(),
+    }
+    connection.last_audit_payload = payload
+    connection.last_synced_at = datetime.utcnow()
+    flag_modified(connection, "last_audit_payload")
+    return payload
+
+
+@app.route("/integrations/woocommerce/<int:client_id>")
+@login_required
+def woocommerce_dashboard(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    payload = (connection.last_audit_payload or {}) if connection else {}
+
+    return render_template(
+        "integrations/woocommerce_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        payload=payload,
+    )
+
+
+@app.route("/integrations/woocommerce/<int:client_id>/connect", methods=["POST"])
+@login_required
+def woocommerce_connect(client_id):
+    """Save store URL + consumer key/secret and pull a first audit."""
+    from services.woocommerce_client import (
+        WooAPIError, WooClient, WooConfigError, _normalize_store_url,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    raw_url = (request.form.get("store_url") or "").strip()
+    ck = (request.form.get("consumer_key") or "").strip()
+    cs = (request.form.get("consumer_secret") or "").strip()
+    store_url = _normalize_store_url(raw_url)
+
+    if not store_url or not ck or not cs:
+        flash("Store URL, consumer key, and consumer secret are all required.", "error")
+        return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+    try:
+        client = WooClient(store_url, ck, cs)
+        client.shop_summary()  # ping + auth check
+        products = client.list_products(limit=50)
+    except (WooConfigError, WooAPIError) as exc:
+        flash(f"Could not connect to WooCommerce: {exc}", "error")
+        return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+    existing = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if existing:
+        existing.store_url = store_url
+        existing.consumer_key = ck
+        existing.consumer_secret = cs
+        existing.updated_at = datetime.utcnow()
+        connection = existing
+    else:
+        connection = WooCommerceConnection(
+            user_id=effective_owner_id() or current_user.id,
+            client_id=client_id,
+            store_url=store_url,
+            consumer_key=ck,
+            consumer_secret=cs,
+        )
+        db.session.add(connection)
+        db.session.flush()
+
+    _refresh_woocommerce_findings(connection, products)
+    db.session.commit()
+
+    flash(f"Connected WooCommerce store {store_url}.", "success")
+    return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/woocommerce/<int:client_id>/sync", methods=["POST"])
+@login_required
+def woocommerce_sync(client_id):
+    from services.woocommerce_client import WooAPIError, WooClient
+
+    connection = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No WooCommerce store connected.", "error")
+        return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+    try:
+        client = WooClient(
+            connection.store_url, connection.consumer_key, connection.consumer_secret
+        )
+        products = client.list_products(limit=50)
+        _refresh_woocommerce_findings(connection, products)
+        db.session.commit()
+        flash("WooCommerce catalog refreshed.", "success")
+    except WooAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+    return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/woocommerce/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def woocommerce_disconnect(client_id):
+    connection = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected WooCommerce store.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/integrations/ga/<int:client_id>")
+@login_required
+def ga_dashboard(client_id):
+    """GA4 dashboard for a workspace. Reuses the GSC connection row so
+    the user only goes through Google OAuth once for both products."""
+    from pricing import plan_allows_google_search_console
+    from services.ga_client import GA4Client, GAAPIError
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "Google Analytics is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+
+    properties: List[Dict[str, Any]] = []
+    error: Optional[str] = None
+    if connection:
+        try:
+            access = _ensure_gsc_access_token(connection)
+            properties = GA4Client(access).list_properties()
+        except GAAPIError as exc:
+            error = str(exc)
+
+    payload = (connection.ga_payload or {}) if connection else {}
+
+    return render_template(
+        "integrations/ga_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        properties=properties,
+        payload=payload,
+        error=error,
+    )
+
+
+@app.route("/integrations/ga/<int:client_id>/select-property", methods=["POST"])
+@login_required
+def ga_select_property(client_id):
+    """Pick a GA4 property and pull a first 28-day summary."""
+    from services.ga_client import GA4Client, GAAPIError, summarize_property
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("Connect Google first from the Search Console page.", "warning")
+        return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+    property_id = (request.form.get("property_id") or "").strip()
+    if not property_id:
+        flash("Please pick a property.", "error")
+        return redirect(url_for("ga_dashboard", client_id=client_id))
+
+    connection.ga_property_id = property_id
+    db.session.commit()
+
+    try:
+        access = _ensure_gsc_access_token(connection)
+        payload = summarize_property(GA4Client(access), property_id=property_id)
+        connection.ga_payload = payload
+        connection.ga_synced_at = datetime.utcnow()
+        flag_modified(connection, "ga_payload")
+        db.session.commit()
+        flash(
+            f"Tracking GA4 property {property_id}. Last 28 days loaded.",
+            "success",
+        )
+    except GAAPIError as exc:
+        flash(f"Picked property, but GA query failed: {exc}", "warning")
+
+    return redirect(url_for("ga_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/ga/<int:client_id>/sync", methods=["POST"])
+@login_required
+def ga_sync(client_id):
+    """Re-pull the 28-day GA summary."""
+    from services.ga_client import GA4Client, GAAPIError, summarize_property
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection or not connection.ga_property_id:
+        flash("Pick a GA property first.", "warning")
+        return redirect(url_for("ga_dashboard", client_id=client_id))
+
+    try:
+        access = _ensure_gsc_access_token(connection)
+        payload = summarize_property(
+            GA4Client(access), property_id=connection.ga_property_id
+        )
+        connection.ga_payload = payload
+        connection.ga_synced_at = datetime.utcnow()
+        flag_modified(connection, "ga_payload")
+        db.session.commit()
+        flash("Google Analytics metrics refreshed.", "success")
+    except GAAPIError as exc:
+        flash(f"GA sync failed: {exc}", "error")
+
+    return redirect(url_for("ga_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/ga/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def ga_disconnect(client_id):
+    """Remove the GA property selection only (keeps the GSC half intact)."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        connection.ga_property_id = None
+        connection.ga_payload = None
+        connection.ga_synced_at = None
+        db.session.commit()
+        flash("Disconnected Google Analytics for this workspace.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/integrations/gsc/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def gsc_disconnect(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        GoogleSearchConsoleConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected Google Search Console.", "success")
+    else:
+        flash("No Google Search Console connection on this workspace.", "info")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/cron/answer-monitor", methods=["POST", "GET"])
+def cron_answer_monitor():
+    """Scheduled sweep that re-runs the AI Answer Monitor for every
+    paid user whose youngest snapshot is older than 6 days.
+
+    Auth: pass a `CRON_SECRET` either as `X-Cron-Secret` header or
+    `?secret=…` query param. Mismatched secrets get a 403.
+
+    Idempotent: a workspace is skipped if its newest snapshot is < 6
+    days old, so calling the endpoint daily costs nothing extra. The
+    sweep does NOT deduct credits — the auto-run is a subscriber
+    benefit; manual re-runs from the UI still charge.
+
+    Suggested cron entry (server-side):
+        0 8 * * 1  curl -fsS -X POST -H "X-Cron-Secret: $SECRET" \\
+                       https://your-host/cron/answer-monitor
+    """
+    from ai_answer_agent import enabled_engines, simulate_ai_answer
+    from services.answer_monitor import run_answer_check
+
+    expected = os.getenv("CRON_SECRET")
+    if not expected:
+        return jsonify({"ok": False, "error": "CRON_SECRET not configured"}), 503
+    provided = (
+        request.headers.get("X-Cron-Secret")
+        or request.args.get("secret")
+        or ""
+    )
+    if provided != expected:
+        abort(403)
+
+    from pricing import SUBSCRIBER_PLANS
+
+    users = User.query.filter(User.plan.in_(list(SUBSCRIBER_PLANS - {"dev_unlimited"}))).all()
+    engines = enabled_engines() or ["chatgpt"]
+
+    workspaces_run = 0
+    workspaces_skipped = 0
+    snapshots_total = 0
+    failures = 0
+    cutoff = datetime.utcnow() - timedelta(days=6)
+
+    for user in users:
+        clients = Client.query.filter_by(user_id=user.id).all()
+        for client in clients:
+            domain = normalize_website(client.website or "")
+            if not domain:
+                continue
+            prompts = (
+                PromptTracking.query
+                .filter_by(user_id=user.id, domain=domain)
+                .all()
+            )
+            if not prompts:
+                continue
+            youngest = (
+                db.session.query(db.func.max(PromptCheckSnapshot.checked_at))
+                .filter(PromptCheckSnapshot.prompt_tracking_id.in_([p.id for p in prompts]))
+                .scalar()
+            )
+            if youngest and youngest > cutoff:
+                workspaces_skipped += 1
+                continue
+
+            brand_name = (client.name or domain).strip() or "this brand"
+            ran_for_workspace = False
+            for prompt in prompts:
+                try:
+                    snaps = run_answer_check(
+                        db=db,
+                        PromptTracking=PromptTracking,
+                        PromptCheckSnapshot=PromptCheckSnapshot,
+                        simulate_ai_answer=simulate_ai_answer,
+                        prompt_row=prompt,
+                        brand_name=brand_name,
+                        engines=engines,
+                    )
+                    snapshots_total += len(snaps)
+                    ran_for_workspace = True
+                except Exception as exc:
+                    logger.warning(
+                        "Cron answer-monitor failed for prompt %s: %s",
+                        prompt.id, exc,
+                    )
+                    failures += 1
+            if ran_for_workspace:
+                workspaces_run += 1
+
+    return jsonify(
+        {
+            "ok": True,
+            "workspaces_run": workspaces_run,
+            "workspaces_skipped": workspaces_skipped,
+            "snapshots_saved": snapshots_total,
+            "failures": failures,
+            "engines": engines,
+        }
+    )
+
+
+def _generate_product_description_ai(product: Dict[str, Any]) -> Optional[str]:
+    """Ask gpt-4o-mini for a richer product description grounded in the
+    product's title, vendor, type, and any existing thin copy. Returns
+    HTML body (safe-ish, no scripts) or None on failure."""
+    if not os.getenv("OPENAI_API_KEY"):
+        return None
+
+    title = (product.get("title") or "").strip()
+    vendor = (product.get("vendor") or "").strip()
+    product_type = (product.get("product_type") or "").strip()
+    tags = product.get("tags")
+    if isinstance(tags, list):
+        tag_text = ", ".join(tags[:8])
+    else:
+        tag_text = str(tags or "")[:200]
+
+    existing = (product.get("body_html") or "").strip()
+    # Strip any tags from existing for the prompt context.
+    import re as _re
+    existing_text = _re.sub(r"<[^>]+>", " ", existing)
+    existing_text = _re.sub(r"\s+", " ", existing_text).strip()[:400]
+
+    user_prompt = (
+        "Write a richer product description in clean HTML for the product below. "
+        "Lead with one short sentence that answers what the product is and who it's "
+        "for. Add a 2-3 sentence paragraph covering materials / build / size / use "
+        "cases (use only what's reasonably implied — never invent specs). End with "
+        "a short bullet list of 3-4 attributes (use <ul><li>). 80-130 words total. "
+        "Plain neutral retail tone, no marketing fluff or superlatives.\n\n"
+        f"Title: {title or 'Unknown product'}\n"
+        f"Type: {product_type or 'unknown'}\n"
+        f"Vendor: {vendor or 'unknown'}\n"
+        f"Tags: {tag_text or 'none'}\n"
+        f"Existing description (may be thin or empty): {existing_text or '(none)'}\n\n"
+        "Return JSON: {\"body_html\": \"<p>…</p><ul><li>…</li></ul>\"}"
+    )
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": "You write neutral, factual ecommerce product descriptions in HTML."},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            max_tokens=400,
+        )
+        raw = response.choices[0].message.content or "{}"
+        parsed = json.loads(raw)
+        body = (parsed.get("body_html") or "").strip()
+        if not body:
+            return None
+        # Strip any <script> tags as a basic safety net.
+        body = _re.sub(r"<script.*?</script>", "", body, flags=_re.IGNORECASE | _re.DOTALL)
+        return body[:4000]
+    except Exception as exc:
+        logger.warning("AI description generation failed: %s", exc)
+        return None
+
+
+@app.route("/integrations/shopify/descriptions/preview/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_descriptions_preview(client_id):
+    """Generate AI-rewritten descriptions for every product with a thin
+    body. Stores the proposals in shop_meta so the user can review and
+    approve before any write. Charges nothing on preview (no Shopify
+    write yet) — the apply step charges credits."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError, scope_has
+    from services.shopify_audit import _is_thin_description
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Shopify store connected.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if not os.getenv("OPENAI_API_KEY"):
+        flash(
+            "Description rewrites need OPENAI_API_KEY configured on this server.",
+            "error",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+    try:
+        products = admin.list_products(limit=50)
+    except ShopifyAPIError as exc:
+        flash(f"Could not load products: {exc}", "error")
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    proposals: List[Dict[str, Any]] = []
+    for product in products:
+        if not _is_thin_description(product):
+            continue
+        proposed = _generate_product_description_ai(product)
+        if not proposed:
+            continue
+        proposals.append(
+            {
+                "product_id": product.get("id"),
+                "title": product.get("title") or "Untitled product",
+                "original_html": product.get("body_html") or "",
+                "proposed_html": proposed,
+            }
+        )
+        if len(proposals) >= 25:
+            break  # cap a single preview pass to keep tokens bounded
+
+    meta = dict(connection.shop_meta or {})
+    meta["cached_description_proposals"] = proposals
+    meta["cached_description_proposals_at"] = datetime.utcnow().isoformat()
+    connection.shop_meta = meta
+    flag_modified(connection, "shop_meta")
+    db.session.commit()
+
+    if not proposals:
+        flash(
+            "No thin product descriptions found, or AI generation failed for "
+            "every candidate.",
+            "info",
+        )
+    else:
+        flash(
+            f"Generated {len(proposals)} description{'s' if len(proposals) != 1 else ''}. "
+            "Review the previews and apply the ones you want.",
+            "success",
+        )
+    return redirect(url_for("shopify_products", client_id=client_id))
+
+
+@app.route("/integrations/shopify/descriptions/apply/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_descriptions_apply(client_id):
+    """Push the user-approved description rewrites to Shopify."""
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError, scope_has
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No Shopify store connected.", "error")
+        return redirect(url_for("client_detail", client_id=client_id))
+
+    if not scope_has(connection.scope, "write_products"):
+        flash(
+            "This store was connected with read-only access. Reconnect to enable write-back.",
+            "error",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    if not has_enough_credits_for(current_user, "description_rewrite_batch"):
+        flash(
+            f"You need {get_action_cost('description_rewrite_batch')} credits "
+            "to apply description rewrites. Top up to continue.",
+            "warning",
+        )
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    proposals = (connection.shop_meta or {}).get("cached_description_proposals") or []
+    selected_ids = {
+        str(pid) for pid in request.form.getlist("apply_product_id") if str(pid).strip()
+    }
+    if not selected_ids:
+        flash("No products selected.", "info")
+        return redirect(url_for("shopify_products", client_id=client_id))
+
+    admin = ShopifyAdminClient(connection.shop_domain, connection.access_token)
+    patched = 0
+    failed = 0
+    for proposal in proposals:
+        pid = proposal.get("product_id")
+        if not pid or str(pid) not in selected_ids:
+            continue
+        body = proposal.get("proposed_html") or ""
+        if not body:
+            continue
+        try:
+            admin.update_product_description(pid, body)
+            patched += 1
+        except ShopifyAPIError as exc:
+            logger.warning("Description PUT failed for product %s: %s", pid, exc)
+            failed += 1
+
+    if patched:
+        spend_credits_for(
+            current_user,
+            "description_rewrite_batch",
+            notes=f"Description rewrite: {patched} products",
+        )
+        # Clear proposals so the UI doesn't keep showing the same set.
+        meta = dict(connection.shop_meta or {})
+        meta.pop("cached_description_proposals", None)
+        meta.pop("cached_description_proposals_at", None)
+        connection.shop_meta = meta
+        flag_modified(connection, "shop_meta")
+        connection.last_synced_at = datetime.utcnow()
+        # Refresh findings after the rewrite (descriptions just got fatter).
+        try:
+            refreshed = admin.list_products(limit=50)
+            _refresh_shopify_findings(connection, refreshed)
+        except ShopifyAPIError:
+            pass
+        db.session.commit()
+
+    if patched and not failed:
+        flash(f"Updated descriptions on {patched} product{'s' if patched != 1 else ''}.", "success")
+    elif patched and failed:
+        flash(
+            f"Updated {patched}; {failed} update{'s' if failed != 1 else ''} failed.",
+            "warning",
+        )
+    else:
+        flash(f"Could not update any products ({failed} failures).", "error")
+    return redirect(url_for("shopify_products", client_id=client_id))
+
+
+@app.route("/integrations/shopify/disconnect/<int:client_id>", methods=["POST"])
+@login_required
+def shopify_disconnect(client_id):
+    """Drop the stored access token for a workspace."""
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != current_user.id:
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        ShopifyConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected Shopify store.", "success")
+    else:
+        flash("No Shopify store to disconnect.", "info")
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 if __name__ == "__main__":
