@@ -336,6 +336,14 @@ class Client(db.Model):
     brand_imagery_direction = db.Column(db.Text, nullable=True)
     brand_kit_updated_at = db.Column(db.DateTime, nullable=True)
 
+    # Business profile fields enriched via Tavily research — used by
+    # the audit PDF's Business Profile table and Executive Summary.
+    founded_year = db.Column(db.String(10), nullable=True)
+    google_rating = db.Column(db.String(20), nullable=True)
+    google_review_count = db.Column(db.Integer, nullable=True)
+    business_summary = db.Column(db.Text, nullable=True)
+    business_profile_updated_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
     )
@@ -4901,6 +4909,90 @@ def dev_set_plan(plan):
     return redirect(request.referrer or url_for("index"))
 
 
+def _resolve_business_profile_for_pdf(workspace_row, client_dict):
+    """Lazy-enrich the workspace's business profile if it's missing or
+    stale, then return a flat dict the PDF template reads from."""
+    from services.business_profile_research import (
+        is_profile_stale, research_business_profile,
+    )
+
+    if workspace_row and is_profile_stale(workspace_row):
+        try:
+            data = research_business_profile(
+                name=workspace_row.name,
+                website=workspace_row.website,
+                location=workspace_row.location,
+            )
+            if data:
+                if data.get("founded_year"):
+                    workspace_row.founded_year = data["founded_year"]
+                if data.get("google_rating"):
+                    workspace_row.google_rating = data["google_rating"]
+                if data.get("google_review_count") is not None:
+                    workspace_row.google_review_count = data["google_review_count"]
+                if data.get("executive_summary"):
+                    workspace_row.business_summary = data["executive_summary"]
+                if data.get("core_services") and not workspace_row.brand_services:
+                    workspace_row.brand_services = data["core_services"]
+                workspace_row.business_profile_updated_at = datetime.utcnow()
+                db.session.commit()
+        except Exception as exc:
+            logger.warning("Business profile research failed: %s", exc)
+
+    return {
+        "founded_year": getattr(workspace_row, "founded_year", None),
+        "google_rating": getattr(workspace_row, "google_rating", None),
+        "google_review_count": getattr(workspace_row, "google_review_count", None),
+        "core_services": (
+            getattr(workspace_row, "brand_services", None)
+            or client_dict.get("brand_kit", {}).get("services")
+        ),
+        "executive_summary": getattr(workspace_row, "business_summary", None),
+    }
+
+
+def _citation_table_rows(client_dict, max_rows: int = 5):
+    """Build the AI Citation Test Results table from the workspace's
+    tracked-prompt history. One row per query: query / cited (Y/N) /
+    top competitor citing it. Prefers the most recent
+    PromptCheckSnapshot value when present so the PDF reflects the
+    latest monitor sweep, not the saved-audit snapshot."""
+    domain = (client_dict.get("website_normalized") or "").strip()
+    if not domain:
+        return []
+
+    owner_id = effective_owner_id() or current_user.id
+    prompt_rows = (
+        PromptTracking.query.filter_by(user_id=owner_id, domain=domain)
+        .order_by(PromptTracking.created_at.desc())
+        .limit(max_rows)
+        .all()
+    )
+    out = []
+    for row in prompt_rows:
+        latest_snap = (
+            db.session.query(PromptCheckSnapshot)
+            .filter_by(prompt_tracking_id=row.id)
+            .order_by(PromptCheckSnapshot.checked_at.desc())
+            .first()
+        )
+        if latest_snap:
+            cited = bool(latest_snap.brand_mentioned)
+            top = (
+                (latest_snap.competitors_mentioned or [None])[0]
+                if latest_snap.competitors_mentioned else None
+            )
+        else:
+            cited = (row.mentioned or "").lower() == "yes"
+            top = row.top_competitor or None
+        out.append({
+            "query": row.prompt or "—",
+            "cited": cited,
+            "top_competitor": top or "—",
+        })
+    return out
+
+
 @app.route("/client/<client_id>/export-pdf")
 @login_required
 def export_client_audit_pdf(client_id):
@@ -4908,10 +5000,22 @@ def export_client_audit_pdf(client_id):
     if not client:
         abort(404)
 
-    # 🔹 Get latest audit data
+    # The Client ORM row drives the business-profile cache; client (the
+    # serialised dict) drives the rest of the rendering.
+    workspace_row = (
+        Client.query.filter_by(slug=str(client_id), user_id=effective_owner_id())
+        .first()
+        or (
+            Client.query.filter_by(id=int(client_id), user_id=effective_owner_id()).first()
+            if str(client_id).isdigit() else None
+        )
+    )
+
+    business_profile = _resolve_business_profile_for_pdf(workspace_row, client)
+    citation_rows = _citation_table_rows(client, max_rows=5)
+
     latest = client.get("latest_audit", {})
 
-    # 🔹 Safe fallbacks
     recommended_actions = client.get("recommended_actions", [])
     question_rows = client.get("question_rows", [])
     missing_rows = client.get("missing_rows", [])
@@ -4944,8 +5048,13 @@ def export_client_audit_pdf(client_id):
         missing_rows=missing_rows,
         report_date=report_date,
         agency=agency,
-        executive_summary=client.get("executive_summary"),
+        executive_summary=(
+            business_profile.get("executive_summary")
+            or client.get("executive_summary")
+        ),
         competitor_notes=client.get("competitor_notes"),
+        business_profile=business_profile,
+        citation_rows=citation_rows,
     )
 
     filename = pdf_filename(f"{client.get('name', 'report')} audit report")
@@ -10716,6 +10825,48 @@ def gsc_sync(client_id):
 # =========================
 # Cal.com booking integration
 # =========================
+
+
+@app.route("/client/<int:client_id>/refresh-profile", methods=["POST"])
+@login_required
+def refresh_business_profile(client_id):
+    """Manually re-run the Tavily-driven business profile enrichment.
+    Auto-runs lazily when the audit PDF is opened, but an explicit
+    button is useful when the user has updated their website / Google
+    Business Profile and wants the next PDF to reflect that."""
+    workspace = (
+        Client.query.filter_by(id=client_id, user_id=effective_owner_id())
+        .one_or_none()
+    )
+    if not workspace:
+        abort(404)
+    try:
+        from services.business_profile_research import research_business_profile
+        data = research_business_profile(
+            name=workspace.name,
+            website=workspace.website,
+            location=workspace.location,
+        ) or {}
+        if data.get("founded_year"):
+            workspace.founded_year = data["founded_year"]
+        if data.get("google_rating"):
+            workspace.google_rating = data["google_rating"]
+        if data.get("google_review_count") is not None:
+            workspace.google_review_count = data["google_review_count"]
+        if data.get("executive_summary"):
+            workspace.business_summary = data["executive_summary"]
+        if data.get("core_services") and not workspace.brand_services:
+            workspace.brand_services = data["core_services"]
+        workspace.business_profile_updated_at = datetime.utcnow()
+        db.session.commit()
+        flash("Business profile refreshed from web research.", "success")
+    except Exception as exc:
+        logger.warning("Business profile refresh failed: %s", exc)
+        flash(
+            "Couldn't refresh the profile. Make sure TAVILY_API_KEY and OPENAI_API_KEY are set.",
+            "error",
+        )
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 @app.route("/client/<int:client_id>/brand-kit", methods=["GET", "POST"])

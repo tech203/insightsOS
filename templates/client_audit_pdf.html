@@ -392,6 +392,155 @@
             margin-bottom: 4px;
         }
 
+        /* ---- Sample-format report sections ---- */
+
+        .audit-title-band {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            background: var(--panel);
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            border-left: 4px solid var(--brand);
+        }
+        .audit-title-name {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            margin: 0;
+            line-height: 1.05;
+        }
+        .audit-title-sub {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .audit-title-date {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: 1rem;
+        }
+
+        .exec-summary p {
+            margin: 0 0 8px;
+            line-height: 1.55;
+            color: var(--text);
+        }
+        .exec-summary p:last-child {
+            margin-bottom: 0;
+        }
+
+        .verdict-box {
+            border: 2px solid var(--danger);
+            border-radius: 10px;
+            padding: 14px 16px;
+            background: var(--danger-soft);
+        }
+        .verdict-label {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            color: var(--danger);
+            margin-bottom: 6px;
+        }
+        .verdict-body {
+            margin: 0;
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .verdict-warn {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        .verdict-warn .verdict-label { color: var(--accent-deep); }
+        .verdict-strong {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+        .verdict-strong .verdict-label { color: var(--brand-deep); }
+
+        .profile-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+        }
+        .profile-table th {
+            text-align: left;
+            background: var(--panel);
+            color: var(--accent-deep);
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--line);
+            width: 30%;
+        }
+        .profile-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--line);
+            color: var(--text);
+            font-size: 12px;
+        }
+        .profile-table tr:last-child th,
+        .profile-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .section-lede {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .citation-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .citation-table thead th {
+            background: var(--accent);
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        .citation-table th.th-center { text-align: center; }
+        .citation-table tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--line);
+            color: var(--text);
+            font-size: 12px;
+        }
+        .citation-table tbody td.td-center { text-align: center; }
+        .citation-table tbody tr:last-child td { border-bottom: 0; }
+
+        .cited-pill {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+        .cited-yes {
+            background: var(--brand-soft);
+            color: var(--brand-deep);
+        }
+        .cited-no {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
         .finding.warning {
             background: var(--accent-soft);
             border-color: rgba(157, 124, 227, 0.32);
@@ -566,56 +715,128 @@
             </div>
         </div>
 
-        <div class="hero">
-            <div class="hero-main">
-                <span class="eyebrow">AI Visibility Audit Report</span>
-                <h1 class="report-title">{{ client.name if client and client.name else "Client" }}</h1>
-                <p class="report-subtitle">
-                    Premium audit report covering visibility, content coverage, competitor pressure,
-                    and the highest-priority actions to improve discoverability across AI answers.
-                </p>
-
-                <div class="client-meta">
-                    <div class="client-meta-row">
-                        <div class="client-meta-label">Website</div>
-                        <div class="client-meta-value">{{ client.website if client and client.website else "—" }}</div>
-                    </div>
-                    <div class="client-meta-row">
-                        <div class="client-meta-label">Industry</div>
-                        <div class="client-meta-value">{{ client.industry if client and client.industry else "—" }}</div>
-                    </div>
-                    <div class="client-meta-row">
-                        <div class="client-meta-label">Location</div>
-                        <div class="client-meta-value">{{ client.location if client and client.location else "—" }}</div>
-                    </div>
-                    <div class="client-meta-row">
-                        <div class="client-meta-label">Report Date</div>
-                        <div class="client-meta-value">{{ report_date if report_date else "—" }}</div>
-                    </div>
-                </div>
+        {# Title block matching the sample format. #}
+        <div class="audit-title-band">
+            <div>
+                <h1 class="audit-title-name">AI VISIBILITY AUDIT</h1>
+                <p class="audit-title-sub">{{ client.name if client and client.name else "Client" }}</p>
             </div>
+            <div class="audit-title-date">{{ report_date }}</div>
+        </div>
 
+        {# Executive summary (Tavily-derived when present, fallback otherwise). #}
+        <div class="section">
+            <h2 class="section-title">Executive Summary</h2>
+            <div class="exec-summary">
+                {% if executive_summary %}
+                    <p>{{ executive_summary }}</p>
+                {% else %}
+                    <p>This audit evaluates {{ client.name }}'s current visibility across AI search platforms including ChatGPT, Perplexity, and Google AI Overview. As more consumers use AI assistants to find products and services, businesses that appear in AI-generated answers gain a significant competitive advantage.</p>
+                {% endif %}
+
+                {% set norm_score = latest.normalized_score if latest and latest.normalized_score is defined else 0 %}
+                {% if citation_rows %}
+                    {% set cited_count = (citation_rows | selectattr('cited') | list) | length %}
+                    {% set total_count = citation_rows | length %}
+                    <p>Across {{ total_count }} test queries, {{ client.name }} was cited in <strong>{{ cited_count }}</strong>{% if total_count %} of {{ total_count }}{% endif %}. Where the brand is missing, AI assistants are recommending competitors instead — those leads currently flow elsewhere.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Verdict band — colour-coded by score. #}
+        <div class="section">
+            {% set verdict_label = "HIGH OPPORTUNITY" if norm_score < 55 else ("MODERATE OPPORTUNITY" if norm_score < 80 else "STRONG VISIBILITY") %}
+            {% set verdict_class = "verdict-danger" if norm_score < 55 else ("verdict-warn" if norm_score < 80 else "verdict-strong") %}
+            <div class="verdict-box {{ verdict_class }}">
+                <div class="verdict-label">VERDICT: {{ verdict_label }}</div>
+                <p class="verdict-body">
+                    {% if norm_score >= 80 %}
+                        {{ client.name }} is well-represented across AI assistants. Focus on holding the lead and expanding coverage to adjacent queries.
+                    {% elif norm_score >= 55 %}
+                        {{ client.name }} appears intermittently in AI answers. Closing the visibility gaps below would meaningfully shift the share of AI-driven leads.
+                    {% else %}
+                        {{ client.name }} has strong real-world reputation but limited AI visibility. Competitors who optimize now will capture AI-driven leads while {{ client.name }} remains invisible to this growing segment.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {# Business profile table. #}
+        <div class="section">
+            <h2 class="section-title">Business Profile</h2>
+            <table class="profile-table">
+                <tr><th>Company</th><td>{{ client.name if client and client.name else "—" }}</td></tr>
+                <tr><th>Website</th><td>{{ client.website if client and client.website else "—" }}</td></tr>
+                <tr><th>Location</th><td>{{ client.location if client and client.location else "—" }}</td></tr>
+                {% if business_profile.founded_year %}
+                <tr><th>Founded</th><td>{{ business_profile.founded_year }}</td></tr>
+                {% endif %}
+                {% if business_profile.core_services %}
+                <tr><th>Core Services</th><td>{{ business_profile.core_services }}</td></tr>
+                {% elif client.industry and client.industry != 'N/A' %}
+                <tr><th>Industry</th><td>{{ client.industry }}</td></tr>
+                {% endif %}
+                {% if business_profile.google_rating %}
+                <tr>
+                    <th>Recognition</th>
+                    <td>
+                        {{ business_profile.google_rating }}/5 Google rating{% if business_profile.google_review_count %} ({{ business_profile.google_review_count }} reviews){% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        {# AI citation test results — caps at 5 queries. #}
+        {% if citation_rows %}
+        <div class="section">
+            <h2 class="section-title">AI Citation Test Results</h2>
+            <p class="section-lede">We tested common queries across major AI platforms to assess visibility:</p>
+            <table class="citation-table">
+                <thead>
+                    <tr>
+                        <th>Test Query</th>
+                        <th class="th-center">Cited?</th>
+                        <th>Who Gets Cited</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in citation_rows %}
+                    <tr>
+                        <td>"{{ row.query }}"</td>
+                        <td class="td-center">
+                            <span class="cited-pill {{ 'cited-yes' if row.cited else 'cited-no' }}">{{ "YES" if row.cited else "NO" }}</span>
+                        </td>
+                        <td>{{ row.top_competitor if row.top_competitor else "—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {# Score snapshot — overall AEO score moved here from the hero. #}
+        <div class="hero" style="margin-top: 14px;">
+            <div class="hero-main">
+                <h2 class="section-title">Score Snapshot</h2>
+                <p class="hero-copy" style="margin-top: 0;">
+                    {% if norm_score >= 80 %}
+                        Strong visibility. Focus on maintaining lead and expanding coverage.
+                    {% elif norm_score >= 55 %}
+                        Moderate visibility. Improve consistency and targeted coverage.
+                    {% else %}
+                        Low visibility. There is clear opportunity to improve discoverability.
+                    {% endif %}
+                </p>
+            </div>
             <div class="hero-side">
                 <div class="hero-card">
                     <div class="hero-card-label">Overall AEO Score</div>
                     <div class="hero-score">
-                        {{ latest.normalized_score if latest and latest.normalized_score is defined else 0 }}<small>/100</small>
+                        {{ norm_score }}<small>/100</small>
                     </div>
                     <div class="hero-opportunity">
-                        {{ latest.opportunity_level if latest and latest.opportunity_level else "Opportunity available" }}
-                    </div>
-                    <div class="hero-copy">
-                        {% if latest and latest.normalized_score is defined %}
-                            {% if latest.normalized_score >= 80 %}
-                                Strong visibility. Focus on maintaining lead and expanding coverage.
-                            {% elif latest.normalized_score >= 60 %}
-                                Moderate visibility. Improve consistency and targeted coverage.
-                            {% else %}
-                                Low visibility. There is clear opportunity to improve discoverability.
-                            {% endif %}
-                        {% else %}
-                            No latest audit score available yet.
-                        {% endif %}
+                        {{ verdict_label|title }}
                     </div>
                 </div>
             </div>
