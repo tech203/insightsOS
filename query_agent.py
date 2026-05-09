@@ -35,9 +35,20 @@ def _llm_query_ideas(
     topic: str,
     location: Optional[str],
     count: int = 18,
+    brand_context: Optional[str] = None,
 ) -> List[str]:
-    """Ask OpenAI for `count` realistic shopper queries. Returns []
-    on any failure so the caller can fall back to the templates."""
+    """Ask OpenAI for `count` realistic shopper queries.
+
+    `brand_context` is the homepage-scan summary (title, description,
+    nav categories, hero copy) — when provided, the LLM is told to
+    generate queries that match what the brand *actually* sells, not
+    just what the typed industry suggests. This is what stops a
+    nostalgia-candy brand from getting audited as if it were Ben &
+    Jerry's.
+
+    Returns [] on any failure so the caller can fall back to the
+    templates.
+    """
     if not os.getenv("OPENAI_API_KEY"):
         return []
     try:
@@ -45,6 +56,20 @@ def _llm_query_ideas(
 
         loc = (location or "").strip()
         location_clause = f"in {loc}" if loc else "(no specific location)"
+        context_block = ""
+        if brand_context and brand_context.strip():
+            context_block = (
+                "\n\nGround truth about what this brand actually sells "
+                "(scraped from the live website — trust this over the "
+                f"industry label):\n{brand_context.strip()[:1500]}\n"
+                "\nGenerate queries that match what THIS brand sells, "
+                "not the generic category. If the brand is a heritage / "
+                "nostalgia / licensed brand, lean into that angle. If "
+                "the brand sells merchandise alongside its core product, "
+                "include merch-style queries. Use the brand's own name "
+                "where relevant."
+            )
+
         prompt = (
             f"Generate {count} natural-language search queries a real "
             f"shopper or buyer might ask an AI assistant when looking "
@@ -57,7 +82,8 @@ def _llm_query_ideas(
             "- problem-led: 'X for Y', 'X near me', 'late-night X'\n"
             "- specific feature: vary by what people actually care about "
             "for this category (e.g. flavours / pricing / delivery / "
-            "subscriptions / dietary / occasion).\n\n"
+            "subscriptions / dietary / occasion / nostalgia / gifting)."
+            f"{context_block}\n\n"
             "Return JSON only: {\"queries\": [\"…\", …]}\n"
             "Each query: under 90 characters, lowercase, conversational, "
             "no quotes around it."
@@ -71,7 +97,10 @@ def _llm_query_ideas(
                     "role": "system",
                     "content": (
                         "You write realistic shopper search queries. "
-                        "Vary phrasing — never lean on a single template."
+                        "Vary phrasing — never lean on a single template. "
+                        "When a brand context is provided, prefer queries "
+                        "that match what THAT specific brand sells over "
+                        "generic category queries."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -87,10 +116,6 @@ def _llm_query_ideas(
             for q in queries
             if isinstance(q, str) and q.strip()
         ]
-        # Drop queries that look like the boring templated form so we
-        # don't end up half-and-half. The substring check is loose;
-        # if a real query happens to contain "best <topic>" verbatim
-        # that's fine — we only filter when ≥ 80% of the text matches.
         return cleaned[:count]
     except Exception as exc:
         logger.warning("LLM query generation failed: %s", exc)
@@ -137,17 +162,24 @@ def _template_query_ideas(
     return intent + problem + comparison + question
 
 
-def generate_queries(topic, location=None):
+def generate_queries(topic, location=None, brand_context=None):
     """Return a list of queries to test against AI engines.
 
     LLM-driven when OPENAI_API_KEY is set; template fallback otherwise.
     Either way the contract is the same — a flat list of strings.
+
+    `brand_context` is an optional summary of the homepage scan; pass
+    it through to anchor the LLM on what the brand actually sells.
     """
     topic_str = (topic or "").strip()
     if not topic_str:
         return []
 
-    llm_ideas = _llm_query_ideas(topic=topic_str, location=location)
+    llm_ideas = _llm_query_ideas(
+        topic=topic_str,
+        location=location,
+        brand_context=brand_context,
+    )
     if llm_ideas:
         return llm_ideas
 

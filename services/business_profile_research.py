@@ -54,10 +54,24 @@ def _tavily_search(query: str, max_results: int = 6) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_with_openai(*, name: str, website: str, snippets: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _extract_with_openai(
+    *,
+    name: str,
+    website: str,
+    snippets: List[Dict[str, Any]],
+    site_context: Optional[str] = None,
+) -> Dict[str, Any]:
     """Single OpenAI call to extract structured fields from Tavily
     snippets. Returns {} on any failure — caller treats missing fields
-    as None and the PDF degrades gracefully."""
+    as None and the PDF degrades gracefully.
+
+    `site_context` is the homepage scan (title + meta description +
+    hero copy + nav categories). When provided, the LLM is pinned to
+    that as ground truth so Tavily snippets about a same-named but
+    DIFFERENT business (e.g. "The White Rabbit" restaurant vs the
+    nostalgia-candy brand at whiterabbit.sg) don't pollute the
+    summary.
+    """
     if not os.getenv("OPENAI_API_KEY"):
         return {}
 
@@ -65,22 +79,32 @@ def _extract_with_openai(*, name: str, website: str, snippets: List[Dict[str, An
         f"[{s.get('title') or 'snippet'}] {s.get('content') or ''}"
         for s in snippets[:10]
     )[:6000]
-    if not snippet_text.strip():
+    if not snippet_text.strip() and not site_context:
         return {}
+
+    grounding_block = ""
+    if site_context and site_context.strip():
+        grounding_block = (
+            "\n\nGROUND TRUTH (from the live website at this exact URL — "
+            "trust this over the snippets when they conflict):\n"
+            f"{site_context.strip()[:1500]}\n"
+        )
 
     user_prompt = (
         f"Extract structured business facts about {name} ({website}) from the "
-        "search snippets below.\n\n"
+        "search snippets below."
+        f"{grounding_block}\n\n"
         "Return STRICT JSON with these keys (use null when information isn't "
-        "supported by the snippets — never guess):\n"
+        "supported by the snippets/ground-truth — never guess):\n"
         "  - founded_year: 4-digit string or null\n"
         "  - google_rating: number 0-5 as string (e.g. '4.7') or null\n"
         "  - google_review_count: integer or null\n"
         "  - core_services: comma-separated string or null\n"
         "  - executive_summary: 2-3 sentences in factual neutral tone, no "
-        "marketing fluff, citing what the audit found about AI visibility "
-        "vs. real-world reputation. ~60-90 words.\n\n"
-        f"SNIPPETS:\n{snippet_text}"
+        "marketing fluff. If snippets reference a same-named but different "
+        "business than the website's homepage suggests, IGNORE those "
+        "snippets and ground the summary in the homepage. ~60-90 words.\n\n"
+        f"SNIPPETS:\n{snippet_text or '(no snippets — use ground truth only)'}"
     )
     try:
         from openai import OpenAI
@@ -89,7 +113,7 @@ def _extract_with_openai(*, name: str, website: str, snippets: List[Dict[str, An
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You extract structured business facts. Never invent. Use null when unsupported."},
+                {"role": "system", "content": "You extract structured business facts. Never invent. Use null when unsupported. The website's own homepage copy outranks third-party snippets when they conflict."},
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.1,
@@ -101,12 +125,32 @@ def _extract_with_openai(*, name: str, website: str, snippets: List[Dict[str, An
         return {}
 
 
-def research_business_profile(*, name: str, website: str, location: Optional[str] = None) -> Dict[str, Any]:
+def research_business_profile(
+    *,
+    name: str,
+    website: str,
+    location: Optional[str] = None,
+    site_context: Optional[str] = None,
+) -> Dict[str, Any]:
     """Run the two-step research and return the dict the model expects.
+
+    `site_context` is an optional homepage-scan blurb that grounds the
+    LLM extraction. Pass it whenever you have it — without it, Tavily
+    snippets can drift onto a different same-named business.
 
     Caller persists onto the Client row + business_profile_updated_at."""
     if not name and not website:
         return {}
+
+    # If we don't already have site context, do a quick scan ourselves.
+    if not site_context and website:
+        try:
+            from services.site_scan import scan_website, brand_context_blurb
+            scan = scan_website(website)
+            if scan and scan.get("fetched"):
+                site_context = brand_context_blurb(scan)
+        except Exception:
+            site_context = None
 
     primary_query = f"{name} {website or ''} {location or ''} reviews founded services".strip()
     snippets = _tavily_search(primary_query, max_results=6)
@@ -119,7 +163,10 @@ def research_business_profile(*, name: str, website: str, location: Optional[str
         )
 
     extracted = _extract_with_openai(
-        name=name or website, website=website or "", snippets=snippets
+        name=name or website,
+        website=website or "",
+        snippets=snippets,
+        site_context=site_context,
     )
 
     rating = extracted.get("google_rating")

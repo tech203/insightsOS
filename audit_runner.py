@@ -22,6 +22,8 @@ calculate_visibility_score = _safe_import("visibility_agent", "calculate_visibil
 build_report = _safe_import("report_agent", "build_report")
 run_ai_answer_test = _safe_import("ai_answer_agent", "run_ai_answer_test")
 run_research_pack = _safe_import("research_engine", "run_research_pack")
+scan_website = _safe_import("services.site_scan", "scan_website")
+brand_context_blurb = _safe_import("services.site_scan", "brand_context_blurb")
 
 def _safe_call(func, *args, **kwargs):
     if not callable(func):
@@ -220,10 +222,28 @@ def run_audit_for_input(
     print("client_name:", client_name)
     print("user_id:", user_id)
 
+    # Step 0: scan the homepage so downstream LLM calls get grounded
+    # in what the brand actually sells, not just the typed industry
+    # field. For a workspace whose industry says "ice cream e-commerce"
+    # but whose homepage is actually a heritage-candy / merchandise
+    # brand, the scan output is what makes the audit honest.
+    site_scan = _safe_call(scan_website, website) or {}
+    brand_ctx = ""
+    if site_scan and site_scan.get("fetched") and brand_context_blurb:
+        brand_ctx = brand_context_blurb(site_scan) or ""
+        print(f"AUDIT: site scan fetched ({len(brand_ctx)} chars of context)")
+        if site_scan.get("title"):
+            print(f"   title='{site_scan.get('title')}'")
+        if site_scan.get("categories"):
+            print(f"   nav categories: {site_scan.get('categories')[:8]}")
+    else:
+        print("AUDIT: site scan unavailable — falling back to industry-only context")
+
     raw_queries = _safe_call(
         generate_queries,
         topic=topic or industry,
         location=location,
+        brand_context=brand_ctx or None,
     )
     print("raw_queries:", raw_queries)
 
@@ -339,6 +359,14 @@ def run_audit_for_input(
 
     print("ai_answer_results count:", len(ai_answer_results))
 
+    # Stitch the site scan onto raw_audit so build_audit_payload
+    # writes it into the saved JSON. The PDF render path will pick
+    # this up to ground the executive summary on the homepage's
+    # actual copy rather than Tavily's inferred description.
+    if site_scan:
+        raw_audit["site_scan"] = site_scan
+        raw_audit["brand_context"] = brand_ctx
+
     payload = build_audit_payload(
         website=website,
         industry=industry,
@@ -353,6 +381,9 @@ def run_audit_for_input(
         raw_audit_data=raw_audit,
         research_pack=research_pack,
     )
+    # Also expose the scan outside `site_findings` for easy lookup.
+    payload["site_scan"] = site_scan
+    payload["brand_context"] = brand_ctx
 
     print("PAYLOAD BUILT")
     print("payload keys:", list(payload.keys()))
