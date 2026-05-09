@@ -191,8 +191,13 @@
     </a>
 
     <a href="{{ url_for('shopify_products', client_id=client.id) }}" class="workspace-module-card">
-        <strong>Connected Store</strong>
-        <p>Link your store so audits can read your live product catalog.</p>
+        <strong>Shopify</strong>
+        <p>Connect your Shopify store so audits can read your live product catalog.</p>
+    </a>
+
+    <a href="{{ url_for('woocommerce_dashboard', client_id=client.id) }}" class="workspace-module-card">
+        <strong>WooCommerce</strong>
+        <p>Audit your WooCommerce catalog for AI-visibility hygiene. Read-only.</p>
     </a>
 
     <a href="{{ url_for('marketplace_audits_page', client_id=client.id) }}" class="workspace-module-card">

@@ -376,6 +376,41 @@ class PromptTracking(db.Model):
     )
 
 
+class WooCommerceConnection(db.Model):
+    """Key-based WooCommerce connection scoped to a workspace.
+
+    The store admin generates a read-only Consumer Key + Consumer
+    Secret in WooCommerce → Settings → Advanced → REST API and pastes
+    them into our connect form. We never receive or store the WP
+    admin password — only the scoped REST keys.
+    """
+    __tablename__ = "woocommerce_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True
+    )
+
+    store_url = db.Column(db.String(500), nullable=False)
+    consumer_key = db.Column(db.Text, nullable=False)
+    consumer_secret = db.Column(db.Text, nullable=False)
+
+    last_audit_payload = db.Column(db.JSON, nullable=True)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "client_id", name="uq_woo_user_client"),
+    )
+
+
 class GoogleSearchConsoleConnection(db.Model):
     """OAuth-installed Google Search Console connection scoped to a
     workspace. Stores the long-lived refresh token so we can mint
@@ -10558,6 +10593,158 @@ def gsc_sync(client_id):
         flash(f"Sync failed: {exc}", "error")
 
     return redirect(url_for("gsc_dashboard", client_id=client_id))
+
+
+# =========================
+# WooCommerce integration
+# =========================
+# Key-based, read-only. Reuses services.shopify_audit by normalising
+# WooCommerce products into the Shopify-shaped dict the audit expects.
+
+
+def _refresh_woocommerce_findings(connection, products):
+    """Run the catalog audit on normalised products and persist."""
+    from services.shopify_audit import find_shopify_action_items, summarize_catalog
+    from services.woocommerce_client import normalize_woo_product_to_shopify_shape
+
+    normalised = [normalize_woo_product_to_shopify_shape(p) for p in (products or [])]
+    findings = find_shopify_action_items(normalised)
+    summary = summarize_catalog(normalised)
+
+    payload = {
+        "store_url": connection.store_url,
+        "summary": summary,
+        "findings": findings,
+        "fetched_at": datetime.utcnow().isoformat(),
+    }
+    connection.last_audit_payload = payload
+    connection.last_synced_at = datetime.utcnow()
+    flag_modified(connection, "last_audit_payload")
+    return payload
+
+
+@app.route("/integrations/woocommerce/<int:client_id>")
+@login_required
+def woocommerce_dashboard(client_id):
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    connection = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    payload = (connection.last_audit_payload or {}) if connection else {}
+
+    return render_template(
+        "integrations/woocommerce_dashboard.html",
+        workspace=workspace,
+        connection=connection,
+        payload=payload,
+    )
+
+
+@app.route("/integrations/woocommerce/<int:client_id>/connect", methods=["POST"])
+@login_required
+def woocommerce_connect(client_id):
+    """Save store URL + consumer key/secret and pull a first audit."""
+    from services.woocommerce_client import (
+        WooAPIError, WooClient, WooConfigError, _normalize_store_url,
+    )
+
+    workspace = db.session.get(Client, client_id)
+    if not workspace or workspace.user_id != effective_owner_id():
+        flash("Workspace not found.", "error")
+        return redirect(url_for("index"))
+
+    raw_url = (request.form.get("store_url") or "").strip()
+    ck = (request.form.get("consumer_key") or "").strip()
+    cs = (request.form.get("consumer_secret") or "").strip()
+    store_url = _normalize_store_url(raw_url)
+
+    if not store_url or not ck or not cs:
+        flash("Store URL, consumer key, and consumer secret are all required.", "error")
+        return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+    try:
+        client = WooClient(store_url, ck, cs)
+        client.shop_summary()  # ping + auth check
+        products = client.list_products(limit=50)
+    except (WooConfigError, WooAPIError) as exc:
+        flash(f"Could not connect to WooCommerce: {exc}", "error")
+        return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+    existing = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if existing:
+        existing.store_url = store_url
+        existing.consumer_key = ck
+        existing.consumer_secret = cs
+        existing.updated_at = datetime.utcnow()
+        connection = existing
+    else:
+        connection = WooCommerceConnection(
+            user_id=effective_owner_id() or current_user.id,
+            client_id=client_id,
+            store_url=store_url,
+            consumer_key=ck,
+            consumer_secret=cs,
+        )
+        db.session.add(connection)
+        db.session.flush()
+
+    _refresh_woocommerce_findings(connection, products)
+    db.session.commit()
+
+    flash(f"Connected WooCommerce store {store_url}.", "success")
+    return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/woocommerce/<int:client_id>/sync", methods=["POST"])
+@login_required
+def woocommerce_sync(client_id):
+    from services.woocommerce_client import WooAPIError, WooClient
+
+    connection = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if not connection:
+        flash("No WooCommerce store connected.", "error")
+        return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+    try:
+        client = WooClient(
+            connection.store_url, connection.consumer_key, connection.consumer_secret
+        )
+        products = client.list_products(limit=50)
+        _refresh_woocommerce_findings(connection, products)
+        db.session.commit()
+        flash("WooCommerce catalog refreshed.", "success")
+    except WooAPIError as exc:
+        flash(f"Sync failed: {exc}", "error")
+    return redirect(url_for("woocommerce_dashboard", client_id=client_id))
+
+
+@app.route("/integrations/woocommerce/<int:client_id>/disconnect", methods=["POST"])
+@login_required
+def woocommerce_disconnect(client_id):
+    connection = (
+        WooCommerceConnection.query.filter_by(
+            user_id=effective_owner_id(), client_id=client_id
+        ).one_or_none()
+    )
+    if connection:
+        db.session.delete(connection)
+        db.session.commit()
+        flash("Disconnected WooCommerce store.", "success")
+    return redirect(url_for("client_detail", client_id=client_id))
 
 
 @app.route("/integrations/ga/<int:client_id>")
