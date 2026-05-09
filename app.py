@@ -280,6 +280,16 @@ class CreditTransaction(db.Model):
 
 
 class Referral(db.Model):
+    """Referral payout record.
+
+    Reward model: the referrer earns 25% of the dollar value the
+    referred user pays (subscription or credit bundle), capped to
+    purchases made within 30 days of signup. Free signups earn
+    nothing — the reward only ever fires when the referred user
+    actually pays. Each successful payment within the window creates
+    a new Referral row in `rewarded` status; status `expired` records
+    a window that closed without any payment.
+    """
     __tablename__ = "referrals"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -290,9 +300,17 @@ class Referral(db.Model):
         db.Integer, db.ForeignKey("users.id"), nullable=False
     )
     referral_code = db.Column(db.String(50), nullable=False)
+    # pending → rewarded | expired
     status = db.Column(db.String(50), default="pending", nullable=False)
-    reward_amount_referrer = db.Column(db.Integer, default=0, nullable=False)
-    reward_amount_referred = db.Column(db.Integer, default=0, nullable=False)
+    # Dollar amount the referred user paid on this triggering purchase
+    # (cents not used — Stripe gives us amount_total in cents, we
+    # divide on persist).
+    referred_payment_usd = db.Column(db.Numeric(10, 2), nullable=True)
+    # 25% of referred_payment_usd, in credits (1 credit = $1 baseline).
+    reward_credits_referrer = db.Column(db.Integer, default=0, nullable=False)
+    # Stripe object that triggered the reward (Checkout Session id),
+    # so the same payment can never grant the referrer twice.
+    stripe_event_ref = db.Column(db.String(120), nullable=True)
     qualified_at = db.Column(db.DateTime, nullable=True)
     rewarded_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(
@@ -4330,52 +4348,92 @@ def has_enough_credits(user, amount):
     return user.wallet.balance >= amount
 
 
-def award_referral_if_qualified(user):
-    referral = Referral.query.filter_by(
-        referred_user_id=user.id, status="pending"
-    ).first()
-    if not referral:
+REFERRAL_WINDOW_DAYS = 30
+REFERRAL_PAYOUT_RATE = 0.25  # 25% of paid value
+
+
+def award_referral_for_payment(
+    *,
+    referred_user,
+    amount_usd: float,
+    stripe_event_ref: str = "",
+) -> bool:
+    """Apply the 25% referral reward when the referred user makes a
+    paid purchase within the 30-day window from their signup.
+
+    Returns True when a reward was granted, False otherwise. Every
+    qualifying payment creates its own Referral row, so a referrer
+    keeps earning on each subsequent purchase the referred user makes
+    inside the window (subscriptions + credit bundles)."""
+    if not referred_user:
+        return False
+    if not getattr(referred_user, "referred_by_user_id", None):
+        return False
+    if amount_usd is None or amount_usd <= 0:
         return False
 
-    referrer = User.query.get(referral.referrer_user_id)
-    referred_user = User.query.get(referral.referred_user_id)
-
-    if (
-        not referrer
-        or not referrer.wallet
-        or not referred_user
-        or not referred_user.wallet
-    ):
+    # Window check — measured from the referred user's signup.
+    signed_up_at = getattr(referred_user, "created_at", None)
+    if signed_up_at and (datetime.utcnow() - signed_up_at).days >= REFERRAL_WINDOW_DAYS:
         return False
 
-    referrer.wallet.balance += referral.reward_amount_referrer
+    # Idempotency — never reward the same Stripe session twice.
+    if stripe_event_ref:
+        already = Referral.query.filter_by(
+            stripe_event_ref=stripe_event_ref
+        ).first()
+        if already:
+            return False
+
+    referrer = User.query.get(referred_user.referred_by_user_id)
+    if not referrer:
+        return False
+    if not referrer.wallet:
+        referrer.wallet = Wallet(user_id=referrer.id, balance=0)
+        db.session.add(referrer.wallet)
+        db.session.flush()
+
+    # 1 credit ≈ $1 of value for subscribers, $0.50 for free-plan
+    # users at the topup-bundle level. The referrer's reward is
+    # measured in credits (1 credit = $1 = direct offset), regardless
+    # of the referred user's plan tier — they earn what they pay.
+    reward_credits = max(1, int(round(amount_usd * REFERRAL_PAYOUT_RATE)))
+
+    referrer.wallet.balance += reward_credits
     db.session.add(
         CreditTransaction(
             user_id=referrer.id,
             type="referral_bonus",
-            amount=referral.reward_amount_referrer,
+            amount=reward_credits,
             balance_after=referrer.wallet.balance,
-            notes=f"Referral reward for user {referred_user.email}",
+            notes=(
+                f"Referral reward (25% of ${amount_usd:.2f} paid by "
+                f"{referred_user.email})"
+            ),
         )
     )
-
-    referred_user.wallet.balance += referral.reward_amount_referred
     db.session.add(
-        CreditTransaction(
-            user_id=referred_user.id,
-            type="referral_bonus",
-            amount=referral.reward_amount_referred,
-            balance_after=referred_user.wallet.balance,
-            notes="Referral bonus after qualification",
+        Referral(
+            referrer_user_id=referrer.id,
+            referred_user_id=referred_user.id,
+            referral_code=referrer.referral_code or "",
+            status="rewarded",
+            referred_payment_usd=round(amount_usd, 2),
+            reward_credits_referrer=reward_credits,
+            stripe_event_ref=stripe_event_ref or None,
+            qualified_at=datetime.utcnow(),
+            rewarded_at=datetime.utcnow(),
         )
     )
-
-    referral.status = "rewarded"
-    referral.qualified_at = datetime.utcnow()
-    referral.rewarded_at = datetime.utcnow()
-
     db.session.commit()
     return True
+
+
+def award_referral_if_qualified(user):
+    """Backward-compat shim — old callers still expect this name.
+    The new model only awards on paid purchases, so a non-payment
+    signup hook is a no-op now."""
+    return False
 
 
 def get_focused_client_for_user(user):
@@ -5636,6 +5694,21 @@ def stripe_webhook():
             elif kind == "extra_seat":
                 user.extra_seats = int(user.extra_seats or 0) + 1
             db.session.commit()
+
+            # Referral payout — fires on EVERY paid purchase within the
+            # 30-day signup window. amount_total is in cents per Stripe.
+            try:
+                amount_total = data.get("amount_total")
+                if amount_total is not None and kind in (
+                    "bundle", "subscription", "extra_workspace", "extra_seat"
+                ):
+                    award_referral_for_payment(
+                        referred_user=user,
+                        amount_usd=float(amount_total) / 100.0,
+                        stripe_event_ref=data.get("id") or "",
+                    )
+            except Exception as exc:
+                logger.warning("Referral payout failed: %s", exc)
         except Exception as exc:
             logger.error("Stripe webhook handling failed: %s", exc)
             db.session.rollback()

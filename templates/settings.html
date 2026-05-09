@@ -540,13 +540,13 @@
 
     {% if active_settings_section == "referrals" %}
     {% set ref_list = referrals_made if referrals_made is defined else [] %}
-    {% set ref_completed = ref_list | selectattr('status', 'equalto', 'completed') | list %}
-    {% set rewards_total = ref_completed | sum(attribute='reward_amount_referrer') %}
+    {% set ref_rewarded = ref_list | selectattr('status', 'equalto', 'rewarded') | list %}
+    {% set rewards_total = ref_rewarded | sum(attribute='reward_credits_referrer') %}
     <section class="settings-v3-grid">
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
-                <h2>Refer & earn</h2>
-                <p>Share your link. You earn credits when they sign up, they get a starter bonus.</p>
+                <h2>Refer &amp; earn</h2>
+                <p>Earn 25% in credits on every dollar your referrals spend within their first 30 days — subscriptions and credit bundles both qualify.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
@@ -556,13 +556,13 @@
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Total Signups</span>
-                    <strong>{{ ref_list|length }}</strong>
+                    <span>Paid referrals</span>
+                    <strong>{{ ref_rewarded|length }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
-                    <span>Completed</span>
-                    <strong>{{ ref_completed|length }}</strong>
+                    <span>Lifetime payouts (USD)</span>
+                    <strong>${{ '%.2f' | format((ref_rewarded | sum(attribute='referred_payment_usd', start=0)|float) * 0.25) }}</strong>
                 </div>
 
                 <div class="settings-v3-metric-card">
@@ -581,8 +581,24 @@
 
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
+                <h2>How it works</h2>
+                <p>Three rules so it stays simple.</p>
+            </div>
+
+            <ol style="margin: 0; padding-left: 1.2rem; line-height: 1.65; font-size: 0.92rem; color: #444;">
+                <li>Free signups don't pay out — the link only earns when the referred user actually pays.</li>
+                <li>You earn <strong>25% of the dollar value</strong> they pay (subscription or credit bundle), as credits in your wallet.</li>
+                <li>The 30-day window starts at signup. Every paid purchase inside that window earns — outside it, the referral expires.</li>
+            </ol>
+            <p style="font-size: 0.82rem; color: #666; margin-top: 0.85rem;">
+                Example: a referred user signs up free, then upgrades to Pro ($49/mo) on day 8 and buys a 20-credit bundle ($19) on day 22. You earn 25% × ($49 + $19) = <strong>17 credits</strong>.
+            </p>
+        </div>
+
+        <div class="settings-v3-panel" style="grid-column: 1 / -1;">
+            <div class="settings-v3-panel-head">
                 <h2>Recent referrals</h2>
-                <p>People who signed up using your link.</p>
+                <p>Each row is a single qualifying paid purchase.</p>
             </div>
 
             {% if ref_list %}
@@ -590,21 +606,23 @@
                 <div class="settings-v3-tx-row settings-v3-tx-head">
                     <span>Date</span>
                     <span>Status</span>
-                    <span>Reward</span>
+                    <span>They paid</span>
+                    <span>You earned</span>
                 </div>
                 {% for ref in ref_list %}
                 <div class="settings-v3-tx-row">
                     <span>{{ ref.created_at.strftime('%d %b %Y') if ref.created_at else '—' }}</span>
                     <span>{{ ref.status|title }}</span>
-                    <span class="{% if ref.status == 'completed' %}settings-v3-tx-pos{% endif %}">
-                        {% if ref.status == 'completed' %}+{% endif %}{{ ref.reward_amount_referrer or 0 }}
+                    <span>{% if ref.referred_payment_usd %}${{ '%.2f' | format(ref.referred_payment_usd|float) }}{% else %}—{% endif %}</span>
+                    <span class="{% if ref.status == 'rewarded' %}settings-v3-tx-pos{% endif %}">
+                        {% if ref.status == 'rewarded' %}+{% endif %}{{ ref.reward_credits_referrer or 0 }} credits
                     </span>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
             <div class="settings-v3-note-box">
-                Share your link above. Referrals will show up here once someone signs up with it.
+                Share your link above. Paid referrals will show up here once someone you referred makes a purchase within 30 days of signing up.
             </div>
             {% endif %}
         </div>
