@@ -507,13 +507,20 @@
                 </div>
 
                 <div class="topbar-actions">
-                    {% if is_internal_user %}
-                        <a href="{{ url_for('settings_preferences') }}" class="topbar-link-pill">Dev Controls</a>
-                    {% endif %}
-
                     {% block topbar_actions %}{% endblock %}
                 </div>
             </header>
+
+            {% if is_internal_user %}
+                {# Internal-only floating debug badge — bottom-right
+                   corner so it never competes with real product CTAs
+                   in the topbar, where users expect features.
+                   Hidden behind the same is_internal_user gate. #}
+                <a href="{{ url_for('settings_preferences') }}" class="dev-controls-floater" title="Dev Controls / Preferences">
+                    <span aria-hidden="true">⚙</span>
+                    <span class="dev-controls-floater-label">Dev</span>
+                </a>
+            {% endif %}
 
             <main class="app-content">
                 {% block content %}{% endblock %}

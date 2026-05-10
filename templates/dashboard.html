@@ -208,9 +208,27 @@
             </div>
         </div>
 
-        {% if view_mode == "single" %}
         <div class="dashboard-ops-card">
-            <span class="dashboard-score-label">Workspace Snapshot</span>
+            {# Workspace switcher in multi-mode — lets the user pick
+               which workspace's scorecard drives this card without
+               leaving the dashboard. Submits via GET to ?spotlight=<id>. #}
+            {% if view_mode == "multi" and clients|length > 1 and spotlight_client %}
+            <form method="GET" action="{{ url_for('index') }}" class="dashboard-spotlight-switch">
+                <span class="dashboard-score-label">Workspace Snapshot</span>
+                <select name="spotlight" onchange="this.form.submit()">
+                    {% for c in clients %}
+                    <option value="{{ c.id }}" {% if spotlight_client.id == c.id %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% else %}
+            <span class="dashboard-score-label">
+                {% if spotlight_client %}{{ spotlight_client.name }} · Snapshot{% else %}Workspace Snapshot{% endif %}
+            </span>
+            {% endif %}
+
             <strong class="dashboard-score-value">{{ aeo_score|round|int }}<small class="score-unit">/100</small></strong>
 
             <div class="dashboard-score-pill-row">
@@ -221,11 +239,14 @@
                 {% else %}
                     <span class="score-pill score-pill-danger">High opportunity</span>
                 {% endif %}
+                {% if view_mode == "multi" and total_clients > 1 %}
+                <span class="score-pill score-pill-info">Portfolio avg {{ portfolio_avg_score|round|int }}/100 across {{ total_clients }}</span>
+                {% endif %}
             </div>
 
             <p class="dashboard-score-text">
                 {% if aeo_score >= 80 %}
-                    Your workspace is showing strong visibility across tracked AI answers.
+                    {% if spotlight_client %}{{ spotlight_client.name }}{% else %}Your workspace{% endif %} is showing strong visibility across tracked AI answers.
                 {% elif aeo_score >= 55 %}
                     Visibility is developing, but there are still meaningful gaps to improve.
                 {% else %}
@@ -274,54 +295,15 @@
                     </div>
                 </div>
             </div>
-        </div>
-        {% else %}
-        <div class="dashboard-ops-card">
-            <span class="dashboard-score-label">Portfolio Snapshot</span>
-            <strong class="dashboard-score-value">{{ total_clients or 0 }}</strong>
 
-            <div class="dashboard-score-pill-row">
-                <span class="score-pill score-pill-warning">Multi-workspace view</span>
+            {% if spotlight_client %}
+            <div class="dashboard-spotlight-foot">
+                <a href="{{ url_for('client_detail', client_id=spotlight_client.id) }}" class="btn btn-secondary btn-sm">
+                    Open {{ spotlight_client.name }}
+                </a>
             </div>
-
-            <p class="dashboard-score-text">
-                Use this view to see the account-wide picture, then open a workspace to review its detailed audit score and findings.
-            </p>
-
-            <div class="dashboard-score-breakdown">
-                <div class="score-row">
-                    <div class="score-row-top">
-                        <span>Total Workspaces</span>
-                        <strong>{{ total_clients or 0 }}</strong>
-                    </div>
-                </div>
-
-                <div class="score-row">
-                    <div class="score-row-top">
-                        <span>Total Audits</span>
-                        <strong>{{ total_audits or 0 }}</strong>
-                    </div>
-                </div>
-
-                <div class="score-row">
-                    <div class="score-row-top">
-                        <span>Average Score</span>
-                        <strong>{{ overall_score or 0 }}</strong>
-                    </div>
-                    <div class="score-row-track">
-                        <div class="score-row-fill fill-blue" style="width: {{ overall_score or 0 }}%;"></div>
-                    </div>
-                </div>
-
-                <div class="score-row">
-                    <div class="score-row-top">
-                        <span>Tracked Prompts</span>
-                        <strong>{{ total_prompts or 0 }}</strong>
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </section>
 
     <section class="dashboard-insights-v3">

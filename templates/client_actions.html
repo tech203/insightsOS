@@ -151,12 +151,12 @@
 
     <section class="actions-summary-strip">
         <div class="actions-summary-mini">
-            <span>High Priority</span>
+            <span>High Priority {{ info_tip("Actions that materially move the visibility score or fix a missed customer query. Tackle first.") }}</span>
             <strong>{{ high_actions|length }}</strong>
         </div>
 
         <div class="actions-summary-mini">
-            <span>Medium Priority</span>
+            <span>Medium Priority {{ info_tip("Worth doing once high-priority actions are clear. Often improves coverage breadth rather than fixing a specific gap.") }}</span>
             <strong>{{ medium_actions|length }}</strong>
         </div>
 

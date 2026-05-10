@@ -135,6 +135,14 @@
                     Check the search intent, page angle, structure, and FAQ ideas.
                     If the direction looks correct, move it into drafting.
                 </p>
+                {% if queue_item %}
+                <p class="brief-saved-note">
+                    Saved to your Content Queue automatically.
+                    {% if client_route_id %}
+                    <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}">View in queue ↗</a>
+                    {% endif %}
+                </p>
+                {% endif %}
             </div>
         </section>
 
@@ -190,14 +198,14 @@
 
                 {% if display_search_intent %}
                 <div class="brief-section">
-                    <div class="mini-label">Search Intent</div>
+                    <div class="mini-label">Search Intent {{ info_tip("What the searcher is actually trying to do — buy, compare, learn, troubleshoot. Drives how the page should be framed.") }}</div>
                     <p>{{ display_search_intent }}</p>
                 </div>
                 {% endif %}
 
                 {% if display_angle %}
                 <div class="brief-section">
-                    <div class="mini-label">Recommended Page Angle</div>
+                    <div class="mini-label">Recommended Page Angle {{ info_tip("The framing that gives this content a clear point of view — what makes this page worth citing instead of a competitor's.") }}</div>
                     <p>{{ display_angle }}</p>
                 </div>
                 {% endif %}
@@ -281,7 +289,7 @@
 
                 {% if faq_questions %}
                 <div class="brief-section">
-                    <div class="mini-label">FAQ Questions</div>
+                    <div class="mini-label">FAQ Questions {{ info_tip("Real questions worth answering on the page. Including these helps AI engines pull direct citations from your content.") }}</div>
                     <ul class="brief-list">
                         {% for question in faq_questions %}
                             <li>{{ question }}</li>
@@ -318,6 +326,16 @@
                 {% endif %}
 
                 <div class="brief-actions">
+                    {# Drives the existing queue item forward into a draft
+                       instead of spawning a parallel one. The brief was
+                       auto-persisted on generation (audit #5) so we route
+                       through generate_draft_from_queue, which carries the
+                       brief content into the draft generator. #}
+                    {% if queue_item and queue_item.id %}
+                    <a href="{{ url_for('generate_draft_from_queue', item_id=queue_item.id) }}" class="btn btn-primary">
+                        Generate Draft
+                    </a>
+                    {% else %}
                     <a href="{{ url_for(
                         'generate_client_content_draft',
                         client_id=client_route_id,
@@ -327,18 +345,10 @@
                     ) }}" class="btn btn-primary">
                         Generate Draft
                     </a>
+                    {% endif %}
 
-                    <form method="POST" action="{{ url_for('save_generated_brief', client_id=client_route_id) }}">
-                        <input type="hidden" name="target_query" value="{{ display_target_query }}">
-                        <input type="hidden" name="content_type" value="{{ display_content_type }}">
-                        <input type="hidden" name="brief_text" value="{{ display_brief_text }}">
-                        <button type="submit" class="btn btn-secondary">
-                            Save to Queue
-                        </button>
-                    </form>
-
-                    <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
-                        Back to Queue
+                    <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="page-header-back-link">
+                        ← Back to Queue
                     </a>
                 </div>
 

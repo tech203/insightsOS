@@ -85,11 +85,19 @@
         <section class="draft-hero-card">
             <div>
                 <span class="status-pill success">Draft Ready</span>
-                <h2>Review this draft before saving</h2>
+                <h2>Review this draft before approving</h2>
                 <p>
                     Check the opening, structure, proof points, local relevance, and call to action.
-                    Edit the draft below before saving it into the queue.
+                    Edit below if needed, then approve when the draft is ready to publish.
                 </p>
+                {% if queue_item %}
+                <p class="brief-saved-note">
+                    Saved to your Content Queue automatically.
+                    {% if client_route_id %}
+                    <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}">View in queue ↗</a>
+                    {% endif %}
+                </p>
+                {% endif %}
             </div>
         </section>
 
@@ -187,32 +195,37 @@
                     <div class="draft-section no-border">
                         <div class="mini-label">Editable Draft</div>
                         <p class="draft-helper-text">
-                            Make final edits here before saving this draft into the queue.
+                            Edit if needed, then save your changes or approve the draft.
                         </p>
 
                         <textarea name="draft_text" class="draft-editor" rows="22">{{ raw_draft }}</textarea>
                     </div>
 
                     <div class="draft-actions">
-                        <button type="submit" class="btn btn-primary">
-                            Save to Queue
+                        <button type="submit" class="btn btn-secondary">
+                            Save edits
                         </button>
-
-                        <a href="{{ url_for(
-                            'generate_client_content_draft',
-                            client_id=client_route_id,
-                            target_query=display_target_query,
-                            content_type=display_content_type
-                        ) }}" class="btn btn-secondary">
-                            Generate Another
-                        </a>
-
-                        <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
-                            Back to Queue
-                        </a>
                     </div>
 
                 </form>
+
+                {% if queue_item and queue_item.id %}
+                {# Separate form so approving doesn't depend on the
+                   user clicking Save edits first. The approve route
+                   transitions draft_generated → ready in the queue. #}
+                <form method="POST" action="{{ url_for('approve_content_queue_item', item_id=queue_item.id) }}" class="draft-approve-form">
+                    {% if client_route_id %}
+                    <input type="hidden" name="client_id" value="{{ client_route_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        Approve draft
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="page-header-back-link draft-back-link">
+                    ← Back to Queue
+                </a>
 
             </main>
 

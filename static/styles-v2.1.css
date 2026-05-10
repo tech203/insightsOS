@@ -21128,3 +21128,324 @@ html[data-theme="dark"] .page-header-back-link {
 html[data-theme="dark"] .page-header-back-link:hover {
     color: var(--brand-primary);
 }
+
+/* =========================================================
+   Dashboard spotlight switcher (multi-workspace mode)
+   =========================================================
+   Lets multi-workspace users pick which workspace's audit
+   drives the rich scorecard, instead of getting a flat
+   count-based "Portfolio Snapshot". Submits via GET to
+   ?spotlight=<id>. */
+.dashboard-spotlight-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.dashboard-spotlight-switch select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: transparent;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+        linear-gradient(-45deg, transparent 50%, var(--text-muted) 50%);
+    background-position:
+        calc(100% - 14px) 50%,
+        calc(100% - 9px) 50%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    border: 0;
+    padding: 4px 24px 4px 10px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-strong);
+    cursor: pointer;
+    max-width: 220px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast);
+}
+.dashboard-spotlight-switch select:hover {
+    background-color: var(--bg-soft-alt);
+}
+
+.dashboard-spotlight-foot {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+}
+.dashboard-spotlight-foot .btn {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+html[data-theme="dark"] .dashboard-spotlight-switch select {
+    color: var(--theme-text-primary);
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--theme-text-muted) 50%),
+        linear-gradient(-45deg, transparent 50%, var(--theme-text-muted) 50%);
+}
+html[data-theme="dark"] .dashboard-spotlight-switch select:hover {
+    background-color: var(--theme-surface-alt);
+}
+html[data-theme="dark"] .dashboard-spotlight-foot {
+    border-top-color: var(--theme-border-subtle);
+}
+
+/* =========================================================
+   Internal-only Dev Controls floater
+   =========================================================
+   Used to live in .topbar-actions as a bright pill where
+   real customers reading the topbar might assume it's a
+   feature. Now floats in the bottom-right corner with a
+   muted gear, hidden behind the existing is_internal_user
+   gate. Hover lifts it slightly + bumps the brand mint. */
+.dev-controls-floater {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10);
+    opacity: 0.78;
+    transition: opacity var(--transition-fast),
+                transform var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+.dev-controls-floater:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+.dev-controls-floater span:first-child {
+    font-size: 14px;
+    line-height: 1;
+}
+.dev-controls-floater-label {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+html[data-theme="dark"] .dev-controls-floater {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-muted);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+html[data-theme="dark"] .dev-controls-floater:hover {
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+
+/* Print: kill the floater so it doesn't show up on PDFs. */
+@media print {
+    .dev-controls-floater { display: none !important; }
+}
+
+/* =========================================================
+   Brief / draft "Saved to queue" confirmation note
+   =========================================================
+   After generation the brief or draft is auto-persisted as
+   a queue item (audit #5 — closes the orphan-record bug
+   where users lost work by clicking Generate Draft instead
+   of Save). This quiet inline note tells them it's already
+   safe so the page no longer needs a "Save to Queue" button. */
+.brief-saved-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
+    font-size: 13px;
+    font-weight: 700;
+}
+.brief-saved-note::before {
+    content: "✓";
+    font-weight: 800;
+}
+.brief-saved-note a {
+    color: inherit;
+    text-decoration: underline;
+}
+html[data-theme="dark"] .brief-saved-note {
+    background: rgba(62, 223, 203, 0.16);
+    color: var(--brand-primary);
+}
+
+/* Approve-draft form sits inline next to the editable
+   textarea form. Both buttons read as related actions on
+   the same draft. */
+.draft-approve-form {
+    display: inline-block;
+    margin: 0;
+}
+.draft-back-link {
+    display: inline-flex;
+    margin-left: 12px;
+    vertical-align: middle;
+}
+
+/* =========================================================
+   Canonical card system (Pattern A/D consolidation, pass 1)
+   =========================================================
+   The codebase has ~15 nearly-identical card classes
+   (workspace-row-card, summary-card, summary-stat-card,
+   dashboard-priority-item, pillar-card, dashboard-metric-card,
+   audit-meta-card, panel, module-card, module-card-soft,
+   workspace-section-card, actions-section-card, ...) that
+   differ only in padding / radius / shadow micro-decisions.
+   Most are redefined inline at the bottom of each template.
+
+   These canonical classes are the migration target. Use them
+   alongside an existing class to migrate a page incrementally:
+
+     <article class="workspace-row-card surface-card">
+
+   Then remove the legacy class once the inline definition is
+   deleted from the page's <style> block. Dark mode flows
+   through the theme tokens already; no per-page flip needed.
+
+   Variants:
+     .surface-card          — neutral white-on-light card
+     .surface-card--soft    — slightly muted background
+     .surface-card--featured — brand-gradient top bar accent
+     .metric-tile           — label + big value + copy stack
+     .empty-card            — dashed border, centered empty state
+
+   Each variant is one class — no descendant selectors — so
+   they compose cleanly with page-specific spacing.  */
+
+.surface-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 18px;
+    transition: border-color var(--transition-normal),
+                box-shadow var(--transition-normal),
+                transform var(--transition-normal);
+}
+
+.surface-card--soft {
+    background: var(--bg-soft-alt);
+}
+
+.surface-card--featured {
+    position: relative;
+    overflow: hidden;
+}
+.surface-card--featured::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
+}
+
+.surface-card--hover:hover {
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-elevated);
+    transform: translateY(-2px);
+}
+
+.metric-tile {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: 16px;
+    display: grid;
+    gap: 6px;
+}
+.metric-tile-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.metric-tile-value {
+    color: var(--text-strong);
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+.metric-tile-copy {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.empty-card {
+    padding: 28px;
+    text-align: center;
+    border: 1px dashed var(--border-main);
+    border-radius: var(--radius-lg);
+    background: var(--bg-soft-alt);
+    color: var(--text-main);
+}
+.empty-card h2,
+.empty-card h3 {
+    margin: 12px 0 0;
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--text-strong);
+}
+.empty-card p {
+    margin: 12px auto 0;
+    max-width: 620px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+html[data-theme="dark"] .surface-card,
+html[data-theme="dark"] .metric-tile {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .surface-card--soft {
+    background: var(--theme-surface-alt);
+}
+html[data-theme="dark"] .empty-card {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .empty-card h2,
+html[data-theme="dark"] .empty-card h3 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .empty-card p,
+html[data-theme="dark"] .metric-tile-copy {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .metric-tile-label {
+    color: var(--theme-text-muted);
+}
+html[data-theme="dark"] .metric-tile-value {
+    color: var(--theme-text-primary);
+}

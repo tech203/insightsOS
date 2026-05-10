@@ -10,6 +10,7 @@ from content_queue import (
     update_queue_item_schedule,
     update_queue_item_og_image,
     update_queue_item_webflow_export,
+    upsert_generation_item,
     append_queue_item_chat_messages,
     clear_queue_item_chat_history,
     delete_queue_item,
@@ -6028,14 +6029,41 @@ def index():
     view_mode = get_view_mode(current_user)
     focused_client = get_focused_client_for_user(current_user)
 
+    # Pick a "spotlight" workspace whose audit drives the rich
+    # dashboard scorecard. Resolution order:
+    #   1. ?spotlight=<id> URL param (user override via the
+    #      workspace switcher on the dashboard)
+    #   2. focused_client (single-mode)
+    #   3. the most-recently-audited workspace (multi-mode)
+    # This replaces the old branch where multi-mode users got a
+    # plain count-based "Portfolio Snapshot" instead of the rich
+    # scorecard everyone with one workspace already saw.
+    spotlight_param = request.args.get("spotlight", "").strip()
+    spotlight_client = None
+
+    if spotlight_param:
+        for c in clients:
+            if str(c.get("id")) == spotlight_param:
+                spotlight_client = c
+                break
+
+    if spotlight_client is None and focused_client:
+        spotlight_client = focused_client
+
+    if spotlight_client is None and clients:
+        spotlight_client = max(
+            clients,
+            key=lambda c: (c.get("latest_audit") or {}).get("saved_at") or "",
+        )
+
     overall_score = 0
     visibility_score = 0
     content_score = 0
     entity_score = 0
     trust_score = 0
 
-    if view_mode == "single" and focused_client:
-        latest_audit = focused_client.get("latest_audit") or {}
+    if spotlight_client:
+        latest_audit = spotlight_client.get("latest_audit") or {}
 
         overall_score = latest_audit.get("normalized_score", 0) or 0
         visibility_score = latest_audit.get("visibility_score", 0) or 0
@@ -6043,15 +6071,17 @@ def index():
         entity_score = latest_audit.get("entity_score", 0) or 0
         trust_score = latest_audit.get("trust_score", 0) or 0
 
-    elif view_mode == "multi":
-        client_scores = []
-        for client in clients:
-            latest_audit = client.get("latest_audit") or {}
-            score = latest_audit.get("normalized_score")
-            if score is not None:
-                client_scores.append(score)
-
-        overall_score = (
+    # Account-wide average kept for the portfolio sub-stat in
+    # multi-mode (shown alongside the spotlight scorecard, no
+    # longer in place of it).
+    portfolio_avg_score = 0
+    if view_mode == "multi":
+        client_scores = [
+            (c.get("latest_audit") or {}).get("normalized_score")
+            for c in clients
+        ]
+        client_scores = [s for s in client_scores if s is not None]
+        portfolio_avg_score = (
             round(sum(client_scores) / len(client_scores), 1)
             if client_scores
             else 0
@@ -6086,6 +6116,8 @@ def index():
         clients=clients,
         view_mode=view_mode,
         focused_client=focused_client,
+        spotlight_client=spotlight_client,
+        portfolio_avg_score=portfolio_avg_score,
         overall_score=overall_score,
         visibility_score=visibility_score,
         content_score=content_score,
@@ -8063,7 +8095,7 @@ def generate_content_from_prompt(prompt_id):
 
     if not row:
         flash("Prompt not found.", "warning")
-        return redirect(url_for("prompt_management_page"))
+        return redirect(url_for("position_tracking_page"))
 
     return redirect(
         url_for(
@@ -8193,6 +8225,21 @@ def generate_client_content_brief(client_id):
                 content_score=content_score,
             )
 
+            # Auto-persist into the queue so the result page is the
+            # detail view for a real item, not a transient render that
+            # vanishes on next click. Audit finding #5.
+            persisted_item = upsert_generation_item(
+                client_id=client.get("id"),
+                client_name=client.get("name", "Workspace"),
+                target_query=target_query,
+                content_type=content_type,
+                item_type="brief",
+                status="brief_generated",
+                content=brief_text,
+                title=f"Brief: {target_query}" if target_query else "Content Brief",
+                user_id=current_user.id,
+            )
+
             return render_template(
                 "content_brief_result.html",
                 result=result,
@@ -8200,6 +8247,7 @@ def generate_client_content_brief(client_id):
                 aeo=aeo,
                 top_competitors=top_competitors,
                 tracked_prompt_count=len(tracked_rows),
+                queue_item=persisted_item,
             )
 
         except Exception as e:
@@ -8507,8 +8555,33 @@ def generate_client_content_draft(client_id):
                 brand_context=brand_context,
             )
             flash("Content draft generated successfully.")
+
+            draft_text = (
+                result.get("draft", "")
+                if isinstance(result, dict)
+                else str(result)
+            )
+
+            # Auto-persist into the queue (or upsert into the brief
+            # queue item this draft came from) so the result page is
+            # the detail view for a real item. Audit finding #5.
+            persisted_item = upsert_generation_item(
+                client_id=client.get("id"),
+                client_name=client.get("name", "Workspace"),
+                target_query=target_query,
+                content_type=content_type,
+                item_type="draft",
+                status="draft_generated",
+                content=draft_text,
+                title=f"Draft: {target_query}" if target_query else "Content Draft",
+                user_id=current_user.id,
+            )
+
             return render_template(
-                "content_draft_result.html", client=client, result=result
+                "content_draft_result.html",
+                client=client,
+                result=result,
+                queue_item=persisted_item,
             )
 
         except Exception as e:
@@ -10421,7 +10494,12 @@ def save_generated_brief(client_id):
     brief_text = request.form.get("brief_text", "").strip()
     title = f"Brief: {target_query}" if target_query else "Content Brief"
 
-    add_queue_item(
+    # Auto-persist on generation already wrote a queue item (audit
+    # #5). This route now upserts so the manual "Save edits" button
+    # updates that same item with edited content instead of spawning
+    # a duplicate. Older callers (legacy templates) still work — if
+    # no matching item exists, upsert falls back to creating one.
+    upsert_generation_item(
         client_id=client.get("id"),
         client_name=client.get("name"),
         target_query=target_query,
@@ -10430,8 +10508,6 @@ def save_generated_brief(client_id):
         title=title,
         content=brief_text,
         status="brief_generated",
-        priority="medium",
-        source="manual",
         user_id=current_user.id,
     )
     flash("Brief saved to content queue.")
@@ -10450,7 +10526,10 @@ def save_generated_draft(client_id):
     draft_text = request.form.get("draft_text", "").strip()
     title = f"Draft: {target_query}" if target_query else "Content Draft"
 
-    add_queue_item(
+    # Same upsert pattern as save_generated_brief — the auto-persist
+    # on draft generation (audit #5) already created the item, this
+    # route now updates it with edited content from the textarea.
+    upsert_generation_item(
         client_id=client.get("id"),
         client_name=client.get("name"),
         target_query=target_query,
@@ -10459,8 +10538,6 @@ def save_generated_draft(client_id):
         title=title,
         content=draft_text,
         status="draft_generated",
-        priority="medium",
-        source="manual",
         user_id=current_user.id,
     )
 
