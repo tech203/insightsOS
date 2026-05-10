@@ -1745,6 +1745,24 @@ html[data-theme="light"] .aeo-addon-panel {
     border: 1px solid var(--border);
 }
 
+/* Section eyebrow ("PLANNED PRICING", "WHAT YOU GET", etc.) is
+   pale lavender by default for the dark canvas — fails contrast
+   on white. Re-anchor to brand purple at full saturation. */
+html[data-theme="light"] .aeo-section-kicker {
+    color: #6d4aff;
+}
+
+/* Pricing note text was #E5D9F6 (designed for dark mode) and
+   carries through unchanged — barely visible on the soft purple
+   wash in light mode. Anchor to navy body copy + darker purple
+   for the "Early access note:" lead-in. */
+html[data-theme="light"] .aeo-pricing-note {
+    color: var(--text-main);
+}
+html[data-theme="light"] .aeo-pricing-note strong {
+    color: #4c2fc0;
+}
+
 /* Insight card text was light grey-on-dark by default; flip to
    readable navy on white in light mode. */
 html[data-theme="light"] .aeo-insight-card,

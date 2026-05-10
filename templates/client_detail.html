@@ -353,6 +353,12 @@
                     {% elif action.recommended_action %}
                     <p><strong>Content move:</strong> {{ action.recommended_action }}</p>
                     {% endif %}
+
+                    <div class="finding-actions">
+                        <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=action.linked_query or action.title) }}" class="btn btn-primary btn-sm">
+                            Generate Brief
+                        </a>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -377,13 +383,22 @@
         </div>
 
         <div class="opportunity-list">
+            {% set is_paid = current_user.is_authenticated and current_user.plan != "free" %}
             {% if missing_rows %}
                 {% for row in missing_rows[:6] %}
+                {% if is_paid %}
+                <a class="opportunity-chip opportunity-chip-link" href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" title="Generate brief for this query">{{ row.query }}</a>
+                {% else %}
                 <div class="opportunity-chip">{{ row.query }}</div>
+                {% endif %}
                 {% endfor %}
             {% elif query_rows %}
                 {% for row in query_rows[:6] %}
+                {% if is_paid %}
+                <a class="opportunity-chip opportunity-chip-link" href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=row.query) }}" title="Generate brief for this query">{{ row.query }}</a>
+                {% else %}
                 <div class="opportunity-chip">{{ row.query }}</div>
+                {% endif %}
                 {% endfor %}
             {% else %}
                 <div class="opportunity-chip">How much does the service cost?</div>
@@ -393,20 +408,13 @@
             {% endif %}
         </div>
 
+        {% if not is_paid %}
         <div class="card-actions top-space">
-            {% if current_user.is_authenticated and current_user.plan != "free" %}
-            <a href="{{ url_for('generate_client_content_brief', client_id=client.id, target_query=first_missing_query if first_missing_query else '') }}" class="btn btn-primary">
-                Generate Brief
-            </a>
-            <a href="{{ url_for('generate_client_content_draft', client_id=client.id, target_query=first_missing_query if first_missing_query else '') }}" class="btn btn-secondary">
-                Generate Draft
-            </a>
-            {% else %}
             <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
                 Unlock AI Generation
             </a>
-            {% endif %}
         </div>
+        {% endif %}
     </section>
 
     <section class="workspace-section-card">

@@ -10948,8 +10948,30 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     transform: scaleX(1);
 }
 
+/* At-rest affordance: a subtle ↗ in the top-right signals the card
+   is a link without forcing the user to hover to discover it. The
+   arrow brightens and nudges on hover. */
+.workspace-module-card::after {
+    content: "↗";
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: 0.55;
+    transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.workspace-module-card:hover::after {
+    opacity: 1;
+    color: var(--brand-primary);
+    transform: translate(2px, -2px);
+}
+
 .workspace-module-card strong {
     display: block;
+    padding-right: 24px;
     color: var(--text-strong);
     font-size: 16px;
     font-weight: 700;
@@ -11592,7 +11614,7 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .premium-queue-item-card {
-    padding: 22px;
+    padding: 16px 18px;
     background: #fbfcfe;
 }
 
@@ -11606,7 +11628,7 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     justify-content: space-between;
     gap: 16px;
     align-items: start;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .queue-item-badges {
@@ -11683,61 +11705,67 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .queue-item-main h3 {
     margin: 0;
     color: #16243c;
-    font-size: 22px;
+    font-size: 17px;
     line-height: 1.3;
 }
 
 .query-line {
-    margin: 12px 0 0;
+    margin: 6px 0 0;
     color: #445366;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .queue-item-copy {
-    margin: 12px 0 0;
+    margin: 6px 0 0;
     color: #627084;
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 13px;
+    line-height: 1.55;
     max-width: 900px;
 }
 
 .queue-item-middle {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-top: 10px;
+    padding: 8px 0 0;
+    border-top: 1px solid #eef1f6;
 }
 
 .meta-block {
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .meta-block span {
-    display: block;
+    display: inline;
     color: #6b7280;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 .meta-block strong {
-    display: block;
-    margin-top: 8px;
+    display: inline;
+    margin: 0;
     color: #16243c;
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
 }
 
 .meta-note {
-    margin: 8px 0 0;
+    margin: 0 0 0 6px;
     color: #627084;
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .queue-item-actions,
@@ -11745,8 +11773,8 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .queue-upgrade-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 18px;
+    gap: 8px;
+    margin-top: 12px;
     align-items: center;
 }
 
@@ -16650,11 +16678,11 @@ a.btn {
 
 .premium-queue-item-card {
     border: 1px solid #e7ebf3;
-    border-radius: 20px;
+    border-radius: 16px;
     background: #ffffff;
-    padding: 18px;
+    padding: 14px 16px;
     display: grid;
-    gap: 14px;
+    gap: 8px;
     box-shadow: none;
 }
 
@@ -16741,64 +16769,85 @@ a.btn {
 
 .queue-item-main h3 {
     margin: 0;
-    font-size: 1.15rem;
-    line-height: 1.35;
+    font-size: 17px;
+    line-height: 1.3;
     color: #16243c;
 }
 
 .query-line {
-    margin: 10px 0 0;
+    margin: 4px 0 0;
     color: #334155;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .queue-item-copy {
-    margin: 10px 0 0;
+    margin: 4px 0 0;
     color: #627084;
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 13px;
+    line-height: 1.55;
 }
 
 .queue-item-middle {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    padding-top: 8px;
+    border-top: 1px solid #eef1f6;
 }
 
 .meta-block {
-    padding: 14px;
-    border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .meta-block span {
-    display: block;
-    font-size: 12px;
+    display: inline;
+    font-size: 11px;
     color: #7b8798;
-    margin-bottom: 6px;
-    font-weight: 700;
+    margin: 0;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .meta-block strong {
-    display: block;
-    font-size: 14px;
-    line-height: 1.45;
+    display: inline;
+    font-size: 13px;
+    line-height: 1.4;
     color: #16243c;
+    font-weight: 700;
 }
 
 .meta-note {
-    margin: 6px 0 0;
+    margin: 0 0 0 6px;
     color: #627084;
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 .queue-item-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
+}
+
+/* Action buttons inside the queue card don't need to span the
+   row at desktop widths — let them size to their label so three
+   actions pack on one line instead of stacking full-width. */
+.queue-item-actions .btn,
+.queue-item-actions .btn-primary,
+.queue-item-actions .btn-secondary {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 13px;
 }
 
 .queue-item-status-form {
@@ -20354,6 +20403,110 @@ html[data-theme="dark"] .workspace-row-card:hover {
 }
 
 /* =========================================================
+   Secondary buttons — dark surface + brand-gradient border
+   =========================================================
+   .btn-secondary is hardcoded white with !important at line
+   ~5867. In dark mode it stands out as a bright slab against
+   the dark canvas. Flip to a dark surface and paint the
+   border with the mint→purple brand gradient using the
+   padding-box / border-box layered-background trick so the
+   gradient survives border-radius. */
+html[data-theme="dark"] .btn-secondary {
+    background:
+        linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box,
+        var(--gradient-brand) border-box !important;
+    border: 1px solid transparent !important;
+    color: var(--theme-text-primary) !important;
+}
+html[data-theme="dark"] .btn-secondary:hover {
+    background:
+        linear-gradient(var(--theme-surface-alt), var(--theme-surface-alt)) padding-box,
+        var(--gradient-brand) border-box !important;
+}
+
+/* =========================================================
+   Per-row CTAs in Content Opportunities findings
+   =========================================================
+   Push the new "Generate Brief" pill so it doesn't crowd
+   the description text. */
+.finding-actions {
+    margin-top: 12px;
+}
+
+/* =========================================================
+   Question-opportunity chips — clickable variant
+   =========================================================
+   When the chip is a link (paid users), give it the same
+   hover affordance as the workspace module cards: subtle
+   lift + brand-coloured border so the user knows the chip
+   itself triggers brief generation. */
+.opportunity-chip-link {
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.opportunity-chip-link:hover {
+    transform: translateY(-1px);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+html[data-theme="dark"] .opportunity-chip-link:hover {
+    color: var(--brand-primary);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* =========================================================
+   Brief Generator hero strip — dark-mode flip
+   =========================================================
+   .brief-generator-top-strip and .brief-generator-top-card
+   render as bright white slabs in dark mode (line ~12603
+   hardcodes #ffffff and a peach gradient). The headings,
+   "Recommended flow" label, and Query → Brief → Draft value
+   all carry hardcoded light-mode colours that go invisible
+   on the dark canvas. Re-anchor the surfaces and text. */
+html[data-theme="dark"] .brief-generator-top-strip {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .brief-generator-top-card {
+    background: linear-gradient(180deg, var(--theme-surface-alt) 0%, var(--theme-surface) 100%);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .brief-generator-top-copy h2 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .brief-generator-top-copy p,
+html[data-theme="dark"] .hero-card-text {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .hero-card-label {
+    color: var(--theme-text-muted);
+}
+html[data-theme="dark"] .hero-card-value {
+    color: var(--brand-primary);
+}
+
+/* =========================================================
+   Compacted queue-card meta strip — keep transparent in dark
+   =========================================================
+   The earlier dark-mode pass repaints .meta-block with a
+   --theme-surface background (it was a tile then). Now that
+   the strip is inline metadata, force it back to transparent
+   so the values read as part of the card, not as nested
+   surface chips. */
+html[data-theme="dark"] .premium-queue-item-card .meta-block {
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+html[data-theme="dark"] .premium-queue-item-card .queue-item-middle {
+    border-top-color: var(--theme-border-subtle);
+}
+
+/* =========================================================
    Topbar pill (Dev Controls) — dark-mode flip
    =========================================================
    .topbar-link-pill hardcodes background:#ffffff with
@@ -20426,13 +20579,13 @@ html[data-theme="dark"] .workspace-inline-stat span {
 /* =========================================================
    Mobile shell — dark-mode flip
    =========================================================
-   .mobile-topbar (rgba(255,255,255,0.96)) and the mobile-menu
-   button hardcoded white. .app-sidebar drawer also stayed
-   white at narrow widths because the mobile @media rules
-   override the dark-mode flip we set for desktop. Re-apply
-   dark surface routing for the mobile drawer + sticky topbar
-   so the experience stays dark across breakpoints. */
-
+   .mobile-topbar (rgba(255,255,255,0.96)) and .mobile-menu-btn
+   (#ffffff) are visible only at < 1200px and have no dark
+   override on the desktop pass. The .app-sidebar slide-out
+   drawer also stays white at narrow widths because the
+   mobile @media rules outweigh the desktop dark flip.
+   Re-apply dark surface routing for all of them so dark mode
+   stays consistent across breakpoints. */
 html[data-theme="dark"] .mobile-topbar {
     background: rgba(13, 21, 35, 0.92);
     border-bottom-color: var(--theme-border-subtle);
@@ -20447,13 +20600,15 @@ html[data-theme="dark"] .mobile-menu-btn:hover {
     background: var(--theme-surface-subtle);
     border-color: var(--brand-primary);
 }
+html[data-theme="dark"] .mobile-menu-btn span {
+    background: var(--theme-text-primary);
+}
 
 /* Mobile sidebar drawer — when .app-sidebar slides in at
-   narrow widths it inherits the dark surface, but some
-   nested children (overlay, scrim) had their own white fills
-   that need explicit overrides. */
-html[data-theme="dark"] .app-sidebar.open,
-html[data-theme="dark"] .sidebar-overlay {
+   narrow widths it inherits the dark surface, but the inner
+   wrapper and overlay scrim had their own white fills that
+   need explicit overrides. */
+html[data-theme="dark"] .app-sidebar.open {
     background: var(--theme-surface);
 }
 html[data-theme="dark"] .sidebar-overlay {
