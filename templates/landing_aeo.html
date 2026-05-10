@@ -1697,9 +1697,34 @@ html[data-theme="light"] .aeo-stat-card,
 html[data-theme="light"] .aeo-takeaway,
 html[data-theme="light"] .aeo-side-card,
 html[data-theme="light"] .aeo-pricing-card,
-html[data-theme="light"] .aeo-addon-card {
-    background: var(--panel);
+html[data-theme="light"] .aeo-addon-card,
+html[data-theme="light"] .aeo-insight-card,
+html[data-theme="light"] .aeo-credit-card,
+html[data-theme="light"] .aeo-cta-panel,
+html[data-theme="light"] .aeo-pricing-note,
+html[data-theme="light"] .aeo-addon-panel {
+    background: var(--bg-soft);
     border: 1px solid var(--border);
+}
+
+/* Insight card text was light grey-on-dark by default; flip to
+   readable navy on white in light mode. */
+html[data-theme="light"] .aeo-insight-card,
+html[data-theme="light"] .aeo-insight-text {
+    color: var(--text-main);
+}
+html[data-theme="light"] .aeo-insight-title {
+    color: var(--text-main);
+}
+
+/* The "Example takeaway" lavender wash was hardcoded
+   rgba(129, 140, 248, 0.10) — slate-blue tint that read as a
+   lone purple block in light mode. Replace with the same brand-
+   tinted wash the rest of the page uses. */
+html[data-theme="light"] .aeo-highlight {
+    background: linear-gradient(180deg, rgba(62, 223, 203, 0.06) 0%, rgba(157, 124, 227, 0.04) 100%);
+    border-color: rgba(62, 223, 203, 0.22);
+    color: var(--text-main);
 }
 
 html[data-theme="light"] .aeo-section + .aeo-section,
@@ -1713,6 +1738,42 @@ html[data-theme="light"] .aeo-section + .aeo-strip {
 html[data-theme="light"] .aeo-badge {
     background: rgba(16, 185, 129, 0.12);
     color: #047857;
+}
+
+/* =========================================================
+   Dark-mode card consistency
+   =========================================================
+   Roll the original .aeo-feature-card frosted-glass treatment
+   (hairline white border, low-alpha gradient fill, soft drop +
+   inset highlight) out to every other card class so the page
+   reads as one product instead of "scorecard looks great, lower
+   sections look like a different site". Only fires under
+   data-theme="dark" so light mode's clean white treatment isn't
+   touched. */
+html[data-theme="dark"] .aeo-pricing-card,
+html[data-theme="dark"] .aeo-credit-card,
+html[data-theme="dark"] .aeo-side-card,
+html[data-theme="dark"] .aeo-stat-card,
+html[data-theme="dark"] .aeo-takeaway,
+html[data-theme="dark"] .aeo-addon-card,
+html[data-theme="dark"] .aeo-insight-card,
+html[data-theme="dark"] .aeo-cta-panel,
+html[data-theme="dark"] .aeo-pricing-note,
+html[data-theme="dark"] .aeo-addon-panel {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Featured pricing card stays slightly brighter so it reads as
+   recommended at rest. */
+html[data-theme="dark"] .aeo-pricing-card.featured {
+    border-color: rgba(62, 223, 203, 0.32);
+    background:
+        linear-gradient(180deg, rgba(62, 223, 203, 0.06) 0%, rgba(157, 124, 227, 0.04) 100%);
 }
 
 /* =========================================================
