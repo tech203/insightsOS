@@ -377,6 +377,43 @@ class UserModule(db.Model):
     )
 
 
+class InterestSignup(db.Model):
+    """Landing-page interest list signups.
+
+    Backs the simple CRM at /admin/interest. Admins can update the
+    status, add notes, and tag entries as they work the list.
+
+    Status lifecycle:
+      new        — fresh signup, not yet contacted
+      contacted  — admin sent the first reachout
+      replied    — prospect responded
+      converted  — became a paying customer / scheduled call
+      declined   — uninterested or unqualified
+      unsubscribed — opted out of further contact
+    """
+    __tablename__ = "interest_signups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    company = db.Column(db.String(255), nullable=True)
+    use_case = db.Column(db.String(120), nullable=True)
+    status = db.Column(db.String(30), default="new", nullable=False, index=True)
+    notes = db.Column(db.Text, nullable=True)
+    tags = db.Column(db.JSON, nullable=True)
+    source = db.Column(db.String(80), default="landing", nullable=True)
+    utm_source = db.Column(db.String(120), nullable=True)
+    utm_medium = db.Column(db.String(120), nullable=True)
+    utm_campaign = db.Column(db.String(120), nullable=True)
+    referrer = db.Column(db.String(500), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    last_contacted_at = db.Column(db.DateTime, nullable=True)
+    converted_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
 class Client(db.Model):
     __tablename__ = "clients"
 
@@ -4882,31 +4919,284 @@ def view_queue_brief(item_id):
     )
 
 
+def _migrate_csv_interest_to_db():
+    """One-shot migration: read data/interest_waitlist.csv (if it exists)
+    and copy any rows that aren't yet in the DB. Idempotent — keyed on
+    email + created_at — so it's safe to call repeatedly during the
+    transition. Renames the CSV to .migrated when done so we don't
+    re-process it."""
+    file_path = "data/interest_waitlist.csv"
+    if not os.path.exists(file_path):
+        return
+    try:
+        existing_emails = {
+            (s.email or "").lower()
+            for s in InterestSignup.query.with_entities(InterestSignup.email).all()
+        }
+        with open(file_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                email = (row.get("email") or "").strip().lower()
+                if not email or email in existing_emails:
+                    continue
+                created_at = None
+                try:
+                    created_at = datetime.fromisoformat(row.get("created_at") or "")
+                except Exception:
+                    created_at = datetime.utcnow()
+                signup = InterestSignup(
+                    email=email,
+                    company=(row.get("company") or "").strip() or None,
+                    use_case=(row.get("use_case") or "").strip() or None,
+                    status="new",
+                    source="landing-csv-import",
+                    created_at=created_at or datetime.utcnow(),
+                )
+                db.session.add(signup)
+                existing_emails.add(email)
+            db.session.commit()
+        os.rename(file_path, file_path + ".migrated")
+    except Exception as exc:
+        logger.warning("CSV → DB interest migration failed: %s", exc)
+        db.session.rollback()
+
+
 @app.route("/interest", methods=["POST"])
 def collect_interest():
-    email = request.form.get("email", "").strip().lower()
-    company = request.form.get("company", "").strip()
-    use_case = request.form.get("use_case", "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    company = (request.form.get("company") or "").strip()
+    use_case = (request.form.get("use_case") or "").strip()
 
     if not email:
         return redirect("/?interest=missing#early-access")
 
-    os.makedirs("data", exist_ok=True)
+    # Pull any pre-existing CSV waitlist into the DB on first call.
+    _migrate_csv_interest_to_db()
 
-    file_path = "data/interest_waitlist.csv"
-    file_exists = os.path.exists(file_path)
+    # Capture marketing attribution + referrer for the CRM, falling
+    # back to the request when no UTM params are present.
+    utm_source = (request.values.get("utm_source") or "").strip()[:120] or None
+    utm_medium = (request.values.get("utm_medium") or "").strip()[:120] or None
+    utm_campaign = (request.values.get("utm_campaign") or "").strip()[:120] or None
+    referrer = (request.referrer or "")[:500] or None
+    user_agent = (request.headers.get("User-Agent") or "")[:500] or None
 
-    with open(file_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-
-        if not file_exists:
-            writer.writerow(["created_at", "email", "company", "use_case"])
-
-        writer.writerow(
-            [datetime.utcnow().isoformat(), email, company, use_case]
-        )
+    # Re-signup: update the existing row (don't duplicate) but bump
+    # updated_at so the admin sees the latest activity. Status stays
+    # "new" only if it was new before; otherwise leave it as-is so
+    # the admin's prior triage isn't reverted.
+    existing = (
+        InterestSignup.query
+        .filter(db.func.lower(InterestSignup.email) == email)
+        .first()
+    )
+    if existing:
+        existing.company = company or existing.company
+        existing.use_case = use_case or existing.use_case
+        existing.utm_source = utm_source or existing.utm_source
+        existing.utm_medium = utm_medium or existing.utm_medium
+        existing.utm_campaign = utm_campaign or existing.utm_campaign
+        existing.referrer = referrer or existing.referrer
+        existing.user_agent = user_agent or existing.user_agent
+        # No status change — admin's existing triage wins.
+    else:
+        db.session.add(InterestSignup(
+            email=email,
+            company=company or None,
+            use_case=use_case or None,
+            source="landing",
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            referrer=referrer,
+            user_agent=user_agent,
+        ))
+    db.session.commit()
 
     return redirect("/?interest=success#early-access")
+
+
+# ---------------------------------------------------------------------------
+# Interest CRM
+# ---------------------------------------------------------------------------
+# Simple admin-only CRM for the landing-page interest list.
+#
+# Surfaces:
+#   GET  /admin/interest                    list + filters + stats
+#   POST /admin/interest/<id>/status        update status
+#   POST /admin/interest/<id>/notes         save notes / tags
+#   POST /admin/interest/<id>/delete        soft delete (status=removed)
+#   GET  /admin/interest/export.csv         export filtered list
+#
+# Access control: User.role == "admin". Anyone else gets 403.
+
+INTEREST_STATUSES = [
+    ("new", "New"),
+    ("contacted", "Contacted"),
+    ("replied", "Replied"),
+    ("converted", "Converted"),
+    ("declined", "Declined"),
+    ("unsubscribed", "Unsubscribed"),
+]
+
+
+def _require_admin():
+    """Returns None when the request should proceed, or a (response,
+    status) tuple to short-circuit."""
+    if not current_user.is_authenticated:
+        return redirect(url_for("login", next=request.path)), 302
+    if (current_user.role or "user").lower() != "admin":
+        abort(403)
+    return None
+
+
+@app.route("/admin/interest", methods=["GET"])
+@login_required
+def admin_interest_list():
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    # Pull any legacy CSV rows into the DB before listing.
+    _migrate_csv_interest_to_db()
+
+    q = (request.args.get("q") or "").strip().lower()
+    status_filter = (request.args.get("status") or "").strip().lower()
+
+    rows = InterestSignup.query
+    if q:
+        like = f"%{q}%"
+        rows = rows.filter(
+            db.or_(
+                InterestSignup.email.ilike(like),
+                InterestSignup.company.ilike(like),
+                InterestSignup.notes.ilike(like),
+            )
+        )
+    if status_filter and status_filter in dict(INTEREST_STATUSES):
+        rows = rows.filter(InterestSignup.status == status_filter)
+    rows = rows.order_by(InterestSignup.created_at.desc()).all()
+
+    # Aggregates for the stats strip.
+    all_signups = InterestSignup.query.all()
+    total = len(all_signups)
+    by_status = {key: 0 for key, _ in INTEREST_STATUSES}
+    for s in all_signups:
+        if s.status in by_status:
+            by_status[s.status] += 1
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    new_this_week = sum(1 for s in all_signups if s.created_at and s.created_at >= week_ago)
+    use_case_counts: Dict[str, int] = {}
+    for s in all_signups:
+        key = (s.use_case or "Unspecified").strip() or "Unspecified"
+        use_case_counts[key] = use_case_counts.get(key, 0) + 1
+
+    return render_template(
+        "admin/interest_list.html",
+        rows=rows,
+        total=total,
+        by_status=by_status,
+        new_this_week=new_this_week,
+        use_case_counts=use_case_counts,
+        statuses=INTEREST_STATUSES,
+        active_status=status_filter,
+        active_query=request.args.get("q") or "",
+    )
+
+
+@app.route("/admin/interest/<int:signup_id>/status", methods=["POST"])
+@login_required
+def admin_interest_update_status(signup_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    signup = db.session.get(InterestSignup, signup_id)
+    if not signup:
+        abort(404)
+    new_status = (request.form.get("status") or "").strip().lower()
+    if new_status not in dict(INTEREST_STATUSES):
+        flash(f"Unknown status: {new_status}", "error")
+        return redirect(url_for("admin_interest_list"))
+    signup.status = new_status
+    if new_status == "contacted" and not signup.last_contacted_at:
+        signup.last_contacted_at = datetime.utcnow()
+    if new_status == "converted" and not signup.converted_at:
+        signup.converted_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Status updated to {new_status}.", "success")
+    return redirect(url_for("admin_interest_list", **request.args.to_dict()))
+
+
+@app.route("/admin/interest/<int:signup_id>/notes", methods=["POST"])
+@login_required
+def admin_interest_update_notes(signup_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    signup = db.session.get(InterestSignup, signup_id)
+    if not signup:
+        abort(404)
+    signup.notes = (request.form.get("notes") or "").strip() or None
+    tags_raw = (request.form.get("tags") or "").strip()
+    if tags_raw:
+        signup.tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
+    else:
+        signup.tags = None
+    db.session.commit()
+    flash("Notes saved.", "success")
+    return redirect(url_for("admin_interest_list", **request.args.to_dict()))
+
+
+@app.route("/admin/interest/<int:signup_id>/delete", methods=["POST"])
+@login_required
+def admin_interest_delete(signup_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    signup = db.session.get(InterestSignup, signup_id)
+    if signup:
+        db.session.delete(signup)
+        db.session.commit()
+        flash("Signup removed.", "success")
+    return redirect(url_for("admin_interest_list", **request.args.to_dict()))
+
+
+@app.route("/admin/interest/export.csv", methods=["GET"])
+@login_required
+def admin_interest_export():
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    rows = InterestSignup.query.order_by(InterestSignup.created_at.desc()).all()
+
+    import io as _io
+    buf = _io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "id", "email", "company", "use_case", "status", "notes", "tags",
+        "source", "utm_source", "utm_medium", "utm_campaign", "referrer",
+        "last_contacted_at", "converted_at", "created_at", "updated_at",
+    ])
+    for r in rows:
+        writer.writerow([
+            r.id, r.email, r.company or "", r.use_case or "", r.status,
+            (r.notes or "").replace("\n", " "),
+            ",".join(r.tags or []),
+            r.source or "", r.utm_source or "", r.utm_medium or "",
+            r.utm_campaign or "", r.referrer or "",
+            r.last_contacted_at.isoformat() if r.last_contacted_at else "",
+            r.converted_at.isoformat() if r.converted_at else "",
+            r.created_at.isoformat() if r.created_at else "",
+            r.updated_at.isoformat() if r.updated_at else "",
+        ])
+
+    response = make_response(buf.getvalue())
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="interest-signups-{datetime.utcnow().strftime("%Y%m%d")}.csv"'
+    )
+    return response
 
 
 @app.route("/client/<client_id>/query-ideas")
