@@ -19909,3 +19909,51 @@ html[data-theme="dark"] .sidebar-logout-btn:hover {
     background: var(--theme-surface-subtle);
     border-color: var(--brand-primary);
 }
+
+/* =========================================================
+   Sidebar brand — make room for the toggle pair
+   =========================================================
+   .sidebar-rail-toggle (top:14 right:14) and .sidebar-theme-
+   toggle (top:14 right:56) absolute-position into the same
+   top band as the brand mark in the narrow ~92px sidebar.
+   They overlap. Push the brand down one toggle-height +
+   breathing room so the pair sits cleanly above. */
+.sidebar-brand {
+    padding-top: 52px;
+}
+@media (max-width: 1199px) {
+    /* Mobile sidebar is the slide-out drawer; reset. */
+    .sidebar-brand { padding-top: 0; }
+}
+
+/* =========================================================
+   Dashboard priority kickers — readable in dark mode
+   =========================================================
+   .dashboard-priority-kicker uses color: #5d3fbe on a 14%
+   purple wash. In dark mode that's deep-purple-on-deep-
+   purple — barely legible. Brighten the text, soften the
+   wash. */
+html[data-theme="dark"] .dashboard-priority-kicker {
+    background: rgba(157, 124, 227, 0.18);
+    color: #C9B7F7;
+}
+
+/* =========================================================
+   Landing-page footer — fix "Powered by" contrast
+   =========================================================
+   .aeo-footer is hardcoded dark navy regardless of theme,
+   but .aeo-footer-powered uses var(--text-soft) which in
+   light mode is dark grey — invisible on the dark footer.
+   Anchor footer text colours to light-on-dark explicitly. */
+.aeo-footer-powered {
+    color: rgba(229, 235, 247, 0.78);
+}
+.aeo-footer p,
+html[data-theme="light"] .aeo-footer p,
+html[data-theme="light"] .aeo-footer-powered {
+    color: rgba(229, 235, 247, 0.78);
+}
+.aeo-footer-brand,
+html[data-theme="light"] .aeo-footer-brand {
+    color: #ffffff;
+}
