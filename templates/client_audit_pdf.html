@@ -930,6 +930,161 @@
             page-break-before: always;
         }
 
+        /* ----------------------------------------------------------
+           Variation kit — magazine-style eyebrows, score bars, pull
+           quote, priority pills, dividers. Each unlocks a different
+           layout per section so the report doesn't read as repeating
+           white cards. ---------------------------------------------- */
+
+        /* Numbered section header — replaces the bare h2 with a
+           kicker + number on the first line, the heading on the
+           second. Each section_no rotates accent color. */
+        .section-head {
+            display: block;
+            margin: 0 0 12px;
+        }
+        .section-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .section-eyebrow .num {
+            display: inline-block;
+            min-width: 22px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: var(--brand-soft);
+            color: var(--brand-deep);
+            font-size: 9px;
+            font-weight: 800;
+            text-align: center;
+        }
+        .section-eyebrow .label {
+            color: var(--brand-deep);
+        }
+        /* Cycle accent: aqua → purple → amber → aqua → purple → amber. */
+        .section-eyebrow.tone-aqua .num   { background: var(--brand-soft); color: var(--brand-deep); }
+        .section-eyebrow.tone-aqua .label { color: var(--brand-deep); }
+        .section-eyebrow.tone-purple .num   { background: var(--accent-soft); color: var(--accent-deep); }
+        .section-eyebrow.tone-purple .label { color: var(--accent-deep); }
+        .section-eyebrow.tone-amber .num   { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+        .section-eyebrow.tone-amber .label { color: #b45309; }
+
+        .section-h {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        /* Pull quote — magazine treatment for the executive summary's
+           lead paragraph. Big italic, brand-gradient accent bar. */
+        .pull-quote {
+            position: relative;
+            padding: 8px 0 8px 18px;
+            margin: 0 0 12px;
+            font-size: 14.5px;
+            line-height: 1.55;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--text-strong);
+            border-left: 4px solid transparent;
+            background:
+                linear-gradient(white, white) padding-box,
+                var(--gradient-brand) border-box;
+        }
+
+        /* Score-bar tile: replaces the bare metric-card number with
+           the value + a horizontal fill showing it relative to 100. */
+        .metric-tile {
+            border: 1px solid var(--line);
+            background: var(--panel-strong);
+            border-radius: 12px;
+            padding: 10px 12px 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-tile-label {
+            display: block;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+        }
+        .metric-tile-value {
+            display: block;
+            margin-top: 4px;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-strong);
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+        .metric-bar-track {
+            margin-top: 8px;
+            height: 6px;
+            border-radius: 999px;
+            background: var(--line);
+            overflow: hidden;
+        }
+        .metric-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: var(--gradient-brand);
+        }
+        .metric-tile.tone-warm .metric-bar-fill {
+            background: linear-gradient(90deg, #f59e0b 0%, #fb923c 100%);
+        }
+        .metric-tile.tone-purple .metric-bar-fill {
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+        }
+
+        /* Priority pill on the recommendation list — visually flags
+           the urgency at a glance instead of every action looking
+           identical. */
+        .priority-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 8.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .priority-high   { background: var(--danger-soft); color: var(--danger); }
+        .priority-medium { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+        .priority-low    { background: var(--brand-soft); color: var(--brand-ink); }
+
+        /* Section divider — a slim brand-gradient hairline that
+           punctuates between major content blocks. */
+        .section-divider {
+            position: relative;
+            height: 1px;
+            margin: 22px 0 18px;
+            background: linear-gradient(90deg, transparent 0%, var(--line) 30%, var(--line) 70%, transparent 100%);
+        }
+        .section-divider::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: -2px;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 5px;
+            border-radius: 3px;
+            background: var(--gradient-brand);
+        }
+
         /* Body padding restored after the full-bleed cover.
            Cover page extends to A4 edge; subsequent pages get the
            normal 16mm side padding through @page rules above. */
@@ -989,14 +1144,21 @@
             <div class="audit-title-date">{{ report_date }}</div>
         </div>
 
-        {# Executive summary (Tavily-derived when present, fallback otherwise). #}
+        {# Executive summary — magazine pull-quote for the lead, then
+           supporting paragraphs. Section eyebrow uses aqua tone. #}
         <div class="section">
-            <h2 class="section-title">Executive Summary</h2>
+            <div class="section-head">
+                <div class="section-eyebrow tone-aqua">
+                    <span class="num">01</span>
+                    <span class="label">Overview</span>
+                </div>
+                <h2 class="section-h">Executive Summary</h2>
+            </div>
             <div class="exec-summary">
                 {% if executive_summary %}
-                    <p>{{ executive_summary }}</p>
+                    <div class="pull-quote">{{ executive_summary }}</div>
                 {% else %}
-                    <p>This audit evaluates {{ client.name }}'s current visibility across AI search platforms including ChatGPT, Perplexity, and Google AI Overview. As more consumers use AI assistants to find products and services, businesses that appear in AI-generated answers gain a significant competitive advantage.</p>
+                    <div class="pull-quote">This audit evaluates {{ client.name }}'s current visibility across AI search platforms including ChatGPT, Perplexity, and Google AI Overview. As more consumers use AI assistants to find products and services, businesses that appear in AI-generated answers gain a significant competitive advantage.</div>
                 {% endif %}
 
                 {% set norm_score = latest.normalized_score if latest and latest.normalized_score is defined else 0 %}
@@ -1028,7 +1190,13 @@
 
         {# Business profile table. #}
         <div class="section">
-            <h2 class="section-title">Business Profile</h2>
+            <div class="section-head">
+                <div class="section-eyebrow tone-purple">
+                    <span class="num">02</span>
+                    <span class="label">Profile</span>
+                </div>
+                <h2 class="section-h">Business Profile</h2>
+            </div>
             <table class="profile-table">
                 <tr><th>Company</th><td>{{ client.name if client and client.name else "—" }}</td></tr>
                 <tr><th>Website</th><td>{{ client.website if client and client.website else "—" }}</td></tr>
@@ -1054,8 +1222,15 @@
 
         {# AI citation test results — caps at 5 queries. #}
         {% if citation_rows %}
+        <div class="section-divider"></div>
         <div class="section">
-            <h2 class="section-title">AI Citation Test Results</h2>
+            <div class="section-head">
+                <div class="section-eyebrow tone-amber">
+                    <span class="num">03</span>
+                    <span class="label">Visibility Test</span>
+                </div>
+                <h2 class="section-h">AI Citation Test Results</h2>
+            </div>
             <p class="section-lede">We tested common queries across major AI platforms to assess visibility:</p>
             <table class="citation-table">
                 <thead>
@@ -1129,41 +1304,51 @@
             </div>
         </div>
 
+        <div class="section-divider"></div>
         <div class="section">
-            <h2 class="section-title">Score Snapshot</h2>
-            {# Show "—" with a "Not yet measured" note instead of "0.0"
-               when the audit didn't populate a sub-score. A 0/100 reads
-               as broken; "—" reads as "we haven't run that test yet". #}
+            <div class="section-head">
+                <div class="section-eyebrow tone-aqua">
+                    <span class="num">04</span>
+                    <span class="label">Score Breakdown</span>
+                </div>
+                <h2 class="section-h">Score Snapshot</h2>
+            </div>
+            {# Each tile uses metric-tile (with bar fill) instead of bare
+               metric-card. Bar widths normalised so 0-100 scores fill
+               directly; sub-scores on the 0-10 scale are scaled ×10. #}
             {% set _vis = latest.visibility_score if latest and latest.visibility_score is defined else None %}
             {% set _cont = latest.content_score if latest and latest.content_score is defined else None %}
             {% set _sch = latest.schema_score if latest and latest.schema_score is defined else None %}
+            {% set _vis_pct = (_vis if _vis is not none and _vis > 0 else 0) %}
+            {% set _cont_pct = ((_cont * 10) if _cont is not none and _cont > 0 else 0) %}
+            {% set _sch_pct = ((_sch * 10) if _sch is not none and _sch > 0 else 0) %}
             <div class="grid-4">
                 <div class="cell">
-                    <div class="metric-card">
-                        <div class="metric-label">Overall Score</div>
-                        <div class="metric-value">{{ norm_score }}</div>
-                        <div class="metric-copy">Combined AEO performance score.</div>
+                    <div class="metric-tile">
+                        <span class="metric-tile-label">Overall</span>
+                        <span class="metric-tile-value">{{ norm_score }}<span style="font-size:13px; color:var(--muted); font-weight:700;"> /100</span></span>
+                        <div class="metric-bar-track"><div class="metric-bar-fill" style="width: {{ norm_score }}%;"></div></div>
                     </div>
                 </div>
                 <div class="cell">
-                    <div class="metric-card">
-                        <div class="metric-label">Visibility</div>
-                        <div class="metric-value">{% if _vis is not none and _vis > 0 %}{{ _vis }}{% else %}—{% endif %}</div>
-                        <div class="metric-copy">{% if _vis is not none and _vis > 0 %}Presence across tracked AI answers.{% else %}No brand mentions detected — see citation results below.{% endif %}</div>
+                    <div class="metric-tile">
+                        <span class="metric-tile-label">Visibility</span>
+                        <span class="metric-tile-value">{% if _vis is not none and _vis > 0 %}{{ _vis }}<span style="font-size:13px; color:var(--muted); font-weight:700;"> /100</span>{% else %}—{% endif %}</span>
+                        <div class="metric-bar-track"><div class="metric-bar-fill" style="width: {{ _vis_pct }}%;"></div></div>
                     </div>
                 </div>
                 <div class="cell">
-                    <div class="metric-card">
-                        <div class="metric-label">Content</div>
-                        <div class="metric-value">{% if _cont is not none and _cont > 0 %}{{ _cont }}{% else %}—{% endif %}</div>
-                        <div class="metric-copy">{% if _cont is not none and _cont > 0 %}How well your content covers demand.{% else %}Not yet measured — re-run the site audit to populate.{% endif %}</div>
+                    <div class="metric-tile tone-purple">
+                        <span class="metric-tile-label">Content</span>
+                        <span class="metric-tile-value">{% if _cont is not none and _cont > 0 %}{{ _cont }}<span style="font-size:13px; color:var(--muted); font-weight:700;"> /10</span>{% else %}—{% endif %}</span>
+                        <div class="metric-bar-track"><div class="metric-bar-fill" style="width: {{ _cont_pct }}%;"></div></div>
                     </div>
                 </div>
                 <div class="cell">
-                    <div class="metric-card">
-                        <div class="metric-label">Schema</div>
-                        <div class="metric-value">{% if _sch is not none and _sch > 0 %}{{ _sch }}{% else %}—{% endif %}</div>
-                        <div class="metric-copy">{% if _sch is not none and _sch > 0 %}Structured data support for clarity.{% else %}No schema detected on the homepage — add Organization + Product markup.{% endif %}</div>
+                    <div class="metric-tile tone-warm">
+                        <span class="metric-tile-label">Schema</span>
+                        <span class="metric-tile-value">{% if _sch is not none and _sch > 0 %}{{ _sch }}<span style="font-size:13px; color:var(--muted); font-weight:700;"> /10</span>{% else %}—{% endif %}</span>
+                        <div class="metric-bar-track"><div class="metric-bar-fill" style="width: {{ _sch_pct }}%;"></div></div>
                     </div>
                 </div>
             </div>
@@ -1173,12 +1358,23 @@
            and only show one column (no more side-by-side filler-Findings
            panel that bulked the page out when the audit was thin). #}
         {% if recommended_actions %}
+        <div class="section-divider"></div>
         <div class="section">
-            <h2 class="section-title">Recommended Actions</h2>
+            <div class="section-head">
+                <div class="section-eyebrow tone-purple">
+                    <span class="num">05</span>
+                    <span class="label">Action Plan</span>
+                </div>
+                <h2 class="section-h">Recommended Actions</h2>
+            </div>
             <div class="panel">
                 {% for action in recommended_actions[:5] %}
                 <div class="recommendation">
-                    <div class="recommendation-title">{{ action.title if action.title else "Recommended action" }}</div>
+                    {% set _prio = (action.priority or 'medium')|lower %}
+                    <div class="recommendation-title">
+                        <span class="priority-pill {% if _prio == 'high' %}priority-high{% elif _prio == 'low' %}priority-low{% else %}priority-medium{% endif %}">{{ _prio }}</span>
+                        {{ action.title if action.title else "Recommended action" }}
+                    </div>
                     {% set _body = action.recommended_fix or action.description or action.summary or action.recommended_action %}
                     {% if _body %}
                     <div>{{ _body }}</div>
@@ -1206,7 +1402,13 @@
            the report on three pages. #}
         {% if top_competitors %}
         <div class="section">
-            <h2 class="section-title">Top Competitors (Web Research)</h2>
+            <div class="section-head">
+                <div class="section-eyebrow tone-amber">
+                    <span class="num">06</span>
+                    <span class="label">Competitive Field</span>
+                </div>
+                <h2 class="section-h">Top Competitors (Web Research)</h2>
+            </div>
             <p class="section-lede">Brands AI assistants cite alongside or ahead of you. Sourced via web search.</p>
             <div class="panel" style="padding: 8px 10px;">
                 <table style="width: 100%; border-collapse: collapse;">
