@@ -42,10 +42,10 @@
         <div class="audit-overview-hero-main">
             <div class="audit-overview-badge-row">
                 <span class="audit-overview-badge audit-overview-badge-primary">Audit Overview</span>
-                <span class="audit-overview-badge">{{ data.audit_type or "N/A" }}</span>
-                <span class="audit-overview-badge">{{ data.saved_at|pretty_datetime if data.saved_at else "N/A" }}</span>
+                <span class="audit-overview-badge surface-card">{{ data.audit_type or "N/A" }}</span>
+                <span class="audit-overview-badge surface-card">{{ data.saved_at|pretty_datetime if data.saved_at else "N/A" }}</span>
                 {% if data.client_name %}
-                <span class="audit-overview-badge">{{ data.client_name }}</span>
+                <span class="audit-overview-badge surface-card">{{ data.client_name }}</span>
                 {% endif %}
             </div>
 
@@ -77,7 +77,7 @@
         </div>
 
         <div class="audit-overview-hero-side">
-            <div class="overview-score-card">
+            <div class="overview-score-card surface-card">
                 <div class="overview-score-label">Overall Score</div>
                 <div class="overview-score-value">{{ normalized }}</div>
                 <div class="overview-score-meta">{{ opportunity }}</div>
@@ -207,7 +207,7 @@
                     </div>
                 </div>
 
-                <div class="next-step-card">
+                <div class="next-step-card surface-card">
                     <span class="next-step-label">Recommended priority</span>
                     <strong>
                         {% if presence_rate < 40 %}
@@ -290,7 +290,7 @@
                 </div>
             </div>
             {% else %}
-            <div class="empty-state-inline">
+            <div class="empty-state-inline surface-card">
                 <strong>No query-level answer results available yet</strong>
                 <p>This audit does not currently include AI answer snapshot data to show here.</p>
             </div>
@@ -306,22 +306,22 @@
             </div>
 
             <div class="interpret-grid">
-                <div class="interpret-card">
+                <div class="interpret-card surface-card">
                     <strong>Overall score</strong>
                     <p>The normalized score is the fastest way to understand whether the site is early-stage, moderately visible, or already operating from a strong foundation.</p>
                 </div>
 
-                <div class="interpret-card">
+                <div class="interpret-card surface-card">
                     <strong>Visibility</strong>
                     <p>This reflects answer presence and discoverability. A low score usually means the brand is not being surfaced often enough in relevant AI responses.</p>
                 </div>
 
-                <div class="interpret-card">
+                <div class="interpret-card surface-card">
                     <strong>Content</strong>
                     <p>This reflects whether the site has enough relevant coverage to support visibility. Low content often means missing questions, weak depth, or poor targeting.</p>
                 </div>
 
-                <div class="interpret-card">
+                <div class="interpret-card surface-card">
                     <strong>Schema</strong>
                     <p>This reflects how clearly the site communicates structured meaning to machines. Low schema can weaken trust and understanding.</p>
                 </div>
@@ -346,8 +346,8 @@
 .blocker-item,
 .next-step-card,
 .interpret-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -376,7 +376,7 @@
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
     box-shadow: none;
     color: #4a586c;
     font-size: 13px;
@@ -394,13 +394,13 @@
     font-size: 40px;
     line-height: 1.05;
     font-weight: 800;
-    color: #15233b;
+    color: var(--text-strong);
     word-break: break-word;
 }
 
 .audit-overview-subcopy {
     margin: 16px 0 0;
-    color: #617084;
+    color: var(--text-soft);
     font-size: 16px;
     line-height: 1.68;
     max-width: 760px;
@@ -409,14 +409,14 @@
 .audit-verdict-card {
     margin-top: 20px;
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
 }
 
 .verdict-label {
     display: block;
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
@@ -425,13 +425,13 @@
     font-size: 22px;
     line-height: 1.2;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
     margin-bottom: 8px;
 }
 
 .audit-verdict-card p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 15px;
     line-height: 1.6;
 }
@@ -445,7 +445,7 @@
 .overview-score-label {
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .overview-score-value {
@@ -458,7 +458,7 @@
 
 .overview-score-meta {
     margin-top: 10px;
-    color: #15233b;
+    color: var(--text-strong);
     font-size: 15px;
     font-weight: 700;
 }
@@ -480,7 +480,7 @@
 
 .overview-score-note {
     margin: 16px 0 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -493,7 +493,7 @@
 
 .signal-card {
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
 }
 
 .signal-card-accent {
@@ -505,7 +505,7 @@
     display: block;
     font-size: 13px;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
@@ -513,13 +513,13 @@
     display: block;
     font-size: 30px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .signal-note {
     margin-top: 8px;
     font-size: 13px;
-    color: #6b7280;
+    color: var(--text-muted);
     line-height: 1.55;
 }
 
@@ -551,12 +551,12 @@
     margin: 0 0 8px;
     font-size: 22px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .panel-subtitle {
     margin: 0;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 15px;
     line-height: 1.55;
 }
@@ -572,7 +572,7 @@
     grid-template-columns: 10px minmax(0, 1fr) auto;
     gap: 16px;
     align-items: start;
-    background: #fbfcfe;
+    background: var(--bg-soft-alt);
 }
 
 .blocker-severity {
@@ -587,14 +587,14 @@
 
 .blocker-copy strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     margin-bottom: 8px;
     font-size: 16px;
 }
 
 .blocker-copy p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -604,8 +604,8 @@
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
     color: #4a586c;
     font-size: 12px;
     font-weight: 800;
@@ -623,13 +623,13 @@
     display: block;
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
 .next-step-card strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     font-size: 22px;
     line-height: 1.2;
     margin-bottom: 10px;
@@ -637,7 +637,7 @@
 
 .next-step-card p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -676,26 +676,26 @@
 }
 
 .status-neutral {
-    background: #f8fafc;
-    color: #475569;
+    background: var(--bg-soft-alt);
+    color: var(--text-soft);
 }
 
 .empty-state-inline {
     padding: 18px;
     border-radius: 18px;
-    background: #fafcff;
+    background: var(--bg-soft-alt);
     border: 1px dashed #d6dde8;
 }
 
 .empty-state-inline strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     margin-bottom: 8px;
 }
 
 .empty-state-inline p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.55;
 }
@@ -708,19 +708,19 @@
 
 .interpret-card {
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
 }
 
 .interpret-card strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     margin-bottom: 8px;
     font-size: 15px;
 }
 
 .interpret-card p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -773,102 +773,6 @@
     }
 }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .audit-overview-badge,
-    html[data-theme="dark"] .audit-overview-hero,
-    html[data-theme="dark"] .audit-verdict-card,
-    html[data-theme="dark"] .blocker-item,
-    html[data-theme="dark"] .interpret-card,
-    html[data-theme="dark"] .next-step-card,
-    html[data-theme="dark"] .overview-score-card,
-    html[data-theme="dark"] .panel,
-    html[data-theme="dark"] .signal-card,
-    html[data-theme="dark"] .signal-card-accent {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .blocker-pill,
-    html[data-theme="dark"] .status-neutral {
-        background: var(--theme-surface-alt);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .audit-overview-hero-main,
-    html[data-theme="dark"] .blocker-copy,
-    html[data-theme="dark"] .empty-state-inline,
-    html[data-theme="dark"] .interpret-card,
-    html[data-theme="dark"] .next-step-card,
-    html[data-theme="dark"] .overview-score-meta,
-    html[data-theme="dark"] .panel-header,
-    html[data-theme="dark"] .signal-value,
-    html[data-theme="dark"] .verdict-title,
-    html[data-theme="dark"] .audit-overview-badge h1,
-    html[data-theme="dark"] .audit-overview-badge h2,
-    html[data-theme="dark"] .audit-overview-badge h3,
-    html[data-theme="dark"] .audit-overview-badge h4,
-    html[data-theme="dark"] .audit-overview-badge strong,
-    html[data-theme="dark"] .audit-overview-hero h1,
-    html[data-theme="dark"] .audit-overview-hero h2,
-    html[data-theme="dark"] .audit-overview-hero h3,
-    html[data-theme="dark"] .audit-overview-hero h4,
-    html[data-theme="dark"] .audit-overview-hero strong,
-    html[data-theme="dark"] .audit-verdict-card h1,
-    html[data-theme="dark"] .audit-verdict-card h2,
-    html[data-theme="dark"] .audit-verdict-card h3,
-    html[data-theme="dark"] .audit-verdict-card h4,
-    html[data-theme="dark"] .audit-verdict-card strong,
-    html[data-theme="dark"] .blocker-item h1,
-    html[data-theme="dark"] .blocker-item h2,
-    html[data-theme="dark"] .blocker-item h3,
-    html[data-theme="dark"] .blocker-item h4,
-    html[data-theme="dark"] .blocker-item strong,
-    html[data-theme="dark"] .interpret-card h1,
-    html[data-theme="dark"] .interpret-card h2,
-    html[data-theme="dark"] .interpret-card h3,
-    html[data-theme="dark"] .interpret-card h4,
-    html[data-theme="dark"] .interpret-card strong,
-    html[data-theme="dark"] .next-step-card h1,
-    html[data-theme="dark"] .next-step-card h2,
-    html[data-theme="dark"] .next-step-card h3,
-    html[data-theme="dark"] .next-step-card h4,
-    html[data-theme="dark"] .next-step-card strong,
-    html[data-theme="dark"] .overview-score-card h1,
-    html[data-theme="dark"] .overview-score-card h2,
-    html[data-theme="dark"] .overview-score-card h3,
-    html[data-theme="dark"] .overview-score-card h4,
-    html[data-theme="dark"] .overview-score-card strong,
-    html[data-theme="dark"] .panel h1,
-    html[data-theme="dark"] .panel h2,
-    html[data-theme="dark"] .panel h3,
-    html[data-theme="dark"] .panel h4,
-    html[data-theme="dark"] .panel strong,
-    html[data-theme="dark"] .signal-card h1,
-    html[data-theme="dark"] .signal-card h2,
-    html[data-theme="dark"] .signal-card h3,
-    html[data-theme="dark"] .signal-card h4,
-    html[data-theme="dark"] .signal-card strong,
-    html[data-theme="dark"] .signal-card-accent h1,
-    html[data-theme="dark"] .signal-card-accent h2,
-    html[data-theme="dark"] .signal-card-accent h3,
-    html[data-theme="dark"] .signal-card-accent h4,
-    html[data-theme="dark"] .signal-card-accent strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .audit-verdict-card,
-    html[data-theme="dark"] .next-step-label,
-    html[data-theme="dark"] .overview-score-label,
-    html[data-theme="dark"] .overview-score-note,
-    html[data-theme="dark"] .panel-subtitle,
-    html[data-theme="dark"] .signal-label,
-    html[data-theme="dark"] .signal-note,
-    html[data-theme="dark"] .status-neutral,
-    html[data-theme="dark"] .verdict-label {
-        color: var(--theme-text-secondary);
-    }
-    html[data-theme="dark"] .blocker-pill {
-        border-color: var(--theme-border-subtle);
-    }
 </style>
 
 {% endblock %}
