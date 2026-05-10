@@ -414,6 +414,61 @@ class InterestSignup(db.Model):
     )
 
 
+class EmailCampaign(db.Model):
+    """An email marketing campaign — composed by an admin, sent to a
+    filtered audience drawn from interest signups + users.
+
+    Status flow: draft → scheduled → sending → sent (or failed). Stats
+    are aggregated from EmailCampaignRecipient rows so a campaign's
+    sent/delivered/opened/clicked counts are always live.
+    """
+    __tablename__ = "email_campaigns"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    body_html = db.Column(db.Text, nullable=True)
+    body_text = db.Column(db.Text, nullable=True)
+    # audience_filter examples:
+    #   {"source": "interest", "status": ["new", "contacted"]}
+    #   {"source": "users", "plan": ["pro", "growth"]}
+    #   {"source": "manual", "emails": ["a@b.com", "c@d.com"]}
+    audience_filter = db.Column(db.JSON, nullable=True)
+    sender_email = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(30), default="draft", nullable=False, index=True)
+    created_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    sent_at = db.Column(db.DateTime, nullable=True)
+    sent_count = db.Column(db.Integer, default=0, nullable=False)
+    failed_count = db.Column(db.Integer, default=0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
+class EmailCampaignRecipient(db.Model):
+    """One row per (campaign × recipient). Status tracks delivery; the
+    optional message_id lets us match Resend webhook events back to
+    the row when we wire delivered/opened/clicked tracking later."""
+    __tablename__ = "email_campaign_recipients"
+
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(
+        db.Integer, db.ForeignKey("email_campaigns.id"), nullable=False, index=True
+    )
+    email = db.Column(db.String(255), nullable=False, index=True)
+    # source signals where the recipient came from so we can dedupe.
+    source = db.Column(db.String(40), nullable=True)  # interest | user | manual
+    source_id = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(30), default="pending", nullable=False, index=True)
+    message_id = db.Column(db.String(255), nullable=True)
+    error = db.Column(db.String(500), nullable=True)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class Client(db.Model):
     __tablename__ = "clients"
 
@@ -5159,6 +5214,504 @@ def admin_interest_delete(signup_id):
         db.session.commit()
         flash("Signup removed.", "success")
     return redirect(url_for("admin_interest_list", **request.args.to_dict()))
+
+
+@app.route("/admin", methods=["GET"])
+@login_required
+def admin_overview():
+    """Admin overview — KPI strip + recent activity across the app."""
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    week_ago = datetime.utcnow() - timedelta(days=7)
+
+    # Headline counts.
+    total_users = User.query.count()
+    new_users_week = User.query.filter(User.created_at >= week_ago).count()
+    paying_users = User.query.filter(User.plan.in_(["pro", "growth"])).count()
+    total_clients = Client.query.count()
+    total_signups = InterestSignup.query.count()
+    new_signups_week = InterestSignup.query.filter(
+        InterestSignup.created_at >= week_ago
+    ).count()
+    total_campaigns = EmailCampaign.query.count()
+    sent_emails_week = (
+        EmailCampaignRecipient.query
+        .filter(
+            EmailCampaignRecipient.status == "sent",
+            EmailCampaignRecipient.sent_at >= week_ago,
+        )
+        .count()
+    )
+
+    # Wallet totals.
+    wallet_balance_total = (
+        db.session.query(db.func.coalesce(db.func.sum(Wallet.balance), 0)).scalar() or 0
+    )
+
+    # Recent activity feeds (5 each).
+    recent_signups = (
+        InterestSignup.query.order_by(InterestSignup.created_at.desc()).limit(5).all()
+    )
+    recent_users = (
+        User.query.order_by(User.created_at.desc()).limit(5).all()
+    )
+    recent_campaigns = (
+        EmailCampaign.query.order_by(EmailCampaign.created_at.desc()).limit(5).all()
+    )
+
+    return render_template(
+        "admin/overview.html",
+        total_users=total_users,
+        new_users_week=new_users_week,
+        paying_users=paying_users,
+        total_clients=total_clients,
+        total_signups=total_signups,
+        new_signups_week=new_signups_week,
+        total_campaigns=total_campaigns,
+        sent_emails_week=sent_emails_week,
+        wallet_balance_total=wallet_balance_total,
+        recent_signups=recent_signups,
+        recent_users=recent_users,
+        recent_campaigns=recent_campaigns,
+    )
+
+
+@app.route("/admin/users", methods=["GET"])
+@login_required
+def admin_users_list():
+    """Searchable user list. One row per User; click through to detail."""
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    q = (request.args.get("q") or "").strip().lower()
+    plan_filter = (request.args.get("plan") or "").strip().lower()
+
+    rows = User.query
+    if q:
+        like = f"%{q}%"
+        rows = rows.filter(db.or_(User.email.ilike(like), User.name.ilike(like)))
+    if plan_filter:
+        rows = rows.filter(User.plan == plan_filter)
+    rows = rows.order_by(User.created_at.desc()).all()
+
+    # Per-user metadata: workspace + audit counts. Cheap loop because
+    # this is admin-only and N is small.
+    summaries = []
+    for u in rows:
+        wallet = u.wallet
+        summaries.append({
+            "user": u,
+            "wallet_balance": wallet.balance if wallet else 0,
+            "workspace_count": Client.query.filter_by(user_id=u.id).count(),
+            "credit_tx_count": CreditTransaction.query.filter_by(user_id=u.id).count(),
+        })
+
+    return render_template(
+        "admin/users_list.html",
+        summaries=summaries,
+        active_query=request.args.get("q") or "",
+        active_plan=plan_filter,
+        plans=["free", "pro", "growth", "starter", "agency", "dev_unlimited"],
+    )
+
+
+@app.route("/admin/users/<int:user_id>", methods=["GET"])
+@login_required
+def admin_user_detail(user_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+
+    workspaces = Client.query.filter_by(user_id=user_id).order_by(Client.created_at.desc()).all()
+    transactions = (
+        CreditTransaction.query
+        .filter_by(user_id=user_id)
+        .order_by(CreditTransaction.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    return render_template(
+        "admin/user_detail.html",
+        u=user,
+        wallet=user.wallet,
+        workspaces=workspaces,
+        transactions=transactions,
+        plans=["free", "pro", "growth", "starter", "agency", "dev_unlimited"],
+        roles=["user", "admin"],
+    )
+
+
+@app.route("/admin/users/<int:user_id>/role", methods=["POST"])
+@login_required
+def admin_user_set_role(user_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    new_role = (request.form.get("role") or "").strip().lower()
+    if new_role not in {"user", "admin"}:
+        flash(f"Unknown role: {new_role}", "error")
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+    user.role = new_role
+    db.session.commit()
+    flash(f"Role updated to {new_role}.", "success")
+    return redirect(url_for("admin_user_detail", user_id=user_id))
+
+
+@app.route("/admin/users/<int:user_id>/plan", methods=["POST"])
+@login_required
+def admin_user_set_plan(user_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    new_plan = (request.form.get("plan") or "").strip().lower()
+    if new_plan not in PLAN_CATALOG:
+        flash(f"Unknown plan: {new_plan}", "error")
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+    user.plan = new_plan
+    db.session.commit()
+    flash(f"Plan updated to {new_plan}.", "success")
+    return redirect(url_for("admin_user_detail", user_id=user_id))
+
+
+@app.route("/admin/users/<int:user_id>/grant-credits", methods=["POST"])
+@login_required
+def admin_user_grant_credits(user_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    try:
+        amount = int(request.form.get("amount") or "0")
+    except ValueError:
+        flash("Amount must be an integer.", "error")
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+    if amount == 0:
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+
+    if not user.wallet:
+        user.wallet = Wallet(user_id=user.id, balance=0)
+        db.session.add(user.wallet)
+        db.session.flush()
+    user.wallet.balance += amount
+    note = (request.form.get("note") or "").strip() or "Admin grant"
+    db.session.add(CreditTransaction(
+        user_id=user.id,
+        type="admin_grant",
+        amount=amount,
+        balance_after=user.wallet.balance,
+        notes=note,
+    ))
+    db.session.commit()
+    flash(f"Granted {amount} credits.", "success")
+    return redirect(url_for("admin_user_detail", user_id=user_id))
+
+
+@app.route("/admin/payments", methods=["GET"])
+@login_required
+def admin_payments():
+    """Payments + active subscriptions. Pulls live data from Stripe
+    when configured; falls back to local CreditTransaction history."""
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    charges = []
+    subscriptions = []
+    stripe_error = None
+    try:
+        from services.stripe_helper import is_stripe_configured, _stripe_module
+        if is_stripe_configured():
+            stripe = _stripe_module()
+            charges = list(
+                stripe.Charge.list(limit=50).data
+            )
+            subscriptions = list(
+                stripe.Subscription.list(status="active", limit=50, expand=["data.customer"]).data
+            )
+    except Exception as exc:
+        stripe_error = str(exc)[:300]
+
+    # Local credit transactions (last 50) — useful even when Stripe
+    # isn't configured.
+    recent_tx = (
+        CreditTransaction.query
+        .order_by(CreditTransaction.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    # MRR estimate from active Stripe subs.
+    mrr_cents = 0
+    for sub in subscriptions:
+        for item in (sub.get("items", {}).get("data") or []):
+            price = item.get("price") or {}
+            unit_amount = price.get("unit_amount") or 0
+            interval = ((price.get("recurring") or {}).get("interval") or "month").lower()
+            qty = item.get("quantity") or 1
+            if interval == "year":
+                mrr_cents += int(unit_amount * qty / 12)
+            else:
+                mrr_cents += int(unit_amount * qty)
+
+    return render_template(
+        "admin/payments.html",
+        charges=charges,
+        subscriptions=subscriptions,
+        recent_tx=recent_tx,
+        mrr=round(mrr_cents / 100, 2),
+        stripe_error=stripe_error,
+    )
+
+
+# ---------- Email campaigns ----------
+
+@app.route("/admin/campaigns", methods=["GET"])
+@login_required
+def admin_campaigns_list():
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    rows = (
+        EmailCampaign.query
+        .order_by(EmailCampaign.created_at.desc())
+        .all()
+    )
+    return render_template("admin/campaigns_list.html", rows=rows)
+
+
+@app.route("/admin/campaigns/new", methods=["GET", "POST"])
+@login_required
+def admin_campaign_new():
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        subject = (request.form.get("subject") or "").strip()
+        body_html = (request.form.get("body_html") or "").strip()
+        body_text = (request.form.get("body_text") or "").strip()
+        audience_source = (request.form.get("audience_source") or "interest").strip()
+
+        if not name or not subject or (not body_html and not body_text):
+            flash("Name, subject, and a body (HTML or text) are required.", "error")
+            return redirect(url_for("admin_campaign_new"))
+
+        # Build audience filter dict from form.
+        audience_filter: Dict[str, Any] = {"source": audience_source}
+        if audience_source == "interest":
+            sel_status = request.form.getlist("interest_status")
+            if sel_status:
+                audience_filter["status"] = sel_status
+        elif audience_source == "users":
+            sel_plan = request.form.getlist("user_plan")
+            if sel_plan:
+                audience_filter["plan"] = sel_plan
+        elif audience_source == "manual":
+            emails_raw = (request.form.get("manual_emails") or "")
+            audience_filter["emails"] = [
+                e.strip().lower() for e in emails_raw.replace(",", "\n").splitlines()
+                if e.strip()
+            ]
+
+        campaign = EmailCampaign(
+            name=name,
+            subject=subject,
+            body_html=body_html or None,
+            body_text=body_text or None,
+            audience_filter=audience_filter,
+            sender_email=(request.form.get("sender_email") or "").strip() or None,
+            status="draft",
+            created_by_user_id=current_user.id,
+        )
+        db.session.add(campaign)
+        db.session.commit()
+        flash("Campaign drafted. Preview it before sending.", "success")
+        return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
+
+    return render_template("admin/campaign_new.html")
+
+
+@app.route("/admin/campaigns/<int:campaign_id>", methods=["GET"])
+@login_required
+def admin_campaign_detail(campaign_id):
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    campaign = db.session.get(EmailCampaign, campaign_id)
+    if not campaign:
+        abort(404)
+
+    audience = _resolve_campaign_audience(campaign.audience_filter or {})
+    recipients = (
+        EmailCampaignRecipient.query
+        .filter_by(campaign_id=campaign.id)
+        .order_by(EmailCampaignRecipient.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        "admin/campaign_detail.html",
+        campaign=campaign,
+        audience_size=len(audience),
+        audience_preview=audience[:10],
+        recipients=recipients,
+    )
+
+
+def _resolve_campaign_audience(filt: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Turn a campaign's audience_filter into a flat list of
+    {email, source, source_id} dicts. Deduped by lowercase email."""
+    source = (filt or {}).get("source") or "interest"
+    out: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _add(email: str, src: str, src_id):
+        e = (email or "").strip().lower()
+        if not e or e in seen:
+            return
+        seen.add(e)
+        out.append({"email": e, "source": src, "source_id": src_id})
+
+    if source == "interest":
+        rows = InterestSignup.query
+        statuses = filt.get("status") or []
+        if statuses:
+            rows = rows.filter(InterestSignup.status.in_(statuses))
+        # Skip unsubscribed unless explicitly included.
+        if not statuses or "unsubscribed" not in statuses:
+            rows = rows.filter(InterestSignup.status != "unsubscribed")
+        for r in rows.all():
+            _add(r.email, "interest", r.id)
+    elif source == "users":
+        rows = User.query
+        plans = filt.get("plan") or []
+        if plans:
+            rows = rows.filter(User.plan.in_(plans))
+        for u in rows.all():
+            _add(u.email, "user", u.id)
+    elif source == "manual":
+        for e in (filt.get("emails") or []):
+            _add(e, "manual", None)
+    return out
+
+
+@app.route("/admin/campaigns/<int:campaign_id>/send", methods=["POST"])
+@login_required
+def admin_campaign_send(campaign_id):
+    """Send a campaign. Iterates the resolved audience, calls the
+    email helper for each, persists per-recipient status. Synchronous
+    for simplicity — fine for the scale of an interest list. Wrap in
+    a background job when audience > a few hundred."""
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    campaign = db.session.get(EmailCampaign, campaign_id)
+    if not campaign:
+        abort(404)
+    if campaign.status in ("sending", "sent"):
+        flash(f"Campaign is already {campaign.status}.", "info")
+        return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
+
+    from services.email_helper import is_email_configured, send_email
+    if not is_email_configured():
+        flash("Email isn't configured (set RESEND_API_KEY or SMTP_*).", "error")
+        return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
+
+    audience = _resolve_campaign_audience(campaign.audience_filter or {})
+    if not audience:
+        flash("No recipients matched the audience filter.", "error")
+        return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
+
+    campaign.status = "sending"
+    db.session.commit()
+
+    sent = failed = 0
+    for r in audience:
+        existing = (
+            EmailCampaignRecipient.query
+            .filter_by(campaign_id=campaign.id, email=r["email"])
+            .first()
+        )
+        if existing and existing.status == "sent":
+            continue
+        recipient = existing or EmailCampaignRecipient(
+            campaign_id=campaign.id,
+            email=r["email"],
+            source=r["source"],
+            source_id=r["source_id"],
+        )
+        if not existing:
+            db.session.add(recipient)
+
+        ok = False
+        try:
+            ok = send_email(
+                to=r["email"],
+                subject=campaign.subject,
+                body_text=campaign.body_text or (campaign.body_html or "")[:5000],
+                body_html=campaign.body_html or None,
+            )
+        except Exception as exc:
+            recipient.error = str(exc)[:500]
+
+        recipient.status = "sent" if ok else "failed"
+        recipient.sent_at = datetime.utcnow() if ok else None
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+
+    campaign.sent_count = sent
+    campaign.failed_count = failed
+    campaign.sent_at = datetime.utcnow()
+    campaign.status = "sent" if failed == 0 else ("sent" if sent > 0 else "failed")
+    db.session.commit()
+
+    flash(f"Sent {sent} email(s); {failed} failed.", "success" if failed == 0 else "warning")
+    return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
+
+
+@app.route("/admin/campaigns/<int:campaign_id>/preview", methods=["POST"])
+@login_required
+def admin_campaign_preview(campaign_id):
+    """Send the campaign body to the admin's own email as a preview."""
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+    campaign = db.session.get(EmailCampaign, campaign_id)
+    if not campaign:
+        abort(404)
+    from services.email_helper import is_email_configured, send_email
+    if not is_email_configured():
+        flash("Email isn't configured.", "error")
+        return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
+    ok = send_email(
+        to=current_user.email,
+        subject=f"[PREVIEW] {campaign.subject}",
+        body_text=campaign.body_text or (campaign.body_html or "")[:5000],
+        body_html=campaign.body_html or None,
+    )
+    flash(
+        f"Preview sent to {current_user.email}." if ok else "Preview send failed.",
+        "success" if ok else "error",
+    )
+    return redirect(url_for("admin_campaign_detail", campaign_id=campaign.id))
 
 
 @app.route("/admin/interest/export.csv", methods=["GET"])

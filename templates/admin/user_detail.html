@@ -1,0 +1,138 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "users" %}
+{% block title %}{{ u.email }} · Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ u.email }}</h1>
+        <p>{{ u.name or 'No display name' }} · joined {{ u.created_at.strftime('%d %b %Y') if u.created_at else '—' }}</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+<a href="{{ url_for('admin_users_list') }}" class="btn btn-secondary" style="width:fit-content;">← All users</a>
+
+<section class="admin-stats">
+    <div class="admin-stat">
+        <span class="label">Plan</span>
+        <span class="value" style="font-size:18px; text-transform:capitalize;">{{ u.plan }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Role</span>
+        <span class="value" style="font-size:18px; text-transform:capitalize;">{{ u.role or 'user' }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Wallet</span>
+        <span class="value">{{ wallet.balance if wallet else 0 }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Workspaces</span>
+        <span class="value">{{ workspaces|length }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Stripe Customer</span>
+        <span class="value" style="font-size:13px; word-break:break-all;">{{ u.stripe_customer_id or '—' }}</span>
+    </div>
+</section>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+
+    <section class="admin-card">
+        <div class="admin-card-head"><h2>Change Plan</h2></div>
+        <form method="POST" action="{{ url_for('admin_user_set_plan', user_id=u.id) }}" style="display:flex; gap:10px;">
+            <select name="plan" style="flex:1;">
+                {% for p in plans %}
+                <option value="{{ p }}" {% if u.plan == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card-head"><h2>Change Role</h2></div>
+        <form method="POST" action="{{ url_for('admin_user_set_role', user_id=u.id) }}" style="display:flex; gap:10px;">
+            <select name="role" style="flex:1;">
+                {% for r in roles %}
+                <option value="{{ r }}" {% if (u.role or 'user') == r %}selected{% endif %}>{{ r }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card-head"><h2>Grant Credits</h2></div>
+        <form method="POST" action="{{ url_for('admin_user_grant_credits', user_id=u.id) }}" style="display:grid; gap:8px;">
+            <input type="number" name="amount" placeholder="Amount (positive or negative)" required>
+            <input type="text" name="note" placeholder="Note (optional)">
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </form>
+    </section>
+
+</div>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+    <div class="admin-card-head" style="padding:14px 18px 0;"><h2>Workspaces</h2></div>
+    {% if workspaces %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Website</th>
+                <th>Industry</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for w in workspaces %}
+            <tr>
+                <td>{{ w.name }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ w.website }}</td>
+                <td>{{ w.industry or '—' }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ w.created_at.strftime('%d %b %Y') if w.created_at else '—' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">No workspaces.</p>
+    {% endif %}
+</section>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+    <div class="admin-card-head" style="padding:14px 18px 0;"><h2>Recent Credit Transactions</h2></div>
+    {% if transactions %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance after</th>
+                <th>Note</th>
+                <th>When</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in transactions %}
+            <tr>
+                <td><span class="admin-pill">{{ t.type }}</span></td>
+                <td style="font-weight:700; color:{% if t.amount > 0 %}#047857{% else %}#b91c1c{% endif %};">
+                    {{ '%+d' % t.amount }}
+                </td>
+                <td>{{ t.balance_after }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ t.notes or '—' }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">{{ t.created_at.strftime('%d %b %Y') if t.created_at else '—' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">No transactions yet.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

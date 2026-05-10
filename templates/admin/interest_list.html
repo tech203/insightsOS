@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "interest" %}
 {% block title %}Interest List · Admin · DarInsights{% endblock %}
 
 {% block page_header %}
@@ -10,7 +11,7 @@
 </div>
 {% endblock %}
 
-{% block head %}
+{% block head %}{{ super() }}
 <style>
 .crm-shell { display: grid; gap: 18px; }
 
@@ -180,7 +181,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <div class="crm-shell">
 
     <section class="crm-stats">

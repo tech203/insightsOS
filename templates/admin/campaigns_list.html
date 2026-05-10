@@ -1,0 +1,67 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "campaigns" %}
+{% block title %}Email Campaigns · Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Email Campaigns</h1>
+        <p>Compose and send campaigns to the interest list, current users, or a manual list.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+<section class="admin-toolbar">
+    <a href="{{ url_for('admin_campaign_new') }}" class="btn btn-primary">+ New Campaign</a>
+    <span style="color:var(--text-muted); font-size:13px;">{{ rows|length }} total</span>
+</section>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+{% if rows %}
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Audience</th>
+            <th>Status</th>
+            <th>Sent</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for c in rows %}
+        <tr>
+            <td>
+                <strong>{{ c.name }}</strong>
+                <div style="color:var(--text-muted); font-size:11.5px;">{{ c.subject }}</div>
+            </td>
+            <td>
+                {% set src = (c.audience_filter or {}).get('source') %}
+                <span class="admin-pill {% if src == 'interest' %}admin-pill-purple{% elif src == 'users' %}admin-pill-aqua{% else %}{% endif %}">{{ src or 'manual' }}</span>
+            </td>
+            <td>
+                {% if c.status == 'sent' %}<span class="admin-pill admin-pill-green">{{ c.status }}</span>
+                {% elif c.status == 'sending' %}<span class="admin-pill admin-pill-amber">{{ c.status }}</span>
+                {% elif c.status == 'failed' %}<span class="admin-pill admin-pill-red">{{ c.status }}</span>
+                {% else %}<span class="admin-pill">{{ c.status }}</span>{% endif %}
+            </td>
+            <td>
+                {{ c.sent_count }}
+                {% if c.failed_count %}<span style="color:#b91c1c;">/ {{ c.failed_count }} failed</span>{% endif %}
+            </td>
+            <td style="color:var(--text-muted); font-size:11.5px;">{{ c.created_at.strftime('%d %b %Y') if c.created_at else '—' }}</td>
+            <td><a href="{{ url_for('admin_campaign_detail', campaign_id=c.id) }}" class="btn btn-secondary" style="min-height:32px; padding:0 12px; font-size:12px;">Open</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="padding:32px 20px; color:var(--text-muted); text-align:center; margin:0;">
+    No campaigns yet. <a href="{{ url_for('admin_campaign_new') }}">Create your first one →</a>
+</p>
+{% endif %}
+</section>
+{% endblock %}

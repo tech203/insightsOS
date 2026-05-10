@@ -1,0 +1,136 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "overview" %}
+{% block title %}Admin Overview · DarInsights{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Admin Overview</h1>
+        <p>Account-wide health: users, signups, revenue, and recent activity.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+<section class="admin-stats">
+    <div class="admin-stat">
+        <span class="label">Total Users</span>
+        <span class="value">{{ total_users }}</span>
+        <span class="delta">+{{ new_users_week }} this week</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Paying Users</span>
+        <span class="value">{{ paying_users }}</span>
+        <span class="delta">Pro + Growth</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Workspaces</span>
+        <span class="value">{{ total_clients }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Interest Signups</span>
+        <span class="value">{{ total_signups }}</span>
+        <span class="delta">+{{ new_signups_week }} this week</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Email Campaigns</span>
+        <span class="value">{{ total_campaigns }}</span>
+        <span class="delta">{{ sent_emails_week }} sent / 7d</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Total Wallet Credits</span>
+        <span class="value">{{ wallet_balance_total }}</span>
+        <span class="delta">across all users</span>
+    </div>
+</section>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+
+    <section class="admin-card">
+        <div class="admin-card-head">
+            <h2>Recent Users</h2>
+            <a href="{{ url_for('admin_users_list') }}" style="font-size:12px; color:var(--brand-deep, #16a99a); text-decoration:none;">All users →</a>
+        </div>
+        {% if recent_users %}
+        <table class="admin-table">
+            <tbody>
+            {% for u in recent_users %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" style="color:var(--text-strong); font-weight:700; text-decoration:none;">{{ u.email }}</a>
+                        {% if u.name %}<div style="color:var(--text-muted); font-size:11.5px;">{{ u.name }}</div>{% endif %}
+                    </td>
+                    <td><span class="admin-pill admin-pill-aqua">{{ u.plan }}</span></td>
+                    <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">{{ u.created_at.strftime('%d %b') if u.created_at else '—' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--text-muted); margin:0;">No users yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card-head">
+            <h2>Recent Interest Signups</h2>
+            <a href="{{ url_for('admin_interest_list') }}" style="font-size:12px; color:var(--brand-deep, #16a99a); text-decoration:none;">CRM →</a>
+        </div>
+        {% if recent_signups %}
+        <table class="admin-table">
+            <tbody>
+            {% for s in recent_signups %}
+                <tr>
+                    <td>
+                        <strong>{{ s.email }}</strong>
+                        {% if s.company %}<div style="color:var(--text-muted); font-size:11.5px;">{{ s.company }}</div>{% endif %}
+                    </td>
+                    <td><span class="admin-pill admin-pill-purple">{{ s.status }}</span></td>
+                    <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">{{ s.created_at.strftime('%d %b') if s.created_at else '—' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--text-muted); margin:0;">No interest signups yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card-head">
+            <h2>Recent Campaigns</h2>
+            <a href="{{ url_for('admin_campaigns_list') }}" style="font-size:12px; color:var(--brand-deep, #16a99a); text-decoration:none;">All campaigns →</a>
+        </div>
+        {% if recent_campaigns %}
+        <table class="admin-table">
+            <tbody>
+            {% for c in recent_campaigns %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('admin_campaign_detail', campaign_id=c.id) }}" style="color:var(--text-strong); font-weight:700; text-decoration:none;">{{ c.name }}</a>
+                        <div style="color:var(--text-muted); font-size:11.5px;">{{ c.subject }}</div>
+                    </td>
+                    <td>
+                        {% if c.status == 'sent' %}<span class="admin-pill admin-pill-green">{{ c.status }}</span>
+                        {% elif c.status == 'sending' %}<span class="admin-pill admin-pill-amber">{{ c.status }}</span>
+                        {% elif c.status == 'failed' %}<span class="admin-pill admin-pill-red">{{ c.status }}</span>
+                        {% else %}<span class="admin-pill">{{ c.status }}</span>{% endif %}
+                    </td>
+                    <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                        {{ c.sent_count }} sent
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--text-muted); margin:0;">
+            No campaigns yet.
+            <a href="{{ url_for('admin_campaign_new') }}">Create one →</a>
+        </p>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
