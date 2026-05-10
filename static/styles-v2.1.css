@@ -19749,3 +19749,46 @@ html[data-theme="dark"] select {
     border-color: var(--theme-border-strong);
     color: var(--theme-text-primary);
 }
+
+/* =========================================================
+   Premium page-header sizing — final override
+   =========================================================
+   Three earlier rules ramp the dashboard h1 to clamp() values
+   that resolve up to 44–48px on wide screens, which reads as
+   marketing/hero rather than product-app. Linear / Stripe /
+   Vercel keep dashboard h1s at 22–28px with tight tracking.
+   This block is the last word and applies to every page that
+   uses .page-header-standard / .page-header-copy. */
+
+.page-header-standard {
+    padding: 8px 0 0;
+    gap: 10px;
+}
+.page-header-copy h1 {
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+}
+.page-header-copy p {
+    margin-top: 4px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text-soft);
+    max-width: 720px;
+}
+
+@media (min-width: 1280px) {
+    .page-header-copy h1 {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 600px) {
+    .page-header-copy h1 {
+        font-size: 22px;
+    }
+    .page-header-copy p {
+        font-size: 13px;
+    }
+}
