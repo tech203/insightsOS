@@ -19910,6 +19910,16 @@ html[data-theme="dark"] .sidebar-footer {
     background: transparent;
     border-top-color: var(--theme-border-subtle);
 }
+
+/* Sidebar nav-item hover: a later rule hardcodes #f8fafc on
+   hover which renders as a bright white block on the dark
+   sidebar. Switch to a translucent overlay that reads as a
+   subtle highlight on the dark surface. */
+html[data-theme="dark"] .nav-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
 html[data-theme="dark"] .sidebar-footer-panel {
     background: var(--theme-surface-alt);
     border-color: var(--theme-border-subtle);
