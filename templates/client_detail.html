@@ -267,10 +267,12 @@
     </a>
     {% endif %}
 
-    <a href="{{ url_for('module_connectors', client_id=client.id) }}" class="workspace-module-card">
+    {% if workspace_row %}
+    <a href="{{ url_for('module_connectors', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>More connectors</strong>
         <p>BigCommerce, SHOPLINE, Wix, Framer, Squarespace — connect credentials for upcoming module flows.</p>
     </a>
+    {% endif %}
 </section>
 
     <section class="workspace-section-card">
