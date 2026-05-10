@@ -19920,6 +19920,58 @@ html[data-theme="dark"] .nav-item:hover {
     border-color: var(--theme-border-subtle);
     color: var(--theme-text-primary);
 }
+
+/* =========================================================
+   Hardcoded white-surface card groups — dark-mode flip
+   =========================================================
+   A multi-selector rule (line ~9032) hardcodes background:
+   #ffffff for .summary-card / .module-card / .pillar-card /
+   .blocker-card / .query-summary-card / .empty-state-card /
+   .next-action-card / .empty-hero-card / .visibility-score-
+   card / .visibility-top-strip. The legacy token map can't
+   reach these because the colour is a literal hex, not a
+   token. Override surface + border in dark mode. */
+html[data-theme="dark"] .visibility-top-strip,
+html[data-theme="dark"] .module-card,
+html[data-theme="dark"] .summary-card,
+html[data-theme="dark"] .pillar-card,
+html[data-theme="dark"] .blocker-card,
+html[data-theme="dark"] .query-summary-card,
+html[data-theme="dark"] .empty-state-card,
+html[data-theme="dark"] .next-action-card,
+html[data-theme="dark"] .empty-hero-card,
+html[data-theme="dark"] .visibility-score-card {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+
+/* Summary-card child text (label / value / copy) had hardcoded
+   colours #6b7280 / #16243c / #627084. Flip in dark mode. */
+html[data-theme="dark"] .summary-label {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .summary-value {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .summary-copy {
+    color: var(--theme-text-secondary);
+}
+
+/* Queue page h2s + intro copy — hardcoded #16243c / #627084
+   that don't flip via tokens. */
+html[data-theme="dark"] .queue-top-main h2,
+html[data-theme="dark"] .queue-empty-main-card h2,
+html[data-theme="dark"] .tracked-prompt-copy h2,
+html[data-theme="dark"] .visibility-top-main h2,
+html[data-theme="dark"] .empty-hero-card h1 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .queue-top-copy,
+html[data-theme="dark"] .queue-empty-main-card p,
+html[data-theme="dark"] .tracked-prompt-copy p {
+    color: var(--theme-text-secondary);
+}
 html[data-theme="dark"] .sidebar-footer-panel {
     background: var(--theme-surface-alt);
     border-color: var(--theme-border-subtle);
