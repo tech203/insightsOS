@@ -19858,3 +19858,54 @@ html[data-theme="dark"] {
     --shell-text-soft: var(--theme-text-secondary);
     --shell-text-faint: var(--theme-text-muted);
 }
+
+/* =========================================================
+   Sidebar rail-toggle stacking
+   =========================================================
+   #themeToggle and #sidebarRailToggle both carry the
+   .sidebar-rail-toggle class and resolve to the same absolute
+   coordinates (top:14px; right:14px) — they stack on top of
+   each other in the sidebar's top-right. Stack them vertically
+   instead, and keep the theme toggle visible on mobile where
+   the rail toggle hides. */
+.sidebar-theme-toggle {
+    top: 56px;
+}
+@media (max-width: 1199px) {
+    .sidebar-theme-toggle {
+        display: inline-flex;
+        top: 14px;
+    }
+}
+
+/* =========================================================
+   Sidebar footer panels — dark-mode flip
+   =========================================================
+   .sidebar-footer-panel ends with a light hardcoded background
+   (#f8fafc) and #16243c text — invisible on the dark sidebar
+   we just flipped. Re-anchor to theme tokens. */
+html[data-theme="dark"] .sidebar-footer {
+    border-top-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .sidebar-footer-panel {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .sidebar-credits-value,
+html[data-theme="dark"] .sidebar-account-name {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .sidebar-credits-meta,
+html[data-theme="dark"] .sidebar-account-email,
+html[data-theme="dark"] .sidebar-footer-kicker {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .sidebar-logout-btn {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .sidebar-logout-btn:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
