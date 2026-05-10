@@ -19949,15 +19949,55 @@ html[data-theme="dark"] .sidebar-logout-btn:hover {
 }
 
 /* =========================================================
-   Dashboard priority kickers — readable in dark mode
+   Dashboard kickers + warning pills — readable in dark mode
    =========================================================
-   .dashboard-priority-kicker uses color: #5d3fbe on a 14%
-   purple wash. In dark mode that's deep-purple-on-deep-
-   purple — barely legible. Brighten the text, soften the
-   wash. */
-html[data-theme="dark"] .dashboard-priority-kicker {
+   .dashboard-priority-kicker (LATEST AUDIT, CONTENT QUEUE,
+   WORKSPACES) and .score-pill-warning (Multi-workspace view)
+   plus .dashboard-score-label (PORTFOLIO SNAPSHOT) all read
+   dark-purple-on-deep-purple in dark mode. Brighten text and
+   soften wash for a unified, legible kicker treatment. */
+html[data-theme="dark"] .dashboard-priority-kicker,
+html[data-theme="dark"] .score-pill-warning {
     background: rgba(157, 124, 227, 0.18);
     color: #C9B7F7;
+}
+html[data-theme="dark"] .dashboard-score-label {
+    color: var(--theme-text-secondary);
+}
+
+/* =========================================================
+   Theme toggle — move to the BOTTOM of the sidebar
+   =========================================================
+   The top-right toggle pair (rail-collapse + theme) was
+   crashing into the brand mark in the narrow ~92px sidebar
+   no matter how we positioned them. Move the theme toggle
+   to the bottom-center so it's never near the brand, and
+   undo the brand's padding-top compensation. The rail-
+   collapse stays alone in the top-right where it has room. */
+.sidebar-theme-toggle {
+    top: auto;
+    right: 50%;
+    transform: translateX(50%);
+    bottom: 14px;
+}
+.sidebar-brand {
+    padding-top: 0;
+}
+@media (max-width: 1199px) {
+    .sidebar-theme-toggle {
+        display: inline-flex;
+        top: auto;
+        bottom: 14px;
+    }
+}
+/* Rail mode: keep the bottom-center treatment (overrides the
+   earlier rule that pinned theme toggle at top:48 in rail). */
+html[data-sidebar-rail] .sidebar-theme-toggle {
+    top: auto;
+    left: auto;
+    right: 50%;
+    transform: translateX(50%);
+    bottom: 14px;
 }
 
 /* =========================================================
