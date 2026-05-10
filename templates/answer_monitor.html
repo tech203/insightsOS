@@ -206,6 +206,45 @@
         border: 1px solid #d4d4dc;
         font-size: 0.92rem;
     }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .am-btn-secondary,
+    html[data-theme="dark"] .am-card,
+    html[data-theme="dark"] .am-empty,
+    html[data-theme="dark"] .am-stat {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .am-btn,
+    html[data-theme="dark"] .am-stat-value,
+    html[data-theme="dark"] .am-btn-secondary h1,
+    html[data-theme="dark"] .am-btn-secondary h2,
+    html[data-theme="dark"] .am-btn-secondary h3,
+    html[data-theme="dark"] .am-btn-secondary h4,
+    html[data-theme="dark"] .am-btn-secondary strong,
+    html[data-theme="dark"] .am-card h1,
+    html[data-theme="dark"] .am-card h2,
+    html[data-theme="dark"] .am-card h3,
+    html[data-theme="dark"] .am-card h4,
+    html[data-theme="dark"] .am-card strong,
+    html[data-theme="dark"] .am-empty h1,
+    html[data-theme="dark"] .am-empty h2,
+    html[data-theme="dark"] .am-empty h3,
+    html[data-theme="dark"] .am-empty h4,
+    html[data-theme="dark"] .am-empty strong,
+    html[data-theme="dark"] .am-stat h1,
+    html[data-theme="dark"] .am-stat h2,
+    html[data-theme="dark"] .am-stat h3,
+    html[data-theme="dark"] .am-stat h4,
+    html[data-theme="dark"] .am-stat strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .am-answer-excerpt,
+    html[data-theme="dark"] .am-engines-banner,
+    html[data-theme="dark"] .am-workspace-picker {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}
 

@@ -781,6 +781,111 @@
         text-align: left;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .audit-readable-summary-card,
+    html[data-theme="dark"] .audit-summary-badge,
+    html[data-theme="dark"] .audit-summary-conversion-banner,
+    html[data-theme="dark"] .audit-summary-hero,
+    html[data-theme="dark"] .audit-summary-verdict-card,
+    html[data-theme="dark"] .guide-item,
+    html[data-theme="dark"] .panel,
+    html[data-theme="dark"] .readable-summary-item,
+    html[data-theme="dark"] .stat-card,
+    html[data-theme="dark"] .summary-action-row,
+    html[data-theme="dark"] .summary-opportunity-box,
+    html[data-theme="dark"] .summary-score-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .info-row {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-summary-hero-main,
+    html[data-theme="dark"] .audit-summary-verdict-card,
+    html[data-theme="dark"] .guide-item,
+    html[data-theme="dark"] .info-row,
+    html[data-theme="dark"] .panel-header,
+    html[data-theme="dark"] .section-head,
+    html[data-theme="dark"] .stat-value,
+    html[data-theme="dark"] .summary-opportunity-box,
+    html[data-theme="dark"] .upgrade-banner-copy,
+    html[data-theme="dark"] .audit-readable-summary-card h1,
+    html[data-theme="dark"] .audit-readable-summary-card h2,
+    html[data-theme="dark"] .audit-readable-summary-card h3,
+    html[data-theme="dark"] .audit-readable-summary-card h4,
+    html[data-theme="dark"] .audit-readable-summary-card strong,
+    html[data-theme="dark"] .audit-summary-badge h1,
+    html[data-theme="dark"] .audit-summary-badge h2,
+    html[data-theme="dark"] .audit-summary-badge h3,
+    html[data-theme="dark"] .audit-summary-badge h4,
+    html[data-theme="dark"] .audit-summary-badge strong,
+    html[data-theme="dark"] .audit-summary-conversion-banner h1,
+    html[data-theme="dark"] .audit-summary-conversion-banner h2,
+    html[data-theme="dark"] .audit-summary-conversion-banner h3,
+    html[data-theme="dark"] .audit-summary-conversion-banner h4,
+    html[data-theme="dark"] .audit-summary-conversion-banner strong,
+    html[data-theme="dark"] .audit-summary-hero h1,
+    html[data-theme="dark"] .audit-summary-hero h2,
+    html[data-theme="dark"] .audit-summary-hero h3,
+    html[data-theme="dark"] .audit-summary-hero h4,
+    html[data-theme="dark"] .audit-summary-hero strong,
+    html[data-theme="dark"] .audit-summary-verdict-card h1,
+    html[data-theme="dark"] .audit-summary-verdict-card h2,
+    html[data-theme="dark"] .audit-summary-verdict-card h3,
+    html[data-theme="dark"] .audit-summary-verdict-card h4,
+    html[data-theme="dark"] .audit-summary-verdict-card strong,
+    html[data-theme="dark"] .guide-item h1,
+    html[data-theme="dark"] .guide-item h2,
+    html[data-theme="dark"] .guide-item h3,
+    html[data-theme="dark"] .guide-item h4,
+    html[data-theme="dark"] .guide-item strong,
+    html[data-theme="dark"] .panel h1,
+    html[data-theme="dark"] .panel h2,
+    html[data-theme="dark"] .panel h3,
+    html[data-theme="dark"] .panel h4,
+    html[data-theme="dark"] .panel strong,
+    html[data-theme="dark"] .readable-summary-item h1,
+    html[data-theme="dark"] .readable-summary-item h2,
+    html[data-theme="dark"] .readable-summary-item h3,
+    html[data-theme="dark"] .readable-summary-item h4,
+    html[data-theme="dark"] .readable-summary-item strong,
+    html[data-theme="dark"] .stat-card h1,
+    html[data-theme="dark"] .stat-card h2,
+    html[data-theme="dark"] .stat-card h3,
+    html[data-theme="dark"] .stat-card h4,
+    html[data-theme="dark"] .stat-card strong,
+    html[data-theme="dark"] .summary-action-row h1,
+    html[data-theme="dark"] .summary-action-row h2,
+    html[data-theme="dark"] .summary-action-row h3,
+    html[data-theme="dark"] .summary-action-row h4,
+    html[data-theme="dark"] .summary-action-row strong,
+    html[data-theme="dark"] .summary-opportunity-box h1,
+    html[data-theme="dark"] .summary-opportunity-box h2,
+    html[data-theme="dark"] .summary-opportunity-box h3,
+    html[data-theme="dark"] .summary-opportunity-box h4,
+    html[data-theme="dark"] .summary-opportunity-box strong,
+    html[data-theme="dark"] .summary-score-card h1,
+    html[data-theme="dark"] .summary-score-card h2,
+    html[data-theme="dark"] .summary-score-card h3,
+    html[data-theme="dark"] .summary-score-card h4,
+    html[data-theme="dark"] .summary-score-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .panel-subtitle,
+    html[data-theme="dark"] .stat-label,
+    html[data-theme="dark"] .stat-note,
+    html[data-theme="dark"] .summary-score-label,
+    html[data-theme="dark"] .summary-score-note,
+    html[data-theme="dark"] .verdict-label {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .info-row {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 
 {% endblock %}

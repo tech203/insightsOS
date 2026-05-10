@@ -564,5 +564,67 @@
         width: 100%;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .audit-input-shell,
+    html[data-theme="dark"] .audit-preview-card,
+    html[data-theme="dark"] .guidance-card,
+    html[data-theme="dark"] .run-audit-form-card,
+    html[data-theme="dark"] .run-audit-hero {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-explainer-card,
+    html[data-theme="dark"] .audit-preview-item {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-main-label,
+    html[data-theme="dark"] .audit-preview-item,
+    html[data-theme="dark"] .explainer-title,
+    html[data-theme="dark"] .guidance-card,
+    html[data-theme="dark"] .hero-meta-card,
+    html[data-theme="dark"] .run-audit-form-head,
+    html[data-theme="dark"] .run-audit-hero-copy,
+    html[data-theme="dark"] .audit-input-shell h1,
+    html[data-theme="dark"] .audit-input-shell h2,
+    html[data-theme="dark"] .audit-input-shell h3,
+    html[data-theme="dark"] .audit-input-shell h4,
+    html[data-theme="dark"] .audit-input-shell strong,
+    html[data-theme="dark"] .audit-preview-card h1,
+    html[data-theme="dark"] .audit-preview-card h2,
+    html[data-theme="dark"] .audit-preview-card h3,
+    html[data-theme="dark"] .audit-preview-card h4,
+    html[data-theme="dark"] .audit-preview-card strong,
+    html[data-theme="dark"] .guidance-card h1,
+    html[data-theme="dark"] .guidance-card h2,
+    html[data-theme="dark"] .guidance-card h3,
+    html[data-theme="dark"] .guidance-card h4,
+    html[data-theme="dark"] .guidance-card strong,
+    html[data-theme="dark"] .run-audit-form-card h1,
+    html[data-theme="dark"] .run-audit-form-card h2,
+    html[data-theme="dark"] .run-audit-form-card h3,
+    html[data-theme="dark"] .run-audit-form-card h4,
+    html[data-theme="dark"] .run-audit-form-card strong,
+    html[data-theme="dark"] .run-audit-hero h1,
+    html[data-theme="dark"] .run-audit-hero h2,
+    html[data-theme="dark"] .run-audit-hero h3,
+    html[data-theme="dark"] .run-audit-hero h4,
+    html[data-theme="dark"] .run-audit-hero strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-explainer-card,
+    html[data-theme="dark"] .audit-main-helper,
+    html[data-theme="dark"] .hero-meta-label,
+    html[data-theme="dark"] .run-audit-hero-text {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .audit-explainer-card,
+    html[data-theme="dark"] .audit-preview-item,
+    html[data-theme="dark"] .hero-meta-card {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}

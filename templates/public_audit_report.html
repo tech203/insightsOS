@@ -115,7 +115,35 @@
             .report-title-band { flex-direction: column; align-items: flex-start; gap: 8px; }
             .report-title-name { font-size: 22px; }
         }
-    </style>
+    
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .public-bar,
+    html[data-theme="dark"] .report-page {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .public-bar-cta,
+    html[data-theme="dark"] .public-bar-name,
+    html[data-theme="dark"] .public-bar h1,
+    html[data-theme="dark"] .public-bar h2,
+    html[data-theme="dark"] .public-bar h3,
+    html[data-theme="dark"] .public-bar h4,
+    html[data-theme="dark"] .public-bar strong,
+    html[data-theme="dark"] .report-page h1,
+    html[data-theme="dark"] .report-page h2,
+    html[data-theme="dark"] .report-page h3,
+    html[data-theme="dark"] .report-page h4,
+    html[data-theme="dark"] .report-page strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .citation-table,
+    html[data-theme="dark"] .profile-table,
+    html[data-theme="dark"] .report-footer,
+    html[data-theme="dark"] .section {
+        border-color: var(--theme-border-subtle);
+    }
+</style>
 </head>
 <body>
     <div class="public-bar">

@@ -498,6 +498,63 @@
         font-size: 15px;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .draft-editor,
+    html[data-theme="dark"] .draft-flow-card,
+    html[data-theme="dark"] .draft-hero-card,
+    html[data-theme="dark"] .draft-main-card,
+    html[data-theme="dark"] .draft-side-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .draft-content-section,
+    html[data-theme="dark"] .draft-readable-box,
+    html[data-theme="dark"] .seo-preview-box {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .draft-content-section,
+    html[data-theme="dark"] .draft-editor,
+    html[data-theme="dark"] .draft-flow-card,
+    html[data-theme="dark"] .draft-hero-card,
+    html[data-theme="dark"] .draft-section,
+    html[data-theme="dark"] .seo-preview-box,
+    html[data-theme="dark"] .side-block,
+    html[data-theme="dark"] .draft-editor h1,
+    html[data-theme="dark"] .draft-editor h2,
+    html[data-theme="dark"] .draft-editor h3,
+    html[data-theme="dark"] .draft-editor h4,
+    html[data-theme="dark"] .draft-editor strong,
+    html[data-theme="dark"] .draft-flow-card h1,
+    html[data-theme="dark"] .draft-flow-card h2,
+    html[data-theme="dark"] .draft-flow-card h3,
+    html[data-theme="dark"] .draft-flow-card h4,
+    html[data-theme="dark"] .draft-flow-card strong,
+    html[data-theme="dark"] .draft-hero-card h1,
+    html[data-theme="dark"] .draft-hero-card h2,
+    html[data-theme="dark"] .draft-hero-card h3,
+    html[data-theme="dark"] .draft-hero-card h4,
+    html[data-theme="dark"] .draft-hero-card strong,
+    html[data-theme="dark"] .draft-main-card h1,
+    html[data-theme="dark"] .draft-main-card h2,
+    html[data-theme="dark"] .draft-main-card h3,
+    html[data-theme="dark"] .draft-main-card h4,
+    html[data-theme="dark"] .draft-main-card strong,
+    html[data-theme="dark"] .draft-side-card h1,
+    html[data-theme="dark"] .draft-side-card h2,
+    html[data-theme="dark"] .draft-side-card h3,
+    html[data-theme="dark"] .draft-side-card h4,
+    html[data-theme="dark"] .draft-side-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .draft-list,
+    html[data-theme="dark"] .draft-main-card,
+    html[data-theme="dark"] .draft-side-card {
+        color: var(--theme-text-secondary);
+    }
 </style>
 
 {% endblock %}

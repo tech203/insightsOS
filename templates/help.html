@@ -446,5 +446,65 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .guide-card,
+    html[data-theme="dark"] .help-card,
+    html[data-theme="dark"] .help-hero,
+    html[data-theme="dark"] .help-hero-side,
+    html[data-theme="dark"] .quick-start-card,
+    html[data-theme="dark"] .step-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .faq-item,
+    html[data-theme="dark"] .glossary-item,
+    html[data-theme="dark"] .help-badge,
+    html[data-theme="dark"] .meaning-item {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .faq-item,
+    html[data-theme="dark"] .glossary-item,
+    html[data-theme="dark"] .guide-card,
+    html[data-theme="dark"] .help-hero-main,
+    html[data-theme="dark"] .hero-side-value,
+    html[data-theme="dark"] .meaning-item,
+    html[data-theme="dark"] .section-head,
+    html[data-theme="dark"] .step-card,
+    html[data-theme="dark"] .guide-card h1,
+    html[data-theme="dark"] .guide-card h2,
+    html[data-theme="dark"] .guide-card h3,
+    html[data-theme="dark"] .guide-card h4,
+    html[data-theme="dark"] .guide-card strong,
+    html[data-theme="dark"] .help-card h1,
+    html[data-theme="dark"] .help-card h2,
+    html[data-theme="dark"] .help-card h3,
+    html[data-theme="dark"] .help-card h4,
+    html[data-theme="dark"] .help-card strong,
+    html[data-theme="dark"] .help-hero h1,
+    html[data-theme="dark"] .help-hero h2,
+    html[data-theme="dark"] .help-hero h3,
+    html[data-theme="dark"] .help-hero h4,
+    html[data-theme="dark"] .help-hero strong,
+    html[data-theme="dark"] .help-hero-side h1,
+    html[data-theme="dark"] .help-hero-side h2,
+    html[data-theme="dark"] .help-hero-side h3,
+    html[data-theme="dark"] .help-hero-side h4,
+    html[data-theme="dark"] .help-hero-side strong,
+    html[data-theme="dark"] .quick-start-card h1,
+    html[data-theme="dark"] .quick-start-card h2,
+    html[data-theme="dark"] .quick-start-card h3,
+    html[data-theme="dark"] .quick-start-card h4,
+    html[data-theme="dark"] .quick-start-card strong,
+    html[data-theme="dark"] .step-card h1,
+    html[data-theme="dark"] .step-card h2,
+    html[data-theme="dark"] .step-card h3,
+    html[data-theme="dark"] .step-card h4,
+    html[data-theme="dark"] .step-card strong {
+        color: var(--theme-text-primary);
+    }
 </style>
 {% endblock %}

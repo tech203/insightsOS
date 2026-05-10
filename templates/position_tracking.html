@@ -742,6 +742,80 @@ function scrollToPromptForm() {
         font-size: 24px;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .form-field,
+    html[data-theme="dark"] .summary-stat-card,
+    html[data-theme="dark"] .tracking-empty,
+    html[data-theme="dark"] .tracking-entry-card,
+    html[data-theme="dark"] .tracking-meta-card,
+    html[data-theme="dark"] .tracking-status-band,
+    html[data-theme="dark"] .tracking-table-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .tracking-progress-card {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .form-field,
+    html[data-theme="dark"] .prompt-detail-link,
+    html[data-theme="dark"] .section-title,
+    html[data-theme="dark"] .summary-value,
+    html[data-theme="dark"] .tracking-empty,
+    html[data-theme="dark"] .tracking-entry-copy,
+    html[data-theme="dark"] .tracking-meta-card,
+    html[data-theme="dark"] .tracking-progress-top,
+    html[data-theme="dark"] .tracking-status-copy,
+    html[data-theme="dark"] .form-field h1,
+    html[data-theme="dark"] .form-field h2,
+    html[data-theme="dark"] .form-field h3,
+    html[data-theme="dark"] .form-field h4,
+    html[data-theme="dark"] .form-field strong,
+    html[data-theme="dark"] .summary-stat-card h1,
+    html[data-theme="dark"] .summary-stat-card h2,
+    html[data-theme="dark"] .summary-stat-card h3,
+    html[data-theme="dark"] .summary-stat-card h4,
+    html[data-theme="dark"] .summary-stat-card strong,
+    html[data-theme="dark"] .tracking-empty h1,
+    html[data-theme="dark"] .tracking-empty h2,
+    html[data-theme="dark"] .tracking-empty h3,
+    html[data-theme="dark"] .tracking-empty h4,
+    html[data-theme="dark"] .tracking-empty strong,
+    html[data-theme="dark"] .tracking-entry-card h1,
+    html[data-theme="dark"] .tracking-entry-card h2,
+    html[data-theme="dark"] .tracking-entry-card h3,
+    html[data-theme="dark"] .tracking-entry-card h4,
+    html[data-theme="dark"] .tracking-entry-card strong,
+    html[data-theme="dark"] .tracking-meta-card h1,
+    html[data-theme="dark"] .tracking-meta-card h2,
+    html[data-theme="dark"] .tracking-meta-card h3,
+    html[data-theme="dark"] .tracking-meta-card h4,
+    html[data-theme="dark"] .tracking-meta-card strong,
+    html[data-theme="dark"] .tracking-status-band h1,
+    html[data-theme="dark"] .tracking-status-band h2,
+    html[data-theme="dark"] .tracking-status-band h3,
+    html[data-theme="dark"] .tracking-status-band h4,
+    html[data-theme="dark"] .tracking-status-band strong,
+    html[data-theme="dark"] .tracking-table-card h1,
+    html[data-theme="dark"] .tracking-table-card h2,
+    html[data-theme="dark"] .tracking-table-card h3,
+    html[data-theme="dark"] .tracking-table-card h4,
+    html[data-theme="dark"] .tracking-table-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .score-cell,
+    html[data-theme="dark"] .section-copy,
+    html[data-theme="dark"] .summary-copy,
+    html[data-theme="dark"] .summary-label,
+    html[data-theme="dark"] .tracking-meta-subline {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .tracking-progress-card {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 
 {% endblock %}

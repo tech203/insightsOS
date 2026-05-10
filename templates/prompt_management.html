@@ -246,6 +246,22 @@
         width: 100%;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .empty-state,
+    html[data-theme="dark"] .prompt-hero,
+    html[data-theme="dark"] .prompt-table-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .prompt-hero,
+    html[data-theme="dark"] .prompt-table {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .prompt-table {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 
 {% endblock %}

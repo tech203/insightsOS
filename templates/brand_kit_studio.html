@@ -58,6 +58,48 @@
         text-decoration: none;
     }
     .bk-meta { font-size: 0.75rem; color: #888; margin-top: 0.85rem; }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .bk-btn-secondary,
+    html[data-theme="dark"] .bk-card,
+    html[data-theme="dark"] .bk-color-row,
+    html[data-theme="dark"] .bk-form,
+    html[data-theme="dark"] .bk-preview-tone {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .bk-btn,
+    html[data-theme="dark"] .bk-btn-secondary h1,
+    html[data-theme="dark"] .bk-btn-secondary h2,
+    html[data-theme="dark"] .bk-btn-secondary h3,
+    html[data-theme="dark"] .bk-btn-secondary h4,
+    html[data-theme="dark"] .bk-btn-secondary strong,
+    html[data-theme="dark"] .bk-card h1,
+    html[data-theme="dark"] .bk-card h2,
+    html[data-theme="dark"] .bk-card h3,
+    html[data-theme="dark"] .bk-card h4,
+    html[data-theme="dark"] .bk-card strong,
+    html[data-theme="dark"] .bk-color-row h1,
+    html[data-theme="dark"] .bk-color-row h2,
+    html[data-theme="dark"] .bk-color-row h3,
+    html[data-theme="dark"] .bk-color-row h4,
+    html[data-theme="dark"] .bk-color-row strong,
+    html[data-theme="dark"] .bk-form h1,
+    html[data-theme="dark"] .bk-form h2,
+    html[data-theme="dark"] .bk-form h3,
+    html[data-theme="dark"] .bk-form h4,
+    html[data-theme="dark"] .bk-form strong,
+    html[data-theme="dark"] .bk-preview-tone h1,
+    html[data-theme="dark"] .bk-preview-tone h2,
+    html[data-theme="dark"] .bk-preview-tone h3,
+    html[data-theme="dark"] .bk-preview-tone h4,
+    html[data-theme="dark"] .bk-preview-tone strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .bk-preview {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}
 

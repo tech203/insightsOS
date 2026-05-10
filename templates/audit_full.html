@@ -451,6 +451,73 @@
         font-size: 30px;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .audit-full-badge,
+    html[data-theme="dark"] .audit-full-file-card,
+    html[data-theme="dark"] .audit-full-hero,
+    html[data-theme="dark"] .guide-item,
+    html[data-theme="dark"] .meta-chip,
+    html[data-theme="dark"] .panel,
+    html[data-theme="dark"] .quick-access-card,
+    html[data-theme="dark"] .stat-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-full-file-card,
+    html[data-theme="dark"] .audit-full-hero-main,
+    html[data-theme="dark"] .guide-item,
+    html[data-theme="dark"] .panel-header,
+    html[data-theme="dark"] .stat-card,
+    html[data-theme="dark"] .audit-full-badge h1,
+    html[data-theme="dark"] .audit-full-badge h2,
+    html[data-theme="dark"] .audit-full-badge h3,
+    html[data-theme="dark"] .audit-full-badge h4,
+    html[data-theme="dark"] .audit-full-badge strong,
+    html[data-theme="dark"] .audit-full-file-card h1,
+    html[data-theme="dark"] .audit-full-file-card h2,
+    html[data-theme="dark"] .audit-full-file-card h3,
+    html[data-theme="dark"] .audit-full-file-card h4,
+    html[data-theme="dark"] .audit-full-file-card strong,
+    html[data-theme="dark"] .audit-full-hero h1,
+    html[data-theme="dark"] .audit-full-hero h2,
+    html[data-theme="dark"] .audit-full-hero h3,
+    html[data-theme="dark"] .audit-full-hero h4,
+    html[data-theme="dark"] .audit-full-hero strong,
+    html[data-theme="dark"] .guide-item h1,
+    html[data-theme="dark"] .guide-item h2,
+    html[data-theme="dark"] .guide-item h3,
+    html[data-theme="dark"] .guide-item h4,
+    html[data-theme="dark"] .guide-item strong,
+    html[data-theme="dark"] .meta-chip h1,
+    html[data-theme="dark"] .meta-chip h2,
+    html[data-theme="dark"] .meta-chip h3,
+    html[data-theme="dark"] .meta-chip h4,
+    html[data-theme="dark"] .meta-chip strong,
+    html[data-theme="dark"] .panel h1,
+    html[data-theme="dark"] .panel h2,
+    html[data-theme="dark"] .panel h3,
+    html[data-theme="dark"] .panel h4,
+    html[data-theme="dark"] .panel strong,
+    html[data-theme="dark"] .quick-access-card h1,
+    html[data-theme="dark"] .quick-access-card h2,
+    html[data-theme="dark"] .quick-access-card h3,
+    html[data-theme="dark"] .quick-access-card h4,
+    html[data-theme="dark"] .quick-access-card strong,
+    html[data-theme="dark"] .stat-card h1,
+    html[data-theme="dark"] .stat-card h2,
+    html[data-theme="dark"] .stat-card h3,
+    html[data-theme="dark"] .stat-card h4,
+    html[data-theme="dark"] .stat-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .file-label,
+    html[data-theme="dark"] .panel-subtitle,
+    html[data-theme="dark"] .quick-access-label,
+    html[data-theme="dark"] .quick-access-meta {
+        color: var(--theme-text-secondary);
+    }
 </style>
 
 {% endblock %}

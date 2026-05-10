@@ -580,5 +580,79 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .hero-takeaway-card,
+    html[data-theme="dark"] .presentation-card,
+    html[data-theme="dark"] .presentation-hero,
+    html[data-theme="dark"] .score-spotlight-card,
+    html[data-theme="dark"] .stat-card,
+    html[data-theme="dark"] .timeline-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .empty-state-block,
+    html[data-theme="dark"] .hero-badge,
+    html[data-theme="dark"] .insight-item,
+    html[data-theme="dark"] .one-line-summary,
+    html[data-theme="dark"] .priority-item {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .empty-state-block,
+    html[data-theme="dark"] .hero-takeaway-card,
+    html[data-theme="dark"] .insight-item,
+    html[data-theme="dark"] .one-line-summary,
+    html[data-theme="dark"] .presentation-hero-main,
+    html[data-theme="dark"] .priority-item,
+    html[data-theme="dark"] .score-spotlight-value,
+    html[data-theme="dark"] .section-head,
+    html[data-theme="dark"] .stat-value,
+    html[data-theme="dark"] .summary-row,
+    html[data-theme="dark"] .timeline-card,
+    html[data-theme="dark"] .hero-takeaway-card h1,
+    html[data-theme="dark"] .hero-takeaway-card h2,
+    html[data-theme="dark"] .hero-takeaway-card h3,
+    html[data-theme="dark"] .hero-takeaway-card h4,
+    html[data-theme="dark"] .hero-takeaway-card strong,
+    html[data-theme="dark"] .presentation-card h1,
+    html[data-theme="dark"] .presentation-card h2,
+    html[data-theme="dark"] .presentation-card h3,
+    html[data-theme="dark"] .presentation-card h4,
+    html[data-theme="dark"] .presentation-card strong,
+    html[data-theme="dark"] .presentation-hero h1,
+    html[data-theme="dark"] .presentation-hero h2,
+    html[data-theme="dark"] .presentation-hero h3,
+    html[data-theme="dark"] .presentation-hero h4,
+    html[data-theme="dark"] .presentation-hero strong,
+    html[data-theme="dark"] .score-spotlight-card h1,
+    html[data-theme="dark"] .score-spotlight-card h2,
+    html[data-theme="dark"] .score-spotlight-card h3,
+    html[data-theme="dark"] .score-spotlight-card h4,
+    html[data-theme="dark"] .score-spotlight-card strong,
+    html[data-theme="dark"] .stat-card h1,
+    html[data-theme="dark"] .stat-card h2,
+    html[data-theme="dark"] .stat-card h3,
+    html[data-theme="dark"] .stat-card h4,
+    html[data-theme="dark"] .stat-card strong,
+    html[data-theme="dark"] .timeline-card h1,
+    html[data-theme="dark"] .timeline-card h2,
+    html[data-theme="dark"] .timeline-card h3,
+    html[data-theme="dark"] .timeline-card h4,
+    html[data-theme="dark"] .timeline-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .score-spotlight-label,
+    html[data-theme="dark"] .stat-label,
+    html[data-theme="dark"] .stat-note,
+    html[data-theme="dark"] .takeaway-label {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .summary-row {
+        border-color: var(--theme-border-subtle);
+    }
+    html[data-theme="dark"] .priority-chip { color: #FCD34D; background: rgba(245, 158, 11, 0.18); }
 </style>
 {% endblock %}
