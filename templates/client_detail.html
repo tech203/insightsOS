@@ -47,7 +47,7 @@
             </a>
             {% else %}
             <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                Upgrade to Continue
+                Upgrade to Pro
             </a>
             {% endif %}
         {% endif %}
@@ -120,7 +120,7 @@
         <div class="workspace-score-card">
             <span class="workspace-score-label">Latest Score</span>
             <strong class="workspace-score-value">
-                {% if latest %}{{ latest.normalized_score }}{% else %}—{% endif %}
+                {% if latest %}{{ latest.normalized_score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}
             </strong>
             <p class="workspace-score-note">
                 {% if comparison and comparison.overall_change %}
@@ -137,7 +137,7 @@
     <section class="workspace-summary-grid">
         <article class="summary-stat-card">
             <span class="summary-label">Visibility</span>
-            <strong class="summary-value">{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
+            <strong class="summary-value">{% if latest %}{{ latest.visibility_score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}</strong>
             <p class="summary-copy">Current visibility score from the latest audit.</p>
         </article>
 
@@ -155,7 +155,7 @@
 
         <article class="summary-stat-card">
             <span class="summary-label">Schema</span>
-            <strong class="summary-value">{% if latest %}{{ latest.schema_score }}{% else %}—{% endif %}</strong>
+            <strong class="summary-value">{% if latest %}{{ latest.schema_score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}</strong>
             <p class="summary-copy">Structured-data signal from the latest audit.</p>
         </article>
     </section>
@@ -419,7 +419,7 @@
         {% if not is_paid %}
         <div class="card-actions top-space">
             <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                Unlock AI Generation
+                Upgrade to Pro
             </a>
         </div>
         {% endif %}

@@ -149,7 +149,7 @@
 
             {% if current_user.plan == "free" %}
                 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                    Upgrade to Generate Query Ideas
+                    Upgrade to Pro
                 </a>
             {% else %}
                 <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">
@@ -297,7 +297,7 @@
 
             {% if current_user.plan == "free" %}
                 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-                    Upgrade to Generate Query Ideas
+                    Upgrade to Pro
                 </a>
             {% else %}
                 <a href="{{ url_for('client_query_ideas', client_id=active_client_id) }}" class="btn btn-primary">

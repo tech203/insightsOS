@@ -211,7 +211,7 @@
         {% if view_mode == "single" %}
         <div class="dashboard-ops-card">
             <span class="dashboard-score-label">Workspace Snapshot</span>
-            <strong class="dashboard-score-value">{{ aeo_score }}</strong>
+            <strong class="dashboard-score-value">{{ aeo_score|round|int }}<small class="score-unit">/100</small></strong>
 
             <div class="dashboard-score-pill-row">
                 {% if aeo_score >= 80 %}

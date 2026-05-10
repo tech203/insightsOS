@@ -17304,6 +17304,33 @@ a.btn {
     background: #f8fafc;
 }
 
+.workspace-more-divider {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--border-soft);
+}
+
+.workspace-more-danger {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--status-danger);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+.workspace-more-danger:hover {
+    background: var(--status-danger-soft);
+}
+html[data-theme="dark"] .workspace-more-divider {
+    background: var(--theme-border-subtle);
+}
+
 .workspace-empty-state {
     display: grid;
 }
@@ -20625,6 +20652,318 @@ html[data-theme="dark"] .sidebar-overlay {
     html[data-theme="dark"] .sidebar-inner {
         background: var(--theme-surface);
     }
+}
+
+/* =========================================================
+   Remaining white-card surfaces — dark-mode flips
+   =========================================================
+   Pages flagged in screenshot review where the inline-style
+   block hardcoded #ffffff on the page-level card surfaces
+   without a matching dark-mode override. Covers competitor
+   setup, history overview/movement/list panels, and the
+   brief/draft result + draft generator hero strips. */
+
+/* Competitor Gaps hero strip + form column right-side cards */
+html[data-theme="dark"] .competitor-setup-card {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .competitor-setup-copy h2,
+html[data-theme="dark"] .competitor-form-grid label,
+html[data-theme="dark"] .results-section-card,
+html[data-theme="dark"] .results-section-card h2,
+html[data-theme="dark"] .insight-mini-card strong,
+html[data-theme="dark"] .insight-strip-copy h3 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .competitor-setup-copy p,
+html[data-theme="dark"] .insight-strip-copy p,
+html[data-theme="dark"] .insight-mini-card span {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .competitor-form-grid input,
+html[data-theme="dark"] .toolbar-filters input,
+html[data-theme="dark"] .toolbar-filters select {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .results-section-card {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .competitor-insight-strip {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .insight-mini-card {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+
+/* History page surfaces */
+html[data-theme="dark"] .history-top-strip,
+html[data-theme="dark"] .history-summary-strip,
+html[data-theme="dark"] .history-movement-card,
+html[data-theme="dark"] .history-list-panel,
+html[data-theme="dark"] .history-empty-state,
+html[data-theme="dark"] .history-compact-row {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .history-top-main h2,
+html[data-theme="dark"] .history-section-head h2,
+html[data-theme="dark"] .history-section-head h3,
+html[data-theme="dark"] .history-summary-mini strong,
+html[data-theme="dark"] .history-move-item strong,
+html[data-theme="dark"] .history-compact-date,
+html[data-theme="dark"] .history-empty-state h3 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .history-top-main p,
+html[data-theme="dark"] .history-section-head p,
+html[data-theme="dark"] .history-summary-mini span,
+html[data-theme="dark"] .history-move-item span,
+html[data-theme="dark"] .history-compact-metrics,
+html[data-theme="dark"] .history-empty-state p {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .history-move-item {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+
+/* Draft Generator hero strip (was missed in the brief-only flip) */
+html[data-theme="dark"] .draft-generator-top-strip {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .draft-generator-top-card {
+    background: linear-gradient(180deg, var(--theme-surface-alt) 0%, var(--theme-surface) 100%);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .draft-generator-top-copy h2 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .draft-generator-top-copy p {
+    color: var(--theme-text-secondary);
+}
+
+/* Brief Result + Draft Result hero strips */
+html[data-theme="dark"] .brief-top-strip,
+html[data-theme="dark"] .draft-top-strip {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+html[data-theme="dark"] .brief-top-card,
+html[data-theme="dark"] .draft-top-card {
+    background: linear-gradient(180deg, var(--theme-surface-alt) 0%, var(--theme-surface) 100%);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .brief-top-copy h2,
+html[data-theme="dark"] .draft-top-copy h2 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .brief-top-copy p,
+html[data-theme="dark"] .draft-top-copy p {
+    color: var(--theme-text-secondary);
+}
+
+/* =========================================================
+   Generation loading state — shared across brief + draft
+   =========================================================
+   Same pattern as new_audit.html's loader, but tuned for
+   shorter LLM calls (10–25s) and using the brand mint→purple
+   gradient instead of audit's solid-purple. Reused by:
+   - content_brief_form.html  (#briefLoadingState)
+   - content_draft_form.html  (#draftLoadingState) */
+
+.gen-loading-state {
+    width: 100%;
+}
+
+.gen-loading-card {
+    padding: 28px;
+    background:
+        radial-gradient(circle at top right, var(--brand-primary-soft), transparent 32%),
+        radial-gradient(circle at bottom left, var(--brand-secondary-soft), transparent 32%),
+        linear-gradient(180deg, #ffffff 0%, #fcfbff 100%);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+}
+
+.gen-loading-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.gen-loader-orb {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--brand-primary);
+    box-shadow: 0 0 0 0 rgba(62, 223, 203, 0.45);
+    animation: genPulse 1.6s infinite;
+}
+
+@keyframes genPulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(62, 223, 203, 0.45);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 14px rgba(62, 223, 203, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(62, 223, 203, 0);
+    }
+}
+
+.gen-loading-card h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--text-strong);
+    letter-spacing: -0.02em;
+}
+
+.gen-loading-card > p {
+    margin: 8px 0 0;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.gen-progress-track {
+    width: 100%;
+    height: 10px;
+    margin-top: 22px;
+    background: var(--bg-soft-alt);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.gen-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--gradient-brand);
+    transition: width 0.7s ease;
+}
+
+.gen-progress-meta {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.gen-stage-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.gen-stage-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border-main);
+    background: #ffffff;
+    opacity: 0.55;
+    transition: all 0.25s ease;
+}
+
+.gen-stage-item.active {
+    opacity: 1;
+    border-color: rgba(62, 223, 203, 0.32);
+    background: var(--brand-primary-soft);
+}
+
+.gen-stage-item strong {
+    display: block;
+    color: var(--text-strong);
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.gen-stage-item p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.gen-loading-note {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+html[data-theme="dark"] .gen-loading-card {
+    background:
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.10), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.10), transparent 32%),
+        var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .gen-loading-card h2 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .gen-loading-card > p,
+html[data-theme="dark"] .gen-progress-meta,
+html[data-theme="dark"] .gen-loading-note {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .gen-stage-item {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .gen-stage-item.active {
+    background: rgba(62, 223, 203, 0.10);
+    border-color: rgba(62, 223, 203, 0.32);
+}
+html[data-theme="dark"] .gen-stage-item strong {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .gen-stage-item p {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .gen-progress-track {
+    background: var(--theme-surface-alt);
+}
+
+/* =========================================================
+   Score unit suffix
+   =========================================================
+   Renders the "/100" tail on score values at ~55% the
+   parent font size and a muted colour, so the digit stays
+   the visual anchor and the unit reads as quiet metadata. */
+.score-unit {
+    font-size: 0.55em;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-left: 2px;
+    letter-spacing: 0;
+    -webkit-text-fill-color: var(--text-muted);
+}
+html[data-theme="dark"] .score-unit {
+    color: var(--theme-text-muted);
+    -webkit-text-fill-color: var(--theme-text-muted);
 }
 
 /* =========================================================

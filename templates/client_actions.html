@@ -100,7 +100,7 @@
             {% elif top_action %}
                 {% if current_user.plan == "free" %}
                 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
-                    Upgrade to Continue
+                    Upgrade to Pro
                 </a>
 
                 {% elif top_is_query_action and top_target_query %}
@@ -138,7 +138,7 @@
             {% else %}
                 {% if current_user.plan == "free" %}
                 <a href="{{ url_for('pricing_page') }}" class="btn btn-primary btn-block">
-                    Upgrade to Continue
+                    Upgrade to Pro
                 </a>
                 {% else %}
                 <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary btn-block">
