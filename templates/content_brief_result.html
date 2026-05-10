@@ -190,14 +190,14 @@
 
                 {% if display_search_intent %}
                 <div class="brief-section">
-                    <div class="mini-label">Search Intent</div>
+                    <div class="mini-label">Search Intent {{ info_tip("What the searcher is actually trying to do — buy, compare, learn, troubleshoot. Drives how the page should be framed.") }}</div>
                     <p>{{ display_search_intent }}</p>
                 </div>
                 {% endif %}
 
                 {% if display_angle %}
                 <div class="brief-section">
-                    <div class="mini-label">Recommended Page Angle</div>
+                    <div class="mini-label">Recommended Page Angle {{ info_tip("The framing that gives this content a clear point of view — what makes this page worth citing instead of a competitor's.") }}</div>
                     <p>{{ display_angle }}</p>
                 </div>
                 {% endif %}
@@ -281,7 +281,7 @@
 
                 {% if faq_questions %}
                 <div class="brief-section">
-                    <div class="mini-label">FAQ Questions</div>
+                    <div class="mini-label">FAQ Questions {{ info_tip("Real questions worth answering on the page. Including these helps AI engines pull direct citations from your content.") }}</div>
                     <ul class="brief-list">
                         {% for question in faq_questions %}
                             <li>{{ question }}</li>

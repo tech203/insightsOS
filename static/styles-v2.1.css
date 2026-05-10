@@ -21195,3 +21195,65 @@ html[data-theme="dark"] .dashboard-spotlight-switch select:hover {
 html[data-theme="dark"] .dashboard-spotlight-foot {
     border-top-color: var(--theme-border-subtle);
 }
+
+/* =========================================================
+   Internal-only Dev Controls floater
+   =========================================================
+   Used to live in .topbar-actions as a bright pill where
+   real customers reading the topbar might assume it's a
+   feature. Now floats in the bottom-right corner with a
+   muted gear, hidden behind the existing is_internal_user
+   gate. Hover lifts it slightly + bumps the brand mint. */
+.dev-controls-floater {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10);
+    opacity: 0.78;
+    transition: opacity var(--transition-fast),
+                transform var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+.dev-controls-floater:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+.dev-controls-floater span:first-child {
+    font-size: 14px;
+    line-height: 1;
+}
+.dev-controls-floater-label {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+html[data-theme="dark"] .dev-controls-floater {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-muted);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+html[data-theme="dark"] .dev-controls-floater:hover {
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+
+/* Print: kill the floater so it doesn't show up on PDFs. */
+@media print {
+    .dev-controls-floater { display: none !important; }
+}
