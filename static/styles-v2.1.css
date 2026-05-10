@@ -19907,6 +19907,7 @@ html[data-theme="dark"] {
    (#f8fafc) and #16243c text — invisible on the dark sidebar
    we just flipped. Re-anchor to theme tokens. */
 html[data-theme="dark"] .sidebar-footer {
+    background: transparent;
     border-top-color: var(--theme-border-subtle);
 }
 html[data-theme="dark"] .sidebar-footer-panel {
