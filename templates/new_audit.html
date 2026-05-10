@@ -531,6 +531,55 @@
         align-items: flex-start;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .audit-form-card-clean,
+    html[data-theme="dark"] .audit-loading-card,
+    html[data-theme="dark"] .audit-side-card,
+    html[data-theme="dark"] .audit-stage-item,
+    html[data-theme="dark"] .audit-visual-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-check-item,
+    html[data-theme="dark"] .audit-form-header-clean,
+    html[data-theme="dark"] .audit-helper-card,
+    html[data-theme="dark"] .audit-loading-card,
+    html[data-theme="dark"] .audit-stage-item,
+    html[data-theme="dark"] .audit-visual-card,
+    html[data-theme="dark"] .audit-form-card-clean h1,
+    html[data-theme="dark"] .audit-form-card-clean h2,
+    html[data-theme="dark"] .audit-form-card-clean h3,
+    html[data-theme="dark"] .audit-form-card-clean h4,
+    html[data-theme="dark"] .audit-form-card-clean strong,
+    html[data-theme="dark"] .audit-loading-card h1,
+    html[data-theme="dark"] .audit-loading-card h2,
+    html[data-theme="dark"] .audit-loading-card h3,
+    html[data-theme="dark"] .audit-loading-card h4,
+    html[data-theme="dark"] .audit-loading-card strong,
+    html[data-theme="dark"] .audit-side-card h1,
+    html[data-theme="dark"] .audit-side-card h2,
+    html[data-theme="dark"] .audit-side-card h3,
+    html[data-theme="dark"] .audit-side-card h4,
+    html[data-theme="dark"] .audit-side-card strong,
+    html[data-theme="dark"] .audit-stage-item h1,
+    html[data-theme="dark"] .audit-stage-item h2,
+    html[data-theme="dark"] .audit-stage-item h3,
+    html[data-theme="dark"] .audit-stage-item h4,
+    html[data-theme="dark"] .audit-stage-item strong,
+    html[data-theme="dark"] .audit-visual-card h1,
+    html[data-theme="dark"] .audit-visual-card h2,
+    html[data-theme="dark"] .audit-visual-card h3,
+    html[data-theme="dark"] .audit-visual-card h4,
+    html[data-theme="dark"] .audit-visual-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-loading-note,
+    html[data-theme="dark"] .audit-progress-meta,
+    html[data-theme="dark"] .form-help {
+        color: var(--theme-text-secondary);
+    }
 </style>
 
 <script>

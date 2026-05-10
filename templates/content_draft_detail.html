@@ -540,5 +540,89 @@ For businesses, content like this does more than educate readers. It also improv
         align-items: flex-start;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .draft-card,
+    html[data-theme="dark"] .draft-cta-card,
+    html[data-theme="dark"] .draft-editor,
+    html[data-theme="dark"] .draft-editor-shell,
+    html[data-theme="dark"] .draft-hero-card,
+    html[data-theme="dark"] .draft-meta-card,
+    html[data-theme="dark"] .draft-summary-card,
+    html[data-theme="dark"] .improvement-item,
+    html[data-theme="dark"] .summary-item {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .check-item,
+    html[data-theme="dark"] .draft-badge {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .draft-cta-copy,
+    html[data-theme="dark"] .draft-editor,
+    html[data-theme="dark"] .draft-hero-main,
+    html[data-theme="dark"] .draft-meta-card,
+    html[data-theme="dark"] .improvement-item,
+    html[data-theme="dark"] .section-head,
+    html[data-theme="dark"] .summary-item,
+    html[data-theme="dark"] .draft-card h1,
+    html[data-theme="dark"] .draft-card h2,
+    html[data-theme="dark"] .draft-card h3,
+    html[data-theme="dark"] .draft-card h4,
+    html[data-theme="dark"] .draft-card strong,
+    html[data-theme="dark"] .draft-cta-card h1,
+    html[data-theme="dark"] .draft-cta-card h2,
+    html[data-theme="dark"] .draft-cta-card h3,
+    html[data-theme="dark"] .draft-cta-card h4,
+    html[data-theme="dark"] .draft-cta-card strong,
+    html[data-theme="dark"] .draft-editor h1,
+    html[data-theme="dark"] .draft-editor h2,
+    html[data-theme="dark"] .draft-editor h3,
+    html[data-theme="dark"] .draft-editor h4,
+    html[data-theme="dark"] .draft-editor strong,
+    html[data-theme="dark"] .draft-editor-shell h1,
+    html[data-theme="dark"] .draft-editor-shell h2,
+    html[data-theme="dark"] .draft-editor-shell h3,
+    html[data-theme="dark"] .draft-editor-shell h4,
+    html[data-theme="dark"] .draft-editor-shell strong,
+    html[data-theme="dark"] .draft-hero-card h1,
+    html[data-theme="dark"] .draft-hero-card h2,
+    html[data-theme="dark"] .draft-hero-card h3,
+    html[data-theme="dark"] .draft-hero-card h4,
+    html[data-theme="dark"] .draft-hero-card strong,
+    html[data-theme="dark"] .draft-meta-card h1,
+    html[data-theme="dark"] .draft-meta-card h2,
+    html[data-theme="dark"] .draft-meta-card h3,
+    html[data-theme="dark"] .draft-meta-card h4,
+    html[data-theme="dark"] .draft-meta-card strong,
+    html[data-theme="dark"] .draft-summary-card h1,
+    html[data-theme="dark"] .draft-summary-card h2,
+    html[data-theme="dark"] .draft-summary-card h3,
+    html[data-theme="dark"] .draft-summary-card h4,
+    html[data-theme="dark"] .draft-summary-card strong,
+    html[data-theme="dark"] .improvement-item h1,
+    html[data-theme="dark"] .improvement-item h2,
+    html[data-theme="dark"] .improvement-item h3,
+    html[data-theme="dark"] .improvement-item h4,
+    html[data-theme="dark"] .improvement-item strong,
+    html[data-theme="dark"] .summary-item h1,
+    html[data-theme="dark"] .summary-item h2,
+    html[data-theme="dark"] .summary-item h3,
+    html[data-theme="dark"] .summary-item h4,
+    html[data-theme="dark"] .summary-item strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .check-item,
+    html[data-theme="dark"] .draft-summary-label,
+    html[data-theme="dark"] .draft-summary-note {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .check-item,
+    html[data-theme="dark"] .draft-badge {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}

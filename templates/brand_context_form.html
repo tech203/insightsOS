@@ -226,6 +226,39 @@
         width: 100%;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .brand-context-card,
+    html[data-theme="dark"] .brand-context-side-card,
+    html[data-theme="dark"] .form-section {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .context-checklist {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .brand-context-side-card,
+    html[data-theme="dark"] .form-section,
+    html[data-theme="dark"] .brand-context-card h1,
+    html[data-theme="dark"] .brand-context-card h2,
+    html[data-theme="dark"] .brand-context-card h3,
+    html[data-theme="dark"] .brand-context-card h4,
+    html[data-theme="dark"] .brand-context-card strong,
+    html[data-theme="dark"] .brand-context-side-card h1,
+    html[data-theme="dark"] .brand-context-side-card h2,
+    html[data-theme="dark"] .brand-context-side-card h3,
+    html[data-theme="dark"] .brand-context-side-card h4,
+    html[data-theme="dark"] .brand-context-side-card strong,
+    html[data-theme="dark"] .form-section h1,
+    html[data-theme="dark"] .form-section h2,
+    html[data-theme="dark"] .form-section h3,
+    html[data-theme="dark"] .form-section h4,
+    html[data-theme="dark"] .form-section strong {
+        color: var(--theme-text-primary);
+    }
 </style>
 
 {% endblock %}

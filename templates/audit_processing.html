@@ -83,5 +83,20 @@ setTimeout(() => {
     color: #111827;
     font-weight: 600;
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .processing-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .step,
+    html[data-theme="dark"] .processing-card h1,
+    html[data-theme="dark"] .processing-card h2,
+    html[data-theme="dark"] .processing-card h3,
+    html[data-theme="dark"] .processing-card h4,
+    html[data-theme="dark"] .processing-card strong {
+        color: var(--theme-text-primary);
+    }
 </style>
 {% endblock %}

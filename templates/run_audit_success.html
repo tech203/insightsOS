@@ -453,6 +453,68 @@
         width: 100%;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .audit-complete-hero,
+    html[data-theme="dark"] .audit-complete-hero-card,
+    html[data-theme="dark"] .audit-meta-card,
+    html[data-theme="dark"] .audit-step-card,
+    html[data-theme="dark"] .panel,
+    html[data-theme="dark"] .tip-item {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .hero-badge {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .audit-complete-hero-copy,
+    html[data-theme="dark"] .audit-meta-card,
+    html[data-theme="dark"] .audit-step-card,
+    html[data-theme="dark"] .panel-header,
+    html[data-theme="dark"] .audit-complete-hero h1,
+    html[data-theme="dark"] .audit-complete-hero h2,
+    html[data-theme="dark"] .audit-complete-hero h3,
+    html[data-theme="dark"] .audit-complete-hero h4,
+    html[data-theme="dark"] .audit-complete-hero strong,
+    html[data-theme="dark"] .audit-complete-hero-card h1,
+    html[data-theme="dark"] .audit-complete-hero-card h2,
+    html[data-theme="dark"] .audit-complete-hero-card h3,
+    html[data-theme="dark"] .audit-complete-hero-card h4,
+    html[data-theme="dark"] .audit-complete-hero-card strong,
+    html[data-theme="dark"] .audit-meta-card h1,
+    html[data-theme="dark"] .audit-meta-card h2,
+    html[data-theme="dark"] .audit-meta-card h3,
+    html[data-theme="dark"] .audit-meta-card h4,
+    html[data-theme="dark"] .audit-meta-card strong,
+    html[data-theme="dark"] .audit-step-card h1,
+    html[data-theme="dark"] .audit-step-card h2,
+    html[data-theme="dark"] .audit-step-card h3,
+    html[data-theme="dark"] .audit-step-card h4,
+    html[data-theme="dark"] .audit-step-card strong,
+    html[data-theme="dark"] .panel h1,
+    html[data-theme="dark"] .panel h2,
+    html[data-theme="dark"] .panel h3,
+    html[data-theme="dark"] .panel h4,
+    html[data-theme="dark"] .panel strong,
+    html[data-theme="dark"] .tip-item h1,
+    html[data-theme="dark"] .tip-item h2,
+    html[data-theme="dark"] .tip-item h3,
+    html[data-theme="dark"] .tip-item h4,
+    html[data-theme="dark"] .tip-item strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .hero-card-label,
+    html[data-theme="dark"] .hero-card-text,
+    html[data-theme="dark"] .panel-subtitle,
+    html[data-theme="dark"] .tip-item {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .hero-badge {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 
 {% endblock %}

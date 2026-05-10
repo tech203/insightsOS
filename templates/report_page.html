@@ -785,5 +785,90 @@
         font-size: 26px;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .action-card,
+    html[data-theme="dark"] .meta-card,
+    html[data-theme="dark"] .opportunity-chip,
+    html[data-theme="dark"] .report-card,
+    html[data-theme="dark"] .report-card-priority,
+    html[data-theme="dark"] .report-cta-card,
+    html[data-theme="dark"] .report-hero,
+    html[data-theme="dark"] .score-card-main,
+    html[data-theme="dark"] .snapshot-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .finding-neutral,
+    html[data-theme="dark"] .report-badge {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .action-copy,
+    html[data-theme="dark"] .cta-copy,
+    html[data-theme="dark"] .finding-copy,
+    html[data-theme="dark"] .meta-card,
+    html[data-theme="dark"] .report-card-priority,
+    html[data-theme="dark"] .report-hero-main,
+    html[data-theme="dark"] .score-next-step,
+    html[data-theme="dark"] .section-head,
+    html[data-theme="dark"] .snapshot-card,
+    html[data-theme="dark"] .action-card h1,
+    html[data-theme="dark"] .action-card h2,
+    html[data-theme="dark"] .action-card h3,
+    html[data-theme="dark"] .action-card h4,
+    html[data-theme="dark"] .action-card strong,
+    html[data-theme="dark"] .meta-card h1,
+    html[data-theme="dark"] .meta-card h2,
+    html[data-theme="dark"] .meta-card h3,
+    html[data-theme="dark"] .meta-card h4,
+    html[data-theme="dark"] .meta-card strong,
+    html[data-theme="dark"] .opportunity-chip h1,
+    html[data-theme="dark"] .opportunity-chip h2,
+    html[data-theme="dark"] .opportunity-chip h3,
+    html[data-theme="dark"] .opportunity-chip h4,
+    html[data-theme="dark"] .opportunity-chip strong,
+    html[data-theme="dark"] .report-card h1,
+    html[data-theme="dark"] .report-card h2,
+    html[data-theme="dark"] .report-card h3,
+    html[data-theme="dark"] .report-card h4,
+    html[data-theme="dark"] .report-card strong,
+    html[data-theme="dark"] .report-card-priority h1,
+    html[data-theme="dark"] .report-card-priority h2,
+    html[data-theme="dark"] .report-card-priority h3,
+    html[data-theme="dark"] .report-card-priority h4,
+    html[data-theme="dark"] .report-card-priority strong,
+    html[data-theme="dark"] .report-cta-card h1,
+    html[data-theme="dark"] .report-cta-card h2,
+    html[data-theme="dark"] .report-cta-card h3,
+    html[data-theme="dark"] .report-cta-card h4,
+    html[data-theme="dark"] .report-cta-card strong,
+    html[data-theme="dark"] .report-hero h1,
+    html[data-theme="dark"] .report-hero h2,
+    html[data-theme="dark"] .report-hero h3,
+    html[data-theme="dark"] .report-hero h4,
+    html[data-theme="dark"] .report-hero strong,
+    html[data-theme="dark"] .score-card-main h1,
+    html[data-theme="dark"] .score-card-main h2,
+    html[data-theme="dark"] .score-card-main h3,
+    html[data-theme="dark"] .score-card-main h4,
+    html[data-theme="dark"] .score-card-main strong,
+    html[data-theme="dark"] .snapshot-card h1,
+    html[data-theme="dark"] .snapshot-card h2,
+    html[data-theme="dark"] .snapshot-card h3,
+    html[data-theme="dark"] .snapshot-card h4,
+    html[data-theme="dark"] .snapshot-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .score-label,
+    html[data-theme="dark"] .score-note {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .finding-item,
+    html[data-theme="dark"] .report-badge {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}

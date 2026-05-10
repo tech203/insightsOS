@@ -1171,6 +1171,81 @@
 .ai-edit-loading.is-visible {
     display: inline-block;
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .ai-edit-modal,
+    html[data-theme="dark"] .ai-edit-scope-select,
+    html[data-theme="dark"] .queue-edit-form,
+    html[data-theme="dark"] .queue-filter-card,
+    html[data-theme="dark"] .queue-filter-form {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .ai-edit-chip,
+    html[data-theme="dark"] .ai-edit-loading,
+    html[data-theme="dark"] .ai-edit-msg-assistant,
+    html[data-theme="dark"] .queue-edit-panel,
+    html[data-theme="dark"] .queue-pagination {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .ai-edit-chip,
+    html[data-theme="dark"] .ai-edit-close,
+    html[data-theme="dark"] .ai-edit-head,
+    html[data-theme="dark"] .ai-edit-link-btn,
+    html[data-theme="dark"] .ai-edit-msg-assistant,
+    html[data-theme="dark"] .ai-edit-msg-user,
+    html[data-theme="dark"] .ai-edit-scope-select,
+    html[data-theme="dark"] .queue-edit-form,
+    html[data-theme="dark"] .queue-filter-copy,
+    html[data-theme="dark"] .queue-filter-form,
+    html[data-theme="dark"] .ai-edit-modal h1,
+    html[data-theme="dark"] .ai-edit-modal h2,
+    html[data-theme="dark"] .ai-edit-modal h3,
+    html[data-theme="dark"] .ai-edit-modal h4,
+    html[data-theme="dark"] .ai-edit-modal strong,
+    html[data-theme="dark"] .ai-edit-scope-select h1,
+    html[data-theme="dark"] .ai-edit-scope-select h2,
+    html[data-theme="dark"] .ai-edit-scope-select h3,
+    html[data-theme="dark"] .ai-edit-scope-select h4,
+    html[data-theme="dark"] .ai-edit-scope-select strong,
+    html[data-theme="dark"] .queue-edit-form h1,
+    html[data-theme="dark"] .queue-edit-form h2,
+    html[data-theme="dark"] .queue-edit-form h3,
+    html[data-theme="dark"] .queue-edit-form h4,
+    html[data-theme="dark"] .queue-edit-form strong,
+    html[data-theme="dark"] .queue-filter-card h1,
+    html[data-theme="dark"] .queue-filter-card h2,
+    html[data-theme="dark"] .queue-filter-card h3,
+    html[data-theme="dark"] .queue-filter-card h4,
+    html[data-theme="dark"] .queue-filter-card strong,
+    html[data-theme="dark"] .queue-filter-form h1,
+    html[data-theme="dark"] .queue-filter-form h2,
+    html[data-theme="dark"] .queue-filter-form h3,
+    html[data-theme="dark"] .queue-filter-form h4,
+    html[data-theme="dark"] .queue-filter-form strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .ai-edit-loading,
+    html[data-theme="dark"] .ai-edit-log-empty,
+    html[data-theme="dark"] .ai-edit-msg-meta,
+    html[data-theme="dark"] .ai-edit-revision-preview,
+    html[data-theme="dark"] .ai-edit-scope-label,
+    html[data-theme="dark"] .free-cap-note,
+    html[data-theme="dark"] .queue-pagination-meta {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .ai-edit-chip,
+    html[data-theme="dark"] .ai-edit-input,
+    html[data-theme="dark"] .ai-edit-loading,
+    html[data-theme="dark"] .ai-edit-msg-assistant,
+    html[data-theme="dark"] .ai-edit-revision-preview,
+    html[data-theme="dark"] .queue-visual-thumb {
+        border-color: var(--theme-border-subtle);
+    }
+    html[data-theme="dark"] .ai-edit-error { color: #FCA5A5; background: rgba(220, 38, 38, 0.18); }
 </style>
 
 <div class="ai-edit-overlay" id="aiEditOverlay" aria-hidden="true">

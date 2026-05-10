@@ -848,5 +848,86 @@
         text-align: left;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .action-card,
+    html[data-theme="dark"] .growth-hero-card,
+    html[data-theme="dark"] .growth-mini-card,
+    html[data-theme="dark"] .growth-panel,
+    html[data-theme="dark"] .growth-score-card,
+    html[data-theme="dark"] .quick-win-card,
+    html[data-theme="dark"] .roadmap-card,
+    html[data-theme="dark"] .summary-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .execution-card,
+    html[data-theme="dark"] .growth-badge {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .action-top,
+    html[data-theme="dark"] .empty-state-box,
+    html[data-theme="dark"] .execution-card,
+    html[data-theme="dark"] .focus-text,
+    html[data-theme="dark"] .growth-hero-title,
+    html[data-theme="dark"] .growth-mini-card,
+    html[data-theme="dark"] .growth-score-sub,
+    html[data-theme="dark"] .panel-head,
+    html[data-theme="dark"] .quick-win-card,
+    html[data-theme="dark"] .roadmap-card,
+    html[data-theme="dark"] .summary-card,
+    html[data-theme="dark"] .action-card h1,
+    html[data-theme="dark"] .action-card h2,
+    html[data-theme="dark"] .action-card h3,
+    html[data-theme="dark"] .action-card h4,
+    html[data-theme="dark"] .action-card strong,
+    html[data-theme="dark"] .growth-hero-card h1,
+    html[data-theme="dark"] .growth-hero-card h2,
+    html[data-theme="dark"] .growth-hero-card h3,
+    html[data-theme="dark"] .growth-hero-card h4,
+    html[data-theme="dark"] .growth-hero-card strong,
+    html[data-theme="dark"] .growth-mini-card h1,
+    html[data-theme="dark"] .growth-mini-card h2,
+    html[data-theme="dark"] .growth-mini-card h3,
+    html[data-theme="dark"] .growth-mini-card h4,
+    html[data-theme="dark"] .growth-mini-card strong,
+    html[data-theme="dark"] .growth-panel h1,
+    html[data-theme="dark"] .growth-panel h2,
+    html[data-theme="dark"] .growth-panel h3,
+    html[data-theme="dark"] .growth-panel h4,
+    html[data-theme="dark"] .growth-panel strong,
+    html[data-theme="dark"] .growth-score-card h1,
+    html[data-theme="dark"] .growth-score-card h2,
+    html[data-theme="dark"] .growth-score-card h3,
+    html[data-theme="dark"] .growth-score-card h4,
+    html[data-theme="dark"] .growth-score-card strong,
+    html[data-theme="dark"] .quick-win-card h1,
+    html[data-theme="dark"] .quick-win-card h2,
+    html[data-theme="dark"] .quick-win-card h3,
+    html[data-theme="dark"] .quick-win-card h4,
+    html[data-theme="dark"] .quick-win-card strong,
+    html[data-theme="dark"] .roadmap-card h1,
+    html[data-theme="dark"] .roadmap-card h2,
+    html[data-theme="dark"] .roadmap-card h3,
+    html[data-theme="dark"] .roadmap-card h4,
+    html[data-theme="dark"] .roadmap-card strong,
+    html[data-theme="dark"] .summary-card h1,
+    html[data-theme="dark"] .summary-card h2,
+    html[data-theme="dark"] .summary-card h3,
+    html[data-theme="dark"] .summary-card h4,
+    html[data-theme="dark"] .summary-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .action-card,
+    html[data-theme="dark"] .growth-score-label,
+    html[data-theme="dark"] .muted-line {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .growth-badge {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}

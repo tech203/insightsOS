@@ -672,5 +672,102 @@
         align-items: flex-start;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .brief-card,
+    html[data-theme="dark"] .brief-cta-card,
+    html[data-theme="dark"] .brief-hero-card,
+    html[data-theme="dark"] .brief-mini-card,
+    html[data-theme="dark"] .brief-priority-card,
+    html[data-theme="dark"] .brief-score-card,
+    html[data-theme="dark"] .guidance-card,
+    html[data-theme="dark"] .keypoint-item,
+    html[data-theme="dark"] .outline-item,
+    html[data-theme="dark"] .question-card,
+    html[data-theme="dark"] .summary-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .brief-badge {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .brief-cta-copy,
+    html[data-theme="dark"] .brief-hero-main,
+    html[data-theme="dark"] .brief-mini-card,
+    html[data-theme="dark"] .brief-priority-card,
+    html[data-theme="dark"] .guidance-card,
+    html[data-theme="dark"] .keypoint-item,
+    html[data-theme="dark"] .outline-copy,
+    html[data-theme="dark"] .question-text,
+    html[data-theme="dark"] .section-title,
+    html[data-theme="dark"] .summary-card,
+    html[data-theme="dark"] .brief-card h1,
+    html[data-theme="dark"] .brief-card h2,
+    html[data-theme="dark"] .brief-card h3,
+    html[data-theme="dark"] .brief-card h4,
+    html[data-theme="dark"] .brief-card strong,
+    html[data-theme="dark"] .brief-cta-card h1,
+    html[data-theme="dark"] .brief-cta-card h2,
+    html[data-theme="dark"] .brief-cta-card h3,
+    html[data-theme="dark"] .brief-cta-card h4,
+    html[data-theme="dark"] .brief-cta-card strong,
+    html[data-theme="dark"] .brief-hero-card h1,
+    html[data-theme="dark"] .brief-hero-card h2,
+    html[data-theme="dark"] .brief-hero-card h3,
+    html[data-theme="dark"] .brief-hero-card h4,
+    html[data-theme="dark"] .brief-hero-card strong,
+    html[data-theme="dark"] .brief-mini-card h1,
+    html[data-theme="dark"] .brief-mini-card h2,
+    html[data-theme="dark"] .brief-mini-card h3,
+    html[data-theme="dark"] .brief-mini-card h4,
+    html[data-theme="dark"] .brief-mini-card strong,
+    html[data-theme="dark"] .brief-priority-card h1,
+    html[data-theme="dark"] .brief-priority-card h2,
+    html[data-theme="dark"] .brief-priority-card h3,
+    html[data-theme="dark"] .brief-priority-card h4,
+    html[data-theme="dark"] .brief-priority-card strong,
+    html[data-theme="dark"] .brief-score-card h1,
+    html[data-theme="dark"] .brief-score-card h2,
+    html[data-theme="dark"] .brief-score-card h3,
+    html[data-theme="dark"] .brief-score-card h4,
+    html[data-theme="dark"] .brief-score-card strong,
+    html[data-theme="dark"] .guidance-card h1,
+    html[data-theme="dark"] .guidance-card h2,
+    html[data-theme="dark"] .guidance-card h3,
+    html[data-theme="dark"] .guidance-card h4,
+    html[data-theme="dark"] .guidance-card strong,
+    html[data-theme="dark"] .keypoint-item h1,
+    html[data-theme="dark"] .keypoint-item h2,
+    html[data-theme="dark"] .keypoint-item h3,
+    html[data-theme="dark"] .keypoint-item h4,
+    html[data-theme="dark"] .keypoint-item strong,
+    html[data-theme="dark"] .outline-item h1,
+    html[data-theme="dark"] .outline-item h2,
+    html[data-theme="dark"] .outline-item h3,
+    html[data-theme="dark"] .outline-item h4,
+    html[data-theme="dark"] .outline-item strong,
+    html[data-theme="dark"] .question-card h1,
+    html[data-theme="dark"] .question-card h2,
+    html[data-theme="dark"] .question-card h3,
+    html[data-theme="dark"] .question-card h4,
+    html[data-theme="dark"] .question-card strong,
+    html[data-theme="dark"] .summary-card h1,
+    html[data-theme="dark"] .summary-card h2,
+    html[data-theme="dark"] .summary-card h3,
+    html[data-theme="dark"] .summary-card h4,
+    html[data-theme="dark"] .summary-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .brief-score-label,
+    html[data-theme="dark"] .brief-score-note,
+    html[data-theme="dark"] .section-copy {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .brief-badge {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}

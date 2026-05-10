@@ -688,5 +688,69 @@
         font-size: 24px;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .detail-card,
+    html[data-theme="dark"] .prompt-detail-action-band,
+    html[data-theme="dark"] .prompt-detail-hero-card,
+    html[data-theme="dark"] .prompt-detail-score-card,
+    html[data-theme="dark"] .summary-card,
+    html[data-theme="dark"] .workflow-card {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .ai-answer-box,
+    html[data-theme="dark"] .source-item {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .action-band-copy,
+    html[data-theme="dark"] .action-checklist-copy,
+    html[data-theme="dark"] .prompt-detail-hero-main,
+    html[data-theme="dark"] .score-meta-row,
+    html[data-theme="dark"] .section-title,
+    html[data-theme="dark"] .summary-value,
+    html[data-theme="dark"] .workflow-card,
+    html[data-theme="dark"] .detail-card h1,
+    html[data-theme="dark"] .detail-card h2,
+    html[data-theme="dark"] .detail-card h3,
+    html[data-theme="dark"] .detail-card h4,
+    html[data-theme="dark"] .detail-card strong,
+    html[data-theme="dark"] .prompt-detail-action-band h1,
+    html[data-theme="dark"] .prompt-detail-action-band h2,
+    html[data-theme="dark"] .prompt-detail-action-band h3,
+    html[data-theme="dark"] .prompt-detail-action-band h4,
+    html[data-theme="dark"] .prompt-detail-action-band strong,
+    html[data-theme="dark"] .prompt-detail-hero-card h1,
+    html[data-theme="dark"] .prompt-detail-hero-card h2,
+    html[data-theme="dark"] .prompt-detail-hero-card h3,
+    html[data-theme="dark"] .prompt-detail-hero-card h4,
+    html[data-theme="dark"] .prompt-detail-hero-card strong,
+    html[data-theme="dark"] .prompt-detail-score-card h1,
+    html[data-theme="dark"] .prompt-detail-score-card h2,
+    html[data-theme="dark"] .prompt-detail-score-card h3,
+    html[data-theme="dark"] .prompt-detail-score-card h4,
+    html[data-theme="dark"] .prompt-detail-score-card strong,
+    html[data-theme="dark"] .summary-card h1,
+    html[data-theme="dark"] .summary-card h2,
+    html[data-theme="dark"] .summary-card h3,
+    html[data-theme="dark"] .summary-card h4,
+    html[data-theme="dark"] .summary-card strong,
+    html[data-theme="dark"] .workflow-card h1,
+    html[data-theme="dark"] .workflow-card h2,
+    html[data-theme="dark"] .workflow-card h3,
+    html[data-theme="dark"] .workflow-card h4,
+    html[data-theme="dark"] .workflow-card strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .prompt-detail-hero-text,
+    html[data-theme="dark"] .score-card-label,
+    html[data-theme="dark"] .section-copy,
+    html[data-theme="dark"] .summary-copy,
+    html[data-theme="dark"] .summary-label {
+        color: var(--theme-text-secondary);
+    }
 </style>
 {% endblock %}

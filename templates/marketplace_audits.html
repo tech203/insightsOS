@@ -103,6 +103,37 @@
         text-align: center;
         color: #555;
     }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .mp-btn-secondary,
+    html[data-theme="dark"] .mp-card,
+    html[data-theme="dark"] .mp-empty {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .mp-btn,
+    html[data-theme="dark"] .mp-btn-secondary h1,
+    html[data-theme="dark"] .mp-btn-secondary h2,
+    html[data-theme="dark"] .mp-btn-secondary h3,
+    html[data-theme="dark"] .mp-btn-secondary h4,
+    html[data-theme="dark"] .mp-btn-secondary strong,
+    html[data-theme="dark"] .mp-card h1,
+    html[data-theme="dark"] .mp-card h2,
+    html[data-theme="dark"] .mp-card h3,
+    html[data-theme="dark"] .mp-card h4,
+    html[data-theme="dark"] .mp-card strong,
+    html[data-theme="dark"] .mp-empty h1,
+    html[data-theme="dark"] .mp-empty h2,
+    html[data-theme="dark"] .mp-empty h3,
+    html[data-theme="dark"] .mp-empty h4,
+    html[data-theme="dark"] .mp-empty strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .mp-add-form,
+    html[data-theme="dark"] .mp-query-row {
+        border-color: var(--theme-border-subtle);
+    }
 </style>
 {% endblock %}
 

@@ -582,6 +582,61 @@
         align-items: stretch;
     }
 }
+
+    /* === Dark-mode flip for inline styles === */
+    html[data-theme="dark"] .growth-calendar-card-recommendation,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn,
+    html[data-theme="dark"] .growth-calendar-schedule-form,
+    html[data-theme="dark"] .growth-calendar-week {
+        background: var(--theme-surface);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .growth-calendar-card,
+    html[data-theme="dark"] .growth-calendar-card-empty,
+    html[data-theme="dark"] .growth-calendar-week-count {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .growth-calendar-card,
+    html[data-theme="dark"] .growth-calendar-week-head,
+    html[data-theme="dark"] .growth-calendar-card-recommendation h1,
+    html[data-theme="dark"] .growth-calendar-card-recommendation h2,
+    html[data-theme="dark"] .growth-calendar-card-recommendation h3,
+    html[data-theme="dark"] .growth-calendar-card-recommendation h4,
+    html[data-theme="dark"] .growth-calendar-card-recommendation strong,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn h1,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn h2,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn h3,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn h4,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn strong,
+    html[data-theme="dark"] .growth-calendar-schedule-form h1,
+    html[data-theme="dark"] .growth-calendar-schedule-form h2,
+    html[data-theme="dark"] .growth-calendar-schedule-form h3,
+    html[data-theme="dark"] .growth-calendar-schedule-form h4,
+    html[data-theme="dark"] .growth-calendar-schedule-form strong,
+    html[data-theme="dark"] .growth-calendar-week h1,
+    html[data-theme="dark"] .growth-calendar-week h2,
+    html[data-theme="dark"] .growth-calendar-week h3,
+    html[data-theme="dark"] .growth-calendar-week h4,
+    html[data-theme="dark"] .growth-calendar-week strong {
+        color: var(--theme-text-primary);
+    }
+    html[data-theme="dark"] .growth-calendar-card-credit,
+    html[data-theme="dark"] .growth-calendar-card-empty,
+    html[data-theme="dark"] .growth-calendar-card-status,
+    html[data-theme="dark"] .growth-calendar-card-sub,
+    html[data-theme="dark"] .growth-calendar-dismiss-btn,
+    html[data-theme="dark"] .growth-calendar-schedule-form,
+    html[data-theme="dark"] .growth-calendar-week-count {
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .growth-calendar-card,
+    html[data-theme="dark"] .growth-calendar-card-empty {
+        border-color: var(--theme-border-subtle);
+    }
+    html[data-theme="dark"] .growth-calendar-dismiss-btn { color: #FCA5A5; background: rgba(220, 38, 38, 0.18); }
 </style>
 
 {% endblock %}
