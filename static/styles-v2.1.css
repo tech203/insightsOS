@@ -9166,8 +9166,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+    position: relative;
+    overflow: hidden;
+}
+.summary-card-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .summary-label {
@@ -11494,8 +11505,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+    position: relative;
+    overflow: hidden;
+}
+.summary-card-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .summary-label {
@@ -16445,8 +16467,8 @@ a.btn {
 .queue-guidance-card,
 .queue-focus-card {
     border-radius: 18px;
-    border: 1px solid #e7ebf3;
-    background: #fbfcff;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
 }
 
 .queue-guidance-card {
@@ -16481,10 +16503,15 @@ a.btn {
     line-height: 1.65;
 }
 
+/* This block of overrides used to repaint .queue-focus-card with a
+   peach wash + orange "18" + coral pill. Replaced with brand-aligned
+   tokens so the earlier definition at line 11412 stays the source
+   of truth. The styles here only adjust dimensions / sizes that
+   are page-specific, not colors. */
 .queue-focus-card {
-    padding: 18px;
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    padding: 22px;
+    background: var(--bg-card);
+    border-color: var(--border-main);
 }
 
 .focus-top {
@@ -16497,36 +16524,39 @@ a.btn {
 .focus-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 28px;
+    min-height: 26px;
     padding: 0 10px;
     border-radius: 999px;
-    background: #fff2ea;
-    color: #e83256;
-    font-size: 12px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
+    font-size: 11px;
     font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .focus-value {
     margin-top: 14px;
-    font-size: 56px;
+    font-size: 50px;
     line-height: 0.95;
     font-weight: 800;
-    color: #f97316;
+    color: var(--text-strong);
     letter-spacing: -0.04em;
 }
 
 .focus-title {
     margin-top: 10px;
     font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
+    font-weight: 700;
+    color: var(--text-strong);
     line-height: 1.25;
+    letter-spacing: -0.01em;
 }
 
 .focus-copy {
     margin: 10px 0 0;
-    color: #627084;
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: 13.5px;
     line-height: 1.6;
 }
 
@@ -16545,8 +16575,19 @@ a.btn {
 }
 
 .summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+    position: relative;
+    overflow: hidden;
+}
+.summary-card-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .summary-value {
