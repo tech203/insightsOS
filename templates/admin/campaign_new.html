@@ -1,0 +1,86 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "campaigns" %}
+{% block title %}New Campaign · Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>New Email Campaign</h1>
+        <p>Compose now, preview to yourself before sending to the audience.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+<a href="{{ url_for('admin_campaigns_list') }}" class="btn btn-secondary" style="width:fit-content;">← All campaigns</a>
+
+<form method="POST" action="{{ url_for('admin_campaign_new') }}" class="admin-card" style="display:grid; gap:14px;">
+
+    <label style="display:grid; gap:6px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-muted);">Internal name</span>
+        <input type="text" name="name" placeholder="e.g. Early access launch · May 2026" required>
+    </label>
+
+    <label style="display:grid; gap:6px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-muted);">Subject line</span>
+        <input type="text" name="subject" placeholder="e.g. DarInsights early access is open" required>
+    </label>
+
+    <label style="display:grid; gap:6px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-muted);">From (sender) — optional override</span>
+        <input type="text" name="sender_email" placeholder="DarInsights <hello@yourdomain.com> (leave blank to use RESEND_FROM)">
+    </label>
+
+    <label style="display:grid; gap:6px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-muted);">Body — HTML</span>
+        <textarea name="body_html" rows="10" placeholder="<p>Hi there,</p><p>...</p>"></textarea>
+    </label>
+
+    <label style="display:grid; gap:6px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-muted);">Plain-text fallback (recommended)</span>
+        <textarea name="body_text" rows="6" placeholder="Hi there,&#10;&#10;..."></textarea>
+    </label>
+
+    <fieldset style="border:1px solid var(--border-main); border-radius:12px; padding:14px;">
+        <legend style="padding:0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-muted);">Audience</legend>
+
+        <label style="display:flex; gap:8px; align-items:center; padding:8px 0;">
+            <input type="radio" name="audience_source" value="interest" checked>
+            <span><strong>Interest list</strong> — landing page signups</span>
+        </label>
+        <div style="margin-left:24px; margin-bottom:10px;">
+            {% for status in ['new', 'contacted', 'replied', 'converted', 'declined'] %}
+            <label style="display:inline-flex; gap:6px; align-items:center; margin-right:14px; font-size:13px;">
+                <input type="checkbox" name="interest_status" value="{{ status }}"
+                    {% if status in ['new', 'contacted'] %}checked{% endif %}>
+                {{ status }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <label style="display:flex; gap:8px; align-items:center; padding:8px 0;">
+            <input type="radio" name="audience_source" value="users">
+            <span><strong>App users</strong> — people with accounts</span>
+        </label>
+        <div style="margin-left:24px; margin-bottom:10px;">
+            {% for plan in ['free', 'pro', 'growth'] %}
+            <label style="display:inline-flex; gap:6px; align-items:center; margin-right:14px; font-size:13px;">
+                <input type="checkbox" name="user_plan" value="{{ plan }}">
+                {{ plan }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <label style="display:flex; gap:8px; align-items:center; padding:8px 0;">
+            <input type="radio" name="audience_source" value="manual">
+            <span><strong>Manual list</strong> — paste emails</span>
+        </label>
+        <textarea name="manual_emails" rows="3" placeholder="one@example.com, two@example.com" style="margin-left:24px; width:calc(100% - 24px);"></textarea>
+    </fieldset>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <a href="{{ url_for('admin_campaigns_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save draft</button>
+    </div>
+</form>
+{% endblock %}

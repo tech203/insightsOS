@@ -1,0 +1,207 @@
+{# Shared admin chrome — sidebar nav with brand-aligned active state.
+   Pages extend this via {% extends "admin/_shell.html" %} and fill
+   the {% block admin_content %} block. #}
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+.admin-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+@media (max-width: 900px) {
+    .admin-shell { grid-template-columns: 1fr; }
+}
+
+.admin-side {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 16px;
+    padding: 14px;
+    position: sticky;
+    top: 16px;
+}
+.admin-side-kicker {
+    display: block;
+    margin-bottom: 10px;
+    padding: 0 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+}
+.admin-side-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    color: var(--text-strong);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background var(--transition-fast, 0.15s),
+                color var(--transition-fast, 0.15s);
+}
+.admin-side-link:hover {
+    background: var(--bg-soft-alt);
+}
+.admin-side-link.active {
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
+    font-weight: 700;
+}
+
+.admin-main {
+    min-width: 0;
+    display: grid;
+    gap: 16px;
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+.admin-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 14px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+}
+.admin-stat::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
+    opacity: 0.7;
+}
+.admin-stat .label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-muted);
+}
+.admin-stat .value {
+    display: block;
+    margin-top: 6px;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-strong);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+.admin-stat .delta {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.admin-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 14px;
+    padding: 16px 18px;
+}
+.admin-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.admin-card-head h2 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text-strong);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.admin-table thead th {
+    background: var(--bg-soft);
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    font-weight: 700;
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-main);
+}
+.admin-table tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-strong);
+    vertical-align: top;
+}
+.admin-table tbody tr:hover td { background: var(--bg-soft-alt); }
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+
+.admin-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-soft);
+    color: var(--text-muted);
+}
+.admin-pill-aqua { background: var(--brand-primary-soft); color: var(--brand-deep, #16a99a); }
+.admin-pill-purple { background: var(--brand-secondary-soft); color: var(--brand-secondary); }
+.admin-pill-green { background: rgba(16, 185, 129, 0.12); color: #047857; }
+.admin-pill-red { background: rgba(239, 68, 68, 0.10); color: #b91c1c; }
+.admin-pill-amber { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+
+.admin-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 14px;
+    padding: 12px 14px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+    <aside class="admin-side">
+        <span class="admin-side-kicker">Admin</span>
+        {% set active_section = active_admin_section|default('overview') %}
+        <a href="{{ url_for('admin_overview') }}"
+           class="admin-side-link {% if active_section == 'overview' %}active{% endif %}">Overview</a>
+        <a href="{{ url_for('admin_users_list') }}"
+           class="admin-side-link {% if active_section == 'users' %}active{% endif %}">Users</a>
+        <a href="{{ url_for('admin_payments') }}"
+           class="admin-side-link {% if active_section == 'payments' %}active{% endif %}">Payments</a>
+        <a href="{{ url_for('admin_interest_list') }}"
+           class="admin-side-link {% if active_section == 'interest' %}active{% endif %}">Interest CRM</a>
+        <a href="{{ url_for('admin_campaigns_list') }}"
+           class="admin-side-link {% if active_section == 'campaigns' %}active{% endif %}">Email Campaigns</a>
+    </aside>
+
+    <main class="admin-main">
+        {% block admin_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

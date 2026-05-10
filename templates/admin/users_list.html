@@ -1,0 +1,69 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "users" %}
+{% block title %}Users · Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Users</h1>
+        <p>Every signed-up user — search by email or company, filter by plan.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+<section class="admin-toolbar">
+    <form method="GET" action="{{ url_for('admin_users_list') }}" style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
+        <input type="text" name="q" placeholder="Search email or name…" value="{{ active_query }}" style="flex:1; min-width:200px;">
+        <select name="plan">
+            <option value="">All plans</option>
+            {% for p in plans %}
+            <option value="{{ p }}" {% if active_plan == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        {% if active_query or active_plan %}
+        <a href="{{ url_for('admin_users_list') }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </form>
+</section>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+{% if summaries %}
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Plan</th>
+            <th>Role</th>
+            <th>Wallet</th>
+            <th>Workspaces</th>
+            <th>Joined</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for s in summaries %}
+        <tr>
+            <td>
+                <strong>{{ s.user.email }}</strong>
+                {% if s.user.name %}<div style="color:var(--text-muted); font-size:11.5px;">{{ s.user.name }}</div>{% endif %}
+            </td>
+            <td><span class="admin-pill admin-pill-aqua">{{ s.user.plan }}</span></td>
+            <td>
+                {% if s.user.role == 'admin' %}<span class="admin-pill admin-pill-purple">admin</span>
+                {% else %}<span class="admin-pill">{{ s.user.role or 'user' }}</span>{% endif %}
+            </td>
+            <td>{{ s.wallet_balance }}</td>
+            <td>{{ s.workspace_count }}</td>
+            <td style="color:var(--text-muted); font-size:11.5px;">{{ s.user.created_at.strftime('%d %b %Y') if s.user.created_at else '—' }}</td>
+            <td><a href="{{ url_for('admin_user_detail', user_id=s.user.id) }}" class="btn btn-secondary" style="min-height:32px; padding:0 12px; font-size:12px;">Open</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="padding:32px 20px; color:var(--text-muted); text-align:center; margin:0;">No users match this filter.</p>
+{% endif %}
+</section>
+{% endblock %}

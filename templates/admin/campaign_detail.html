@@ -1,0 +1,113 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "campaigns" %}
+{% block title %}{{ campaign.name }} · Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ campaign.name }}</h1>
+        <p>Subject: <strong>{{ campaign.subject }}</strong></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+<a href="{{ url_for('admin_campaigns_list') }}" class="btn btn-secondary" style="width:fit-content;">← All campaigns</a>
+
+<section class="admin-stats">
+    <div class="admin-stat">
+        <span class="label">Status</span>
+        <span class="value" style="font-size:18px; text-transform:capitalize;">{{ campaign.status }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Audience size</span>
+        <span class="value">{{ audience_size }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Sent</span>
+        <span class="value">{{ campaign.sent_count }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Failed</span>
+        <span class="value" style="color:{% if campaign.failed_count %}#b91c1c{% else %}var(--text-strong){% endif %};">{{ campaign.failed_count }}</span>
+    </div>
+</section>
+
+<section class="admin-card">
+    <div class="admin-card-head"><h2>Actions</h2></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <form method="POST" action="{{ url_for('admin_campaign_preview', campaign_id=campaign.id) }}">
+            <button type="submit" class="btn btn-secondary">Send preview to me</button>
+        </form>
+        {% if campaign.status not in ['sent', 'sending'] %}
+        <form method="POST" action="{{ url_for('admin_campaign_send', campaign_id=campaign.id) }}"
+              onsubmit="return confirm('Send this campaign to {{ audience_size }} recipient(s)? This cannot be undone.');">
+            <button type="submit" class="btn btn-primary">Send now to {{ audience_size }} recipients</button>
+        </form>
+        {% endif %}
+    </div>
+    {% if not audience_size %}
+    <p style="margin-top:10px; color:#b45309;">No recipients matched the audience filter — adjust the filter before sending.</p>
+    {% endif %}
+</section>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+
+    <section class="admin-card">
+        <div class="admin-card-head"><h2>Audience preview</h2></div>
+        {% if audience_preview %}
+        <ul style="margin:0; padding-left:18px; color:var(--text-strong); font-size:13px;">
+            {% for r in audience_preview %}
+            <li>{{ r.email }} <span style="color:var(--text-muted); font-size:11.5px;">({{ r.source }})</span></li>
+            {% endfor %}
+        </ul>
+        {% if audience_size > audience_preview|length %}
+        <p style="color:var(--text-muted); font-size:12px; margin-top:10px;">… and {{ audience_size - audience_preview|length }} more.</p>
+        {% endif %}
+        {% else %}
+        <p style="color:var(--text-muted); margin:0;">No recipients matched the audience filter.</p>
+        {% endif %}
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card-head"><h2>Body preview</h2></div>
+        {% if campaign.body_html %}
+        <div style="border:1px solid var(--border-main); border-radius:10px; padding:14px; background:var(--bg-soft-alt); max-height:400px; overflow:auto;">
+            {{ campaign.body_html|safe }}
+        </div>
+        {% elif campaign.body_text %}
+        <pre style="white-space:pre-wrap; margin:0; font-size:13px; color:var(--text-strong);">{{ campaign.body_text }}</pre>
+        {% else %}
+        <p style="color:var(--text-muted); margin:0;">No body content.</p>
+        {% endif %}
+    </section>
+</div>
+
+{% if recipients %}
+<section class="admin-card" style="padding:0; overflow:hidden;">
+    <div class="admin-card-head" style="padding:14px 18px 0;"><h2>Send log</h2></div>
+    <table class="admin-table">
+        <thead>
+            <tr><th>Email</th><th>Source</th><th>Status</th><th>Sent at</th><th>Error</th></tr>
+        </thead>
+        <tbody>
+        {% for r in recipients %}
+            <tr>
+                <td>{{ r.email }}</td>
+                <td><span class="admin-pill">{{ r.source or '—' }}</span></td>
+                <td>
+                    {% if r.status == 'sent' %}<span class="admin-pill admin-pill-green">{{ r.status }}</span>
+                    {% elif r.status == 'failed' %}<span class="admin-pill admin-pill-red">{{ r.status }}</span>
+                    {% else %}<span class="admin-pill">{{ r.status }}</span>{% endif %}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ r.sent_at.strftime('%d %b %H:%M') if r.sent_at else '—' }}</td>
+                <td style="color:#b91c1c; font-size:11.5px;">{{ r.error or '' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{% endblock %}

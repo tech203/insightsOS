@@ -1,0 +1,134 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "payments" %}
+{% block title %}Payments · Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Payments</h1>
+        <p>Live Stripe charges and active subscriptions, plus the local credit-transaction log.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+{% if stripe_error %}
+<section class="admin-card" style="border-color: rgba(239, 68, 68, 0.30); background: rgba(239, 68, 68, 0.04);">
+    <strong style="color:#b91c1c;">Stripe error:</strong> {{ stripe_error }}
+</section>
+{% endif %}
+
+<section class="admin-stats">
+    <div class="admin-stat">
+        <span class="label">Estimated MRR</span>
+        <span class="value">${{ '%.2f' % mrr }}</span>
+        <span class="delta">from {{ subscriptions|length }} active subs</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Active Subscriptions</span>
+        <span class="value">{{ subscriptions|length }}</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Recent Charges</span>
+        <span class="value">{{ charges|length }}</span>
+        <span class="delta">last 50</span>
+    </div>
+</section>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+    <div class="admin-card-head" style="padding:14px 18px 0;">
+        <h2>Active Subscriptions</h2>
+    </div>
+    {% if subscriptions %}
+    <table class="admin-table">
+        <thead>
+            <tr><th>Customer</th><th>Status</th><th>Amount</th><th>Started</th></tr>
+        </thead>
+        <tbody>
+        {% for sub in subscriptions %}
+            {% set cust = sub.customer if sub.customer is mapping else {} %}
+            {% set first_item = (sub['items']['data'][0] if sub['items']['data'] else {}) %}
+            {% set price = first_item.price if first_item else {} %}
+            <tr>
+                <td>
+                    {{ cust.email or cust.name or sub.customer or '—' }}
+                    <div style="color:var(--text-muted); font-size:11.5px;">{{ sub.id }}</div>
+                </td>
+                <td>
+                    {% if sub.status == 'active' %}<span class="admin-pill admin-pill-green">{{ sub.status }}</span>
+                    {% elif sub.status == 'trialing' %}<span class="admin-pill admin-pill-aqua">{{ sub.status }}</span>
+                    {% elif sub.status in ['past_due', 'unpaid'] %}<span class="admin-pill admin-pill-red">{{ sub.status }}</span>
+                    {% else %}<span class="admin-pill">{{ sub.status }}</span>{% endif %}
+                </td>
+                <td>
+                    ${{ '%.2f' % ((price.unit_amount or 0) / 100) }} / {{ (price.recurring or {}).interval or '—' }}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px;">
+                    {% if sub.start_date %}{{ (sub.start_date | int)|string }}{% else %}—{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">No active subscriptions.</p>
+    {% endif %}
+</section>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+    <div class="admin-card-head" style="padding:14px 18px 0;">
+        <h2>Recent Stripe Charges</h2>
+    </div>
+    {% if charges %}
+    <table class="admin-table">
+        <thead>
+            <tr><th>Customer</th><th>Amount</th><th>Status</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+        {% for ch in charges %}
+            <tr>
+                <td>{{ ch.billing_details.email if ch.billing_details else (ch.customer or '—') }}</td>
+                <td>${{ '%.2f' % ((ch.amount or 0) / 100) }} {{ ch.currency.upper() if ch.currency else '' }}</td>
+                <td>
+                    {% if ch.status == 'succeeded' %}<span class="admin-pill admin-pill-green">{{ ch.status }}</span>
+                    {% elif ch.status == 'failed' %}<span class="admin-pill admin-pill-red">{{ ch.status }}</span>
+                    {% else %}<span class="admin-pill">{{ ch.status }}</span>{% endif %}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ ch.description or '—' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">No Stripe charges (Stripe may not be configured, or there are no charges yet).</p>
+    {% endif %}
+</section>
+
+<section class="admin-card" style="padding:0; overflow:hidden;">
+    <div class="admin-card-head" style="padding:14px 18px 0;">
+        <h2>Recent Credit Transactions (local)</h2>
+    </div>
+    {% if recent_tx %}
+    <table class="admin-table">
+        <thead>
+            <tr><th>User</th><th>Type</th><th>Amount</th><th>Note</th><th>When</th></tr>
+        </thead>
+        <tbody>
+        {% for t in recent_tx %}
+            <tr>
+                <td>#{{ t.user_id }}</td>
+                <td><span class="admin-pill">{{ t.type }}</span></td>
+                <td style="font-weight:700; color:{% if t.amount > 0 %}#047857{% else %}#b91c1c{% endif %};">{{ '%+d' % t.amount }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ t.notes or '—' }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">{{ t.created_at.strftime('%d %b %Y') if t.created_at else '—' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">No credit transactions yet.</p>
+    {% endif %}
+</section>
+
+{% endblock %}
