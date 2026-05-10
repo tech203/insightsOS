@@ -19792,3 +19792,69 @@ html[data-theme="dark"] select {
         font-size: 13px;
     }
 }
+
+/* =========================================================
+   Dark-mode application shell — sidebar + topbar
+   =========================================================
+   .app-topbar (rgba(255,255,255,0.94)) and .app-sidebar (#ffffff)
+   have no dark-mode flip, so the canvas turns dark while the
+   chrome stays white. Result: the page-header h1 picks up the
+   flipped --text-strong (= light) and renders invisible against
+   the still-white topbar. Flip both surfaces and re-anchor the
+   header text colour explicitly so it's always legible. */
+
+html[data-theme="dark"] .app-topbar {
+    background: rgba(13, 21, 35, 0.86);
+    border-bottom-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .app-sidebar {
+    background: var(--theme-surface);
+    border-right-color: var(--theme-border-subtle);
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .topbar-heading h1,
+html[data-theme="dark"] .page-header-copy h1 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .topbar-heading p,
+html[data-theme="dark"] .page-header-copy p {
+    color: var(--theme-text-secondary);
+}
+
+/* Sidebar logout pill stays white-on-dark by design, but the
+   account email text was using rgba(255,255,255,0.86) which is
+   already dark-mode-correct — no flip needed. The credits panel
+   already uses a translucent gradient that holds up on a dark
+   sidebar surface. */
+html[data-theme="dark"] .sidebar-logout-btn {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+    border: 1px solid var(--theme-border-subtle);
+}
+html[data-theme="dark"] .sidebar-logout-btn:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
+
+/* Sidebar nav icon labels / account block — make sure any
+   hardcoded dark colours don't leave illegible text on the new
+   dark sidebar. */
+html[data-theme="dark"] .sidebar-account-name,
+html[data-theme="dark"] .sidebar-credits-meta {
+    color: var(--theme-text-secondary);
+}
+
+/* Flip the --shell-* token system itself so every consumer
+   (sidebar nav labels, stat values, etc.) reads correctly on
+   the dark sidebar surface without per-element overrides. */
+html[data-theme="dark"] {
+    --shell-bg: var(--theme-canvas);
+    --shell-panel: var(--theme-surface);
+    --shell-line: var(--theme-border-subtle);
+    --shell-line-soft: var(--theme-border-subtle);
+    --shell-text: var(--theme-text-primary);
+    --shell-text-soft: var(--theme-text-secondary);
+    --shell-text-faint: var(--theme-text-muted);
+}
