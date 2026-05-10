@@ -20507,6 +20507,76 @@ html[data-theme="dark"] .premium-queue-item-card .queue-item-middle {
 }
 
 /* =========================================================
+   Topbar pill (Dev Controls) — dark-mode flip
+   =========================================================
+   .topbar-link-pill hardcodes background:#ffffff with
+   color:var(--shell-text). The legacy token map flips the
+   text colour to light, but the white background stays —
+   light-on-light = invisible. Re-anchor the pill background
+   in dark mode. */
+html[data-theme="dark"] .topbar-link-pill {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .topbar-link-pill:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
+
+/* =========================================================
+   Workspaces page — brand presence + tag chip visibility
+   =========================================================
+   The /clients page was reading as all dark navy with faint
+   tag chips. Pull the brand mint + purple into the page so
+   it matches the rest of the app.
+
+   1. Tag chips (industry / location / type) — barely visible
+      with #f8fafc on #e7ebf3. Switch to a brand-purple wash
+      with brand-purple text for clear definition + brand
+      presence in both light and dark mode.
+   2. SCORE / LAST AUDIT / PRIORITY kickers — bump uppercase
+      tracking and use the brand purple in dark mode so they
+      match the dashboard kicker rhythm.
+   3. The Score value gets the brand mint→purple gradient
+      treatment so the most-important metric on the card
+      reads as a featured stat rather than plain text. */
+
+.workspace-meta-chip {
+    background: rgba(157, 124, 227, 0.10);
+    border-color: rgba(157, 124, 227, 0.28);
+    color: var(--brand-secondary);
+    letter-spacing: 0.02em;
+}
+html[data-theme="dark"] .workspace-meta-chip {
+    background: rgba(157, 124, 227, 0.16);
+    border-color: rgba(157, 124, 227, 0.32);
+    color: #C9B7F7;
+}
+
+.workspace-inline-stat span {
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    font-size: 10.5px;
+}
+html[data-theme="dark"] .workspace-inline-stat span {
+    color: var(--theme-text-muted);
+}
+
+/* First inline-stat is always Score — apply the brand mint
+   gradient so the number reads as a featured metric. */
+.workspace-inline-stat:first-child strong {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* =========================================================
    Mobile shell — dark-mode flip
    =========================================================
    .mobile-topbar (rgba(255,255,255,0.96)) and .mobile-menu-btn
@@ -20534,6 +20604,10 @@ html[data-theme="dark"] .mobile-menu-btn span {
     background: var(--theme-text-primary);
 }
 
+/* Mobile sidebar drawer — when .app-sidebar slides in at
+   narrow widths it inherits the dark surface, but the inner
+   wrapper and overlay scrim had their own white fills that
+   need explicit overrides. */
 html[data-theme="dark"] .app-sidebar.open {
     background: var(--theme-surface);
 }
@@ -20545,5 +20619,8 @@ html[data-theme="dark"] .sidebar-overlay {
     html[data-theme="dark"] .app-sidebar {
         background: var(--theme-surface) !important;
         border-right-color: var(--theme-border-subtle);
+    }
+    html[data-theme="dark"] .sidebar-inner {
+        background: var(--theme-surface);
     }
 }

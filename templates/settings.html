@@ -8,25 +8,39 @@
 {% block content %}
 <div class="settings-v3-page">
 
-    <section class="settings-v3-hero">
+    <section class="settings-v3-hero settings-v3-hero-tight">
         <div class="settings-v3-hero-copy">
-            <div class="settings-v3-eyebrow-row">
-                <span class="settings-chip settings-chip-primary">Account Centre</span>
-                <span class="settings-chip">Workspace Controls</span>
-                <span class="settings-chip">Billing & Credits</span>
-            </div>
-
-            <h1>Manage your workspace, credits, and account settings</h1>
-            <p>
-                Keep billing, credits, referrals, profile details, and future workspace controls in one clear place without cluttering the core product workflow.
-            </p>
+            <span class="settings-chip settings-chip-primary">{{ active_settings_section|replace('_', ' ')|title }}</span>
+            <h1>Settings</h1>
+            <p>Workspace controls, billing, credits, and account preferences in one place.</p>
         </div>
 
         <div class="settings-v3-hero-side">
-            <div class="settings-v3-active-card">
-                <span>Current Section</span>
-                <strong>{{ active_settings_section|replace('_', ' ')|title }}</strong>
-                <small>Use the section menu below to switch areas.</small>
+            {# Minimalist 2-state theme toggle — accessible everywhere
+               on the settings page, not buried in Preferences. The
+               sun/moon icon swaps based on the current data-theme. #}
+            <div class="settings-quick-theme">
+                <span class="settings-quick-theme-label">Appearance</span>
+                <button type="button" id="settingsThemeToggle" class="theme-toggle-switch" aria-label="Toggle light / dark mode">
+                    <span class="theme-toggle-track" aria-hidden="true">
+                        <svg class="theme-toggle-icon theme-toggle-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4.5"/>
+                            <line x1="12" y1="2" x2="12" y2="5"/>
+                            <line x1="12" y1="19" x2="12" y2="22"/>
+                            <line x1="2" y1="12" x2="5" y2="12"/>
+                            <line x1="19" y1="12" x2="22" y2="12"/>
+                            <line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/>
+                            <line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/>
+                            <line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/>
+                            <line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/>
+                        </svg>
+                        <svg class="theme-toggle-icon theme-toggle-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+                        </svg>
+                        <span class="theme-toggle-thumb"></span>
+                    </span>
+                    <span class="theme-toggle-text" id="settingsThemeText">Auto</span>
+                </button>
             </div>
         </div>
     </section>
@@ -653,16 +667,13 @@
         <div class="settings-v3-panel">
             <div class="settings-v3-panel-head">
                 <h2>Appearance</h2>
-                <p>Light or dark mode. Defaults to your operating system's preference; explicit choices persist for this browser.</p>
+                <p>Light or dark mode. Defaults to your operating system's preference; explicit choices persist for this browser. Click the toggle in the page header for a quick switch, or pick a specific mode here.</p>
             </div>
             <div class="dev-view-buttons">
                 <button type="button" class="dev-view-btn" id="prefThemeLight">Light</button>
                 <button type="button" class="dev-view-btn" id="prefThemeDark">Dark</button>
                 <button type="button" class="dev-view-btn" id="prefThemeAuto">Match OS</button>
             </div>
-            <p style="font-size:0.85rem; color:#555; margin-top:0.85rem;">
-                The sun/moon button in the sidebar header does the same thing.
-            </p>
         </div>
 
         <div class="settings-v3-panel">
@@ -1036,19 +1047,27 @@
     color: #E83256;
 }
 
+.settings-v3-hero-tight {
+    padding: 22px 24px;
+    grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.55fr);
+    gap: 18px;
+    align-items: center;
+}
+
 .settings-v3-hero-copy h1 {
-    margin: 0;
-    font-size: 38px;
-    line-height: 1.08;
+    margin: 8px 0 0;
+    font-size: 22px;
+    line-height: 1.2;
     font-weight: 800;
+    letter-spacing: -0.01em;
     color: #15233b;
     max-width: 760px;
 }
 
 .settings-v3-hero-copy p {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
+    margin: 6px 0 0;
+    font-size: 13.5px;
+    line-height: 1.55;
     color: #617084;
     max-width: 760px;
 }
@@ -1086,22 +1105,120 @@
 .settings-v3-section-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-}
-
-.settings-v3-tab {
-    padding: 14px 18px;
-    border-radius: 18px;
-    color: #4a586c;
-    font-size: 14px;
-    font-weight: 800;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-soft, #f8fafc);
+    border: 1px solid var(--border-main, #e7ebf3);
+    border-radius: 16px;
     box-shadow: none;
 }
 
+.settings-v3-tab {
+    padding: 10px 18px;
+    border-radius: 10px;
+    color: var(--text-soft, #4a586c);
+    font-size: 14px;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transition: all 0.18s ease;
+    text-decoration: none;
+}
+
+.settings-v3-tab:hover {
+    background: var(--bg-card, #ffffff);
+    color: var(--text-strong, #16243c);
+}
+
 .settings-v3-tab.active {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(62, 223, 203, 0.28);
+}
+html[data-theme="dark"] .settings-v3-section-nav {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .settings-v3-tab:hover {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+}
+
+/* === Quick theme toggle (hero-side) === */
+.settings-quick-theme {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+}
+.settings-quick-theme-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-muted, #6b7280);
+}
+
+.theme-toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px 6px 6px;
+    border-radius: 999px;
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-main, #e7ebf3);
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+.theme-toggle-switch:hover {
+    border-color: var(--brand-primary);
+}
+.theme-toggle-track {
+    position: relative;
+    width: 56px;
+    height: 28px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px;
+    color: #ffffff;
+}
+.theme-toggle-icon {
+    width: 16px;
+    height: 16px;
+    z-index: 2;
+    flex-shrink: 0;
+}
+.theme-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+    transition: transform 0.22s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+}
+html[data-theme="dark"] .theme-toggle-thumb {
+    transform: translateX(28px);
+}
+.theme-toggle-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-strong, #16243c);
+}
+html[data-theme="dark"] .theme-toggle-switch {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .theme-toggle-text {
+    color: var(--theme-text-primary);
 }
 
 .settings-v3-summary-grid,
@@ -1517,5 +1634,66 @@
         border-color: var(--theme-border-subtle);
     }
 </style>
+
+<script>
+// Hero-side quick theme toggle — visible on every settings sub-page,
+// not buried in Preferences. Two-state click (light ↔ dark); long-
+// click (or press Alt) resets to "Match OS". Mirrors localStorage +
+// data-theme attribute used by the rest of the app, and emits the
+// same darInsightsThemeChange event so the Preferences picker (if
+// present) stays in sync.
+(function () {
+    var btn = document.getElementById('settingsThemeToggle');
+    var label = document.getElementById('settingsThemeText');
+    if (!btn || !label) return;
+
+    function currentMode() {
+        var stored = null;
+        try { stored = localStorage.getItem('darInsightsTheme'); } catch (_) {}
+        if (stored === 'light' || stored === 'dark') return stored;
+        return 'auto';
+    }
+    function applyAndPersist(mode) {
+        var dom;
+        if (mode === 'auto') {
+            try { localStorage.removeItem('darInsightsTheme'); } catch (_) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            dom = prefersDark ? 'dark' : 'light';
+        } else {
+            try { localStorage.setItem('darInsightsTheme', mode); } catch (_) {}
+            dom = mode;
+        }
+        document.documentElement.setAttribute('data-theme', dom);
+        syncLabel();
+        window.dispatchEvent(new CustomEvent('darInsightsThemeChange', { detail: dom }));
+    }
+    function syncLabel() {
+        var mode = currentMode();
+        if (mode === 'light') label.textContent = 'Light';
+        else if (mode === 'dark') label.textContent = 'Dark';
+        else label.textContent = 'Auto';
+    }
+    syncLabel();
+
+    btn.addEventListener('click', function (e) {
+        // Alt-click resets to OS preference for power users.
+        if (e.altKey) {
+            applyAndPersist('auto');
+            return;
+        }
+        var mode = currentMode();
+        if (mode === 'light') applyAndPersist('dark');
+        else if (mode === 'dark') applyAndPersist('light');
+        else {
+            // From Auto: pick the opposite of what's currently rendered.
+            var rendered = document.documentElement.getAttribute('data-theme');
+            applyAndPersist(rendered === 'dark' ? 'light' : 'dark');
+        }
+    });
+
+    // Stay in sync if Preferences picker (or any other surface) flips it.
+    window.addEventListener('darInsightsThemeChange', syncLabel);
+})();
+</script>
 
 {% endblock %}

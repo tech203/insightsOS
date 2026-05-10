@@ -7611,6 +7611,91 @@ Additional notes:
     )
 
 
+@app.route("/client/<client_id>/brand-context/suggest", methods=["POST"])
+@login_required
+def client_brand_context_suggest(client_id):
+    """Draft each brand-context field using gpt-4o-mini.
+
+    Cost is tiny (~$0.0005 per call at ~1500 input + 600 output tokens
+    on gpt-4o-mini). The endpoint never overwrites — the JS only fills
+    fields the user hasn't touched. Returns JSON so the form can
+    populate textareas client-side without a page reload."""
+    row = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
+    if not row:
+        return {"error": "Workspace not found."}, 404
+
+    # Pull every signal we already have on the workspace so the model
+    # can ground the suggestions in real context, not generic SaaS copy.
+    parts = [
+        f"Brand name: {row.name or 'Unknown'}",
+        f"Website: {row.website or 'Not provided'}",
+    ]
+    if getattr(row, "industry", None) and row.industry != "N/A":
+        parts.append(f"Industry: {row.industry}")
+    if getattr(row, "location", None) and row.location != "N/A":
+        parts.append(f"Location: {row.location}")
+    if getattr(row, "owner_type", None):
+        parts.append(f"Type: {row.owner_type}")
+    if getattr(row, "business_summary", None):
+        parts.append(f"Existing summary:\n{row.business_summary}")
+    if row.notes:
+        parts.append(f"Existing notes:\n{row.notes}")
+
+    context = "\n\n".join(parts)
+
+    system = (
+        "You draft brand-context answers for a marketing-AI tool. "
+        "Given a workspace's name, website, industry, and location, "
+        "you output a JSON object with eight short, concrete fields "
+        "the team can edit. Be specific, not generic — name real "
+        "audience segments, real services, real differentiators when "
+        "evidence supports it. If a field can't be inferred, give a "
+        "plausible draft phrased as a starting point, not a fact."
+    )
+
+    user_prompt = (
+        f"{context}\n\n"
+        "Return a JSON object with exactly these keys: "
+        '"audience", "services", "differentiators", "proof", "tone", '
+        '"locations", "avoid", "extra_notes". Each value should be a '
+        "single concise paragraph (1-3 sentences) suitable for a "
+        "form textarea. Use the brand name explicitly when it makes "
+        "the answer feel grounded. Match the tone field to the brand: "
+        "casual brands get casual tone, B2B gets professional, etc."
+    )
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.6,
+            max_tokens=900,
+        )
+        raw = response.choices[0].message.content or "{}"
+        data = json.loads(raw)
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("brand-context AI suggest failed: %s", exc)
+        return {"error": f"AI draft failed: {exc}"}, 502
+
+    # Whitelist the keys we expose so model hallucinations can't pollute
+    # the form with random extras.
+    allowed = ("audience", "services", "differentiators", "proof",
+               "tone", "locations", "avoid", "extra_notes")
+    return {k: (data.get(k) or "").strip() for k in allowed}
+
+
 @app.route("/client/<client_id>/delete", methods=["POST"])
 @login_required
 def delete_client(client_id):
