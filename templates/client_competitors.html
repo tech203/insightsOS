@@ -101,7 +101,7 @@
     </section>
 
     {% if not has_results %}
-    <section class="competitor-empty-state">
+    <section class="empty-card">
         <span class="section-kicker">No analysis yet</span>
         <h2>Run an analysis to see competitor gaps</h2>
         <p>
@@ -492,39 +492,8 @@
         color: var(--theme-text-secondary);
     }
 
-/* Empty state shown when no analysis has run yet — keeps the
-   page from leaking sample fixture data into a real workspace. */
-.competitor-empty-state {
-    padding: 36px 28px;
-    text-align: center;
-    border: 1px dashed var(--border-main);
-    border-radius: 22px;
-    background: var(--bg-soft-alt);
-    color: var(--text-main);
-}
-.competitor-empty-state h2 {
-    margin: 12px 0 0;
-    font-size: 24px;
-    line-height: 1.2;
-    color: var(--text-strong);
-}
-.competitor-empty-state p {
-    margin: 12px auto 0;
-    max-width: 620px;
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.65;
-}
-html[data-theme="dark"] .competitor-empty-state {
-    border-color: var(--theme-border-subtle);
-    background: var(--theme-surface-alt);
-}
-html[data-theme="dark"] .competitor-empty-state h2 {
-    color: var(--theme-text-primary);
-}
-html[data-theme="dark"] .competitor-empty-state p {
-    color: var(--theme-text-secondary);
-}
+/* Empty state migrated to the canonical .empty-card class
+   in static/styles-v2.1.css (Pattern A/D consolidation). */
 </style>
 
 <script>

@@ -456,6 +456,85 @@ def update_queue_item_content(
     return updated_item
 
 
+def upsert_generation_item(
+    *,
+    client_id,
+    client_name,
+    target_query,
+    content_type,
+    item_type,
+    status,
+    content,
+    title,
+    user_id,
+    credits_required=0,
+):
+    """Persist a generated brief or draft into the queue, reusing
+    any existing item that matches on (user_id, client_id,
+    target_query, content_type) instead of creating duplicates.
+
+    The previous flow rendered the result page without persisting
+    anything — users had to click a separate "Save to Queue" button
+    or the brief / draft was silently lost when they clicked
+    "Generate Draft" or navigated away. This helper closes that
+    loop: every generation immediately materialises a queue item,
+    so the result page can act as that item's detail view and
+    "Generate Draft" can advance the same item forward instead of
+    spawning a parallel one. (Audit finding #5.)
+
+    Returns the created or updated item dict.
+    """
+    items = load_queue_items()
+
+    normalized_query = _normalize_text(target_query)
+    normalized_type = _normalize_text(content_type)
+    normalized_status = _normalize_status(status)
+
+    match = None
+    for item in items:
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+        if str(item.get("client_id", "")) != str(client_id):
+            continue
+        if _normalize_text(item.get("target_query", "")) != normalized_query:
+            continue
+        # Match on content_type when set on both sides; otherwise
+        # accept any prior item for this query so we don't spawn
+        # duplicates when the user re-runs without picking a type.
+        existing_type = _normalize_text(item.get("content_type", ""))
+        if normalized_type and existing_type and existing_type != normalized_type:
+            continue
+        match = item
+        break
+
+    if match:
+        match["target_query"] = normalized_query
+        match["content_type"] = normalized_type or match.get("content_type", "")
+        match["item_type"] = _normalize_item_type(item_type)
+        match["title"] = _normalize_text(title, match.get("title", "Untitled Item"))
+        match["content"] = _normalize_text(content)
+        match["status"] = normalized_status
+        match["updated_at"] = _now_iso()
+        save_queue_items(items)
+        return match
+
+    return add_queue_item(
+        client_id=client_id,
+        client_name=client_name,
+        target_query=normalized_query,
+        content_type=normalized_type,
+        item_type=item_type,
+        title=title,
+        content=content,
+        status=normalized_status,
+        priority="medium",
+        source="generation",
+        credits_required=credits_required,
+        execution_type="ai_executable",
+        user_id=user_id,
+    )
+
+
 def delete_queue_item(item_id, user_id=None):
     items = load_queue_items()
     remaining = []
