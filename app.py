@@ -6028,14 +6028,41 @@ def index():
     view_mode = get_view_mode(current_user)
     focused_client = get_focused_client_for_user(current_user)
 
+    # Pick a "spotlight" workspace whose audit drives the rich
+    # dashboard scorecard. Resolution order:
+    #   1. ?spotlight=<id> URL param (user override via the
+    #      workspace switcher on the dashboard)
+    #   2. focused_client (single-mode)
+    #   3. the most-recently-audited workspace (multi-mode)
+    # This replaces the old branch where multi-mode users got a
+    # plain count-based "Portfolio Snapshot" instead of the rich
+    # scorecard everyone with one workspace already saw.
+    spotlight_param = request.args.get("spotlight", "").strip()
+    spotlight_client = None
+
+    if spotlight_param:
+        for c in clients:
+            if str(c.get("id")) == spotlight_param:
+                spotlight_client = c
+                break
+
+    if spotlight_client is None and focused_client:
+        spotlight_client = focused_client
+
+    if spotlight_client is None and clients:
+        spotlight_client = max(
+            clients,
+            key=lambda c: (c.get("latest_audit") or {}).get("saved_at") or "",
+        )
+
     overall_score = 0
     visibility_score = 0
     content_score = 0
     entity_score = 0
     trust_score = 0
 
-    if view_mode == "single" and focused_client:
-        latest_audit = focused_client.get("latest_audit") or {}
+    if spotlight_client:
+        latest_audit = spotlight_client.get("latest_audit") or {}
 
         overall_score = latest_audit.get("normalized_score", 0) or 0
         visibility_score = latest_audit.get("visibility_score", 0) or 0
@@ -6043,15 +6070,17 @@ def index():
         entity_score = latest_audit.get("entity_score", 0) or 0
         trust_score = latest_audit.get("trust_score", 0) or 0
 
-    elif view_mode == "multi":
-        client_scores = []
-        for client in clients:
-            latest_audit = client.get("latest_audit") or {}
-            score = latest_audit.get("normalized_score")
-            if score is not None:
-                client_scores.append(score)
-
-        overall_score = (
+    # Account-wide average kept for the portfolio sub-stat in
+    # multi-mode (shown alongside the spotlight scorecard, no
+    # longer in place of it).
+    portfolio_avg_score = 0
+    if view_mode == "multi":
+        client_scores = [
+            (c.get("latest_audit") or {}).get("normalized_score")
+            for c in clients
+        ]
+        client_scores = [s for s in client_scores if s is not None]
+        portfolio_avg_score = (
             round(sum(client_scores) / len(client_scores), 1)
             if client_scores
             else 0
@@ -6086,6 +6115,8 @@ def index():
         clients=clients,
         view_mode=view_mode,
         focused_client=focused_client,
+        spotlight_client=spotlight_client,
+        portfolio_avg_score=portfolio_avg_score,
         overall_score=overall_score,
         visibility_score=visibility_score,
         content_score=content_score,
@@ -8063,7 +8094,7 @@ def generate_content_from_prompt(prompt_id):
 
     if not row:
         flash("Prompt not found.", "warning")
-        return redirect(url_for("prompt_management_page"))
+        return redirect(url_for("position_tracking_page"))
 
     return redirect(
         url_for(

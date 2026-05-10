@@ -252,7 +252,7 @@
                     {% if plan_slug == 'free' %}Upgrade your plan{% else %}Change plan{% endif %}
                 </a>
                 {% if current_user.stripe_customer_id %}
-                <a href="{{ url_for('stripe_portal') }}" class="btn btn-secondary">Manage payment & invoices</a>
+                <a href="{{ url_for('stripe_portal') }}" class="btn btn-secondary">Open Stripe portal</a>
                 {% endif %}
                 <a href="{{ url_for('settings_credits') }}" class="btn btn-secondary">Buy credits</a>
             </div>

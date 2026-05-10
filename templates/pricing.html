@@ -24,7 +24,7 @@
 
 <div class="pricing-hero-actions">
     <a href="#main-plans" class="btn btn-primary btn-large">Start Free</a>
-    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage Billing</a>
+    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage subscription</a>
 </div>
         </div>
 
@@ -174,23 +174,23 @@
 
         <div class="pricing-faq-list">
             <div class="pricing-faq-item">
+                <strong>Can I cancel anytime?</strong>
+                <p>Yes. Plans are month-to-month with no contract. Cancel from the Stripe portal and you keep access until the end of the current billing period.</p>
+            </div>
+
+            <div class="pricing-faq-item">
+                <strong>What happens if I run out of credits mid-month?</strong>
+                <p>Your workspace stays open. Credit-gated actions (briefs, drafts, audits) pause until you top up or the next billing cycle resets your included credits.</p>
+            </div>
+
+            <div class="pricing-faq-item">
+                <strong>Do I have to talk to sales?</strong>
+                <p>No. Free, Pro, and Growth are fully self-serve through Stripe. Reach out only if you want a custom Agency or white-label arrangement.</p>
+            </div>
+
+            <div class="pricing-faq-item">
                 <strong>Do plans and credits mean the same thing?</strong>
-                <p>No. Plans define your workspace access and included monthly credit bundle. Credits are consumed when you run key actions.</p>
-            </div>
-
-            <div class="pricing-faq-item">
-                <strong>Can I buy extra credits without upgrading?</strong>
-                <p>Yes. Credit packs let you keep your current plan while increasing usage capacity.</p>
-            </div>
-
-            <div class="pricing-faq-item">
-                <strong>Do I need the Agency add-on?</strong>
-                <p>Only if you need white-label, branded, client-facing delivery. Most self-serve users do not need it.</p>
-            </div>
-
-            <div class="pricing-faq-item">
-                <strong>Which plan should a small business choose?</strong>
-                <p>Most small businesses should start with Pro, then move to Growth only if they need more frequent usage.</p>
+                <p>No. Your plan controls workspace and feature access. Credits are the meter for AI actions like briefs, drafts, and audits — included with every plan and toppable any time.</p>
             </div>
         </div>
     </section>
@@ -205,7 +205,7 @@
 
 <div class="pricing-cta-actions">
     <a href="#main-plans" class="btn btn-primary">Start Free</a>
-    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage Billing</a>
+    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage subscription</a>
 </div>
     </section>
 
