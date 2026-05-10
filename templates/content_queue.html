@@ -256,7 +256,7 @@
     </section>
 
     <section class="queue-summary-strip">
-        <article class="summary-card summary-card-highlight">
+        <article class="summary-card">
             <span class="summary-label">Queued</span>
             <strong class="summary-value">{{ queued_count }}</strong>
             <p class="summary-copy">Waiting to be started.</p>
@@ -350,28 +350,17 @@
                 <div class="queue-item-main">
                     <h3>{{ item.title or item.target_query or "Untitled item" }}</h3>
 
-                    {% if item.target_query %}
+                    {% if item.target_query and item.target_query != (item.title or item.target_query) %}
                     <p class="query-line">
-                        <strong>Suggested target query:</strong> {{ item.target_query }}
+                        <strong>Target query:</strong> {{ item.target_query }}
                     </p>
                     {% endif %}
-
-                    <p class="queue-item-copy">
-                        {% if item.content %}
-                            Saved content exists for this item. Open the brief or draft flow to review the full output.
-                        {% else %}
-                            This item is in the queue and ready for the next production step.
-                        {% endif %}
-                    </p>
                 </div>
 
                 <div class="queue-item-middle">
                     <div class="meta-block">
-                        <span>Next Action</span>
+                        <span>Next</span>
                         <strong>{{ next_action_label }}</strong>
-                        {% if next_action_type %}
-                        <p class="meta-note">{{ next_action_type|replace("_", " ")|title }}</p>
-                        {% endif %}
                     </div>
 
                     {% if item.source %}

@@ -101,12 +101,6 @@ custom cakes singapore"
 
             <div class="tracking-entry-actions">
                 <button type="submit" class="btn btn-primary">Save Prompts</button>
-
-                {% if focused_client %}
-                <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-secondary">
-                    Find Prompt Ideas
-                </a>
-                {% endif %}
             </div>
         </form>
     </section>
@@ -116,20 +110,8 @@ custom cakes singapore"
         <span class="section-kicker">No Data Yet</span>
         <h2>No prompts tracked yet</h2>
         <p>
-            Start by adding prompts you want to monitor across AI answers. This helps you spot visibility gaps and competitor wins earlier.
+            Start by adding prompts above to monitor your AI visibility, spot gaps, and see where competitors are winning.
         </p>
-
-        <div class="tracking-empty-actions">
-            <button type="button" class="btn btn-primary" onclick="scrollToPromptForm()">
-                Add Prompts
-            </button>
-
-            {% if focused_client %}
-            <a href="{{ url_for('client_competitors_page', client_id=focused_client['id']) }}" class="btn btn-secondary">
-                Explore Competitor Prompts
-            </a>
-            {% endif %}
-        </div>
     </section>
 
     {% else %}
