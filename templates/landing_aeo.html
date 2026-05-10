@@ -6,6 +6,12 @@
 
 <div class="aeo-landing-page">
 
+    <div class="aeo-powered-banner" role="note" aria-label="Powered by Astra Collective Asia">
+        <span class="aeo-powered-banner-text">
+            Powered by <strong>Astra Collective Asia</strong>
+        </span>
+    </div>
+
     <header class="aeo-topbar">
         <div class="aeo-container aeo-topbar-inner">
             <a href="{{ url_for('index') }}" class="aeo-brand">
@@ -717,6 +723,38 @@ html[data-theme="light"] {
 .aeo-container-narrow {
     width: min(920px, calc(100% - 32px));
     margin: 0 auto;
+}
+
+.aeo-powered-banner {
+    width: 100%;
+    padding: 8px 16px;
+    text-align: center;
+    background: linear-gradient(90deg,
+        rgba(62, 223, 203, 0.10) 0%,
+        rgba(157, 124, 227, 0.10) 100%);
+    border-bottom: 1px solid rgba(62, 223, 203, 0.18);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    position: relative;
+    z-index: 31;
+}
+.aeo-powered-banner strong {
+    color: var(--text-main);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: 0.02em;
+}
+@media (max-width: 600px) {
+    .aeo-powered-banner {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
 }
 
 .aeo-topbar {

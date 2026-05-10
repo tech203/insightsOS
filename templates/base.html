@@ -335,7 +335,7 @@
 
                         <div class="nav-group-items">
                         <a href="{{ url_for('settings_page') }}"
-                           class="nav-item {% if current_endpoint.startswith('settings') %}active{% endif %}"
+                           class="nav-item {% if current_endpoint.startswith('settings') and current_endpoint != 'settings_credits' %}active{% endif %}"
                            aria-label="Settings"
                            data-label="Settings">
                             {{ nav_icon('cog') }}
