@@ -118,15 +118,10 @@
         <aside class="app-sidebar" id="appSidebar" aria-hidden="true">
             <div class="sidebar-inner">
 
-                <button
-                    type="button"
-                    id="themeToggle"
-                    class="sidebar-rail-toggle sidebar-theme-toggle"
-                    aria-label="Toggle dark mode"
-                    title="Toggle dark mode"
-                >
-                    <svg class="nav-icon-svg" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg>
-                </button>
+                {# Light/dark theme toggle moved to Settings → Preferences
+                   (the panel already has prefThemeLight/Dark/Auto buttons).
+                   Removing the sidebar button declutters the rail; the
+                   theme-toggle JS early-returns when #themeToggle is absent. #}
 
                 <button
                     type="button"
