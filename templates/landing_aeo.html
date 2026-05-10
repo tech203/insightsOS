@@ -606,6 +606,7 @@
     --wash-purple-strong: 0.32;
     --wash-aqua-soft: 0.18;
     --wash-purple-soft: 0.16;
+    --strip-bg: rgba(2, 6, 23, 0.36);
     --accent: #3EDFCB;
     --accent-strong: #2BCBB7;
     --secondary: #9D7CE3;
@@ -638,6 +639,9 @@ html[data-theme="light"] {
     --wash-purple-strong: 0.14;
     --wash-aqua-soft: 0.10;
     --wash-purple-soft: 0.08;
+    /* Strip section: in light mode, no dull grey panel — keep
+       it transparent and lean on the section dividers instead. */
+    --strip-bg: transparent;
 }
 
 * {
@@ -1120,7 +1124,7 @@ html[data-theme="light"] {
 .aeo-strip {
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
-    background: rgba(2, 6, 23, 0.36);
+    background: var(--strip-bg);
     padding: 26px 0;
 }
 
@@ -1709,6 +1713,182 @@ html[data-theme="light"] .aeo-section + .aeo-strip {
 html[data-theme="light"] .aeo-badge {
     background: rgba(16, 185, 129, 0.12);
     color: #047857;
+}
+
+/* =========================================================
+   Universal card polish — mint top-line + premium hover sweep
+   =========================================================
+   Every card on the page gets the same brand identity: a 3px aqua-
+   to-purple gradient bar at the top edge, hidden until the card is
+   hovered. On hover, the bar slides in from the left, the border
+   flips to brand-primary, and the card lifts with a soft shadow. */
+
+.aeo-feature-card,
+.aeo-strip-card,
+.aeo-content-card,
+.aeo-step-card,
+.aeo-faq-card,
+.aeo-pricing-card,
+.aeo-credit-card,
+.aeo-side-card,
+.aeo-stat-card,
+.aeo-takeaway,
+.aeo-addon-card {
+    position: relative;
+    overflow: hidden;
+}
+.aeo-feature-card::before,
+.aeo-strip-card::before,
+.aeo-content-card::before,
+.aeo-step-card::before,
+.aeo-faq-card::before,
+.aeo-pricing-card::before,
+.aeo-credit-card::before,
+.aeo-side-card::before,
+.aeo-stat-card::before,
+.aeo-takeaway::before,
+.aeo-addon-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--secondary) 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+.aeo-feature-card:hover::before,
+.aeo-strip-card:hover::before,
+.aeo-content-card:hover::before,
+.aeo-step-card:hover::before,
+.aeo-faq-card:hover::before,
+.aeo-pricing-card:hover::before,
+.aeo-credit-card:hover::before,
+.aeo-side-card:hover::before,
+.aeo-addon-card:hover::before {
+    transform: scaleX(1);
+}
+
+/* Featured pricing card: mint line is always on so the recommended
+   plan reads as primary even at rest (matches the previous Audit
+   card the user pointed out). */
+.aeo-pricing-card.featured::before {
+    transform: scaleX(1);
+}
+
+/* Hover lift + brand-primary border for every card class. Light-mode
+   shadow uses a quiet drop; dark-mode falls through to its own. */
+html[data-theme="light"] .aeo-feature-card:hover,
+html[data-theme="light"] .aeo-strip-card:hover,
+html[data-theme="light"] .aeo-content-card:hover,
+html[data-theme="light"] .aeo-step-card:hover,
+html[data-theme="light"] .aeo-faq-card:hover,
+html[data-theme="light"] .aeo-pricing-card:hover,
+html[data-theme="light"] .aeo-credit-card:hover,
+html[data-theme="light"] .aeo-side-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05),
+                0 16px 36px rgba(15, 23, 42, 0.08);
+    transform: translateY(-2px);
+}
+
+/* =========================================================
+   Specific surface fixes the screenshot review surfaced
+   ========================================================= */
+
+/* Pricing-feature pill list: the original styling rendered each
+   feature ("3 starter credits", "Basic audit reports", etc.) as a
+   solid grey-purple filled pill that read as a button. Switch to
+   a clean check-and-text bullet list. */
+.aeo-pricing-features {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0;
+}
+.aeo-pricing-features > div {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 4px 0 4px 26px !important;
+    color: var(--text-soft) !important;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+}
+.aeo-pricing-features > div::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #15161e;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 18px;
+}
+
+/* Agency Add-on right-side block: the dark filled box that read as
+   a heavy mismatched panel against the soft purple wash. Make it a
+   clean transparent stack so the price + button breathe. */
+.aeo-addon-price {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+}
+.aeo-addon-price strong {
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+/* "Built for practical AI visibility work" right-card inner items
+   were rendering as dark grey boxes. Switch to thin-border outline
+   cards so they read as a list, not stacked panels. */
+.aeo-side-card {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: var(--text-soft);
+}
+
+/* Form select dropdown: was rendering with a heavy purple-grey
+   filled background. Match the input baseline: theme-aware bg +
+   token border + brand focus ring. */
+.aeo-interest-form select {
+    background: var(--bg-soft, var(--bg-soft-alt, #ffffff)) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+    font-size: 15px !important;
+    appearance: auto;
+}
+html[data-theme="light"] .aeo-interest-form select {
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.16) !important;
+    color: var(--text-main) !important;
+}
+html[data-theme="light"] .aeo-interest-form input {
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.16) !important;
+}
+.aeo-interest-form select:focus,
+.aeo-interest-form input:focus {
+    outline: none;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(62, 223, 203, 0.18) !important;
 }
 
 /* Theme toggle button — sits in the topbar, flips between dark
