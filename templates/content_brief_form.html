@@ -10,8 +10,8 @@
     </div>
 
     <div class="page-header-actions">
-        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
-            Back to Workspace
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="page-header-back-link">
+            ← Back to Workspace
         </a>
     </div>
 </div>
@@ -27,14 +27,6 @@
             <h2>Create a content brief from a target query</h2>
             <p>
                 Start with the clearest target query, add brand context, and generate a brief you can move directly into drafting.
-            </p>
-        </div>
-
-        <div class="brief-generator-top-card">
-            <span class="hero-card-label">Recommended flow</span>
-            <strong class="hero-card-value">Query → Brief → Draft</strong>
-            <p class="hero-card-text">
-                Use the brief to sharpen intent, structure, and positioning before generating a draft.
             </p>
         </div>
     </section>
@@ -56,11 +48,12 @@
 
 <form method="POST" action="{{ url_for('generate_client_content_brief', client_id=client.id) }}">
     <div class="form-field">
-        <label for="target_query">Suggested Target Query</label>
+        <label for="target_query">Target query</label>
         <input
             id="target_query"
             type="text"
             name="target_query"
+            placeholder="e.g. best ice cream e-commerce singapore"
             value="{{ form_data.target_query if form_data else '' }}"
             required
         >
@@ -95,32 +88,28 @@
 
         <aside class="side-stack">
 
+            {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
             <div class="panel">
                 <div class="panel-header">
                     <div>
                         <h2>Quick Inputs</h2>
-                        <p class="panel-subtitle">Use a suggested query as a starting point.</p>
+                        <p class="panel-subtitle">Use a tracked query from this workspace as a starting point.</p>
                     </div>
                 </div>
 
                 <div class="chip-cluster">
-                    {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
-                        {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
-                        <button
-                            type="button"
-                            class="meta-chip chip-button"
-                            data-query="{{ row.get('query', '') }}"
-                            onclick="fillBriefQuery(this.dataset.query)">
-                            {{ row.get('query', '') }}
-                        </button>
-                        {% endfor %}
-                    {% else %}
-                        <button type="button" class="meta-chip chip-button" onclick="fillBriefQuery('aeo vs seo')">aeo vs seo</button>
-                        <button type="button" class="meta-chip chip-button" onclick="fillBriefQuery('what is answer engine optimization')">what is answer engine optimization</button>
-                        <button type="button" class="meta-chip chip-button" onclick="fillBriefQuery('best ai visibility tool')">best ai visibility tool</button>
-                    {% endif %}
+                    {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
+                    <button
+                        type="button"
+                        class="meta-chip chip-button"
+                        data-query="{{ row.get('query', '') }}"
+                        onclick="fillBriefQuery(this.dataset.query)">
+                        {{ row.get('query', '') }}
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
             <div class="panel">
                 <div class="panel-header">

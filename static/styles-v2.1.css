@@ -3030,6 +3030,7 @@ a {
 html[data-sidebar-collapsed~="workspace"] .nav-group[data-group="workspace"] .nav-group-items,
 html[data-sidebar-collapsed~="insights"] .nav-group[data-group="insights"] .nav-group-items,
 html[data-sidebar-collapsed~="actions"] .nav-group[data-group="actions"] .nav-group-items,
+html[data-sidebar-collapsed~="integrations"] .nav-group[data-group="integrations"] .nav-group-items,
 html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-group-items {
     max-height: 0;
     opacity: 0;
@@ -3040,6 +3041,7 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-gr
 html[data-sidebar-collapsed~="workspace"] .nav-group[data-group="workspace"] .nav-label-chevron,
 html[data-sidebar-collapsed~="insights"] .nav-group[data-group="insights"] .nav-label-chevron,
 html[data-sidebar-collapsed~="actions"] .nav-group[data-group="actions"] .nav-label-chevron,
+html[data-sidebar-collapsed~="integrations"] .nav-group[data-group="integrations"] .nav-label-chevron,
 html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-label-chevron {
     transform: rotate(-90deg);
     transition: none;
@@ -20623,4 +20625,167 @@ html[data-theme="dark"] .sidebar-overlay {
     html[data-theme="dark"] .sidebar-inner {
         background: var(--theme-surface);
     }
+}
+
+/* =========================================================
+   Content Queue — single primary + overflow menu
+   =========================================================
+   Each queue card now shows ONE primary CTA per status, an
+   inline "View Brief" link for the most-used secondary, and
+   a ⋯ overflow that holds platform-specific publish targets,
+   manual overrides, and destructive actions like Revoke.
+   Replaces the previous 6-8-button row that read as a wall. */
+
+.queue-item-link {
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 4px;
+    color: var(--text-soft);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+.queue-item-link:hover {
+    color: var(--brand-primary);
+}
+
+.queue-item-overflow {
+    position: relative;
+    margin-left: auto;
+}
+.queue-item-overflow > summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
+    color: var(--text-strong);
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.queue-item-overflow > summary::-webkit-details-marker { display: none; }
+.queue-item-overflow > summary:hover {
+    border-color: var(--brand-primary);
+    background: var(--bg-soft);
+}
+.queue-item-overflow[open] > summary {
+    border-color: var(--brand-primary);
+    background: var(--bg-soft);
+}
+
+.queue-item-overflow-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    min-width: 200px;
+    padding: 6px;
+    border: 1px solid var(--border-main);
+    border-radius: 12px;
+    background: var(--bg-card);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    display: grid;
+    gap: 2px;
+}
+.overflow-item {
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-strong);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+.overflow-item:hover {
+    background: var(--bg-soft);
+    color: var(--brand-primary);
+}
+.overflow-item-danger {
+    color: var(--status-danger);
+}
+.overflow-item-danger:hover {
+    background: var(--status-danger-soft);
+    color: var(--status-danger);
+}
+.overflow-form {
+    margin: 0;
+    display: block;
+}
+.overflow-divider {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--border-soft);
+}
+
+html[data-theme="dark"] .queue-item-overflow > summary {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .queue-item-overflow > summary:hover,
+html[data-theme="dark"] .queue-item-overflow[open] > summary {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
+html[data-theme="dark"] .queue-item-overflow-menu {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-strong);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="dark"] .overflow-item {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .overflow-item:hover {
+    background: var(--theme-surface-alt);
+}
+html[data-theme="dark"] .overflow-divider {
+    background: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .queue-item-link {
+    color: var(--theme-text-secondary);
+}
+
+/* =========================================================
+   Page-header back links — quiet text affordance
+   =========================================================
+   Workflow pages (brief form, draft form, audit-running)
+   used to put a "Back to Workspace" button styled as
+   btn-primary in the page-header-actions slot. That made
+   the eye land on the BACK action when the forward action
+   (Save / Generate / Run) is what should win. This style
+   gives the same link a quieter, text-link treatment so it
+   stays accessible without competing with the form CTA. */
+.page-header-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+.page-header-back-link:hover {
+    color: var(--brand-primary);
+}
+html[data-theme="dark"] .page-header-back-link {
+    color: var(--theme-text-muted);
+}
+html[data-theme="dark"] .page-header-back-link:hover {
+    color: var(--brand-primary);
 }

@@ -4,7 +4,7 @@
 {% block page_header %}
 <div class="page-header-standard competitor-page-header-clean">
     <div class="page-header-copy">
-        <h1>Competitor Gaps</h1>
+        <h1>{{ client.name }} · Competitor Gaps</h1>
         <p>Find the AI prompts your competitors are winning, then track them or turn them into content opportunities.</p>
     </div>
 </div>
@@ -13,77 +13,15 @@
 {% block content %}
 
 {% set client_route_id = client.id if client.id is defined else client.get('id') %}
-{% set project_domain = project_domain if project_domain is defined else "supportfast.ai" %}
+{% set project_domain = project_domain if project_domain is defined else (client.domain if client.domain is defined else "") %}
 {% set selected_platform = selected_platform if selected_platform is defined else "ChatGPT" %}
 {% set selected_market = selected_market if selected_market is defined else "United States (English)" %}
 {% set competitor_list = competitors if competitors is defined else [] %}
+{% set has_results = analysis_has_run is defined and analysis_has_run %}
 
-{% set summary_cards = summary_cards if summary_cards is defined else [
-    {"label": "Missing Topics", "value": 638, "desc": "Suggested topics where competitors appear but you do not"},
-    {"label": "Shared Topics", "value": 11, "desc": "Topics where you and competitors both appear"},
-    {"label": "Content Opportunities", "value": 5, "desc": "High-priority ideas that can be moved into your queue"},
-    {"label": "Source Domains", "value": "4.8K", "desc": "Domains that may influence AI answers"}
-] %}
-
-{% set gap_topics = gap_topics if gap_topics is defined else [
-    {
-        "topic": "AI Chatbots and GPT Technology",
-        "your_mentions": 0,
-        "best_competitor": "tawk.to",
-        "best_mentions": 3,
-        "ai_volume": "11.8M",
-        "intent": "Commercial",
-        "priority": "High",
-        "sample_prompts": ["free for a chat", "chat box free", "site chat"]
-    },
-    {
-        "topic": "Knowledge Base and Management Solutions",
-        "your_mentions": 0,
-        "best_competitor": "tawk.to",
-        "best_mentions": 1,
-        "ai_volume": "2.6M",
-        "intent": "Informational",
-        "priority": "Medium",
-        "sample_prompts": ["best knowledge base software", "knowledge base chat integration", "help center tools"]
-    },
-    {
-        "topic": "WhatsApp and Web Messaging",
-        "your_mentions": 0,
-        "best_competitor": "botpenguin.com",
-        "best_mentions": 2,
-        "ai_volume": "2.1M",
-        "intent": "Commercial",
-        "priority": "High",
-        "sample_prompts": ["whatsapp chat widget", "website whatsapp automation", "whatsapp web chatbot"]
-    },
-    {
-        "topic": "Digital Calendar and Scheduling Tools",
-        "your_mentions": 0,
-        "best_competitor": "botpenguin.com",
-        "best_mentions": 1,
-        "ai_volume": "2M",
-        "intent": "Commercial",
-        "priority": "Medium",
-        "sample_prompts": ["calendar chatbot", "booking bot for website", "appointment automation"]
-    },
-    {
-        "topic": "Messaging Apps and Platforms",
-        "your_mentions": 0,
-        "best_competitor": "tawk.to",
-        "best_mentions": 5,
-        "ai_volume": "1.8M",
-        "intent": "Commercial",
-        "priority": "High",
-        "sample_prompts": ["best messaging platform for support", "live messaging software", "customer support messaging app"]
-    }
-] %}
-
-{% set source_gaps = source_gaps if source_gaps is defined else [
-    {"domain": "microsoft.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 15, "urls": 35, "prompts": 26, "traffic": "3.2M"},
-    {"domain": "google.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 62, "urls": 182, "prompts": 131, "traffic": "3M"},
-    {"domain": "whatsapp.com", "your_mentions": 0, "top_competitor": "wati.io", "comp_mentions": 64, "urls": 80, "prompts": 89, "traffic": "2.6M"},
-    {"domain": "zoom.com", "your_mentions": 0, "top_competitor": "tawk.to", "comp_mentions": 16, "urls": 9, "prompts": 18, "traffic": "949.7K"}
-] %}
+{% set summary_cards = summary_cards if summary_cards is defined else [] %}
+{% set gap_topics = gap_topics if gap_topics is defined else [] %}
+{% set source_gaps = source_gaps if source_gaps is defined else [] %}
 
 <div class="competitor-shell-clean">
 
@@ -101,19 +39,12 @@
                 <span class="meta-pill meta-pill-soft">{{ selected_market }}</span>
             </div>
 
-            {% if analysis_has_run is defined and analysis_has_run %}
+            {% if has_results %}
             <div class="competitor-run-status">
                 <strong>Analysis updated</strong>
                 <p>
                     Showing competitor gap results for <b>{{ project_domain }}</b>
                     against <b>{{ competitor_list|join(", ") }}</b>.
-                </p>
-            </div>
-            {% else %}
-            <div class="competitor-run-note">
-                <strong>MVP sample insight mode</strong>
-                <p>
-                    Adjust the domains, then click Run Competitor Analysis. Current results are suggested sample insights until the live analysis engine is connected.
                 </p>
             </div>
             {% endif %}
@@ -169,6 +100,19 @@
         </form>
     </section>
 
+    {% if not has_results %}
+    <section class="competitor-empty-state">
+        <span class="section-kicker">No analysis yet</span>
+        <h2>Run an analysis to see competitor gaps</h2>
+        <p>
+            Enter your domain and a few competitors above, then click <b>Run Competitor Analysis</b>.
+            We'll surface topics where competitors are visible in AI answers and your brand isn't —
+            with one-click options to track those prompts or push them into the Content Queue.
+        </p>
+    </section>
+    {% endif %}
+
+    {% if has_results %}
     <section class="competitor-summary-grid">
         {% for card in summary_cards %}
         <article class="summary-card">
@@ -378,6 +322,7 @@
             </table>
         </div>
     </section>
+    {% endif %}
 
 </div>
 
@@ -544,11 +489,42 @@
     html[data-theme="dark"] .competitor-run-note {
         background: var(--theme-surface-alt);
         border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .competitor-run-note {
         color: var(--theme-text-secondary);
     }
+
+/* Empty state shown when no analysis has run yet — keeps the
+   page from leaking sample fixture data into a real workspace. */
+.competitor-empty-state {
+    padding: 36px 28px;
+    text-align: center;
+    border: 1px dashed var(--border-main);
+    border-radius: 22px;
+    background: var(--bg-soft-alt);
+    color: var(--text-main);
+}
+.competitor-empty-state h2 {
+    margin: 12px 0 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--text-strong);
+}
+.competitor-empty-state p {
+    margin: 12px auto 0;
+    max-width: 620px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.65;
+}
+html[data-theme="dark"] .competitor-empty-state {
+    border-color: var(--theme-border-subtle);
+    background: var(--theme-surface-alt);
+}
+html[data-theme="dark"] .competitor-empty-state h2 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .competitor-empty-state p {
+    color: var(--theme-text-secondary);
+}
 </style>
 
 <script>

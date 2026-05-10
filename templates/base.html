@@ -288,6 +288,24 @@
                             <span class="nav-tooltip">Brand Context</span>
                         </a>
 
+                        <a href="{{ url_for('client_brand_kit', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'client_brand_kit' %}active{% endif %}"
+                           aria-label="Brand Kit Studio"
+                           data-label="Brand Kit">
+                            {{ nav_icon('grid') }}
+                            <span class="nav-text">Brand Kit</span>
+                            <span class="nav-tooltip">Brand Kit Studio</span>
+                        </a>
+
+                        <a href="{{ url_for('website_builder_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'website_builder_page' %}active{% endif %}"
+                           aria-label="Website Builder"
+                           data-label="Website">
+                            {{ nav_icon('overview') }}
+                            <span class="nav-text">Website Builder</span>
+                            <span class="nav-tooltip">Website Builder</span>
+                        </a>
+
                         <a href="{{ url_for('client_query_ideas', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_query_ideas' %}active{% endif %}"
                            aria-label="Query Ideas"
@@ -322,6 +340,78 @@
                             {{ nav_icon('list') }}
                             <span class="nav-text">Queue</span>
                             <span class="nav-tooltip">Queue</span>
+                        </a>
+                        </div>
+                    </div>
+
+                    <div class="nav-group" data-group="integrations">
+                        <button type="button" class="nav-label nav-label-toggle" aria-expanded="true">
+                            <span>Integrations</span>
+                            <span class="nav-label-chevron" aria-hidden="true">▾</span>
+                        </button>
+
+                        <div class="nav-group-items">
+                        <a href="{{ url_for('shopify_products', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'shopify_products' %}active{% endif %}"
+                           aria-label="Shopify"
+                           data-label="Shopify">
+                            {{ nav_icon('grid') }}
+                            <span class="nav-text">Shopify</span>
+                            <span class="nav-tooltip">Shopify</span>
+                        </a>
+
+                        <a href="{{ url_for('woocommerce_dashboard', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'woocommerce_dashboard' %}active{% endif %}"
+                           aria-label="WooCommerce"
+                           data-label="WooCommerce">
+                            {{ nav_icon('grid') }}
+                            <span class="nav-text">WooCommerce</span>
+                            <span class="nav-tooltip">WooCommerce</span>
+                        </a>
+
+                        <a href="{{ url_for('marketplace_audits_page', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'marketplace_audits_page' %}active{% endif %}"
+                           aria-label="Marketplace Visibility"
+                           data-label="Marketplace">
+                            {{ nav_icon('radar') }}
+                            <span class="nav-text">Marketplace</span>
+                            <span class="nav-tooltip">Marketplace Visibility</span>
+                        </a>
+
+                        <a href="{{ url_for('calcom_dashboard', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'calcom_dashboard' %}active{% endif %}"
+                           aria-label="Cal.com"
+                           data-label="Cal.com">
+                            {{ nav_icon('calendar') }}
+                            <span class="nav-text">Cal.com</span>
+                            <span class="nav-tooltip">Cal.com</span>
+                        </a>
+
+                        <a href="{{ url_for('gsc_dashboard', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'gsc_dashboard' %}active{% endif %}"
+                           aria-label="Google Search Console"
+                           data-label="Search Console">
+                            {{ nav_icon('eye') }}
+                            <span class="nav-text">Search Console</span>
+                            <span class="nav-tooltip">Google Search Console</span>
+                        </a>
+
+                        <a href="{{ url_for('ga_dashboard', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'ga_dashboard' %}active{% endif %}"
+                           aria-label="Google Analytics"
+                           data-label="Analytics">
+                            {{ nav_icon('overview') }}
+                            <span class="nav-text">Analytics</span>
+                            <span class="nav-tooltip">Google Analytics</span>
+                        </a>
+
+                        <a href="{{ url_for('module_connectors', client_id=sidebar_client.id) }}"
+                           class="nav-item {% if current_endpoint == 'module_connectors' %}active{% endif %}"
+                           aria-label="More connectors"
+                           data-label="More">
+                            {{ nav_icon('cog') }}
+                            <span class="nav-text">More connectors</span>
+                            <span class="nav-tooltip">More connectors</span>
                         </a>
                         </div>
                     </div>

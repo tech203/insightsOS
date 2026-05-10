@@ -154,27 +154,35 @@
         </article>
 
         <article class="summary-stat-card">
-            <span class="summary-label">Top Priority</span>
-            <strong class="summary-value summary-value-text">
-                {% if top_action %}
-                    {{ top_action.title }}
-                {% elif has_audit %}
-                    Review findings
-                {% else %}
-                    Run first audit
-                {% endif %}
-            </strong>
-            <p class="summary-copy">The clearest next move based on the current workspace state.</p>
+            <span class="summary-label">Schema</span>
+            <strong class="summary-value">{% if latest %}{{ latest.schema_score }}{% else %}—{% endif %}</strong>
+            <p class="summary-copy">Structured-data signal from the latest audit.</p>
         </article>
     </section>
 
     <section class="workspace-next-step-card workspace-next-step-card-clean">
         <div class="workspace-next-copy">
-            <span class="section-kicker">Next Best Step</span>
+            <span class="section-kicker">Do this next</span>
 
-            <h3>{{ next_best_action.title if next_best_action else "Review visibility and actions" }}</h3>
+            <h3>
+                {% if next_best_action %}
+                    {{ next_best_action.title }}
+                {% elif top_action %}
+                    {{ top_action.title }}
+                {% else %}
+                    Review visibility and actions
+                {% endif %}
+            </h3>
 
-            <p>{{ next_best_action.reason if next_best_action else "Review the latest signals, then move into actions and content execution." }}</p>
+            <p>
+                {% if next_best_action %}
+                    {{ next_best_action.reason }}
+                {% elif top_action and top_action.issue %}
+                    {{ top_action.issue }}
+                {% else %}
+                    Review the latest signals, then move into actions and content execution.
+                {% endif %}
+            </p>
 
             {% if next_best_action %}
             <div class="action-meta-row">
