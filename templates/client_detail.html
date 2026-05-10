@@ -228,40 +228,44 @@
         <p>Review past audit runs and progress over time.</p>
     </a>
 
-    <a href="{{ url_for('shopify_products', client_id=client.id) }}" class="workspace-module-card">
+    {% if workspace_row %}
+    <a href="{{ url_for('shopify_products', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>Shopify</strong>
         <p>Connect your Shopify store so audits can read your live product catalog.</p>
     </a>
 
-    <a href="{{ url_for('woocommerce_dashboard', client_id=client.id) }}" class="workspace-module-card">
+    <a href="{{ url_for('woocommerce_dashboard', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>WooCommerce</strong>
         <p>Audit your WooCommerce catalog for AI-visibility hygiene. Read-only.</p>
     </a>
 
-    <a href="{{ url_for('calcom_dashboard', client_id=client.id) }}" class="workspace-module-card">
+    <a href="{{ url_for('calcom_dashboard', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>Cal.com</strong>
         <p>Track booking volume + event types and surface the public booking link.</p>
     </a>
+    {% endif %}
 
-    <a href="{{ url_for('client_brand_kit', client_id=client.id) }}" class="workspace-module-card">
+    {% if workspace_row %}
+    <a href="{{ url_for('client_brand_kit', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>Brand Kit Studio</strong>
         <p>Set colours, voice, audience, and differentiators once — every AI generation reads from here.</p>
     </a>
 
-    <a href="{{ url_for('marketplace_audits_page', client_id=client.id) }}" class="workspace-module-card">
+    <a href="{{ url_for('marketplace_audits_page', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>Marketplace Visibility</strong>
         <p>Track how your Etsy / Amazon / Shopee shop is cited in AI answers.</p>
     </a>
 
-    <a href="{{ url_for('gsc_dashboard', client_id=client.id) }}" class="workspace-module-card">
+    <a href="{{ url_for('gsc_dashboard', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>Google Search Console</strong>
         <p>Pull real organic-search performance directly from Google. Pro &amp; Growth plans.</p>
     </a>
 
-    <a href="{{ url_for('ga_dashboard', client_id=client.id) }}" class="workspace-module-card">
+    <a href="{{ url_for('ga_dashboard', client_id=workspace_row.id) }}" class="workspace-module-card">
         <strong>Google Analytics</strong>
         <p>Sessions, users, top pages, and channel mix from your GA4 property. Pro &amp; Growth plans.</p>
     </a>
+    {% endif %}
 
     <a href="{{ url_for('module_connectors', client_id=client.id) }}" class="workspace-module-card">
         <strong>More connectors</strong>
