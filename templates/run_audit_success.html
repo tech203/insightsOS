@@ -21,7 +21,7 @@
 
 <div class="audit-complete-shell">
 
-    <section class="audit-complete-hero">
+    <section class="audit-complete-hero surface-card">
         <div class="audit-complete-hero-copy">
             <div class="hero-badge-row">
                 <span class="hero-badge hero-badge-primary">Audit Complete</span>
@@ -48,7 +48,7 @@
             </div>
         </div>
 
-        <div class="audit-complete-hero-card">
+        <div class="audit-complete-hero-card surface-card">
             <span class="hero-card-label">Best next move</span>
             <strong class="hero-card-value">Open Visibility</strong>
             <p class="hero-card-text">
@@ -61,7 +61,7 @@
     </section>
 
     {% if (current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com") and result and result.summary_filename is defined %}
-    <section class="audit-admin-strip">
+    <section class="audit-admin-strip surface-card surface-card--soft">
         <span class="audit-admin-label">Admin / Dev tools</span>
         <div class="audit-admin-actions">
             <a href="{{ url_for('audit_summary', summary_filename=result.summary_filename) }}" class="audit-admin-link">Open Summary JSON</a>
@@ -75,76 +75,17 @@
 </div>
 
 <style>
+/* Page-specific layout. Surface treatment (background, border,
+   radius, shadow) lives in canonical .surface-card in the main
+   stylesheet — added to the markup above. Dark mode flows through
+   theme tokens automatically. */
+
 .audit-complete-shell {
     max-width: 1180px;
     margin: 0 auto;
     padding: 16px;
     display: grid;
     gap: 20px;
-}
-
-.audit-complete-hero,
-.audit-complete-hero-card,
-.audit-admin-strip {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.audit-meta-inline {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid #eef1f6;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 32px;
-}
-.audit-meta-inline span {
-    display: block;
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 4px;
-}
-.audit-meta-inline strong {
-    color: #16243c;
-    font-size: 14px;
-    line-height: 1.4;
-    word-break: break-word;
-}
-
-.audit-admin-strip {
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px 18px;
-    background: #fafbfe;
-}
-.audit-admin-label {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #6b7280;
-}
-.audit-admin-actions {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 14px;
-}
-.audit-admin-link {
-    color: #5b6473;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-}
-.audit-admin-link:hover {
-    color: #6d4aff;
-    text-decoration: underline;
 }
 
 .audit-complete-hero {
@@ -155,212 +96,131 @@
     align-items: stretch;
 }
 
+.audit-complete-hero-copy h1 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1.08;
+    font-weight: 800;
+    color: var(--text-strong);
+    max-width: 760px;
+}
+.audit-complete-hero-copy p {
+    margin: 16px 0 0;
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--text-soft);
+    max-width: 760px;
+}
+
+.audit-complete-hero-card {
+    padding: 22px;
+    background: linear-gradient(180deg, rgba(62, 223, 203, 0.06) 0%, transparent 100%);
+}
+
+.audit-meta-inline {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 32px;
+}
+.audit-meta-inline span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+.audit-meta-inline strong {
+    color: var(--text-strong);
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
 .hero-badge-row {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 16px;
 }
-
 .hero-badge {
     display: inline-flex;
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #4a586c;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
     font-size: 13px;
     font-weight: 800;
 }
-
 .hero-badge-primary {
-    background: #fff2ea;
-    border-color: #ffd8c6;
-    color: #E83256;
-}
-
-.audit-complete-hero-copy h1 {
-    margin: 0;
-    font-size: 38px;
-    line-height: 1.08;
-    font-weight: 800;
-    color: #15233b;
-    max-width: 760px;
-}
-
-.audit-complete-hero-copy p {
-    margin: 16px 0 0;
-    font-size: 17px;
-    line-height: 1.65;
-    color: #617084;
-    max-width: 760px;
-}
-
-.audit-complete-hero-card {
-    padding: 22px;
-    border-color: #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
+    background: var(--brand-primary-soft);
+    border-color: rgba(62, 223, 203, 0.32);
+    color: var(--brand-deep, #0E7C6F);
 }
 
 .hero-card-label {
     display: block;
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 10px;
 }
-
 .hero-card-value {
     display: block;
     font-size: 30px;
     line-height: 1.15;
     font-weight: 800;
-    color: #E83256;
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
-
 .hero-card-text {
     margin: 12px 0 0;
-    color: #627084;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
 }
 
-.audit-complete-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-    gap: 24px;
-    align-items: start;
-}
-
-.panel {
-    padding: 24px;
-}
-
-.panel-main {
-    grid-column: 1;
-}
-
-.panel-full {
-    grid-column: 1 / -1;
-}
-
-.side-stack {
-    display: grid;
-    gap: 24px;
-}
-
-.panel-header {
-    margin-bottom: 18px;
-}
-
-.panel-header h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.panel-subtitle {
-    margin: 0;
-    color: #6b7280;
-    font-size: 15px;
-    line-height: 1.55;
-}
-
-.audit-success-banner {
-    padding: 14px 16px;
-    border-radius: 16px;
-    margin-bottom: 18px;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    color: #166534;
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.audit-meta-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 18px;
-}
-
-.audit-meta-card {
-    padding: 18px;
-    background: #f8fafc;
-}
-
-.audit-meta-card span {
-    display: block;
-    font-size: 13px;
-    font-weight: 700;
-    color: #6b7280;
-    margin-bottom: 8px;
-}
-
-.audit-meta-card strong {
-    display: block;
-    font-size: 16px;
-    line-height: 1.5;
-    font-weight: 800;
-    color: #16243c;
-    word-break: break-word;
-}
-
-.card-actions {
+.audit-admin-strip {
+    padding: 12px 16px;
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 12px 18px;
 }
-
-.tips-list {
-    display: grid;
+.audit-admin-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+.audit-admin-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
     gap: 14px;
 }
-
-.tip-item {
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.audit-step-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.audit-step-card {
-    padding: 20px;
+.audit-admin-link {
+    color: var(--text-soft);
+    font-size: 13px;
+    font-weight: 700;
     text-decoration: none;
-    color: inherit;
-    background: #fbfcfe;
 }
-
-.audit-step-card strong {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
-}
-
-.audit-step-card p {
-    margin: 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.6;
+.audit-admin-link:hover {
+    color: var(--brand-secondary);
+    text-decoration: underline;
 }
 
 @media (max-width: 1200px) {
-    .audit-complete-hero,
-    .audit-complete-grid,
-    .audit-step-grid {
+    .audit-complete-hero {
         grid-template-columns: 1fr;
     }
 }
@@ -369,64 +229,36 @@
     .audit-complete-shell {
         padding: 12px;
     }
-
     .audit-complete-hero,
-    .panel,
-    .audit-complete-hero-card,
-    .audit-meta-card,
-    .audit-step-card,
-    .tip-item {
+    .audit-complete-hero-card {
         padding: 18px;
-        border-radius: 20px;
     }
-
     .audit-complete-hero-copy h1 {
         font-size: 30px;
     }
-
-    .audit-meta-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .card-actions {
-        flex-direction: column;
-    }
-
-    .card-actions .btn {
-        width: 100%;
-    }
 }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .audit-complete-hero,
-    html[data-theme="dark"] .audit-complete-hero-card,
-    html[data-theme="dark"] .audit-admin-strip {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .hero-badge {
-        background: var(--theme-surface-alt);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .audit-complete-hero h1,
-    html[data-theme="dark"] .audit-meta-inline strong,
-    html[data-theme="dark"] .hero-card-value {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .audit-complete-hero p,
-    html[data-theme="dark"] .hero-card-text {
-        color: var(--theme-text-secondary);
-    }
-    html[data-theme="dark"] .audit-meta-inline span,
-    html[data-theme="dark"] .hero-card-label,
-    html[data-theme="dark"] .audit-admin-label {
-        color: var(--theme-text-muted);
-    }
-    html[data-theme="dark"] .audit-meta-inline {
-        border-top-color: var(--theme-border-subtle);
-    }
+html[data-theme="dark"] .audit-complete-hero h1,
+html[data-theme="dark"] .audit-meta-inline strong {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .audit-complete-hero p,
+html[data-theme="dark"] .hero-card-text {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .audit-meta-inline span,
+html[data-theme="dark"] .hero-card-label,
+html[data-theme="dark"] .audit-admin-label {
+    color: var(--theme-text-muted);
+}
+html[data-theme="dark"] .audit-meta-inline {
+    border-top-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .hero-badge {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
 </style>
 
 {% endblock %}
