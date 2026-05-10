@@ -19845,3 +19845,16 @@ html[data-theme="dark"] .sidebar-account-name,
 html[data-theme="dark"] .sidebar-credits-meta {
     color: var(--theme-text-secondary);
 }
+
+/* Flip the --shell-* token system itself so every consumer
+   (sidebar nav labels, stat values, etc.) reads correctly on
+   the dark sidebar surface without per-element overrides. */
+html[data-theme="dark"] {
+    --shell-bg: var(--theme-canvas);
+    --shell-panel: var(--theme-surface);
+    --shell-line: var(--theme-border-subtle);
+    --shell-line-soft: var(--theme-border-subtle);
+    --shell-text: var(--theme-text-primary);
+    --shell-text-soft: var(--theme-text-secondary);
+    --shell-text-faint: var(--theme-text-muted);
+}
