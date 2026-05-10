@@ -7444,35 +7444,39 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .sidebar-credits-value {
-    font-size: 2rem;
-    line-height: 1;
+    font-size: 1.4rem;
+    line-height: 1.1;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: -0.03em;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
 }
 
 .sidebar-credits-meta {
     margin-top: 8px;
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: 11.5px;
+    line-height: 1.45;
     color: rgba(232, 236, 247, 0.68);
 }
 
 .sidebar-buy-btn {
     margin-top: 12px;
-    min-height: 42px;
+    min-height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #c084fc 100%);
-    color: #ffffff;
-    font-size: 14px;
+    border-radius: 10px;
+    background: var(--gradient-brand);
+    color: var(--brand-text-on-primary);
+    font-size: 13px;
     font-weight: 800;
-    padding: 0 16px;
-    box-shadow: 0 10px 22px rgba(139, 92, 246, 0.18);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    padding: 0 14px;
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.22);
+    transition: transform var(--transition-fast),
+                box-shadow var(--transition-fast);
 }
 
 .sidebar-account-email {
@@ -7845,19 +7849,31 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .dashboard-priority-main-card {
     padding: 24px;
-    background:
-        radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 26%),
-        linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    background: var(--bg-card);
 }
 
 .dashboard-ops-card {
     padding: 22px;
-    background: linear-gradient(180deg, #fff8f2 0%, #ffffff 100%);
-    border: 1px solid #f2dfd2;
+    background: var(--bg-card);
     border-radius: 24px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Top accent on the ops card — same brand bar pattern as the
+   featured priority card, so the right column reads as a
+   companion to the left, not as a different product. */
+.dashboard-ops-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .dashboard-priority-grid {
@@ -7868,44 +7884,71 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .dashboard-priority-item {
-    border: 1px solid #e6ebf2;
-    border-radius: 18px;
-    padding: 18px;
-    background: #ffffff;
+    border: 1px solid var(--border-main);
+    border-radius: 16px;
+    padding: 20px;
+    background: var(--bg-card);
     display: grid;
     gap: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--transition-normal),
+                border-color var(--transition-normal),
+                box-shadow var(--transition-normal);
+}
+
+.dashboard-priority-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-card);
 }
 
 .dashboard-priority-item-featured {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f0e2d8;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+}
+
+/* Featured card gets a subtle 3px brand-gradient bar at the top edge
+   so it reads as primary without the previous peach/orange wash. */
+.dashboard-priority-item-featured::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .dashboard-priority-kicker {
     display: inline-flex;
     align-items: center;
     width: fit-content;
-    min-height: 28px;
+    min-height: 26px;
     padding: 0 10px;
     border-radius: 999px;
-    background: #f4ebff;
-    color: #6d4aff;
-    font-size: 12px;
-    font-weight: 800;
+    background: var(--brand-secondary-soft);
+    color: var(--brand-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .dashboard-priority-item h3 {
     margin: 0;
-    font-size: 22px;
-    line-height: 1.2;
-    color: #16243c;
+    font-size: 18px;
+    line-height: 1.25;
+    color: var(--text-strong);
+    letter-spacing: -0.01em;
+    font-weight: 700;
 }
 
 .dashboard-priority-item p {
     margin: 0;
-    color: #627084;
-    line-height: 1.65;
-    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-size: 13.5px;
 }
 
 .dashboard-priority-actions,
@@ -7918,20 +7961,20 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .dashboard-score-label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    color: #64748b;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.10em;
 }
 
 .dashboard-score-value {
     display: block;
     margin-top: 10px;
-    font-size: 62px;
+    font-size: 56px;
     line-height: 0.95;
     font-weight: 800;
-    color: #f97316;
+    color: var(--text-strong);
     letter-spacing: -0.04em;
 }
 
@@ -7950,18 +7993,23 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .score-pill-success {
-    background: #ecfdf3;
-    color: #15803d;
+    background: var(--status-success-soft);
+    color: var(--status-success);
 }
 
 .score-pill-warning {
-    background: #fff7ed;
-    color: #c2410c;
+    background: var(--brand-secondary-soft);
+    color: var(--brand-secondary);
 }
 
 .score-pill-danger {
-    background: #fff1f2;
-    color: #e11d48;
+    background: var(--status-danger-soft);
+    color: var(--status-danger);
+}
+
+.score-pill-info {
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
 }
 
 .dashboard-score-text {
@@ -8036,27 +8084,55 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .dashboard-metric-card {
     padding: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Top accent rotates through the brand stops so the four-up
+   metric grid reads as a coordinated row instead of identical
+   tiles — same pattern as the audit PDF's score snapshot. */
+.dashboard-metric-grid > .dashboard-metric-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--brand-primary);
+    opacity: 0.85;
+}
+.dashboard-metric-grid > .dashboard-metric-card:nth-child(2)::before {
+    background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+}
+.dashboard-metric-grid > .dashboard-metric-card:nth-child(3)::before {
+    background: var(--brand-secondary);
+}
+.dashboard-metric-grid > .dashboard-metric-card:nth-child(4)::before {
+    background: linear-gradient(90deg, var(--brand-secondary), var(--brand-primary));
 }
 
 .dashboard-metric-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f0e2d8;
+    background: var(--bg-card);
+    border-color: var(--border-main);
 }
 
 .dashboard-metric-label {
     display: block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
     margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
 }
 
 .dashboard-metric-value {
     display: block;
     font-size: 28px;
-    line-height: 1.1;
+    line-height: 1.05;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
+    letter-spacing: -0.02em;
 }
 
 .dashboard-metric-value-small {
@@ -9032,21 +9108,21 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     font-size: clamp(58px, 7vw, 84px);
     line-height: 0.92;
     font-weight: 800;
-    color: #e35b35;
+    color: var(--text-strong);
     letter-spacing: -0.05em;
 }
 
 .score-main-copy {
     margin: 14px 0 0;
-    color: #627084;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 1.65;
 }
 
 .score-progress {
     width: 100%;
-    height: 12px;
-    background: #efe2d9;
+    height: 10px;
+    background: var(--bg-soft);
     border-radius: 999px;
     overflow: hidden;
     margin-top: 18px;
@@ -9055,7 +9131,7 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .score-progress-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #e35b35, #ff9b68);
+    background: var(--gradient-brand);
 }
 
 .score-foot {
@@ -11335,8 +11411,22 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 
 .queue-focus-card {
     padding: 22px;
-    border-color: #f1ddd4;
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
+    border-color: var(--border-main);
+    background: var(--bg-card);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Brand-gradient top accent — same pattern as the other premium
+   right-column cards on the dashboard. */
+.queue-focus-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .focus-top {
@@ -11347,47 +11437,50 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .focus-label {
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.10em;
 }
 
 .focus-pill {
     display: inline-flex;
     align-items: center;
-    padding: 7px 10px;
+    padding: 6px 10px;
     border-radius: 999px;
-    background: #fff2ea;
-    color: #e35b35;
-    font-size: 12px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
+    font-size: 11px;
     font-weight: 800;
     line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .focus-value {
     margin-top: 18px;
-    color: #e35b35;
-    font-size: 54px;
+    color: var(--text-strong);
+    font-size: 50px;
     line-height: 0.95;
     font-weight: 800;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.04em;
 }
 
 .focus-title {
     margin-top: 10px;
-    color: #16243c;
-    font-size: 20px;
-    line-height: 1.2;
-    font-weight: 800;
+    color: var(--text-strong);
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .focus-copy {
-    margin: 12px 0 0;
-    color: #627084;
-    font-size: 14px;
-    line-height: 1.65;
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
 }
 
 .queue-summary-strip {
@@ -15205,7 +15298,7 @@ body {
     width: 48px;
     height: 48px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #f1047c 0%, #ff4da0 100%);
+    background: var(--gradient-brand);
     box-shadow: none;
 }
 
@@ -15402,7 +15495,7 @@ body {
     width: 34px;
     height: 34px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #f1047c 0%, #ff4da0 100%);
+    background: var(--gradient-brand);
 }
 
 .mobile-brand-text {
@@ -15589,7 +15682,7 @@ body.sidebar-open {
     width: 34px;
     height: 34px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #f43f8f 0%, #fb7185 100%);
+    background: var(--gradient-brand);
     color: #ffffff;
     display: inline-flex;
     align-items: center;
@@ -15671,7 +15764,7 @@ body.sidebar-open {
     width: 48px;
     height: 48px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #f43f8f 0%, #fb7185 100%);
+    background: var(--gradient-brand);
     color: #ffffff;
     display: inline-flex;
     align-items: center;
@@ -16948,7 +17041,7 @@ a.btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f43f8f 0%, #fb7185 100%);
+    background: var(--gradient-brand);
     color: #ffffff;
     font-size: 20px;
     font-weight: 800;
@@ -18125,15 +18218,15 @@ a.btn {
 }
 
 .nav-item:not(.active) .nav-icon {
-    color: #475569;
+    color: var(--text-main);
 }
 
 .nav-item:hover .nav-icon {
-    color: #0f172a;
+    color: var(--text-strong);
 }
 
 .nav-item.active .nav-icon {
-    color: #ec4899;
+    color: var(--brand-primary);
 }
 
 .nav-tooltip {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}DarInsights{% endblock %}</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
     <script>
         // Restore sidebar collapse state before first paint to avoid a flash.
         try {
