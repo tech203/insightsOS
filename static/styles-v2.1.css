@@ -19551,3 +19551,146 @@ html[data-theme="dark"] .info-tip::after {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
 }
 html[data-theme="dark"] .info-tip::before { border-top-color: #f4f6fb; }
+
+/* =========================================================
+   Dark-mode coverage gaps (added after the screenshot review)
+   =========================================================
+   The earlier dark-mode block only flipped a subset of card
+   surfaces. These rules fill in the dashboard, page headings,
+   metric tiles, and the Portfolio Snapshot's score breakdown
+   so dark mode reads as one coherent theme instead of "white
+   cards on a black canvas". */
+
+/* Page headings — h1 / h2 / h3 inherited the light-mode
+   --text-strong (#15233b navy) which is invisible on a dark
+   canvas. Override to the theme-text-primary token. */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4 {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-main,
+html[data-theme="dark"] .page-shell {
+    color: var(--theme-text-primary);
+}
+
+/* Bottom-row metric tiles (Tracked Prompts / Brand Mentioned /
+   Total Audits / Primary Focus). These weren't in the original
+   dark-card list so they were rendering as white cards on a
+   black page. */
+html[data-theme="dark"] .dashboard-metric-card,
+html[data-theme="dark"] .dashboard-next-card,
+html[data-theme="dark"] .dashboard-client-card,
+html[data-theme="dark"] .dashboard-empty-card,
+html[data-theme="dark"] .dashboard-metric-card-highlight,
+html[data-theme="dark"] .visibility-scorecard-stat,
+html[data-theme="dark"] .growth-calendar-summary-card,
+html[data-theme="dark"] .growth-calendar-filter,
+html[data-theme="dark"] .growth-calendar-empty,
+html[data-theme="dark"] .queue-focus-card {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+    box-shadow: var(--theme-shadow-card);
+}
+
+/* Metric / stat value typography. The big numbers were using
+   --text-strong which goes invisible on the dark canvas. */
+html[data-theme="dark"] .dashboard-metric-value,
+html[data-theme="dark"] .dashboard-metric-note,
+html[data-theme="dark"] .growth-calendar-summary-card strong,
+html[data-theme="dark"] .focus-value,
+html[data-theme="dark"] .focus-title,
+html[data-theme="dark"] .score-main-value {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .dashboard-metric-label,
+html[data-theme="dark"] .focus-label,
+html[data-theme="dark"] .growth-calendar-summary-card span,
+html[data-theme="dark"] .dashboard-score-label {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .dashboard-priority-item h3,
+html[data-theme="dark"] .focus-copy,
+html[data-theme="dark"] .dashboard-score-text,
+html[data-theme="dark"] .dashboard-priority-item p,
+html[data-theme="dark"] .growth-calendar-filter-copy p,
+html[data-theme="dark"] .growth-calendar-empty p {
+    color: var(--theme-text-secondary);
+}
+
+/* Portfolio Snapshot's big number was using -webkit-text-fill-color:
+   transparent + a brand-gradient background-clip. On a dark canvas
+   the gradient still paints, but the contrast ratio against the dark
+   surface is poor. Switch dark mode back to a solid bright color
+   that reads cleanly on the theme-surface. */
+html[data-theme="dark"] .dashboard-score-value {
+    background: none;
+    -webkit-text-fill-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+/* Score-breakdown rows on the Portfolio Snapshot (Total Clients,
+   Total Audits, Average Score, Tracked Prompts). Both label and
+   value need readable colors. */
+html[data-theme="dark"] .score-row,
+html[data-theme="dark"] .score-row-top {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .score-row-top span {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .score-row-top strong {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .score-row-track {
+    background: var(--theme-surface-alt);
+}
+
+/* Section heading copy used inside cards. */
+html[data-theme="dark"] .section-head h2,
+html[data-theme="dark"] .dashboard-section-head h2,
+html[data-theme="dark"] .section-head.compact h3 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .dashboard-section-head p,
+html[data-theme="dark"] .section-head.compact p {
+    color: var(--theme-text-secondary);
+}
+
+/* Page-header standard block — the "Dashboard" + lede pair at the
+   top of most pages. */
+html[data-theme="dark"] .page-header-standard h1,
+html[data-theme="dark"] .page-header-copy h1 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .page-header-standard p,
+html[data-theme="dark"] .page-header-copy p {
+    color: var(--theme-text-secondary);
+}
+
+/* Buttons inside dark cards — the secondary button needs a
+   theme-aware background or it reads as a white tile. */
+html[data-theme="dark"] .btn-secondary {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .btn-secondary:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
+
+/* Inputs / selects / textareas on dark canvases. */
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-primary);
+}
