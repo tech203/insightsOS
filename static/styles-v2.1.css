@@ -20352,3 +20352,21 @@ html[data-theme="dark"] .workspace-row-card-tight {
 html[data-theme="dark"] .workspace-row-card:hover {
     border-color: var(--brand-primary);
 }
+
+/* =========================================================
+   Topbar pill (Dev Controls) — dark-mode flip
+   =========================================================
+   .topbar-link-pill hardcodes background:#ffffff with
+   color:var(--shell-text). The legacy token map flips the
+   text colour to light, but the white background stays —
+   light-on-light = invisible. Re-anchor the pill background
+   in dark mode. */
+html[data-theme="dark"] .topbar-link-pill {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .topbar-link-pill:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
