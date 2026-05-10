@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "darinsights",
+      "runtimeExecutable": "/Users/mco/Documents/aeo-agents/venv/bin/python3",
+      "runtimeArgs": ["app.py"],
+      "port": 5001
+    }
+  ]
+}
