@@ -21,6 +21,22 @@
             </nav>
 
             <div class="aeo-topbar-actions">
+                <button type="button" class="aeo-theme-toggle" id="aeoThemeToggle" aria-label="Toggle light / dark mode">
+                    <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4.5"></circle>
+                        <line x1="12" y1="2" x2="12" y2="5"></line>
+                        <line x1="12" y1="19" x2="12" y2="22"></line>
+                        <line x1="2" y1="12" x2="5" y2="12"></line>
+                        <line x1="19" y1="12" x2="22" y2="12"></line>
+                        <line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line>
+                        <line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line>
+                        <line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line>
+                        <line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line>
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
+                    </svg>
+                </button>
                 <a href="#early-access" class="aeo-btn aeo-btn-light">Join Interest List</a>
             </div>
         </div>
@@ -564,6 +580,9 @@
 </footer>
 
 <style>
+/* Default tokens — dark mode (the original look). The light-mode
+   override block below flips the surface + text tokens; brand
+   accents stay the same so the gradient identity holds in both. */
 :root {
     --bg-main: #0A0A12;
     --bg-soft: #14141C;
@@ -572,11 +591,53 @@
     --text-main: #f8fafc;
     --text-soft: #cbd5e1;
     --text-muted: #94a3b8;
+    --topbar-bg: rgba(2, 6, 23, 0.72);
+    --note-bg: rgba(255, 255, 255, 0.04);
+    --note-border: rgba(255, 255, 255, 0.08);
+    --pill-bg: rgba(129, 140, 248, 0.10);
+    --pill-border: rgba(129, 140, 248, 0.18);
+    --pill-text: #B8A0E8;
+    --btn-outline-border: rgba(255, 255, 255, 0.14);
+    --btn-outline-hover-bg: rgba(255, 255, 255, 0.05);
+    --btn-light-bg: #ffffff;
+    --btn-light-text: #0f172a;
+    --btn-light-hover-bg: #f1f5f9;
+    --wash-aqua-strong: 0.38;
+    --wash-purple-strong: 0.32;
+    --wash-aqua-soft: 0.18;
+    --wash-purple-soft: 0.16;
     --accent: #3EDFCB;
     --accent-strong: #2BCBB7;
     --secondary: #9D7CE3;
     --success: #34d399;
     --danger: #fb7185;
+}
+
+html[data-theme="light"] {
+    --bg-main: #f7f9fc;
+    --bg-soft: #ffffff;
+    --panel: rgba(15, 23, 42, 0.02);
+    --border: rgba(15, 23, 42, 0.10);
+    --text-main: #0F172A;
+    --text-soft: #334155;
+    --text-muted: #64748B;
+    --topbar-bg: rgba(255, 255, 255, 0.85);
+    --note-bg: rgba(15, 23, 42, 0.025);
+    --note-border: rgba(15, 23, 42, 0.08);
+    --pill-bg: rgba(157, 124, 227, 0.10);
+    --pill-border: rgba(157, 124, 227, 0.22);
+    --pill-text: #6D4CD6;
+    --btn-outline-border: rgba(15, 23, 42, 0.18);
+    --btn-outline-hover-bg: rgba(15, 23, 42, 0.04);
+    --btn-light-bg: #0f172a;
+    --btn-light-text: #ffffff;
+    --btn-light-hover-bg: #1e293b;
+    /* Lighter brand washes so the radial gradients sit gently on a
+       white canvas instead of bleeding strong color. */
+    --wash-aqua-strong: 0.16;
+    --wash-purple-strong: 0.14;
+    --wash-aqua-soft: 0.10;
+    --wash-purple-soft: 0.08;
 }
 
 * {
@@ -603,8 +664,8 @@
     pointer-events: none;
     z-index: 0;
     background:
-        radial-gradient(ellipse 55% 45% at 25% 50%, rgba(62, 223, 203, 0.38), transparent 60%),
-        radial-gradient(ellipse 50% 40% at 75% 40%, rgba(157, 124, 227, 0.32), transparent 58%);
+        radial-gradient(ellipse 55% 45% at 25% 50%, rgba(62, 223, 203, var(--wash-aqua-strong)), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 75% 40%, rgba(157, 124, 227, var(--wash-purple-strong)), transparent 58%);
     filter: blur(6px);
 }
 
@@ -619,8 +680,8 @@
     pointer-events: none;
     z-index: 0;
     background:
-        radial-gradient(ellipse 50% 40% at 80% 30%, rgba(62, 223, 203, 0.18), transparent 65%),
-        radial-gradient(ellipse 45% 35% at 20% 60%, rgba(157, 124, 227, 0.16), transparent 60%);
+        radial-gradient(ellipse 50% 40% at 80% 30%, rgba(62, 223, 203, var(--wash-aqua-soft)), transparent 65%),
+        radial-gradient(ellipse 45% 35% at 20% 60%, rgba(157, 124, 227, var(--wash-purple-soft)), transparent 60%);
     filter: blur(8px);
 }
 
@@ -659,8 +720,9 @@
     top: 0;
     z-index: 30;
     border-bottom: 1px solid var(--border);
-    background: rgba(2, 6, 23, 0.72);
+    background: var(--topbar-bg);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .aeo-topbar-inner {
@@ -740,12 +802,12 @@
 }
 
 .aeo-btn-light {
-    background: #ffffff;
-    color: #0f172a;
+    background: var(--btn-light-bg);
+    color: var(--btn-light-text);
 }
 
 .aeo-btn-light:hover {
-    background: #f1f5f9;
+    background: var(--btn-light-hover-bg);
 }
 
 .aeo-btn-primary {
@@ -761,12 +823,12 @@
 .aeo-btn-ghost {
     background: transparent;
     color: var(--text-main);
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: var(--btn-outline-border);
 }
 
 .aeo-btn-outline:hover,
 .aeo-btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--btn-outline-hover-bg);
 }
 
 .aeo-btn-block {
@@ -790,9 +852,9 @@
     gap: 10px;
     padding: 10px 16px;
     border-radius: 999px;
-    background: rgba(129, 140, 248, 0.10);
-    border: 1px solid rgba(129, 140, 248, 0.18);
-    color: #B8A0E8;
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border);
+    color: var(--pill-text);
     font-size: 14px;
     line-height: 1.4;
 }
@@ -850,8 +912,8 @@
     max-width: 760px;
     padding: 16px 18px;
     border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--note-border);
+    background: var(--note-bg);
     color: var(--text-soft);
     font-size: 14px;
     line-height: 1.7;
@@ -1585,6 +1647,104 @@
         font-size: 32px;
     }
 }
+
+/* =========================================================
+   Light-mode overrides for the landing page
+   =========================================================
+   Dark mode is the original design; this block flips the dark-
+   specific surface fills to light equivalents only when the
+   user's theme preference is "light". Brand accents (gradient
+   text, aqua/purple buttons, success badges) stay identical so
+   the brand identity holds in both modes. */
+
+html[data-theme="light"] .aeo-feature-card,
+html[data-theme="light"] .aeo-strip-card,
+html[data-theme="light"] .aeo-content-card,
+html[data-theme="light"] .aeo-step-card,
+html[data-theme="light"] .aeo-faq-card,
+html[data-theme="light"] .aeo-scorecard {
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme="light"] .aeo-feature-card:hover,
+html[data-theme="light"] .aeo-strip-card:hover,
+html[data-theme="light"] .aeo-content-card:hover,
+html[data-theme="light"] .aeo-step-card:hover,
+html[data-theme="light"] .aeo-faq-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-soft);
+    box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06), 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .aeo-tag-row span {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+}
+
+html[data-theme="light"] .aeo-scorecard {
+    background: var(--bg-soft);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .aeo-stat-card,
+html[data-theme="light"] .aeo-takeaway,
+html[data-theme="light"] .aeo-side-card,
+html[data-theme="light"] .aeo-pricing-card,
+html[data-theme="light"] .aeo-addon-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+}
+
+html[data-theme="light"] .aeo-section + .aeo-section,
+html[data-theme="light"] .aeo-strip + .aeo-section,
+html[data-theme="light"] .aeo-section + .aeo-strip {
+    background-image:
+        linear-gradient(var(--bg-main), var(--bg-main)),
+        linear-gradient(90deg, transparent 0%, rgba(62, 223, 203, 0.40) 30%, rgba(157, 124, 227, 0.40) 70%, transparent 100%);
+}
+
+html[data-theme="light"] .aeo-badge {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+/* Theme toggle button — sits in the topbar, flips between dark
+   and light. Same icon-rail pattern as the in-app sidebar. */
+.aeo-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--btn-outline-border);
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background var(--transition-fast, 0.15s),
+                border-color var(--transition-fast, 0.15s);
+}
+.aeo-theme-toggle:hover {
+    background: var(--btn-outline-hover-bg);
+    border-color: var(--accent);
+}
+.aeo-theme-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+/* Show the right glyph for the current mode. */
+html[data-theme="dark"] .aeo-theme-toggle .icon-sun { display: inline; }
+html[data-theme="dark"] .aeo-theme-toggle .icon-moon { display: none; }
+html[data-theme="light"] .aeo-theme-toggle .icon-sun { display: none; }
+html[data-theme="light"] .aeo-theme-toggle .icon-moon { display: inline; }
 </style>
 
 <script>
@@ -1639,6 +1799,20 @@ document.addEventListener("DOMContentLoaded", function () {
     setInterval(function () {
         heroCursorEl.style.opacity = heroCursorEl.style.opacity === "0" ? "1" : "0";
     }, 530);
+});
+
+// Theme toggle — flips html[data-theme] and persists to
+// localStorage so the same setting follows the visitor into the
+// authenticated app (which uses the same key).
+document.addEventListener("DOMContentLoaded", function () {
+    var btn = document.getElementById("aeoThemeToggle");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+        var current = document.documentElement.getAttribute("data-theme") || "dark";
+        var next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("darInsightsTheme", next); } catch (_) {}
+    });
 });
 </script>
 
