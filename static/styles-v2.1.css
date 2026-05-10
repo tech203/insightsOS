@@ -116,28 +116,42 @@ a:focus-visible {
     outline-offset: 3px;
 }
 
-/* Global input baseline — consistent height, border, padding,
-   and a clean focus ring so forms across the app feel like one
-   product instead of N different field implementations. */
+/* Global input baseline — soft lavender-grey fill at rest, flips
+   to white + aqua border + 3px brand-primary-soft glow on focus.
+   Same pattern as the login form's premium look so every form
+   across the app reads as one product. */
 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
 textarea,
 select {
     font-family: inherit;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text-strong);
-    background: var(--bg-card);
+    background: var(--brand-surface-tint, #E4E4EC);
     border: 1px solid var(--border-main);
-    border-radius: 10px;
-    padding: 10px 12px;
+    border-radius: 12px;
+    padding: 12px 14px;
     transition: border-color var(--transition-fast),
+                background-color var(--transition-fast),
                 box-shadow var(--transition-fast);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"])::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
 }
 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):focus-visible,
 textarea:focus-visible,
 select:focus-visible {
     outline: none;
+    background: var(--bg-card);
     border-color: var(--brand-primary);
     box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+/* Form labels — bold dark navy so the login pattern carries
+   through everywhere. */
+label {
+    color: var(--text-strong);
+    font-weight: 600;
 }
 
 .page-shell {
