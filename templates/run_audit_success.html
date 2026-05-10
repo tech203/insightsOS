@@ -6,10 +6,13 @@
 <div class="page-header-standard">
     <div class="page-header-copy">
         <h1>{{ client.name }} · Audit Complete</h1>
-        <p>The audit finished successfully. Review the saved results and continue into the next best action.</p>
+        <p>Saved and ready for review. Pick up where the audit left off.</p>
     </div>
     <div class="page-header-actions">
-        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Back to Workspace</a>
+        <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-primary">Open Visibility</a>
+        {% if result and result.summary_filename is defined %}
+        <a href="{{ url_for('audit_summary_pdf', summary_filename=result.summary_filename) }}" class="btn btn-secondary">Export PDF</a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -18,168 +21,56 @@
 
 <div class="audit-complete-shell">
 
-    {% if result and result.summary_filename is defined %}
-        {% set report_action_kicker = "Audit Report Ready" %}
-        {% set report_action_title = "Export the report or continue into execution" %}
-        {% set report_action_copy = "The audit is saved. Review the summary, export a PDF for sharing, or open the execution queue created from the audit opportunities." %}
-        {% set report_primary_url = url_for('audit_summary', summary_filename=result.summary_filename) %}
-        {% set report_primary_label = "Open Summary" %}
-        {% set report_pdf_url = url_for('audit_summary_pdf', summary_filename=result.summary_filename) %}
-        {% set report_secondary_url = url_for('content_queue_page', client_id=client.id) %}
-        {% set report_secondary_label = "Open Queue" %}
-        {% set report_client_url = url_for('client_detail', client_id=client.id) %}
-        {% include "partials/report_actions.html" %}
-    {% endif %}
-
     <section class="audit-complete-hero">
         <div class="audit-complete-hero-copy">
             <div class="hero-badge-row">
                 <span class="hero-badge hero-badge-primary">Audit Complete</span>
-                <span class="hero-badge">Saved</span>
-                <span class="hero-badge">Ready for Review</span>
-                <span class="hero-badge">Next Actions Available</span>
             </div>
 
             <h1>Your latest audit is ready.</h1>
             <p>
-                The audit finished successfully and the results have been saved.
-                You can now review visibility findings, open the full reports, or move directly into actions and content generation.
+                Visibility data, competitor signals, and prioritized actions are all saved against this workspace. We recommend starting with visibility to see where your brand is missing — that's where the highest-impact opportunities live.
             </p>
+
+            <div class="audit-meta-inline">
+                <div>
+                    <span>Workspace</span>
+                    <strong>{{ client.name }}</strong>
+                </div>
+                <div>
+                    <span>Website</span>
+                    <strong>{{ result.website if result and result.website is defined else client.website }}</strong>
+                </div>
+                <div>
+                    <span>Audit type</span>
+                    <strong>{{ result.audit_type if result and result.audit_type is defined else "Standard" }}</strong>
+                </div>
+            </div>
         </div>
 
         <div class="audit-complete-hero-card">
             <span class="hero-card-label">Best next move</span>
-            <strong class="hero-card-value">Open Visibility first</strong>
+            <strong class="hero-card-value">Open Visibility</strong>
             <p class="hero-card-text">
-                Start with visibility to see where the brand is appearing, where it is missing, and which opportunities matter most.
+                See where the brand is appearing, where it's missing, and which opportunities matter most.
             </p>
+            <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-primary btn-block">
+                Open Visibility
+            </a>
         </div>
     </section>
 
-    <section class="audit-complete-grid">
-
-        <section class="panel panel-main">
-            <div class="panel-header">
-                <div>
-                    <h2>Saved Audit Details</h2>
-                    <p class="panel-subtitle">Your latest run has been stored and is ready for review.</p>
-                </div>
-            </div>
-
-            <div class="audit-success-banner">
-                <strong>Success:</strong>
-                <span>The audit has been generated and saved.</span>
-            </div>
-
-            <div class="audit-meta-grid">
-                <div class="audit-meta-card">
-                    <span>Client</span>
-                    <strong>{{ client.name }}</strong>
-                </div>
-
-                <div class="audit-meta-card">
-                    <span>Website</span>
-                    <strong>{{ result.website if result and result.website is defined else client.website }}</strong>
-                </div>
-
-                <div class="audit-meta-card">
-                    <span>Audit Type</span>
-                    <strong>{{ result.audit_type if result and result.audit_type is defined else "N/A" }}</strong>
-                </div>
-
-                <div class="audit-meta-card">
-                    <span>Summary File</span>
-                    <strong>{{ result.summary_filename if result and result.summary_filename is defined else "Saved" }}</strong>
-                </div>
-
-                <div class="audit-meta-card">
-                    <span>Full File</span>
-                    <strong>{{ result.full_filename if result and result.full_filename is defined else "Saved" }}</strong>
-                </div>
-            </div>
-
-            <div class="card-actions">
-                {% if result and result.summary_filename is defined %}
-                <a href="{{ url_for('audit_summary', summary_filename=result.summary_filename) }}" class="btn btn-primary">Open Summary</a>
-                <a href="{{ url_for('audit_summary_pdf', summary_filename=result.summary_filename) }}" class="btn btn-secondary">Export PDF</a>
-                {% endif %}
-
-                <a href="{{ url_for('content_queue_page', client_id=client.id) }}" class="btn btn-secondary">Open Queue</a>
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-secondary">Open Visibility</a>
-
-                {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com" %}
-                    {% if result and result.full_filename is defined %}
-                    <a href="{{ url_for('audit_full', summary_filename=result.full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
-                    {% endif %}
-                {% endif %}
-            </div>
-        </section>
-
-        <aside class="side-stack">
-            <section class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Recommended Next Step</h2>
-                        <p class="panel-subtitle">Use the saved audit to move directly into execution.</p>
-                    </div>
-                </div>
-
-                <div class="tips-list">
-                    <div class="tip-item">Start with <strong>Visibility</strong> to see where the brand is missing.</div>
-                    <div class="tip-item">Check <strong>Competitors</strong> to understand who is being surfaced instead.</div>
-                    <div class="tip-item">Open <strong>Actions</strong> to turn findings into a practical execution plan.</div>
-                    <div class="tip-item">Use <strong>Brief</strong> or <strong>Draft</strong> generation while the audit findings are still fresh.</div>
-                </div>
-            </section>
-        </aside>
-
-        <section class="panel panel-full">
-            <div class="panel-header">
-                <div>
-                    <h2>Continue the Workflow</h2>
-                    <p class="panel-subtitle">Choose the next page based on what you want to do now.</p>
-                </div>
-            </div>
-
-            <div class="audit-step-grid">
-                <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="audit-step-card is-visibility">
-                    <strong>Visibility</strong>
-                    <p>Check whether the brand is present across tracked queries and where gaps still exist.</p>
-                </a>
-
-                <a href="{{ url_for('client_competitors_page', client_id=client.id) }}" class="audit-step-card is-competitors">
-                    <strong>Competitors</strong>
-                    <p>Review where competing brands appear and identify counter-content opportunities.</p>
-                </a>
-
-                <a href="{{ url_for('client_actions_page', client_id=client.id) }}" class="audit-step-card is-actions">
-                    <strong>Actions</strong>
-                    <p>Turn the audit into a prioritized execution plan.</p>
-                </a>
-
-                <a href="{{ url_for('generate_client_content_brief', client_id=client.id) }}" class="audit-step-card is-brief">
-                    <strong>Generate Brief</strong>
-                    <p>Create a structured brief from a missed or important target query.</p>
-                </a>
-
-                <a href="{{ url_for('generate_client_content_draft', client_id=client.id) }}" class="audit-step-card is-draft">
-                    <strong>Generate Draft</strong>
-                    <p>Move straight into content production while the audit findings are fresh.</p>
-                </a>
-
-                <a href="{{ url_for('website_builder_page', client_id=client.id) }}" class="audit-step-card is-actions">
-                    <strong>Landing Pages</strong>
-                    <p>Turn queued opportunities into AI-generated pages that can be previewed before publishing.</p>
-                </a>
-
-                <a href="{{ url_for('client_history_page', client_id=client.id) }}" class="audit-step-card is-history">
-                    <strong>History</strong>
-                    <p>Track how this run compares against future audits over time.</p>
-                </a>
-            </div>
-        </section>
-
+    {% if (current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com") and result and result.summary_filename is defined %}
+    <section class="audit-admin-strip">
+        <span class="audit-admin-label">Admin / Dev tools</span>
+        <div class="audit-admin-actions">
+            <a href="{{ url_for('audit_summary', summary_filename=result.summary_filename) }}" class="audit-admin-link">Open Summary JSON</a>
+            {% if result.full_filename is defined %}
+            <a href="{{ url_for('audit_full', summary_filename=result.full_filename) }}" class="audit-admin-link">Open Full Audit JSON</a>
+            {% endif %}
+        </div>
     </section>
+    {% endif %}
 
 </div>
 
@@ -189,19 +80,71 @@
     margin: 0 auto;
     padding: 16px;
     display: grid;
-    gap: 24px;
+    gap: 20px;
 }
 
 .audit-complete-hero,
-.panel,
 .audit-complete-hero-card,
-.audit-meta-card,
-.audit-step-card,
-.tip-item {
+.audit-admin-strip {
     background: #ffffff;
     border: 1px solid #e7ebf3;
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.audit-meta-inline {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #eef1f6;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 32px;
+}
+.audit-meta-inline span {
+    display: block;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+.audit-meta-inline strong {
+    color: #16243c;
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.audit-admin-strip {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    background: #fafbfe;
+}
+.audit-admin-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+}
+.audit-admin-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.audit-admin-link {
+    color: #5b6473;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+.audit-admin-link:hover {
+    color: #6d4aff;
+    text-decoration: underline;
 }
 
 .audit-complete-hero {
@@ -457,10 +400,7 @@
     /* === Dark-mode flip for inline styles === */
     html[data-theme="dark"] .audit-complete-hero,
     html[data-theme="dark"] .audit-complete-hero-card,
-    html[data-theme="dark"] .audit-meta-card,
-    html[data-theme="dark"] .audit-step-card,
-    html[data-theme="dark"] .panel,
-    html[data-theme="dark"] .tip-item {
+    html[data-theme="dark"] .audit-admin-strip {
         background: var(--theme-surface);
         border-color: var(--theme-border-subtle);
         color: var(--theme-text-primary);
@@ -470,50 +410,22 @@
         border-color: var(--theme-border-subtle);
         color: var(--theme-text-primary);
     }
-    html[data-theme="dark"] .audit-complete-hero-copy,
-    html[data-theme="dark"] .audit-meta-card,
-    html[data-theme="dark"] .audit-step-card,
-    html[data-theme="dark"] .panel-header,
     html[data-theme="dark"] .audit-complete-hero h1,
-    html[data-theme="dark"] .audit-complete-hero h2,
-    html[data-theme="dark"] .audit-complete-hero h3,
-    html[data-theme="dark"] .audit-complete-hero h4,
-    html[data-theme="dark"] .audit-complete-hero strong,
-    html[data-theme="dark"] .audit-complete-hero-card h1,
-    html[data-theme="dark"] .audit-complete-hero-card h2,
-    html[data-theme="dark"] .audit-complete-hero-card h3,
-    html[data-theme="dark"] .audit-complete-hero-card h4,
-    html[data-theme="dark"] .audit-complete-hero-card strong,
-    html[data-theme="dark"] .audit-meta-card h1,
-    html[data-theme="dark"] .audit-meta-card h2,
-    html[data-theme="dark"] .audit-meta-card h3,
-    html[data-theme="dark"] .audit-meta-card h4,
-    html[data-theme="dark"] .audit-meta-card strong,
-    html[data-theme="dark"] .audit-step-card h1,
-    html[data-theme="dark"] .audit-step-card h2,
-    html[data-theme="dark"] .audit-step-card h3,
-    html[data-theme="dark"] .audit-step-card h4,
-    html[data-theme="dark"] .audit-step-card strong,
-    html[data-theme="dark"] .panel h1,
-    html[data-theme="dark"] .panel h2,
-    html[data-theme="dark"] .panel h3,
-    html[data-theme="dark"] .panel h4,
-    html[data-theme="dark"] .panel strong,
-    html[data-theme="dark"] .tip-item h1,
-    html[data-theme="dark"] .tip-item h2,
-    html[data-theme="dark"] .tip-item h3,
-    html[data-theme="dark"] .tip-item h4,
-    html[data-theme="dark"] .tip-item strong {
+    html[data-theme="dark"] .audit-meta-inline strong,
+    html[data-theme="dark"] .hero-card-value {
         color: var(--theme-text-primary);
     }
-    html[data-theme="dark"] .hero-card-label,
-    html[data-theme="dark"] .hero-card-text,
-    html[data-theme="dark"] .panel-subtitle,
-    html[data-theme="dark"] .tip-item {
+    html[data-theme="dark"] .audit-complete-hero p,
+    html[data-theme="dark"] .hero-card-text {
         color: var(--theme-text-secondary);
     }
-    html[data-theme="dark"] .hero-badge {
-        border-color: var(--theme-border-subtle);
+    html[data-theme="dark"] .audit-meta-inline span,
+    html[data-theme="dark"] .hero-card-label,
+    html[data-theme="dark"] .audit-admin-label {
+        color: var(--theme-text-muted);
+    }
+    html[data-theme="dark"] .audit-meta-inline {
+        border-top-color: var(--theme-border-subtle);
     }
 </style>
 

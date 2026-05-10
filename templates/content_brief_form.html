@@ -10,8 +10,8 @@
     </div>
 
     <div class="page-header-actions">
-        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
-            Back to Workspace
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="page-header-back-link">
+            ← Back to Workspace
         </a>
     </div>
 </div>
@@ -29,17 +29,10 @@
                 Start with the clearest target query, add brand context, and generate a brief you can move directly into drafting.
             </p>
         </div>
-
-        <div class="brief-generator-top-card">
-            <span class="hero-card-label">Recommended flow</span>
-            <strong class="hero-card-value">Query → Brief → Draft</strong>
-            <p class="hero-card-text">
-                Use the brief to sharpen intent, structure, and positioning before generating a draft.
-            </p>
-        </div>
     </section>
 
     <section class="brief-generator-grid">
+        <div id="briefFormWrap">
         <div class="panel panel-main">
             <div class="panel-header">
                 <div>
@@ -54,13 +47,14 @@
             </div>
             {% endif %}
 
-<form method="POST" action="{{ url_for('generate_client_content_brief', client_id=client.id) }}">
+<form method="POST" action="{{ url_for('generate_client_content_brief', client_id=client.id) }}" id="briefForm">
     <div class="form-field">
-        <label for="target_query">Suggested Target Query</label>
+        <label for="target_query">Target query</label>
         <input
             id="target_query"
             type="text"
             name="target_query"
+            placeholder="e.g. best ice cream e-commerce singapore"
             value="{{ form_data.target_query if form_data else '' }}"
             required
         >
@@ -87,40 +81,81 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Generate Brief</button>
+        <button type="submit" class="btn btn-primary" id="briefGenerateBtn">Generate Brief</button>
         <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
     </div>
 </form>
         </div>
+        </div>
+
+        <div id="briefLoadingState" class="gen-loading-state" style="display:none;">
+            <div class="panel gen-loading-card">
+                <div class="gen-loading-top">
+                    <span class="section-kicker">Brief Generating</span>
+                    <div class="gen-loader-orb"></div>
+                </div>
+
+                <h2>Building your brief…</h2>
+                <p id="briefStageText">Preparing target query…</p>
+
+                <div class="gen-progress-track">
+                    <div id="briefProgressBar" class="gen-progress-fill" style="width: 12%;"></div>
+                </div>
+
+                <div class="gen-progress-meta">
+                    <span id="briefProgressPercent">12%</span>
+                    <span>Estimated time: 10–25 seconds</span>
+                </div>
+
+                <div class="gen-stage-list">
+                    <div class="gen-stage-item active" data-stage-index="0">
+                        <strong>1. Reading target query</strong>
+                        <p>Parsing the query intent and content type.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="1">
+                        <strong>2. Pulling brand context</strong>
+                        <p>Loading audience, voice, and differentiators.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="2">
+                        <strong>3. Building structure</strong>
+                        <p>Search intent, page angle, sections, FAQ ideas.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="3">
+                        <strong>4. Finalising brief</strong>
+                        <p>Formatting and saving to your workspace.</p>
+                    </div>
+                </div>
+
+                <div class="gen-loading-note">
+                    Please keep this tab open while the brief generates.
+                </div>
+            </div>
+        </div>
 
         <aside class="side-stack">
 
+            {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
             <div class="panel">
                 <div class="panel-header">
                     <div>
                         <h2>Quick Inputs</h2>
-                        <p class="panel-subtitle">Use a suggested query as a starting point.</p>
+                        <p class="panel-subtitle">Use a tracked query from this workspace as a starting point.</p>
                     </div>
                 </div>
 
                 <div class="chip-cluster">
-                    {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
-                        {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
-                        <button
-                            type="button"
-                            class="meta-chip chip-button"
-                            data-query="{{ row.get('query', '') }}"
-                            onclick="fillBriefQuery(this.dataset.query)">
-                            {{ row.get('query', '') }}
-                        </button>
-                        {% endfor %}
-                    {% else %}
-                        <button type="button" class="meta-chip chip-button" onclick="fillBriefQuery('aeo vs seo')">aeo vs seo</button>
-                        <button type="button" class="meta-chip chip-button" onclick="fillBriefQuery('what is answer engine optimization')">what is answer engine optimization</button>
-                        <button type="button" class="meta-chip chip-button" onclick="fillBriefQuery('best ai visibility tool')">best ai visibility tool</button>
-                    {% endif %}
+                    {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
+                    <button
+                        type="button"
+                        class="meta-chip chip-button"
+                        data-query="{{ row.get('query', '') }}"
+                        onclick="fillBriefQuery(this.dataset.query)">
+                        {{ row.get('query', '') }}
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
             <div class="panel">
                 <div class="panel-header">
@@ -151,6 +186,53 @@ function fillBriefQuery(value) {
         input.focus();
     }
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("briefForm");
+    const formWrap = document.getElementById("briefFormWrap");
+    const loader = document.getElementById("briefLoadingState");
+    const btn = document.getElementById("briefGenerateBtn");
+    const bar = document.getElementById("briefProgressBar");
+    const pct = document.getElementById("briefProgressPercent");
+    const stageText = document.getElementById("briefStageText");
+    const stageItems = document.querySelectorAll("#briefLoadingState .gen-stage-item");
+
+    if (!form || !formWrap || !loader || !btn) return;
+
+    form.addEventListener("submit", function () {
+        btn.disabled = true;
+        btn.textContent = "Starting…";
+        formWrap.style.display = "none";
+        loader.style.display = "block";
+
+        const stages = [
+            "Reading target query…",
+            "Pulling brand context…",
+            "Building structure…",
+            "Finalising brief…"
+        ];
+
+        let progress = 12;
+        let i = 0;
+        bar.style.width = progress + "%";
+        pct.textContent = progress + "%";
+        stageText.textContent = stages[0];
+
+        setInterval(() => {
+            if (progress < 92) {
+                progress += Math.floor(Math.random() * 7) + 4;
+                if (progress > 92) progress = 92;
+                bar.style.width = progress + "%";
+                pct.textContent = progress + "%";
+            }
+            if (i < stages.length - 1) {
+                i += 1;
+                stageText.textContent = stages[i];
+                stageItems.forEach((el, idx) => el.classList.toggle("active", idx === i));
+            }
+        }, 2400);
+    });
+});
 </script>
 
 {% endblock %}

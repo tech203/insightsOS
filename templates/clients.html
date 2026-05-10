@@ -77,7 +77,7 @@
                         <div class="workspace-inline-stats">
                             <div class="workspace-inline-stat">
                                 <span>Score</span>
-                                <strong>{{ score if score is not none else "—" }}</strong>
+                                <strong>{% if score is not none %}{{ score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}</strong>
                             </div>
 
                             <div class="workspace-inline-stat">
@@ -110,9 +110,13 @@
                         </button>
 
                         <div class="workspace-more-dropdown" id="workspace-menu-{{ client.id }}">
-                            <a href="{{ url_for('edit_client', client_id=client.id) }}">Edit Workspace</a>
-                            <a href="{{ url_for('run_client_audit', client_id=client.id) }}">Run Audit</a>
-                            <a href="{{ url_for('settings_team') }}">Team</a>
+                            <a href="{{ url_for('edit_client', client_id=client.id) }}">Edit workspace</a>
+                            <a href="{{ url_for('run_client_audit', client_id=client.id) }}">Run audit</a>
+                            <a href="{{ url_for('client_brand_context', client_id=client.id) }}">Brand context</a>
+                            <div class="workspace-more-divider"></div>
+                            <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}" onsubmit="return confirm('Delete this workspace? This removes all audits, queue items, and tracked prompts inside it. This cannot be undone.');" style="margin:0;">
+                                <button type="submit" class="workspace-more-danger">Delete workspace</button>
+                            </form>
                         </div>
                     </div>
                 </div>

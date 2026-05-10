@@ -10,8 +10,8 @@
     </div>
 
     <div class="page-header-actions">
-        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-primary">
-            Back to Workspace
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="page-header-back-link">
+            ← Back to Workspace
         </a>
     </div>
 </div>
@@ -29,17 +29,10 @@
                 Start with the target query, then add optional brief and brand context to produce a more usable first draft.
             </p>
         </div>
-
-        <div class="draft-generator-top-card">
-            <span class="hero-card-label">Recommended flow</span>
-            <strong class="hero-card-value">Query → Draft → Queue</strong>
-            <p class="hero-card-text">
-                Add enough context so the output is closer to the real brand, then refine before saving.
-            </p>
-        </div>
     </section>
 
     <section class="draft-generator-grid">
+        <div id="draftFormWrap">
         <div class="panel panel-main">
             <div class="panel-header">
                 <div>
@@ -54,19 +47,19 @@
             </div>
             {% endif %}
 
-            <form method="POST" class="form-stack">
+            <form method="POST" class="form-stack" id="draftForm">
                 <input type="hidden" name="action_mode" value="generate">
 
                 <div class="form-grid-2">
 
                     <div class="form-field form-field-full">
-                        <label for="target_query">Target Query</label>
+                        <label for="target_query">Target query</label>
                         <input
                             type="text"
                             id="target_query"
                             name="target_query"
                             value="{{ form_data.get('target_query', '') if form_data else '' }}"
-                            placeholder="e.g. aeo vs seo"
+                            placeholder="e.g. best ice cream e-commerce singapore"
                             required
                         >
                     </div>
@@ -105,39 +98,84 @@
                 </div>
 
                 <div class="card-actions">
-                    <button type="submit" class="btn btn-primary">Generate Draft</button>
+                    <button type="submit" class="btn btn-primary" id="draftGenerateBtn">Generate Draft</button>
                     <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
+        </div>
+
+        <div id="draftLoadingState" class="gen-loading-state" style="display:none;">
+            <div class="panel gen-loading-card">
+                <div class="gen-loading-top">
+                    <span class="section-kicker">Draft Generating</span>
+                    <div class="gen-loader-orb"></div>
+                </div>
+
+                <h2>Writing your first draft…</h2>
+                <p id="draftStageText">Reading target query and content type…</p>
+
+                <div class="gen-progress-track">
+                    <div id="draftProgressBar" class="gen-progress-fill" style="width: 10%;"></div>
+                </div>
+
+                <div class="gen-progress-meta">
+                    <span id="draftProgressPercent">10%</span>
+                    <span>Estimated time: 15–40 seconds</span>
+                </div>
+
+                <div class="gen-stage-list">
+                    <div class="gen-stage-item active" data-stage-index="0">
+                        <strong>1. Reading target query</strong>
+                        <p>Parsing query intent and content type.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="1">
+                        <strong>2. Pulling brand context</strong>
+                        <p>Loading audience, voice, and offer details.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="2">
+                        <strong>3. Writing draft body</strong>
+                        <p>Composing intro, sections, and call to action.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="3">
+                        <strong>4. Refining tone</strong>
+                        <p>Tightening language and adjusting voice.</p>
+                    </div>
+                    <div class="gen-stage-item" data-stage-index="4">
+                        <strong>5. Finalising draft</strong>
+                        <p>Formatting and saving to your workspace.</p>
+                    </div>
+                </div>
+
+                <div class="gen-loading-note">
+                    Please keep this tab open while the draft generates.
+                </div>
+            </div>
+        </div>
 
         <aside class="side-stack">
+            {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
             <div class="panel">
                 <div class="panel-header">
                     <div>
                         <h2>Quick Inputs</h2>
-                        <p class="panel-subtitle">Tap a suggested query to use it as a starting point.</p>
+                        <p class="panel-subtitle">Tap a tracked query from this workspace to use as a starting point.</p>
                     </div>
                 </div>
 
                 <div class="chip-cluster">
-                    {% if client.get("query_comparison") and client.get("query_comparison", {}).get("rows") %}
-                        {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
-                        <button
-                            type="button"
-                            class="meta-chip chip-button"
-                            data-query="{{ row.get('query', '') }}"
-                            onclick="fillDraftQuery(this.dataset.query)">
-                            {{ row.get('query', '') }}
-                        </button>
-                        {% endfor %}
-                    {% else %}
-                        <button type="button" class="meta-chip chip-button" onclick="fillDraftQuery('aeo vs seo')">aeo vs seo</button>
-                        <button type="button" class="meta-chip chip-button" onclick="fillDraftQuery('what is answer engine optimization')">what is answer engine optimization</button>
-                        <button type="button" class="meta-chip chip-button" onclick="fillDraftQuery('best ai visibility tool')">best ai visibility tool</button>
-                    {% endif %}
+                    {% for row in client.get("query_comparison", {}).get("rows", [])[:6] %}
+                    <button
+                        type="button"
+                        class="meta-chip chip-button"
+                        data-query="{{ row.get('query', '') }}"
+                        onclick="fillDraftQuery(this.dataset.query)">
+                        {{ row.get('query', '') }}
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
             <div class="panel">
                 <div class="panel-header">
@@ -167,6 +205,54 @@ function fillDraftQuery(value) {
         input.focus();
     }
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("draftForm");
+    const formWrap = document.getElementById("draftFormWrap");
+    const loader = document.getElementById("draftLoadingState");
+    const btn = document.getElementById("draftGenerateBtn");
+    const bar = document.getElementById("draftProgressBar");
+    const pct = document.getElementById("draftProgressPercent");
+    const stageText = document.getElementById("draftStageText");
+    const stageItems = document.querySelectorAll("#draftLoadingState .gen-stage-item");
+
+    if (!form || !formWrap || !loader || !btn) return;
+
+    form.addEventListener("submit", function () {
+        btn.disabled = true;
+        btn.textContent = "Starting…";
+        formWrap.style.display = "none";
+        loader.style.display = "block";
+
+        const stages = [
+            "Reading target query…",
+            "Pulling brand context…",
+            "Writing draft body…",
+            "Refining tone…",
+            "Finalising draft…"
+        ];
+
+        let progress = 10;
+        let i = 0;
+        bar.style.width = progress + "%";
+        pct.textContent = progress + "%";
+        stageText.textContent = stages[0];
+
+        setInterval(() => {
+            if (progress < 92) {
+                progress += Math.floor(Math.random() * 6) + 3;
+                if (progress > 92) progress = 92;
+                bar.style.width = progress + "%";
+                pct.textContent = progress + "%";
+            }
+            if (i < stages.length - 1) {
+                i += 1;
+                stageText.textContent = stages[i];
+                stageItems.forEach((el, idx) => el.classList.toggle("active", idx === i));
+            }
+        }, 2800);
+    });
+});
 </script>
 
 {% endblock %}

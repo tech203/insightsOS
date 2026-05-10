@@ -2,30 +2,32 @@
 
 {% block title %}Query Ideas | DarInsights{% endblock %}
 
-{% block content %}
-
 {% set client_route_id = client.id if client.id is defined else client.get('id') %}
 {% set client_name = client.name if client.name is defined else client.get('name', 'Workspace') %}
 {% set has_brand_context = client.get('notes') if client.get is defined else false %}
 
-<div class="page-shell">
-
-    <div class="page-header">
-        <div>
-            <h1>{{ client_name }} · Query Ideas</h1>
-            <p>Choose useful query ideas and add them to the content queue for briefing and drafting.</p>
-        </div>
-
-        <div class="page-header-actions">
-            <a href="{{ url_for('client_brand_context', client_id=client_route_id) }}" class="btn btn-secondary">
-                Brand Context
-            </a>
-
-            <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
-                Back to Queue
-            </a>
-        </div>
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ client_name }} · Query Ideas</h1>
+        <p>Choose useful query ideas and add them to the content queue for briefing and drafting.</p>
     </div>
+
+    <div class="page-header-actions">
+        <a href="{{ url_for('client_brand_context', client_id=client_route_id) }}" class="btn btn-secondary">
+            Brand Context
+        </a>
+
+        <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="page-header-back-link">
+            ← Back to Queue
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-shell">
 
     <section class="query-ideas-hero">
         <div>

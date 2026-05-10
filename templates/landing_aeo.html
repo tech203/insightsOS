@@ -418,24 +418,25 @@
         <div class="aeo-container">
             <div class="aeo-cta-panel">
                 <div class="aeo-cta-left">
-                    <div class="aeo-section-kicker">Early Access</div>
-                    <h2>DarInsights is being prepared for early users.</h2>
+                    <div class="aeo-section-kicker">Founding Access</div>
+                    <h2>Be first in line when AI visibility goes live.</h2>
                     <p>
-                        We are refining the product before opening self-serve signup. Leave your email
-                        if you want to be notified when early access is available.
+                        We're putting the final polish on DarInsights. Founding members get early
+                        access, locked-in launch pricing, and a direct line to the team while we
+                        build — before public signup opens.
                     </p>
 
                     <div class="aeo-tag-row">
-                        <span>No payment needed now</span>
-                        <span>Get launch updates</span>
-                        <span>Early user access</span>
+                        <span>Founder pricing locked in</span>
+                        <span>Skip the public waitlist</span>
+                        <span>Shape what ships next</span>
                     </div>
                 </div>
 
                 <div class="aeo-cta-right">
-                    <div class="aeo-content-card">
-                        <h3>Join the interest list</h3>
-                        <p>Tell us where to send early access updates.</p>
+                    <div class="aeo-content-card aeo-cta-form-card">
+                        <h3>Reserve your spot</h3>
+                        <p>Tell us where to reach you when access opens — no payment now.</p>
 
                         {% if request.args.get("interest") == "success" %}
                             <div class="aeo-form-success">
@@ -470,12 +471,12 @@
                             </label>
 
                             <button type="submit" class="aeo-btn aeo-btn-light aeo-btn-block">
-                                Join Interest List
+                                Reserve My Spot
                             </button>
                         </form>
 
                         <p class="aeo-form-note">
-                            We will only use this to contact you about DarInsights updates and early access.
+                            One email when access opens — nothing else. Limited founding spots.
                         </p>
                     </div>
                 </div>
@@ -1243,6 +1244,42 @@ html[data-theme="light"] {
     font-weight: 800;
 }
 
+/* How It Works step cards — visible brand bar at top of each card
+   at rest, plus a matching bar that slides in along the bottom on
+   hover. Both bars share the same mint→purple gradient so the cards
+   read as the same family with a clear "active" cue. */
+.aeo-step-card {
+    position: relative;
+    overflow: hidden;
+}
+.aeo-step-card::before,
+.aeo-step-card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3EDFCB 0%, #9D7CE3 100%);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.aeo-step-card::before {
+    top: 0;
+    opacity: 0.45;
+}
+.aeo-step-card::after {
+    bottom: 0;
+    transform: scaleX(0);
+    transform-origin: right;
+    opacity: 1;
+}
+.aeo-step-card:hover::before {
+    opacity: 1;
+}
+.aeo-step-card:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
 .aeo-split-grid,
 .aeo-cta-panel {
     display: grid;
@@ -1259,10 +1296,42 @@ html[data-theme="light"] {
 }
 
 .aeo-cta-panel {
+    position: relative;
     padding: 28px;
     border-radius: 32px;
-    border: 1px solid var(--border);
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(217, 70, 239, 0.15));
+    border: 1px solid transparent;
+    background:
+        linear-gradient(180deg, rgba(15, 15, 30, 0.85) 0%, rgba(20, 16, 31, 0.85) 100%) padding-box,
+        linear-gradient(135deg, rgba(62, 223, 203, 0.55) 0%, rgba(157, 124, 227, 0.55) 100%) border-box;
+    box-shadow:
+        0 30px 80px rgba(15, 15, 30, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    overflow: hidden;
+}
+.aeo-cta-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.18), transparent 45%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.18), transparent 45%);
+    pointer-events: none;
+    z-index: 0;
+}
+.aeo-cta-panel > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Right-side form card gets a slightly stronger surface so it
+   reads as the action target, not just another panel. */
+.aeo-cta-form-card {
+    border: 1px solid rgba(62, 223, 203, 0.22) !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+    box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(62, 223, 203, 0.10) inset !important;
 }
 
 .aeo-cta-points {

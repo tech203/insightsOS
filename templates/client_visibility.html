@@ -16,7 +16,7 @@
         </a>
         {% else %}
         <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
-            Upgrade to Continue
+            Upgrade to Pro
         </a>
         {% endif %}
     </div>
@@ -64,7 +64,7 @@
         <div class="visibility-score-card">
             <span class="score-label">Overall Score</span>
 
-            <div class="score-main-value">{{ score }}%</div>
+            <div class="score-main-value">{{ score|round|int }}<small class="score-unit">/100</small></div>
 
             <p class="score-main-copy">
                 {% if score >= 80 %}
@@ -90,7 +90,7 @@
     <section class="visibility-summary-strip">
         <article class="summary-card summary-card-highlight">
             <span class="summary-label">Latest Score</span>
-            <strong class="summary-value">{{ score }}</strong>
+            <strong class="summary-value">{{ score|round|int }}<small class="score-unit">/100</small></strong>
             <p class="summary-copy">
                 {% if comparison %}
                     {% if normalized_delta > 0 %}
@@ -108,7 +108,7 @@
 
         <article class="summary-card">
             <span class="summary-label">Visibility Score</span>
-            <strong class="summary-value">{{ vis_score }}</strong>
+            <strong class="summary-value">{{ vis_score|round|int }}<small class="score-unit">/100</small></strong>
             <p class="summary-copy">
                 {% if comparison %}
                     {% if visibility_delta > 0 %}
@@ -149,9 +149,9 @@
         <div class="pillar-grid">
             <article class="pillar-card">
                 <span class="pillar-label">Visibility</span>
-                <strong class="pillar-value">{{ vis_score }}</strong>
+                <strong class="pillar-value">{{ vis_score|round|int }}<small class="score-unit">/100</small></strong>
                 <p class="pillar-copy">How often your brand appears in AI answers for tracked queries.</p>
-                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ vis_score * 10 if vis_score <= 10 else vis_score }}%;"></div></div>
+                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ [vis_score, 100]|min }}%;"></div></div>
                 {% if comparison %}
                 <span class="delta-pill {% if visibility_delta > 0 %}up{% elif visibility_delta < 0 %}down{% else %}flat{% endif %}">
                     {% if visibility_delta > 0 %}+{{ visibility_delta }}{% elif visibility_delta < 0 %}{{ visibility_delta }}{% else %}No change{% endif %}
@@ -161,9 +161,9 @@
 
             <article class="pillar-card">
                 <span class="pillar-label">Content Coverage</span>
-                <strong class="pillar-value">{{ content_score }}</strong>
+                <strong class="pillar-value">{{ content_score|round|int }}<small class="score-unit">/100</small></strong>
                 <p class="pillar-copy">How well your content supports the queries AI systems evaluate.</p>
-                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ content_score * 10 if content_score <= 10 else content_score }}%;"></div></div>
+                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ [content_score, 100]|min }}%;"></div></div>
                 {% if comparison %}
                 <span class="delta-pill {% if content_delta > 0 %}up{% elif content_delta < 0 %}down{% else %}flat{% endif %}">
                     {% if content_delta > 0 %}+{{ content_delta }}{% elif content_delta < 0 %}{{ content_delta }}{% else %}No change{% endif %}
@@ -173,9 +173,9 @@
 
             <article class="pillar-card">
                 <span class="pillar-label">Structured Data</span>
-                <strong class="pillar-value">{{ schema_score }}</strong>
+                <strong class="pillar-value">{{ schema_score|round|int }}<small class="score-unit">/100</small></strong>
                 <p class="pillar-copy">How well your schema and site structure support AI interpretation.</p>
-                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ schema_score * 10 if schema_score <= 10 else schema_score }}%;"></div></div>
+                <div class="mini-progress"><div class="mini-progress-fill" style="width: {{ [schema_score, 100]|min }}%;"></div></div>
                 {% if comparison %}
                 <span class="delta-pill {% if schema_delta > 0 %}up{% elif schema_delta < 0 %}down{% else %}flat{% endif %}">
                     {% if schema_delta > 0 %}+{{ schema_delta }}{% elif schema_delta < 0 %}{{ schema_delta }}{% else %}No change{% endif %}
@@ -208,22 +208,28 @@
             <p>Focus here first before expanding into more advanced work.</p>
         </div>
 
+        {# Single weak-tier threshold (≤ 40 / 100) applied consistently
+           across all three pillar scores. Backend stores 0–100 scores,
+           so the older 0–10-style thresholds (vis_score ≤ 5, etc.)
+           almost never triggered the blocker cards in practice. #}
+        {% set weak_threshold = 40 %}
+
         <div class="blocker-grid">
-            {% if vis_score <= 5 %}
+            {% if vis_score <= weak_threshold %}
             <article class="blocker-card">
                 <strong>Low AI answer visibility</strong>
                 <p>Your brand is not appearing often enough in tracked AI responses.</p>
             </article>
             {% endif %}
 
-            {% if content_score <= 3 %}
+            {% if content_score <= weak_threshold %}
             <article class="blocker-card">
                 <strong>Weak content coverage</strong>
                 <p>Your current content footprint is not broad or deep enough for target query coverage.</p>
             </article>
             {% endif %}
 
-            {% if schema_score <= 3 %}
+            {% if schema_score <= weak_threshold %}
             <article class="blocker-card">
                 <strong>Weak structured data</strong>
                 <p>Your site structure and schema signals need improvement to support better AI understanding.</p>
@@ -237,7 +243,7 @@
             </article>
             {% endif %}
 
-            {% if vis_score > 5 and content_score > 3 and schema_score > 3 and missed_brand_mentions == 0 %}
+            {% if vis_score > weak_threshold and content_score > weak_threshold and schema_score > weak_threshold and missed_brand_mentions == 0 %}
             <article class="blocker-card blocker-card-positive">
                 <strong>No major blockers surfaced</strong>
                 <p>No major weak point is standing out right now. Focus on maintaining and expanding coverage.</p>
