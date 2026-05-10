@@ -20422,3 +20422,50 @@ html[data-theme="dark"] .workspace-inline-stat span {
     font-weight: 800;
     letter-spacing: -0.02em;
 }
+
+/* =========================================================
+   Mobile shell — dark-mode flip
+   =========================================================
+   .mobile-topbar (rgba(255,255,255,0.96)) and the mobile-menu
+   button hardcoded white. .app-sidebar drawer also stayed
+   white at narrow widths because the mobile @media rules
+   override the dark-mode flip we set for desktop. Re-apply
+   dark surface routing for the mobile drawer + sticky topbar
+   so the experience stays dark across breakpoints. */
+
+html[data-theme="dark"] .mobile-topbar {
+    background: rgba(13, 21, 35, 0.92);
+    border-bottom-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .mobile-menu-btn {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .mobile-menu-btn:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
+
+/* Mobile sidebar drawer — when .app-sidebar slides in at
+   narrow widths it inherits the dark surface, but some
+   nested children (overlay, scrim) had their own white fills
+   that need explicit overrides. */
+html[data-theme="dark"] .app-sidebar.open,
+html[data-theme="dark"] .sidebar-overlay {
+    background: var(--theme-surface);
+}
+html[data-theme="dark"] .sidebar-overlay {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 1199px) {
+    html[data-theme="dark"] .app-sidebar {
+        background: var(--theme-surface) !important;
+        border-right-color: var(--theme-border-subtle);
+    }
+    html[data-theme="dark"] .sidebar-inner {
+        background: var(--theme-surface);
+    }
+}
