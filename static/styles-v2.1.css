@@ -9166,8 +9166,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+    position: relative;
+    overflow: hidden;
+}
+.summary-card-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .summary-label {
@@ -11494,8 +11505,19 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 }
 
 .summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+    position: relative;
+    overflow: hidden;
+}
+.summary-card-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .summary-label {
@@ -16445,8 +16467,8 @@ a.btn {
 .queue-guidance-card,
 .queue-focus-card {
     border-radius: 18px;
-    border: 1px solid #e7ebf3;
-    background: #fbfcff;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
 }
 
 .queue-guidance-card {
@@ -16481,10 +16503,15 @@ a.btn {
     line-height: 1.65;
 }
 
+/* This block of overrides used to repaint .queue-focus-card with a
+   peach wash + orange "18" + coral pill. Replaced with brand-aligned
+   tokens so the earlier definition at line 11412 stays the source
+   of truth. The styles here only adjust dimensions / sizes that
+   are page-specific, not colors. */
 .queue-focus-card {
-    padding: 18px;
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    padding: 22px;
+    background: var(--bg-card);
+    border-color: var(--border-main);
 }
 
 .focus-top {
@@ -16497,36 +16524,39 @@ a.btn {
 .focus-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 28px;
+    min-height: 26px;
     padding: 0 10px;
     border-radius: 999px;
-    background: #fff2ea;
-    color: #e83256;
-    font-size: 12px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
+    font-size: 11px;
     font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .focus-value {
     margin-top: 14px;
-    font-size: 56px;
+    font-size: 50px;
     line-height: 0.95;
     font-weight: 800;
-    color: #f97316;
+    color: var(--text-strong);
     letter-spacing: -0.04em;
 }
 
 .focus-title {
     margin-top: 10px;
     font-size: 18px;
-    font-weight: 800;
-    color: #16243c;
+    font-weight: 700;
+    color: var(--text-strong);
     line-height: 1.25;
+    letter-spacing: -0.01em;
 }
 
 .focus-copy {
     margin: 10px 0 0;
-    color: #627084;
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: 13.5px;
     line-height: 1.6;
 }
 
@@ -16545,8 +16575,19 @@ a.btn {
 }
 
 .summary-card-highlight {
-    background: linear-gradient(180deg, #fff9f6 0%, #ffffff 100%);
-    border-color: #f1ddd4;
+    background: var(--bg-card);
+    border-color: var(--border-main);
+    position: relative;
+    overflow: hidden;
+}
+.summary-card-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
 }
 
 .summary-value {
@@ -19551,3 +19592,146 @@ html[data-theme="dark"] .info-tip::after {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
 }
 html[data-theme="dark"] .info-tip::before { border-top-color: #f4f6fb; }
+
+/* =========================================================
+   Dark-mode coverage gaps (added after the screenshot review)
+   =========================================================
+   The earlier dark-mode block only flipped a subset of card
+   surfaces. These rules fill in the dashboard, page headings,
+   metric tiles, and the Portfolio Snapshot's score breakdown
+   so dark mode reads as one coherent theme instead of "white
+   cards on a black canvas". */
+
+/* Page headings — h1 / h2 / h3 inherited the light-mode
+   --text-strong (#15233b navy) which is invisible on a dark
+   canvas. Override to the theme-text-primary token. */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4 {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-main,
+html[data-theme="dark"] .page-shell {
+    color: var(--theme-text-primary);
+}
+
+/* Bottom-row metric tiles (Tracked Prompts / Brand Mentioned /
+   Total Audits / Primary Focus). These weren't in the original
+   dark-card list so they were rendering as white cards on a
+   black page. */
+html[data-theme="dark"] .dashboard-metric-card,
+html[data-theme="dark"] .dashboard-next-card,
+html[data-theme="dark"] .dashboard-client-card,
+html[data-theme="dark"] .dashboard-empty-card,
+html[data-theme="dark"] .dashboard-metric-card-highlight,
+html[data-theme="dark"] .visibility-scorecard-stat,
+html[data-theme="dark"] .growth-calendar-summary-card,
+html[data-theme="dark"] .growth-calendar-filter,
+html[data-theme="dark"] .growth-calendar-empty,
+html[data-theme="dark"] .queue-focus-card {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+    box-shadow: var(--theme-shadow-card);
+}
+
+/* Metric / stat value typography. The big numbers were using
+   --text-strong which goes invisible on the dark canvas. */
+html[data-theme="dark"] .dashboard-metric-value,
+html[data-theme="dark"] .dashboard-metric-note,
+html[data-theme="dark"] .growth-calendar-summary-card strong,
+html[data-theme="dark"] .focus-value,
+html[data-theme="dark"] .focus-title,
+html[data-theme="dark"] .score-main-value {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .dashboard-metric-label,
+html[data-theme="dark"] .focus-label,
+html[data-theme="dark"] .growth-calendar-summary-card span,
+html[data-theme="dark"] .dashboard-score-label {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .dashboard-priority-item h3,
+html[data-theme="dark"] .focus-copy,
+html[data-theme="dark"] .dashboard-score-text,
+html[data-theme="dark"] .dashboard-priority-item p,
+html[data-theme="dark"] .growth-calendar-filter-copy p,
+html[data-theme="dark"] .growth-calendar-empty p {
+    color: var(--theme-text-secondary);
+}
+
+/* Portfolio Snapshot's big number was using -webkit-text-fill-color:
+   transparent + a brand-gradient background-clip. On a dark canvas
+   the gradient still paints, but the contrast ratio against the dark
+   surface is poor. Switch dark mode back to a solid bright color
+   that reads cleanly on the theme-surface. */
+html[data-theme="dark"] .dashboard-score-value {
+    background: none;
+    -webkit-text-fill-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+/* Score-breakdown rows on the Portfolio Snapshot (Total Clients,
+   Total Audits, Average Score, Tracked Prompts). Both label and
+   value need readable colors. */
+html[data-theme="dark"] .score-row,
+html[data-theme="dark"] .score-row-top {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .score-row-top span {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .score-row-top strong {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .score-row-track {
+    background: var(--theme-surface-alt);
+}
+
+/* Section heading copy used inside cards. */
+html[data-theme="dark"] .section-head h2,
+html[data-theme="dark"] .dashboard-section-head h2,
+html[data-theme="dark"] .section-head.compact h3 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .dashboard-section-head p,
+html[data-theme="dark"] .section-head.compact p {
+    color: var(--theme-text-secondary);
+}
+
+/* Page-header standard block — the "Dashboard" + lede pair at the
+   top of most pages. */
+html[data-theme="dark"] .page-header-standard h1,
+html[data-theme="dark"] .page-header-copy h1 {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .page-header-standard p,
+html[data-theme="dark"] .page-header-copy p {
+    color: var(--theme-text-secondary);
+}
+
+/* Buttons inside dark cards — the secondary button needs a
+   theme-aware background or it reads as a white tile. */
+html[data-theme="dark"] .btn-secondary {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .btn-secondary:hover {
+    background: var(--theme-surface-subtle);
+    border-color: var(--brand-primary);
+}
+
+/* Inputs / selects / textareas on dark canvases. */
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-primary);
+}
