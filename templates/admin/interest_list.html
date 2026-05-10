@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Interest List · Admin · DarInsights{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Interest List {{ info_tip("Admin-only CRM for landing page signups. Update status, leave notes, and export to CSV when you're ready to email a batch.") }}</h1>
+        <p>Track who's joining the early-access waitlist and where they are in your outreach.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.crm-shell { display: grid; gap: 18px; }
+
+.crm-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+.crm-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 14px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+}
+.crm-stat::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gradient-brand);
+    opacity: 0.7;
+}
+.crm-stat .label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-muted);
+}
+.crm-stat .value {
+    display: block;
+    margin-top: 6px;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-strong);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.crm-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 14px;
+    padding: 12px 14px;
+}
+.crm-toolbar form { display: contents; }
+.crm-toolbar input[type="text"] {
+    flex: 1 1 240px;
+    min-width: 200px;
+}
+.crm-toolbar select {
+    min-width: 150px;
+}
+.crm-toolbar .crm-export {
+    margin-left: auto;
+}
+
+.crm-table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 14px;
+    overflow: hidden;
+}
+.crm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.crm-table thead th {
+    background: var(--bg-soft);
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    font-weight: 700;
+    padding: 11px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-main);
+}
+.crm-table tbody td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+    color: var(--text-strong);
+}
+.crm-table tbody tr:last-child td { border-bottom: 0; }
+.crm-table tbody tr:hover td { background: var(--bg-soft-alt); }
+
+.crm-email { font-weight: 700; }
+.crm-meta { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
+
+.crm-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.crm-status-new { background: var(--brand-primary-soft); color: var(--brand-deep, #16a99a); }
+.crm-status-contacted { background: var(--brand-secondary-soft); color: var(--brand-secondary); }
+.crm-status-replied { background: rgba(16, 185, 129, 0.12); color: #047857; }
+.crm-status-converted { background: rgba(16, 185, 129, 0.18); color: #047857; }
+.crm-status-declined { background: rgba(239, 68, 68, 0.10); color: #b91c1c; }
+.crm-status-unsubscribed { background: rgba(100, 116, 139, 0.12); color: #475569; }
+
+.crm-row-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.crm-row-actions select,
+.crm-row-actions input[type="text"] {
+    font-size: 12px;
+    min-height: 32px;
+    padding: 4px 8px;
+}
+.crm-row-actions button {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+.crm-notes-row td {
+    background: var(--bg-soft-alt);
+    padding: 12px;
+    font-size: 12px;
+}
+.crm-notes-form {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+.crm-notes-form textarea {
+    flex: 1;
+    min-height: 56px;
+    resize: vertical;
+}
+
+.crm-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.crm-tag {
+    display: inline-block;
+    margin-right: 6px;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--brand-secondary-soft);
+    color: var(--brand-secondary);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crm-shell">
+
+    <section class="crm-stats">
+        <div class="crm-stat">
+            <span class="label">Total Signups</span>
+            <span class="value">{{ total }}</span>
+        </div>
+        <div class="crm-stat">
+            <span class="label">New This Week</span>
+            <span class="value">{{ new_this_week }}</span>
+        </div>
+        {% for key, label in statuses %}
+        <div class="crm-stat">
+            <span class="label">{{ label }}</span>
+            <span class="value">{{ by_status[key] }}</span>
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="crm-toolbar">
+        <form method="GET" action="{{ url_for('admin_interest_list') }}" style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
+            <input type="text" name="q" placeholder="Search email, company, notes…"
+                   value="{{ active_query }}">
+            <select name="status">
+                <option value="">All statuses</option>
+                {% for key, label in statuses %}
+                <option value="{{ key }}" {% if active_status == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            {% if active_query or active_status %}
+            <a href="{{ url_for('admin_interest_list') }}" class="btn btn-secondary">Clear</a>
+            {% endif %}
+        </form>
+        <a href="{{ url_for('admin_interest_export') }}" class="btn btn-secondary crm-export">⇩ Export CSV</a>
+    </section>
+
+    <section class="crm-table-wrap">
+        {% if rows %}
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Contact</th>
+                    <th>Use case</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in rows %}
+                <tr>
+                    <td>
+                        <div class="crm-email">{{ s.email }}</div>
+                        {% if s.company %}<div class="crm-meta">{{ s.company }}</div>{% endif %}
+                    </td>
+                    <td>{{ s.use_case or "—" }}</td>
+                    <td>
+                        {{ s.source or "—" }}
+                        {% if s.utm_source or s.utm_campaign %}
+                        <div class="crm-meta">
+                            {% if s.utm_source %}{{ s.utm_source }}{% endif %}
+                            {% if s.utm_campaign %} · {{ s.utm_campaign }}{% endif %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="crm-status-pill crm-status-{{ s.status }}">{{ s.status }}</span>
+                        {% if s.tags %}
+                        <div style="margin-top:6px;">
+                            {% for t in s.tags %}<span class="crm-tag">{{ t }}</span>{% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="crm-meta">{{ s.created_at.strftime('%d %b') if s.created_at else '—' }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_interest_update_status', signup_id=s.id) }}"
+                              class="crm-row-actions">
+                            <select name="status">
+                                {% for key, label in statuses %}
+                                <option value="{{ key }}" {% if s.status == key %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-secondary">Set</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr class="crm-notes-row">
+                    <td colspan="6">
+                        <form method="POST" action="{{ url_for('admin_interest_update_notes', signup_id=s.id) }}"
+                              class="crm-notes-form">
+                            <textarea name="notes" placeholder="Notes…">{{ s.notes or '' }}</textarea>
+                            <div style="display:flex; flex-direction:column; gap:6px; min-width:200px;">
+                                <input type="text" name="tags" placeholder="tags, comma-separated"
+                                       value="{{ s.tags|join(', ') if s.tags else '' }}">
+                                <button type="submit" class="btn btn-secondary">Save</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="crm-empty">
+            No signups match this filter yet.
+            {% if active_query or active_status %}
+            <br><a href="{{ url_for('admin_interest_list') }}">Clear filters</a> to see everyone.
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
