@@ -9942,7 +9942,24 @@ def inject_template_globals():
         ),
         "action_credit_costs": ACTION_CREDIT_COSTS,
         "agency_brand": effective_agency_branding(),
+        # Cache buster for the main stylesheet — appended as ?v=<mtime>
+        # so Chrome / Safari serve the new CSS the moment the file is
+        # touched, instead of holding onto a multi-day-cached copy.
+        "static_css_version": _static_css_version(),
     }
+
+
+def _static_css_version() -> str:
+    """File mtime of the main stylesheet, used as a CSS cache-buster.
+    Falls back to a constant when the file is missing so we never
+    crash a render."""
+    try:
+        path = os.path.join(
+            app.static_folder or "static", "styles-v2.1.css"
+        )
+        return str(int(os.path.getmtime(path)))
+    except Exception:
+        return "1"
 
 
 @app.route("/aeo-agency")
