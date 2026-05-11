@@ -21930,3 +21930,98 @@ html[data-theme="dark"] .toast--error .toast-icon {
         opacity: 0;
     }
 }
+
+/* =========================================================
+   Dark-mode polish pass — surface backgrounds
+   =========================================================
+   (Originally landed in PR #36, kept here so both polish
+   passes — PR #36 page-specific surfaces and PR #38 toast
+   styles — coexist after merge.) */
+
+html[data-theme="dark"] .workspace-notes {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-secondary) !important;
+}
+
+html[data-theme="dark"] .competitor-setup-card,
+html[data-theme="dark"] .competitor-insight-strip,
+html[data-theme="dark"] .results-section-card,
+html[data-theme="dark"] .history-top-strip,
+html[data-theme="dark"] .history-summary-strip,
+html[data-theme="dark"] .history-movement-card,
+html[data-theme="dark"] .history-list-panel,
+html[data-theme="dark"] .history-empty-state,
+html[data-theme="dark"] .history-compact-row {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .insight-mini-card,
+html[data-theme="dark"] .history-move-item {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+}
+
+html[data-theme="dark"] .brand-context-card .form-section label,
+html[data-theme="dark"] .form-section label {
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .form-section input,
+html[data-theme="dark"] .form-section textarea {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .form-section input::placeholder,
+html[data-theme="dark"] .form-section textarea::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] .form-section input:focus,
+html[data-theme="dark"] .form-section textarea:focus {
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+html[data-theme="dark"] .context-checklist div {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-secondary) !important;
+}
+
+html[data-theme="dark"] .query-ideas-hero,
+html[data-theme="dark"] .query-flow-note,
+html[data-theme="dark"] .query-idea-card,
+html[data-theme="dark"] .query-empty-card {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border-subtle) !important;
+}
+
+html[data-theme="dark"] .query-service-form label {
+    color: var(--theme-text-secondary) !important;
+}
+
+html[data-theme="dark"] .query-service-form input {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .query-service-form input::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] .query-warning-box {
+    background: rgba(254, 215, 170, 0.10) !important;
+    border-color: rgba(254, 215, 170, 0.30) !important;
+    color: #fed7aa !important;
+}
+
+html[data-theme="dark"] .query-status-pill {
+    background: rgba(254, 215, 170, 0.12) !important;
+    color: #fdba74 !important;
+}
