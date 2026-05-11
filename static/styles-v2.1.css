@@ -22461,3 +22461,104 @@ html[data-theme="dark"] .client-header-overflow-menu {
     border-color: var(--theme-border-subtle);
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
 }
+
+/* =========================================================
+   Integration / connector pages — dark-mode flip
+   =========================================================
+   The 7 integration templates (Cal.com, GSC, GA, Module
+   Connectors, Shopify Products, Webflow Settings, WooCommerce)
+   each ship their own bespoke prefixed CSS (.cal-*, .ga-*,
+   .gsc-*, .mc-*, .shopify-*, .woo-*, .webflow-page .card)
+   with hardcoded `background: white` and no dark-mode flip.
+   Result: WHITE CARDS on dark surface across every connector
+   page. This is the blanket override.
+
+   Long-term: migrate each page to .surface-card + theme tokens
+   and delete the bespoke prefix CSS. For now, this block is a
+   surgical fix that preserves layout and just flips surfaces. */
+
+html[data-theme="dark"] .cal-card,
+html[data-theme="dark"] .cal-kpi,
+html[data-theme="dark"] .cal-empty,
+html[data-theme="dark"] .ga-card,
+html[data-theme="dark"] .ga-kpi,
+html[data-theme="dark"] .ga-empty,
+html[data-theme="dark"] .gsc-card,
+html[data-theme="dark"] .gsc-kpi,
+html[data-theme="dark"] .gsc-empty,
+html[data-theme="dark"] .mc-section,
+html[data-theme="dark"] .shopify-card,
+html[data-theme="dark"] .woo-card,
+html[data-theme="dark"] .woo-empty,
+html[data-theme="dark"] .webflow-page .card {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .cal-btn-secondary,
+html[data-theme="dark"] .ga-btn-secondary,
+html[data-theme="dark"] .gsc-btn-secondary,
+html[data-theme="dark"] .mc-btn-secondary,
+html[data-theme="dark"] .shopify-btn-secondary,
+html[data-theme="dark"] .woo-btn-secondary {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+/* Module-connectors info banner — stays warm-tinted but on a
+   dark surface with light text so the warning copy is legible. */
+html[data-theme="dark"] .mc-banner {
+    background: rgba(254, 215, 170, 0.10) !important;
+    border-color: rgba(254, 215, 170, 0.30) !important;
+    color: #fed7aa !important;
+}
+
+/* Text inside integration cards — flip the dark navy / muted
+   greys these pages use to readable theme tokens. */
+html[data-theme="dark"] .cal-card,
+html[data-theme="dark"] .cal-card h2,
+html[data-theme="dark"] .cal-card h3,
+html[data-theme="dark"] .cal-card strong,
+html[data-theme="dark"] .ga-card,
+html[data-theme="dark"] .ga-card h2,
+html[data-theme="dark"] .ga-card h3,
+html[data-theme="dark"] .ga-card strong,
+html[data-theme="dark"] .gsc-card,
+html[data-theme="dark"] .gsc-card h2,
+html[data-theme="dark"] .gsc-card h3,
+html[data-theme="dark"] .gsc-card strong,
+html[data-theme="dark"] .mc-section,
+html[data-theme="dark"] .mc-section h2,
+html[data-theme="dark"] .mc-section h3,
+html[data-theme="dark"] .mc-section strong,
+html[data-theme="dark"] .shopify-card,
+html[data-theme="dark"] .shopify-card h2,
+html[data-theme="dark"] .shopify-card strong,
+html[data-theme="dark"] .woo-card,
+html[data-theme="dark"] .woo-card h2,
+html[data-theme="dark"] .woo-card strong {
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .cal-card p,
+html[data-theme="dark"] .cal-card label,
+html[data-theme="dark"] .cal-card small,
+html[data-theme="dark"] .ga-card p,
+html[data-theme="dark"] .ga-card label,
+html[data-theme="dark"] .ga-card small,
+html[data-theme="dark"] .gsc-card p,
+html[data-theme="dark"] .gsc-card label,
+html[data-theme="dark"] .gsc-card small,
+html[data-theme="dark"] .mc-section p,
+html[data-theme="dark"] .mc-section label,
+html[data-theme="dark"] .mc-section small,
+html[data-theme="dark"] .shopify-card p,
+html[data-theme="dark"] .shopify-card label,
+html[data-theme="dark"] .shopify-card small,
+html[data-theme="dark"] .woo-card p,
+html[data-theme="dark"] .woo-card label,
+html[data-theme="dark"] .woo-card small {
+    color: var(--theme-text-secondary) !important;
+}
