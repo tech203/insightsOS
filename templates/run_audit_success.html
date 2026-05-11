@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{# Tab-title notify — see static/task-completion.js #}
+{% set task_complete_notify = "Audit complete" %}
+
 {% block title %}{{ client.name }} | Audit Complete{% endblock %}
 
 {% block page_header %}
