@@ -284,8 +284,8 @@ function scrollToPromptForm() {
 .tracking-empty,
 .tracking-meta-card,
 .tracking-entry-card {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 22px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -385,10 +385,10 @@ function scrollToPromptForm() {
 .form-field input,
 .form-field textarea {
     width: 100%;
-    border: 1px solid #dbe2ee;
+    border: 1px solid var(--border-main);
     border-radius: 16px;
-    background: #ffffff;
-    color: #16243c;
+    background: var(--bg-card);
+    color: var(--text-strong);
     padding: 14px 16px;
     font: inherit;
 }
@@ -797,6 +797,39 @@ function scrollToPromptForm() {
     }
     html[data-theme="dark"] .tracking-progress-card {
         border-color: var(--theme-border-subtle);
+    }
+
+    /* ===== Dark-mode flips for accent gradients + status pills ===== */
+    /* Lavender hero/intro gradients on the entry-card + status-band */
+    html[data-theme="dark"] .tracking-entry-card,
+    html[data-theme="dark"] .tracking-status-band {
+        background: linear-gradient(180deg, rgba(157, 124, 227, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(235, 231, 255, 0.18);
+    }
+    /* Visibility / mention / score band pills — keep warm/cool feel on dark */
+    html[data-theme="dark"] .visibility-low,
+    html[data-theme="dark"] .mention-no,
+    html[data-theme="dark"] .score-low {
+        background: rgba(227, 91, 53, 0.18);
+        color: #ffb89e;
+    }
+    html[data-theme="dark"] .visibility-medium,
+    html[data-theme="dark"] .mention-sometimes,
+    html[data-theme="dark"] .score-medium {
+        background: rgba(183, 129, 22, 0.20);
+        color: #ffd591;
+    }
+    html[data-theme="dark"] .visibility-high,
+    html[data-theme="dark"] .mention-yes,
+    html[data-theme="dark"] .score-high {
+        background: rgba(31, 139, 88, 0.18);
+        color: #86e0ad;
+    }
+    html[data-theme="dark"] .row-critical {
+        background: rgba(227, 91, 53, 0.08);
+    }
+    html[data-theme="dark"] .row-warning {
+        background: rgba(183, 129, 22, 0.10);
     }
 </style>
 
