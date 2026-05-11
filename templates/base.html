@@ -523,6 +523,15 @@
             {% endif %}
 
             <main class="app-content">
+                {# Onboarding stepper — renders only while
+                   onboarding_state.active is true (set by the global
+                   context processor based on user's workspace + audit
+                   counts). Pages that don't want it can set
+                   {% set hide_onboarding = True %} before extending. #}
+                {% if not hide_onboarding %}
+                    {% include "partials/onboarding_progress.html" %}
+                {% endif %}
+
                 {% block content %}{% endblock %}
             </main>
         </div>

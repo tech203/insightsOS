@@ -103,22 +103,30 @@
     {% endif %}
 
     {% if not has_clients and (total_audits or 0) == 0 %}
+    {# First-run welcome hero. The onboarding stepper above already
+       handles the "Add workspace" CTA — this hero focuses on what
+       the user will get out of the next two steps so the value is
+       clear before they invest the time. #}
     <section class="dashboard-welcome-card">
         <div class="dashboard-welcome-copy">
             <span class="dashboard-welcome-kicker">Welcome to DarInsights</span>
-            <h2>Set up your first workspace to get started</h2>
+            <h2>Here's what your first audit will give you</h2>
             <p>
-                Add the business you want to track — site URL, industry, location — and we'll
-                generate a visibility audit, surface the gaps, and queue up your first content actions.
+                A clear AI visibility score across Visibility, Content, Entity, and Trust;
+                a ranked list of which queries you're missing; and a queue of content opportunities
+                ready to brief and draft.
             </p>
         </div>
 
+        <ul class="dashboard-welcome-checklist">
+            <li><span class="dashboard-welcome-tick">&#10003;</span> Scorecard with pillar breakdown (Visibility / Content / Entity / Trust)</li>
+            <li><span class="dashboard-welcome-tick">&#10003;</span> Top opportunity queries you're not yet ranking for</li>
+            <li><span class="dashboard-welcome-tick">&#10003;</span> Recommended next actions queued automatically</li>
+        </ul>
+
         <div class="dashboard-welcome-actions">
-            <a href="{{ url_for('create_client') }}" class="btn btn-primary">
-                Add First Workspace
-            </a>
             <a href="{{ url_for('help_page') }}" class="btn btn-secondary">
-                See How It Works
+                See how it works
             </a>
         </div>
     </section>

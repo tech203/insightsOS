@@ -984,11 +984,21 @@
     line-height: 1;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 4px 8px;
+    /* 44×44 tap target — was 30×22, too small for phones */
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.ai-edit-close:hover {
+.ai-edit-close:hover,
+.ai-edit-close:focus-visible {
     color: var(--text-strong);
+    background: rgba(148, 163, 184, 0.12);
+    outline: none;
 }
 
 .ai-edit-log {
