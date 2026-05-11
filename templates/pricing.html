@@ -804,5 +804,28 @@ html[data-theme="dark"] .pricing-stripe-copy p {
     }
 }
 
+/* ===== Dark-mode flips for peach accent surfaces ===== */
+html[data-theme="dark"] .pricing-canceled-banner {
+    background: rgba(232, 50, 86, 0.10);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffd0d6;
+}
+html[data-theme="dark"] .roi-box.highlight,
+html[data-theme="dark"] .pricing-badge-primary,
+html[data-theme="dark"] .pricing-explainer-no {
+    background: rgba(232, 50, 86, 0.16);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffb1bd;
+}
+html[data-theme="dark"] .pricing-plan-card.featured {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(232, 50, 86, 0.45);
+    box-shadow: 0 20px 50px rgba(232, 50, 86, 0.20);
+}
+html[data-theme="dark"] .pricing-topup-card.featured {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(255, 216, 198, 0.22);
+}
+
 </style>
 {% endblock %}
