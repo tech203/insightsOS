@@ -21731,3 +21731,124 @@ html[data-theme="dark"] .onboarding-step.is-done {
 html[data-theme="dark"] .onboarding-step.is-current {
     color: var(--theme-text-primary);
 }
+
+/* =========================================================
+   Dark-mode polish pass — surface backgrounds
+   =========================================================
+   Several pages had cream / white linear-gradient backgrounds
+   defined in light-mode rules but no dark-mode flip, so the
+   surface stayed bright on dark. Adding !important so these
+   flips win against any later page-local overrides that might
+   re-introduce a hardcoded background.
+
+   Pages covered: workspace overview (notes box), competitor
+   gaps (setup card), history (top strip / summary / movement
+   / list panel / empty state / compact row), brand context
+   form (labels + inputs), query ideas (hero / flow note /
+   idea card / empty card). */
+
+html[data-theme="dark"] .workspace-notes {
+    /* The cream gradient at line ~1146 had no dark-mode flip,
+       leaving a bright peach box around the workspace's notes
+       paragraph. Drop it back to the page surface so the notes
+       blend with the workspace top strip. */
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-secondary) !important;
+}
+
+/* Force the surface flips that were defined without !important
+   to win over any later page-local backgrounds. Cards listed
+   here all had the original flip somewhere earlier in the
+   file but were still rendering as bright surfaces in dark
+   mode for some users (cache / specificity edge cases). */
+html[data-theme="dark"] .competitor-setup-card,
+html[data-theme="dark"] .competitor-insight-strip,
+html[data-theme="dark"] .results-section-card,
+html[data-theme="dark"] .history-top-strip,
+html[data-theme="dark"] .history-summary-strip,
+html[data-theme="dark"] .history-movement-card,
+html[data-theme="dark"] .history-list-panel,
+html[data-theme="dark"] .history-empty-state,
+html[data-theme="dark"] .history-compact-row {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .insight-mini-card,
+html[data-theme="dark"] .history-move-item {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+}
+
+/* Brand context form — the labels and textareas were defined
+   inline in templates/brand_context_form.html with hardcoded
+   #0f172a navy text, so question copy and placeholder text
+   were invisible on dark surface. */
+html[data-theme="dark"] .brand-context-card .form-section label,
+html[data-theme="dark"] .form-section label {
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .form-section input,
+html[data-theme="dark"] .form-section textarea {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .form-section input::placeholder,
+html[data-theme="dark"] .form-section textarea::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] .form-section input:focus,
+html[data-theme="dark"] .form-section textarea:focus {
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+html[data-theme="dark"] .context-checklist div {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-secondary) !important;
+}
+
+/* Query ideas page — same pattern as brand context: inline
+   white surfaces + dark navy text without dark-mode flips for
+   the form inputs and warning box. */
+html[data-theme="dark"] .query-ideas-hero,
+html[data-theme="dark"] .query-flow-note,
+html[data-theme="dark"] .query-idea-card,
+html[data-theme="dark"] .query-empty-card {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border-subtle) !important;
+}
+
+html[data-theme="dark"] .query-service-form label {
+    color: var(--theme-text-secondary) !important;
+}
+
+html[data-theme="dark"] .query-service-form input {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .query-service-form input::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] .query-warning-box {
+    /* Light-amber warning becomes a soft amber on dark with
+       enough contrast for the explanatory copy. */
+    background: rgba(254, 215, 170, 0.10) !important;
+    border-color: rgba(254, 215, 170, 0.30) !important;
+    color: #fed7aa !important;
+}
+
+html[data-theme="dark"] .query-status-pill {
+    background: rgba(254, 215, 170, 0.12) !important;
+    color: #fdba74 !important;
+}
