@@ -5867,6 +5867,8 @@ def help_page():
 @app.route("/pricing")
 def pricing_page():
     """Public pricing page — renders the plan catalog."""
+    from services.stripe_helper import is_stripe_configured
+
     current_plan = (
         getattr(current_user, "plan", None)
         if current_user.is_authenticated
@@ -5882,6 +5884,11 @@ def pricing_page():
         plans=list_public_plans(),
         current_plan=current_plan,
         show_canceled_banner=show_canceled_banner,
+        # Surface the Stripe-config state so the template can show
+        # a "checkout temporarily unavailable" banner and disable
+        # plan / topup buttons instead of letting users click into
+        # an error flash + redirect.
+        stripe_configured=is_stripe_configured(),
     )
 
 
