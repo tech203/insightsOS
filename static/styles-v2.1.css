@@ -21852,3 +21852,71 @@ html[data-theme="dark"] .query-status-pill {
     background: rgba(254, 215, 170, 0.12) !important;
     color: #fdba74 !important;
 }
+
+/* =========================================================
+   Form validation — inline per-field errors
+   =========================================================
+   Styled by static/form-validation.js when native HTML5
+   validation fires. The .field-error sits directly under
+   the field and announces via role="alert" for screen
+   readers. The field gets .is-invalid + aria-invalid="true"
+   so the visual state matches the assistive announcement. */
+
+.field-error {
+    display: none;
+    margin: 6px 0 0 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.20);
+    color: #b91c1c;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 600;
+}
+
+.field-error.is-visible {
+    display: block;
+    animation: field-error-in 0.15s ease-out;
+}
+
+@keyframes field-error-in {
+    from { transform: translateY(-2px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+input.is-invalid:not([type="checkbox"]):not([type="radio"]),
+textarea.is-invalid,
+select.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+input.is-invalid:focus,
+input.is-invalid:focus-visible,
+textarea.is-invalid:focus,
+textarea.is-invalid:focus-visible,
+select.is-invalid:focus,
+select.is-invalid:focus-visible {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.20) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .field-error.is-visible {
+        animation: none;
+    }
+}
+
+html[data-theme="dark"] .field-error {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.30);
+    color: #fca5a5;
+}
+
+html[data-theme="dark"] input.is-invalid:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] textarea.is-invalid,
+html[data-theme="dark"] select.is-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
+}

@@ -834,6 +834,13 @@
         });
     </script>
 
+    {# Form validation enhancer — hooks every <form> globally and
+       upgrades native HTML5 validation into styled inline errors
+       with focus-and-scroll behaviour. No per-form changes needed;
+       opt-out via <form data-no-validate-enhancer> if a page wants
+       its own validation flow. #}
+    <script src="{{ url_for('static', filename='form-validation.js') }}?v={{ static_css_version }}" defer></script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
