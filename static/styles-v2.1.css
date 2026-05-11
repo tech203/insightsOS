@@ -22397,3 +22397,67 @@ html[data-theme="dark"] .btn-secondary:hover {
         transform: none !important;
     }
 }
+
+/* =========================================================
+   Client-detail header overflow (mobile)
+   =========================================================
+   Collapses the secondary actions (Export PDF, Share link)
+   into a "⋯" menu on phones. Desktop unchanged. */
+
+.client-header-overflow {
+    display: none;
+    position: relative;
+}
+
+.client-header-overflow > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0 14px;
+    min-width: 44px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.client-header-overflow > summary::-webkit-details-marker {
+    display: none;
+}
+
+.client-header-overflow-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    min-width: 220px;
+    max-width: calc(100vw - 24px);
+    padding: 6px;
+    border: 1px solid var(--border-main);
+    border-radius: 12px;
+    background: var(--bg-card);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    display: grid;
+    gap: 2px;
+}
+
+.client-header-overflow-menu form {
+    margin: 0;
+}
+
+.client-header-overflow[open] > summary {
+    background: var(--brand-primary-soft);
+    border-color: var(--brand-primary);
+}
+
+@media (max-width: 640px) {
+    .client-header-secondary {
+        display: none;
+    }
+    .client-header-overflow {
+        display: inline-block;
+    }
+}
+
+html[data-theme="dark"] .client-header-overflow-menu {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+}
