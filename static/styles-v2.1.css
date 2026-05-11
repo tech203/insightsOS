@@ -22333,3 +22333,67 @@ input.is-pending::before {
 .btn-pending-label {
     display: inline;
 }
+
+/* =========================================================
+   Button restyle to match sidebar nav-item aesthetic
+   =========================================================
+   Aligning the button system so primary and secondary buttons
+   read as the same visual family as the sidebar. */
+
+.btn {
+    border-radius: 14px !important;
+}
+
+.btn-primary {
+    border: 1px solid var(--brand-primary) !important;
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.22) !important;
+}
+
+.btn-primary:hover {
+    background: var(--brand-primary-hover, #2BCBB7) !important;
+    border-color: var(--brand-primary-hover, #2BCBB7) !important;
+    box-shadow: 0 8px 22px rgba(62, 223, 203, 0.30) !important;
+    transform: translateY(-1px);
+}
+
+.btn-primary:focus-visible {
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.22),
+                0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+.btn-secondary {
+    box-shadow: none !important;
+}
+
+.btn-secondary:hover {
+    border-color: var(--brand-primary) !important;
+    background: var(--brand-primary-soft) !important;
+    color: var(--text-strong) !important;
+}
+
+.btn-sm {
+    border-radius: 12px !important;
+}
+
+html[data-theme="dark"] .btn-primary {
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.18) !important;
+}
+
+html[data-theme="dark"] .btn-secondary {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .btn-secondary:hover {
+    border-color: var(--brand-primary) !important;
+    background: rgba(62, 223, 203, 0.10) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-primary:hover,
+    .btn-secondary:hover {
+        transform: none !important;
+    }
+}
