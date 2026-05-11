@@ -21733,35 +21733,216 @@ html[data-theme="dark"] .onboarding-step.is-current {
 }
 
 /* =========================================================
+   Toasts / flash messages
+   =========================================================
+   Floating notification stack in the top-right corner. Each
+   toast slides in from the right, auto-dismisses (6s normal,
+   9s urgent), or can be dismissed manually with × / ESC.
+
+   Variants: success / info / warning / error — each has its
+   own border + icon color. Background is always the standard
+   surface so multiple toasts stack cleanly. */
+
+.toast-stack {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(380px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 12px;
+    padding: 14px 14px 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-left-width: 4px;
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+    color: var(--text-strong);
+    font-size: 14px;
+    line-height: 1.5;
+    animation: toast-slide-in 0.22s ease-out;
+}
+
+@keyframes toast-slide-in {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+.toast.is-dismissing {
+    animation: toast-slide-out 0.22s ease-in forwards;
+}
+
+@keyframes toast-slide-out {
+    to { transform: translateX(110%); opacity: 0; }
+}
+
+.toast-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.toast-message {
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.toast-close {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: -2px;
+}
+
+.toast-close:hover,
+.toast-close:focus-visible {
+    background: rgba(107, 114, 128, 0.12);
+    color: var(--text-strong);
+    outline: none;
+}
+
+/* --- Variants --- */
+
+.toast--success {
+    border-left-color: #16a34a;
+}
+.toast--success .toast-icon {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.toast--info {
+    border-left-color: var(--brand-primary);
+}
+.toast--info .toast-icon {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.toast--warning {
+    border-left-color: #d97706;
+}
+.toast--warning .toast-icon {
+    background: rgba(217, 119, 6, 0.12);
+    color: #d97706;
+}
+
+.toast--error {
+    border-left-color: #dc2626;
+}
+.toast--error .toast-icon {
+    background: rgba(220, 38, 38, 0.12);
+    color: #dc2626;
+}
+
+/* --- Mobile / narrow --- */
+
+@media (max-width: 640px) {
+    .toast-stack {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+        width: auto;
+    }
+    .toast {
+        font-size: 13px;
+        padding: 12px;
+    }
+}
+
+/* --- Dark mode --- */
+
+html[data-theme="dark"] .toast {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] .toast-close {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .toast-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .toast--success {
+    border-left-color: #22c55e;
+}
+html[data-theme="dark"] .toast--success .toast-icon {
+    background: rgba(34, 197, 94, 0.18);
+    color: #22c55e;
+}
+
+html[data-theme="dark"] .toast--warning {
+    border-left-color: #f59e0b;
+}
+html[data-theme="dark"] .toast--warning .toast-icon {
+    background: rgba(245, 158, 11, 0.18);
+    color: #f59e0b;
+}
+
+html[data-theme="dark"] .toast--error {
+    border-left-color: #ef4444;
+}
+html[data-theme="dark"] .toast--error .toast-icon {
+    background: rgba(239, 68, 68, 0.18);
+    color: #ef4444;
+}
+
+/* Reduced motion — no slide, just appear/disappear */
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        animation: none;
+    }
+    .toast.is-dismissing {
+        animation: none;
+        opacity: 0;
+    }
+}
+
+/* =========================================================
    Dark-mode polish pass — surface backgrounds
    =========================================================
-   Several pages had cream / white linear-gradient backgrounds
-   defined in light-mode rules but no dark-mode flip, so the
-   surface stayed bright on dark. Adding !important so these
-   flips win against any later page-local overrides that might
-   re-introduce a hardcoded background.
-
-   Pages covered: workspace overview (notes box), competitor
-   gaps (setup card), history (top strip / summary / movement
-   / list panel / empty state / compact row), brand context
-   form (labels + inputs), query ideas (hero / flow note /
-   idea card / empty card). */
+   (Originally landed in PR #36, kept here so multiple polish
+   passes coexist after merge.) */
 
 html[data-theme="dark"] .workspace-notes {
-    /* The cream gradient at line ~1146 had no dark-mode flip,
-       leaving a bright peach box around the workspace's notes
-       paragraph. Drop it back to the page surface so the notes
-       blend with the workspace top strip. */
     background: var(--theme-surface-alt) !important;
     border-color: var(--theme-border-subtle) !important;
     color: var(--theme-text-secondary) !important;
 }
 
-/* Force the surface flips that were defined without !important
-   to win over any later page-local backgrounds. Cards listed
-   here all had the original flip somewhere earlier in the
-   file but were still rendering as bright surfaces in dark
-   mode for some users (cache / specificity edge cases). */
 html[data-theme="dark"] .competitor-setup-card,
 html[data-theme="dark"] .competitor-insight-strip,
 html[data-theme="dark"] .results-section-card,
@@ -21782,10 +21963,6 @@ html[data-theme="dark"] .history-move-item {
     border-color: var(--theme-border-subtle) !important;
 }
 
-/* Brand context form — the labels and textareas were defined
-   inline in templates/brand_context_form.html with hardcoded
-   #0f172a navy text, so question copy and placeholder text
-   were invisible on dark surface. */
 html[data-theme="dark"] .brand-context-card .form-section label,
 html[data-theme="dark"] .form-section label {
     color: var(--theme-text-primary) !important;
@@ -21815,9 +21992,6 @@ html[data-theme="dark"] .context-checklist div {
     color: var(--theme-text-secondary) !important;
 }
 
-/* Query ideas page — same pattern as brand context: inline
-   white surfaces + dark navy text without dark-mode flips for
-   the form inputs and warning box. */
 html[data-theme="dark"] .query-ideas-hero,
 html[data-theme="dark"] .query-flow-note,
 html[data-theme="dark"] .query-idea-card,
@@ -21841,8 +22015,6 @@ html[data-theme="dark"] .query-service-form input::placeholder {
 }
 
 html[data-theme="dark"] .query-warning-box {
-    /* Light-amber warning becomes a soft amber on dark with
-       enough contrast for the explanatory copy. */
     background: rgba(254, 215, 170, 0.10) !important;
     border-color: rgba(254, 215, 170, 0.30) !important;
     color: #fed7aa !important;
@@ -21854,24 +22026,319 @@ html[data-theme="dark"] .query-status-pill {
 }
 
 /* =========================================================
+   Mobile / narrow-viewport dark-mode hardening
+   =========================================================
+   Defensive fix: use !important on the canvas + form input
+   surfaces so no later cascade rule can re-introduce a light
+   fill on dark mode. Light mode is unchanged. */
+
+html[data-theme="dark"] {
+    /* Remap the input-baseline token so inputs get dark
+       surface fills automatically. */
+    --brand-surface-tint: var(--theme-surface-alt);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .app-main,
+html[data-theme="dark"] .app-content {
+    background: var(--theme-canvas) !important;
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .mobile-topbar {
+    background: rgba(13, 21, 35, 0.92) !important;
+    border-bottom-color: var(--theme-border-subtle) !important;
+}
+
+html[data-theme="dark"] .mobile-menu-btn {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .mobile-menu-btn span {
+    background: var(--theme-text-primary) !important;
+}
+
+@media (max-width: 1199px) {
+    html[data-theme="dark"] .app-sidebar,
+    html[data-theme="dark"] .app-sidebar.open,
+    html[data-theme="dark"] .sidebar-inner {
+        background: var(--theme-surface) !important;
+        border-color: var(--theme-border-subtle) !important;
+    }
+    html[data-theme="dark"] .sidebar-overlay {
+        background: rgba(0, 0, 0, 0.6) !important;
+    }
+}
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] textarea:focus,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] select:focus-visible {
+    background: var(--theme-surface) !important;
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+/* =========================================================
+   Workspace empty-state hero (pre-audit)
+   =========================================================
+   (From PR #45 — preserved through merge.) */
+
+.workspace-empty-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.7fr);
+    gap: 24px;
+    align-items: center;
+    padding: 28px;
+}
+
+.workspace-empty-hero-copy h2 {
+    margin: 8px 0 10px 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--text-strong);
+    font-weight: 700;
+}
+
+.workspace-empty-hero-copy p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 14.5px;
+    line-height: 1.6;
+    max-width: 540px;
+}
+
+.workspace-empty-hero-checklist {
+    list-style: none;
+    margin: 16px 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.workspace-empty-hero-checklist li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    font-size: 13.5px;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+.workspace-empty-hero-tick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.workspace-empty-hero-actions {
+    display: grid;
+    gap: 10px;
+    align-content: center;
+}
+
+.workspace-empty-hero-actions .btn {
+    width: 100%;
+}
+
+@media (max-width: 880px) {
+    .workspace-empty-hero {
+        grid-template-columns: 1fr;
+        padding: 22px;
+    }
+}
+
+/* =========================================================
+   Tablet sidebar — 1024-1199px gets desktop layout
+   =========================================================
+   (From PR #49 — preserved through merge.) */
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .app-shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
+    }
+
+    .mobile-topbar { display: none !important; }
+    .mobile-menu-btn { display: none !important; }
+    .sidebar-overlay { display: none !important; }
+
+    .app-sidebar {
+        position: sticky !important;
+        top: 0;
+        transform: none !important;
+        width: 248px;
+        max-width: none;
+        height: 100vh;
+        box-shadow: none;
+        z-index: 1400;
+        overflow: visible;
+        background: var(--shell-panel, #0d1523);
+    }
+
+    .app-main {
+        min-width: 0;
+        min-height: 100vh;
+    }
+
+    .sidebar-inner {
+        padding: 20px 16px 16px;
+    }
+
+    .sidebar-brand { padding-top: 0; }
+
+    .nav-tooltip { display: none; }
+    .sidebar-rail-toggle { display: inline-flex; }
+}
+
+/* =========================================================
+   Form validation — inline per-field errors
+   =========================================================
+   Styled by static/form-validation.js when native HTML5
+   validation fires. The .field-error sits directly under
+   the field and announces via role="alert" for screen
+   readers. The field gets .is-invalid + aria-invalid="true"
+   so the visual state matches the assistive announcement. */
+
+.field-error {
+    display: none;
+    margin: 6px 0 0 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.20);
+    color: #b91c1c;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 600;
+}
+
+.field-error.is-visible {
+    display: block;
+    animation: field-error-in 0.15s ease-out;
+}
+
+@keyframes field-error-in {
+    from { transform: translateY(-2px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+input.is-invalid:not([type="checkbox"]):not([type="radio"]),
+textarea.is-invalid,
+select.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+input.is-invalid:focus,
+input.is-invalid:focus-visible,
+textarea.is-invalid:focus,
+textarea.is-invalid:focus-visible,
+select.is-invalid:focus,
+select.is-invalid:focus-visible {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.20) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .field-error.is-visible {
+        animation: none;
+    }
+}
+
+html[data-theme="dark"] .field-error {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.30);
+    color: #fca5a5;
+}
+
+html[data-theme="dark"] input.is-invalid:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] textarea.is-invalid,
+html[data-theme="dark"] select.is-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
+}
+
+/* =========================================================
+   Pending-submit button state
+   =========================================================
+   Set by static/form-pending.js when a form starts submitting.
+   Button gets disabled, dimmed, with a small spinner before
+   the (now-friendly progressive) label. */
+
+button.is-pending,
+input.is-pending {
+    opacity: 0.85;
+    cursor: progress !important;
+    position: relative;
+}
+
+button.is-pending::before,
+input.is-pending::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: -2px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button.is-pending::before,
+    input.is-pending::before {
+        animation: none;
+        border-right-color: currentColor;
+        opacity: 0.5;
+    }
+}
+
+.btn-pending-label {
+    display: inline;
+}
+
+/* =========================================================
    Button restyle to match sidebar nav-item aesthetic
    =========================================================
-   Per user request: "change all the buttons to those similar
-   to the sidebar icons". The sidebar nav-items are rounded
-   squares with a 16px radius, subtle border, mint accent on
-   active. Aligning the button system so primary and secondary
-   buttons read as the same visual family as the sidebar.
-
-   Changes (overrides the base .btn at line ~14661):
-     - 14px border-radius (was 12px) — closer to sidebar's 16px
-       while keeping a slight pill-like feel for shorter labels
-     - Softer shadows so buttons sit on the surface instead of
-       hovering above it like the previous primary did
-     - Mint border on .btn-primary so it reads as a "filled
-       version of the same card", not a totally different shape
-     - .btn-secondary gets the same hover-mint-border treatment
-       the sidebar nav uses on hover
-   Light + dark mode covered. */
+   Aligning the button system so primary and secondary buttons
+   read as the same visual family as the sidebar. */
 
 .btn {
     border-radius: 14px !important;
@@ -21904,16 +22371,10 @@ html[data-theme="dark"] .query-status-pill {
     color: var(--text-strong) !important;
 }
 
-/* Smaller button variant — used in inline contexts (table rows,
-   queue cards). Keeps the same family but with tighter padding. */
 .btn-sm {
     border-radius: 12px !important;
 }
 
-/* Dark-mode polish: secondary buttons should sit on the dark
-   surface with the same brand-mint border accent the sidebar
-   uses. The primary button keeps its mint solid fill — we
-   just soften its shadow to match the dark canvas. */
 html[data-theme="dark"] .btn-primary {
     box-shadow: 0 6px 16px rgba(62, 223, 203, 0.18) !important;
 }
@@ -21930,7 +22391,6 @@ html[data-theme="dark"] .btn-secondary:hover {
     color: var(--theme-text-primary) !important;
 }
 
-/* Reduced motion — drop the lift animation */
 @media (prefers-reduced-motion: reduce) {
     .btn-primary:hover,
     .btn-secondary:hover {

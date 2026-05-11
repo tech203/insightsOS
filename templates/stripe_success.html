@@ -82,7 +82,24 @@
         </div>
 
         <div class="checkout-success-actions">
+            {% if return_to %}
+            {# Deep-link recovery — user was bounced to /pricing
+               mid-flow (e.g. ran out of credits during a brief
+               generation). Send them back to where they were so
+               they can finish the action without retracing steps. #}
+            <a href="{{ return_to }}" class="btn btn-primary">
+                Back to where you were
+            </a>
             {% if has_any_workspace and next_workspace_id %}
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
+                Open queue
+            </a>
+            {% else %}
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                Open dashboard
+            </a>
+            {% endif %}
+            {% elif has_any_workspace and next_workspace_id %}
             <a href="{{ url_for('new_audit', client_id=next_workspace_id) }}" class="btn btn-primary">
                 Run an audit
             </a>
