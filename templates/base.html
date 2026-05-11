@@ -301,7 +301,14 @@
                             <span class="nav-tooltip">Brand Context</span>
                         </a>
 
-                        <a href="{{ url_for('client_brand_kit', client_id=sidebar_client.id) }}"
+                        {# Brand-kit route requires <int:client_id>;
+                           sidebar_client.id is the slug (e.g.
+                           "white-rabbit-singapore") which 500s the
+                           url_for builder. Use db_id (the integer
+                           SQL id), and only render the link when
+                           it's available. #}
+                        {% if sidebar_client.db_id %}
+                        <a href="{{ url_for('client_brand_kit', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'client_brand_kit' %}active{% endif %}"
                            aria-label="Brand Kit Studio"
                            data-label="Brand Kit">
@@ -309,6 +316,7 @@
                             <span class="nav-text">Brand Kit</span>
                             <span class="nav-tooltip">Brand Kit Studio</span>
                         </a>
+                        {% endif %}
 
                         <a href="{{ url_for('website_builder_page', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'website_builder_page' %}active{% endif %}"
