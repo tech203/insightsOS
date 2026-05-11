@@ -301,7 +301,14 @@
                             <span class="nav-tooltip">Brand Context</span>
                         </a>
 
-                        <a href="{{ url_for('client_brand_kit', client_id=sidebar_client.id) }}"
+                        {# Brand-kit route requires <int:client_id>;
+                           sidebar_client.id is the slug (e.g.
+                           "white-rabbit-singapore") which 500s the
+                           url_for builder. Use db_id (the integer
+                           SQL id), and only render the link when
+                           it's available. #}
+                        {% if sidebar_client.db_id %}
+                        <a href="{{ url_for('client_brand_kit', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'client_brand_kit' %}active{% endif %}"
                            aria-label="Brand Kit Studio"
                            data-label="Brand Kit">
@@ -309,6 +316,7 @@
                             <span class="nav-text">Brand Kit</span>
                             <span class="nav-tooltip">Brand Kit Studio</span>
                         </a>
+                        {% endif %}
 
                         <a href="{{ url_for('website_builder_page', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'website_builder_page' %}active{% endif %}"
@@ -363,8 +371,16 @@
                             <span class="nav-label-chevron" aria-hidden="true">▾</span>
                         </button>
 
+                        {# All integration routes are registered with
+                           <int:client_id> (Shopify, Woo, GSC, GA,
+                           Cal.com, Marketplace, Module Connectors).
+                           sidebar_client.id is the SLUG; pass db_id
+                           (SQL integer) and gate the entire group on
+                           it so legacy JSON-backed clients without
+                           db_id don't 500 the page render. #}
+                        {% if sidebar_client.db_id %}
                         <div class="nav-group-items">
-                        <a href="{{ url_for('shopify_products', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('shopify_products', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'shopify_products' %}active{% endif %}"
                            aria-label="Shopify"
                            data-label="Shopify">
@@ -373,7 +389,7 @@
                             <span class="nav-tooltip">Shopify</span>
                         </a>
 
-                        <a href="{{ url_for('woocommerce_dashboard', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('woocommerce_dashboard', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'woocommerce_dashboard' %}active{% endif %}"
                            aria-label="WooCommerce"
                            data-label="WooCommerce">
@@ -382,7 +398,7 @@
                             <span class="nav-tooltip">WooCommerce</span>
                         </a>
 
-                        <a href="{{ url_for('marketplace_audits_page', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('marketplace_audits_page', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'marketplace_audits_page' %}active{% endif %}"
                            aria-label="Marketplace Visibility"
                            data-label="Marketplace">
@@ -391,7 +407,7 @@
                             <span class="nav-tooltip">Marketplace Visibility</span>
                         </a>
 
-                        <a href="{{ url_for('calcom_dashboard', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('calcom_dashboard', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'calcom_dashboard' %}active{% endif %}"
                            aria-label="Cal.com"
                            data-label="Cal.com">
@@ -400,7 +416,7 @@
                             <span class="nav-tooltip">Cal.com</span>
                         </a>
 
-                        <a href="{{ url_for('gsc_dashboard', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('gsc_dashboard', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'gsc_dashboard' %}active{% endif %}"
                            aria-label="Google Search Console"
                            data-label="Search Console">
@@ -409,7 +425,7 @@
                             <span class="nav-tooltip">Google Search Console</span>
                         </a>
 
-                        <a href="{{ url_for('ga_dashboard', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('ga_dashboard', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'ga_dashboard' %}active{% endif %}"
                            aria-label="Google Analytics"
                            data-label="Analytics">
@@ -418,7 +434,7 @@
                             <span class="nav-tooltip">Google Analytics</span>
                         </a>
 
-                        <a href="{{ url_for('module_connectors', client_id=sidebar_client.id) }}"
+                        <a href="{{ url_for('module_connectors', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'module_connectors' %}active{% endif %}"
                            aria-label="More connectors"
                            data-label="More">
@@ -427,6 +443,7 @@
                             <span class="nav-tooltip">More connectors</span>
                         </a>
                         </div>
+                        {% endif %}
                     </div>
                     {% endif %}
 
