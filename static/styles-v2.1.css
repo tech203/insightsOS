@@ -21852,3 +21852,84 @@ html[data-theme="dark"] .query-status-pill {
     background: rgba(254, 215, 170, 0.12) !important;
     color: #fdba74 !important;
 }
+
+/* =========================================================
+   Workspace empty-state hero (pre-audit)
+   =========================================================
+   Replaces the .workspace-score-card + 4-stat .workspace-summary-grid
+   when the workspace has no audit yet. Avoids the wall of "—"
+   placeholders that made fresh workspaces look broken. */
+
+.workspace-empty-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.7fr);
+    gap: 24px;
+    align-items: center;
+    padding: 28px;
+}
+
+.workspace-empty-hero-copy h2 {
+    margin: 8px 0 10px 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--text-strong);
+    font-weight: 700;
+}
+
+.workspace-empty-hero-copy p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 14.5px;
+    line-height: 1.6;
+    max-width: 540px;
+}
+
+.workspace-empty-hero-checklist {
+    list-style: none;
+    margin: 16px 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.workspace-empty-hero-checklist li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    font-size: 13.5px;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+.workspace-empty-hero-tick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.workspace-empty-hero-actions {
+    display: grid;
+    gap: 10px;
+    align-content: center;
+}
+
+.workspace-empty-hero-actions .btn {
+    width: 100%;
+}
+
+@media (max-width: 880px) {
+    .workspace-empty-hero {
+        grid-template-columns: 1fr;
+        padding: 22px;
+    }
+}
