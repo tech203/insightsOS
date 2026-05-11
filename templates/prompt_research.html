@@ -22,7 +22,7 @@
 
 <div class="prompt-research-shell">
 
-    <section class="prompt-hero-card">
+    <section class="prompt-hero-card surface-card">
         <div class="prompt-hero-copy">
             <span class="section-kicker">Discovery</span>
             <h1>Uncover the prompts where your brand should appear</h1>
@@ -70,7 +70,7 @@
         </div>
 
         <div class="prompt-hero-side">
-            <div class="hero-side-card">
+            <div class="hero-side-card surface-card">
                 <span class="mini-kicker">What this module does</span>
                 <ul class="hero-check-list">
                     <li>Find high-intent AI prompts</li>
@@ -84,38 +84,38 @@
 
     {% if current_query %}
     <section class="prompt-summary-grid">
-        <article class="summary-card">
+        <article class="summary-card surface-card">
             <span class="summary-label">AI Volume</span>
             <strong class="summary-value">{{ summary_data.ai_volume if summary_data.ai_volume is defined else "—" }}</strong>
             <p class="summary-copy">Estimated demand and prompt activity around this topic.</p>
         </article>
 
-        <article class="summary-card">
+        <article class="summary-card surface-card">
             <span class="summary-label">Topics</span>
             <strong class="summary-value">{{ summary_data.topic_count if summary_data.topic_count is defined else topic_items|length }}</strong>
             <p class="summary-copy">Clusters of related AI search intent around your topic.</p>
         </article>
 
-        <article class="summary-card">
+        <article class="summary-card surface-card">
             <span class="summary-label">Prompts</span>
             <strong class="summary-value">{{ summary_data.prompt_count if summary_data.prompt_count is defined else prompt_items|length }}</strong>
             <p class="summary-copy">Specific prompts users may ask across AI platforms.</p>
         </article>
 
-        <article class="summary-card">
+        <article class="summary-card surface-card">
             <span class="summary-label">Brands Mentioned</span>
             <strong class="summary-value">{{ summary_data.brand_count if summary_data.brand_count is defined else brand_items|length }}</strong>
             <p class="summary-copy">Brands appearing across AI-generated answers.</p>
         </article>
 
-        <article class="summary-card">
+        <article class="summary-card surface-card">
             <span class="summary-label">Source Domains</span>
             <strong class="summary-value">{{ summary_data.source_count if summary_data.source_count is defined else source_items|length }}</strong>
             <p class="summary-copy">Websites shaping the AI answers users are seeing.</p>
         </article>
     </section>
 
-    <section class="prompt-insight-band">
+    <section class="prompt-insight-band surface-card">
         <div class="insight-band-copy">
             <span class="section-kicker">Opportunity</span>
             <h2>Turn discovery into action</h2>
@@ -134,7 +134,7 @@
 
     <section class="prompt-results-shell">
 
-        <div class="results-section-card">
+        <div class="results-section-card surface-card">
             <div class="results-section-header">
                 <div>
                     <span class="section-kicker">Topics</span>
@@ -192,7 +192,7 @@
             {% endif %}
         </div>
 
-        <div class="results-section-card">
+        <div class="results-section-card surface-card">
             <div class="results-section-header">
                 <div>
                     <span class="section-kicker">Prompts</span>
@@ -265,7 +265,7 @@
         </div>
 
         <div class="results-two-col">
-            <div class="results-section-card">
+            <div class="results-section-card surface-card">
                 <div class="results-section-header">
                     <div>
                         <span class="section-kicker">Brands</span>
@@ -302,7 +302,7 @@
                 {% endif %}
             </div>
 
-            <div class="results-section-card">
+            <div class="results-section-card surface-card">
                 <div class="results-section-header">
                     <div>
                         <span class="section-kicker">Sources</span>
@@ -342,7 +342,7 @@
     </section>
     {% else %}
     <section class="prompt-empty-state">
-        <div class="empty-state-card">
+        <div class="empty-state-card surface-card">
             <span class="section-kicker">How to use this</span>
             <h2>Start with a topic, not a domain</h2>
             <p>
@@ -377,7 +377,7 @@
 <div class="modal-backdrop" id="modalBackdrop" hidden></div>
 
 <div class="app-modal" id="promptDetailModal" hidden>
-    <div class="app-modal-card app-modal-lg">
+    <div class="app-modal-card app-modal-lg surface-card">
         <div class="app-modal-header">
             <div>
                 <span class="section-kicker">AI Answer Breakdown</span>
@@ -410,7 +410,7 @@
 </div>
 
 <div class="app-modal" id="trackPromptModal" hidden>
-    <div class="app-modal-card">
+    <div class="app-modal-card surface-card">
         <div class="app-modal-header">
             <div>
                 <span class="section-kicker">Tracking Setup</span>
@@ -455,6 +455,12 @@
 </div>
 
 <style>
+/* Surface treatment (background, border, radius, shadow) lives
+   in the canonical .surface-card class added to every card in
+   the markup. Dark mode flows through theme tokens automatically.
+   This <style> block keeps only page-specific layout, sizing,
+   and the few cosmetic accents that aren't in the design system. */
+
 .prompt-page-header-minimal {
     margin-bottom: 8px;
 }
@@ -464,46 +470,36 @@
     gap: 28px;
 }
 
-.prompt-hero-card,
-.summary-card,
-.results-section-card,
-.empty-state-card,
-.hero-side-card,
-.app-modal-card,
-.prompt-insight-band {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
+/* Hero card: padding + grid + brand-mint wash overlay */
 .prompt-hero-card {
     padding: 32px;
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) 320px;
     gap: 24px;
-    background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
-    border-color: #ece8ff;
+    background:
+        linear-gradient(180deg, var(--brand-primary-soft) 0%, var(--bg-card) 100%);
+    border-color: rgba(62, 223, 203, 0.22);
 }
-
 .prompt-hero-copy h1 {
     margin: 0;
     font-size: clamp(36px, 5vw, 58px);
     line-height: 1.02;
     font-weight: 800;
     letter-spacing: -0.04em;
-    color: #16243c;
+    color: var(--text-strong);
     max-width: 780px;
 }
-
 .prompt-hero-copy p {
     margin: 16px 0 0;
     max-width: 760px;
     font-size: 17px;
     line-height: 1.72;
-    color: #627084;
+    color: var(--text-soft);
 }
 
+/* Page-specific kicker variant — keeps the purple wash that
+   distinguishes this module from the generic .section-kicker
+   defined in the main stylesheet. */
 .section-kicker,
 .mini-kicker {
     display: inline-flex;
@@ -511,8 +507,8 @@
     width: fit-content;
     padding: 6px 10px;
     border-radius: 999px;
-    background: #f4ebff;
-    color: #6d4aff;
+    background: var(--brand-secondary-soft);
+    color: var(--brand-secondary);
     font-size: 12px;
     font-weight: 800;
     line-height: 1;
@@ -523,59 +519,52 @@
     display: grid;
     gap: 14px;
 }
-
 .prompt-search-bar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
 }
-
 .prompt-search-bar input,
 .prompt-search-filters select,
 .track-form-grid textarea,
 .track-form-grid select {
     width: 100%;
-    border: 1px solid #dbe3ef;
+    border: 1px solid var(--border-main);
     border-radius: 16px;
     padding: 14px 16px;
     font-size: 15px;
-    color: #16243c;
-    background: #ffffff;
+    color: var(--text-strong);
+    background: var(--bg-card);
     outline: none;
 }
-
 .prompt-search-bar input:focus,
 .prompt-search-filters select:focus,
 .track-form-grid textarea:focus,
 .track-form-grid select:focus {
-    border-color: #8d72ff;
-    box-shadow: 0 0 0 4px rgba(141, 114, 255, 0.12);
+    border-color: var(--brand-secondary);
+    box-shadow: 0 0 0 4px var(--brand-secondary-soft);
 }
-
 .prompt-search-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
 }
-
 .prompt-search-filters label {
     display: grid;
     gap: 8px;
     min-width: 180px;
 }
-
 .prompt-search-filters label span,
 .form-group label {
     font-size: 13px;
     font-weight: 700;
-    color: #627084;
+    color: var(--text-soft);
 }
 
 .hero-side-card {
     padding: 20px;
-    background: linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
+    background: linear-gradient(180deg, var(--bg-soft-alt) 0%, var(--bg-card) 100%);
 }
-
 .hero-check-list {
     list-style: none;
     padding: 0;
@@ -583,21 +572,19 @@
     display: grid;
     gap: 12px;
 }
-
 .hero-check-list li {
     position: relative;
     padding-left: 22px;
-    color: #405066;
+    color: var(--text-main);
     line-height: 1.55;
     font-size: 14px;
 }
-
 .hero-check-list li::before {
     content: "•";
     position: absolute;
     left: 6px;
     top: 0;
-    color: #6d4aff;
+    color: var(--brand-secondary);
     font-weight: 800;
 }
 
@@ -606,31 +593,27 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
 }
-
 .summary-card {
     padding: 20px;
 }
-
 .summary-label {
     display: block;
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 10px;
 }
-
 .summary-value {
     display: block;
     font-size: 34px;
     line-height: 1;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
     letter-spacing: -0.03em;
 }
-
 .summary-copy {
     margin: 12px 0 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 13px;
     line-height: 1.6;
 }
@@ -641,25 +624,21 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 20px;
     align-items: center;
-    background: linear-gradient(180deg, #fcfcff 0%, #ffffff 100%);
-    border-color: #ece8ff;
+    background: linear-gradient(180deg, var(--bg-soft-alt) 0%, var(--bg-card) 100%);
 }
-
 .insight-band-copy h2 {
     margin: 10px 0 0;
     font-size: 28px;
     line-height: 1.1;
-    color: #16243c;
+    color: var(--text-strong);
 }
-
 .insight-band-copy p {
     margin: 14px 0 0;
     max-width: 760px;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 15px;
     line-height: 1.65;
 }
-
 .insight-band-actions {
     display: flex;
     flex-wrap: wrap;
@@ -671,11 +650,9 @@
     display: grid;
     gap: 24px;
 }
-
 .results-section-card {
     padding: 24px;
 }
-
 .results-section-header {
     display: flex;
     justify-content: space-between;
@@ -683,17 +660,15 @@
     gap: 14px;
     margin-bottom: 18px;
 }
-
 .section-title {
     margin: 8px 0 0;
     font-size: 24px;
     line-height: 1.12;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
-
 .section-hint {
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 700;
 }
@@ -701,43 +676,37 @@
 .table-wrap {
     overflow-x: auto;
 }
-
 .insights-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     min-width: 880px;
 }
-
 .insights-table th,
 .insights-table td {
     padding: 14px 16px;
-    border-bottom: 1px solid #edf1f7;
+    border-bottom: 1px solid var(--border-soft);
     vertical-align: top;
     text-align: left;
 }
-
 .insights-table th {
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
-    background: #fafbfe;
+    color: var(--text-muted);
+    background: var(--bg-soft-alt);
 }
-
 .insights-table td {
     font-size: 14px;
-    color: #405066;
+    color: var(--text-main);
     line-height: 1.55;
 }
-
 .prompt-cell strong,
 .insights-table td strong {
-    color: #16243c;
+    color: var(--text-strong);
 }
-
 .response-cell {
     max-width: 420px;
-    color: #5d6c80;
+    color: var(--text-soft);
 }
 
 .intent-badge {
@@ -745,8 +714,8 @@
     align-items: center;
     padding: 7px 10px;
     border-radius: 999px;
-    background: #eff4ff;
-    color: #4266d6;
+    background: var(--brand-primary-soft);
+    color: var(--brand-deep, #16a99a);
     font-size: 12px;
     font-weight: 800;
 }
@@ -760,26 +729,22 @@
     font-weight: 800;
     line-height: 1;
 }
-
 .opportunity-high {
-    background: #fff0eb;
-    color: #dd5a38;
+    background: var(--status-danger-soft);
+    color: var(--status-danger);
 }
-
 .opportunity-medium {
-    background: #fff7df;
-    color: #b7791f;
+    background: var(--status-warning-soft);
+    color: var(--status-warning);
 }
-
 .opportunity-low {
-    background: #ecfdf3;
-    color: #1f8f5f;
+    background: var(--status-success-soft);
+    color: var(--status-success);
 }
 
 .table-action-col {
     white-space: nowrap;
 }
-
 .action-stack-cell {
     display: flex;
     flex-wrap: wrap;
@@ -791,7 +756,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
 }
-
 .compact-table {
     min-width: 640px;
 }
@@ -801,27 +765,24 @@
 .empty-state-card {
     padding: 22px;
 }
-
 .empty-module-state strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     margin-bottom: 8px;
 }
-
 .empty-module-state p,
 .small-empty-state p,
 .empty-state-card p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 15px;
     line-height: 1.65;
 }
-
 .prompt-empty-state .empty-state-card h2 {
     margin: 10px 0 0;
     font-size: 30px;
     line-height: 1.1;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .empty-state-grid {
@@ -830,31 +791,29 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
 }
-
 .empty-feature-card {
     padding: 18px;
     border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid #e8edf5;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
 }
-
 .empty-feature-card h3 {
     margin: 0 0 8px;
     font-size: 18px;
-    color: #16243c;
+    color: var(--text-strong);
 }
-
 .empty-feature-card p {
     font-size: 14px;
 }
 
+/* Modal layout — surface treatment now from .surface-card on the
+   .app-modal-card element, so this block is just positioning. */
 .modal-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.48);
     z-index: 999;
 }
-
 .app-modal {
     position: fixed;
     inset: 0;
@@ -863,18 +822,15 @@
     z-index: 1000;
     padding: 24px;
 }
-
 .app-modal-card {
     width: min(760px, 100%);
     max-height: 88vh;
     overflow: auto;
     padding: 24px;
 }
-
 .app-modal-lg {
     width: min(1080px, 100%);
 }
-
 .app-modal-header {
     display: flex;
     justify-content: space-between;
@@ -882,60 +838,52 @@
     align-items: flex-start;
     margin-bottom: 18px;
 }
-
 .app-modal-header h3 {
     margin: 10px 0 0;
     font-size: 28px;
     line-height: 1.1;
-    color: #16243c;
+    color: var(--text-strong);
 }
-
 .modal-close-btn {
     border: 0;
     background: transparent;
     font-size: 34px;
     line-height: 1;
-    color: #6b7280;
+    color: var(--text-muted);
     cursor: pointer;
 }
-
 .app-modal-body {
     display: grid;
     gap: 18px;
 }
-
 .modal-two-col {
     grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.72fr);
 }
-
 .modal-main-column h4,
 .modal-side-block h4 {
     margin: 0 0 12px;
     font-size: 16px;
-    color: #16243c;
+    color: var(--text-strong);
 }
-
 .modal-response-box {
     padding: 18px;
     border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid #e8edf5;
-    color: #405066;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
     font-size: 15px;
     line-height: 1.7;
     white-space: pre-wrap;
 }
-
 .modal-side-column {
     display: grid;
     gap: 18px;
 }
-
 .modal-side-block {
     padding: 18px;
     border-radius: 18px;
-    background: #fafbfe;
-    border: 1px solid #e8edf5;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
 }
 
 .tag-list {
@@ -943,14 +891,13 @@
     flex-wrap: wrap;
     gap: 8px;
 }
-
 .tag-item {
     display: inline-flex;
     align-items: center;
     padding: 8px 10px;
     border-radius: 999px;
-    background: #f2f4f8;
-    color: #405066;
+    background: var(--bg-soft-alt);
+    color: var(--text-main);
     font-size: 13px;
     font-weight: 700;
 }
@@ -959,13 +906,12 @@
     display: grid;
     gap: 10px;
 }
-
 .source-link-item {
     padding: 10px 12px;
     border-radius: 14px;
-    background: #ffffff;
-    border: 1px solid #e8edf5;
-    color: #4266d6;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    color: var(--brand-secondary);
     font-size: 13px;
     line-height: 1.45;
     word-break: break-word;
@@ -974,22 +920,18 @@
 .track-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-
 .form-group {
     display: grid;
     gap: 8px;
 }
-
 .form-group small {
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 12px;
     line-height: 1.5;
 }
-
 .full-span {
     grid-column: 1 / -1;
 }
-
 .modal-action-row {
     padding-top: 6px;
 }
@@ -998,7 +940,6 @@
     padding: 9px 12px;
     font-size: 13px;
 }
-
 .btn-large {
     padding: 14px 22px;
     font-size: 16px;
@@ -1008,7 +949,6 @@
     .prompt-summary-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-
     .empty-state-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1021,7 +961,6 @@
     .modal-two-col {
         grid-template-columns: 1fr;
     }
-
     .insight-band-actions {
         justify-content: flex-start;
     }
@@ -1037,133 +976,30 @@
         padding: 18px;
         border-radius: 20px;
     }
-
     .prompt-summary-grid,
     .empty-state-grid,
     .track-form-grid {
         grid-template-columns: 1fr;
     }
-
     .prompt-search-bar {
         grid-template-columns: 1fr;
     }
-
     .prompt-hero-copy h1 {
         font-size: 32px;
     }
-
     .app-modal {
         padding: 14px;
     }
-
     .action-stack-cell {
         flex-direction: column;
     }
 }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .app-modal-card,
-    html[data-theme="dark"] .empty-state-card,
-    html[data-theme="dark"] .hero-side-card,
-    html[data-theme="dark"] .prompt-hero-card,
-    html[data-theme="dark"] .prompt-insight-band,
-    html[data-theme="dark"] .prompt-search-bar,
-    html[data-theme="dark"] .prompt-search-filters,
-    html[data-theme="dark"] .results-section-card,
-    html[data-theme="dark"] .source-link-item,
-    html[data-theme="dark"] .summary-card,
-    html[data-theme="dark"] .track-form-grid {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .empty-feature-card,
-    html[data-theme="dark"] .modal-response-box {
-        background: var(--theme-surface-alt);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .app-modal-header,
-    html[data-theme="dark"] .empty-feature-card,
-    html[data-theme="dark"] .empty-module-state,
-    html[data-theme="dark"] .insight-band-copy,
-    html[data-theme="dark"] .insights-table,
-    html[data-theme="dark"] .modal-main-column,
-    html[data-theme="dark"] .modal-side-block,
-    html[data-theme="dark"] .prompt-cell,
-    html[data-theme="dark"] .prompt-empty-state,
-    html[data-theme="dark"] .prompt-hero-copy,
-    html[data-theme="dark"] .prompt-search-bar,
-    html[data-theme="dark"] .prompt-search-filters,
-    html[data-theme="dark"] .section-title,
-    html[data-theme="dark"] .summary-value,
-    html[data-theme="dark"] .track-form-grid,
-    html[data-theme="dark"] .app-modal-card h1,
-    html[data-theme="dark"] .app-modal-card h2,
-    html[data-theme="dark"] .app-modal-card h3,
-    html[data-theme="dark"] .app-modal-card h4,
-    html[data-theme="dark"] .app-modal-card strong,
-    html[data-theme="dark"] .empty-state-card h1,
-    html[data-theme="dark"] .empty-state-card h2,
-    html[data-theme="dark"] .empty-state-card h3,
-    html[data-theme="dark"] .empty-state-card h4,
-    html[data-theme="dark"] .empty-state-card strong,
-    html[data-theme="dark"] .hero-side-card h1,
-    html[data-theme="dark"] .hero-side-card h2,
-    html[data-theme="dark"] .hero-side-card h3,
-    html[data-theme="dark"] .hero-side-card h4,
-    html[data-theme="dark"] .hero-side-card strong,
-    html[data-theme="dark"] .prompt-hero-card h1,
-    html[data-theme="dark"] .prompt-hero-card h2,
-    html[data-theme="dark"] .prompt-hero-card h3,
-    html[data-theme="dark"] .prompt-hero-card h4,
-    html[data-theme="dark"] .prompt-hero-card strong,
-    html[data-theme="dark"] .prompt-insight-band h1,
-    html[data-theme="dark"] .prompt-insight-band h2,
-    html[data-theme="dark"] .prompt-insight-band h3,
-    html[data-theme="dark"] .prompt-insight-band h4,
-    html[data-theme="dark"] .prompt-insight-band strong,
-    html[data-theme="dark"] .prompt-search-bar h1,
-    html[data-theme="dark"] .prompt-search-bar h2,
-    html[data-theme="dark"] .prompt-search-bar h3,
-    html[data-theme="dark"] .prompt-search-bar h4,
-    html[data-theme="dark"] .prompt-search-bar strong,
-    html[data-theme="dark"] .prompt-search-filters h1,
-    html[data-theme="dark"] .prompt-search-filters h2,
-    html[data-theme="dark"] .prompt-search-filters h3,
-    html[data-theme="dark"] .prompt-search-filters h4,
-    html[data-theme="dark"] .prompt-search-filters strong,
-    html[data-theme="dark"] .results-section-card h1,
-    html[data-theme="dark"] .results-section-card h2,
-    html[data-theme="dark"] .results-section-card h3,
-    html[data-theme="dark"] .results-section-card h4,
-    html[data-theme="dark"] .results-section-card strong,
-    html[data-theme="dark"] .source-link-item h1,
-    html[data-theme="dark"] .source-link-item h2,
-    html[data-theme="dark"] .source-link-item h3,
-    html[data-theme="dark"] .source-link-item h4,
-    html[data-theme="dark"] .source-link-item strong,
-    html[data-theme="dark"] .summary-card h1,
-    html[data-theme="dark"] .summary-card h2,
-    html[data-theme="dark"] .summary-card h3,
-    html[data-theme="dark"] .summary-card h4,
-    html[data-theme="dark"] .summary-card strong,
-    html[data-theme="dark"] .track-form-grid h1,
-    html[data-theme="dark"] .track-form-grid h2,
-    html[data-theme="dark"] .track-form-grid h3,
-    html[data-theme="dark"] .track-form-grid h4,
-    html[data-theme="dark"] .track-form-grid strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .empty-state-card,
-    html[data-theme="dark"] .form-group,
-    html[data-theme="dark"] .modal-close-btn,
-    html[data-theme="dark"] .section-hint,
-    html[data-theme="dark"] .small-empty-state,
-    html[data-theme="dark"] .summary-copy,
-    html[data-theme="dark"] .summary-label {
-        color: var(--theme-text-secondary);
-    }
+/* The 90-line dark-mode flip block that used to live here is
+   gone — every surface card now uses .surface-card (which
+   handles dark mode via theme tokens), and every text/border
+   color above uses var(--text-*) / var(--border-*) tokens that
+   already swap on data-theme="dark". */
 </style>
 
 <script>
