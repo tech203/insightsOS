@@ -1,0 +1,8 @@
+{% extends "errors/_error_shell.html" %}
+{% block error_title_tag %}Slow down{% endblock %}
+{% block error_code %}429{% endblock %}
+{% block error_title %}You're moving a bit fast{% endblock %}
+{% block error_body %}
+<p>You've sent more requests than we currently allow per minute. This is a temporary safety limit, not a billing issue.</p>
+<p>Wait about a minute, then try again.</p>
+{% endblock %}

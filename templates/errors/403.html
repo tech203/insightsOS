@@ -1,0 +1,8 @@
+{% extends "errors/_error_shell.html" %}
+{% block error_title_tag %}Access denied{% endblock %}
+{% block error_code %}403{% endblock %}
+{% block error_title %}You don't have access to this{% endblock %}
+{% block error_body %}
+<p>This workspace, audit, or report belongs to a different account or team.</p>
+<p>If you think this is wrong, ask the workspace owner to invite you, or sign in with the correct account.</p>
+{% endblock %}

@@ -1,0 +1,117 @@
+{# Shared error-page shell.
+
+   Used by 404 / 403 / 500 / 429 handlers. Extends base.html so
+   authenticated users see the full sidebar + topbar (so they're
+   not bounced out of the dashboard chrome on a stray bad link),
+   and anonymous users get a minimal but on-brand page.
+
+   Children pass three blocks:
+     - {% block error_code %}     e.g. 404
+     - {% block error_title %}    e.g. Page not found
+     - {% block error_body %}     longer copy + actions
+#}
+{% extends "base.html" %}
+{% block title %}{% block error_title_tag %}Error{% endblock %} | DarInsights{% endblock %}
+
+{# The onboarding stepper would be a distraction here — the user
+   ran into a problem, give them recovery options, not a setup nag. #}
+{% set hide_onboarding = True %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{% block error_h1 %}{{ self.error_title() }}{% endblock %}</h1>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="error-page-shell">
+    <section class="surface-card surface-card--featured error-page-card">
+        <span class="error-page-code">{% block error_code %}—{% endblock %}</span>
+        <h2 class="error-page-title">{% block error_title %}Something went wrong{% endblock %}</h2>
+
+        <div class="error-page-body">
+            {% block error_body %}
+            <p>We hit an unexpected snag. Try again, or jump back to the dashboard.</p>
+            {% endblock %}
+        </div>
+
+        <div class="error-page-actions">
+            {% block error_actions %}
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Back to dashboard</a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Sign in</a>
+            <a href="{{ url_for('aeo_agency_page') }}" class="btn btn-secondary">Go to homepage</a>
+            {% endif %}
+            {% endblock %}
+        </div>
+    </section>
+</div>
+
+<style>
+.error-page-shell {
+    max-width: 640px;
+    margin: 32px auto 0 auto;
+    padding: 0 16px;
+}
+
+.error-page-card {
+    text-align: center;
+    padding: 36px 28px 32px 28px;
+    display: grid;
+    gap: 14px;
+    justify-items: center;
+}
+
+.error-page-code {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+}
+
+.error-page-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-strong);
+    line-height: 1.25;
+}
+
+.error-page-body {
+    color: var(--text-soft);
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 460px;
+}
+
+.error-page-body p {
+    margin: 0 0 8px 0;
+}
+
+.error-page-body p:last-child {
+    margin-bottom: 0;
+}
+
+.error-page-actions {
+    margin-top: 6px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+@media (max-width: 480px) {
+    .error-page-actions,
+    .error-page-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
