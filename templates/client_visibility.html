@@ -66,10 +66,14 @@
 
             <div class="score-main-value">{{ score|round|int }}<small class="score-unit">/100</small></div>
 
+            {# Use the canonical score_band() helper so this short
+               summary copy stays consistent with dashboard / workspace
+               overview / audit summary. #}
+            {% set band = score_band(score) %}
             <p class="score-main-copy">
-                {% if score >= 80 %}
+                {% if band.band == 'strong' %}
                     Strong visibility across tracked signals.
-                {% elif score >= 60 %}
+                {% elif band.band == 'moderate' %}
                     Moderate visibility with room to improve.
                 {% else %}
                     Clear room to improve AI visibility.
