@@ -21934,9 +21934,8 @@ html[data-theme="dark"] .toast--error .toast-icon {
 /* =========================================================
    Dark-mode polish pass — surface backgrounds
    =========================================================
-   (Originally landed in PR #36, kept here so both polish
-   passes — PR #36 page-specific surfaces and PR #38 toast
-   styles — coexist after merge.) */
+   (Originally landed in PR #36, kept here so multiple polish
+   passes coexist after merge.) */
 
 html[data-theme="dark"] .workspace-notes {
     background: var(--theme-surface-alt) !important;
@@ -22027,11 +22026,82 @@ html[data-theme="dark"] .query-status-pill {
 }
 
 /* =========================================================
+   Mobile / narrow-viewport dark-mode hardening
+   =========================================================
+   Defensive fix: use !important on the canvas + form input
+   surfaces so no later cascade rule can re-introduce a light
+   fill on dark mode. Light mode is unchanged. */
+
+html[data-theme="dark"] {
+    /* Remap the input-baseline token so inputs get dark
+       surface fills automatically. */
+    --brand-surface-tint: var(--theme-surface-alt);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .app-main,
+html[data-theme="dark"] .app-content {
+    background: var(--theme-canvas) !important;
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .mobile-topbar {
+    background: rgba(13, 21, 35, 0.92) !important;
+    border-bottom-color: var(--theme-border-subtle) !important;
+}
+
+html[data-theme="dark"] .mobile-menu-btn {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .mobile-menu-btn span {
+    background: var(--theme-text-primary) !important;
+}
+
+@media (max-width: 1199px) {
+    html[data-theme="dark"] .app-sidebar,
+    html[data-theme="dark"] .app-sidebar.open,
+    html[data-theme="dark"] .sidebar-inner {
+        background: var(--theme-surface) !important;
+        border-color: var(--theme-border-subtle) !important;
+    }
+    html[data-theme="dark"] .sidebar-overlay {
+        background: rgba(0, 0, 0, 0.6) !important;
+    }
+}
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] textarea:focus,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] select:focus-visible {
+    background: var(--theme-surface) !important;
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+/* =========================================================
    Workspace empty-state hero (pre-audit)
    =========================================================
-   Replaces the .workspace-score-card + 4-stat .workspace-summary-grid
-   when the workspace has no audit yet. Avoids the wall of "—"
-   placeholders that made fresh workspaces look broken. */
+   (From PR #45 — preserved through merge.) */
 
 .workspace-empty-hero {
     display: grid;
@@ -22110,8 +22180,7 @@ html[data-theme="dark"] .query-status-pill {
 /* =========================================================
    Tablet sidebar — 1024-1199px gets desktop layout
    =========================================================
-   (From PR #49 — kept here so empty-state hero (this PR) and
-   tablet sidebar both survive the merge.) */
+   (From PR #49 — preserved through merge.) */
 
 @media (min-width: 1024px) and (max-width: 1199px) {
     .app-shell {
