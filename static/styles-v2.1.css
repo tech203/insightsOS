@@ -8107,6 +8107,14 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     color: var(--status-danger);
 }
 
+/* Alias used by score_band(score) helper — "opportunity" reads
+   better than "danger" for the low-score band, but the colour
+   treatment is the same. */
+.score-pill-opportunity {
+    background: var(--status-danger-soft);
+    color: var(--status-danger);
+}
+
 .score-pill-info {
     background: var(--brand-primary-soft);
     color: var(--brand-deep, #16a99a);

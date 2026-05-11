@@ -11219,6 +11219,55 @@ def inject_template_globals():
         # so Chrome / Safari serve the new CSS the moment the file is
         # touched, instead of holding onto a multi-day-cached copy.
         "static_css_version": _static_css_version(),
+        # Single source of truth for score-band thresholds. Templates
+        # call {% set band = score_band(score) %} and read band.label /
+        # band.note / band.pill_class. Replaces the four-different-
+        # threshold-sets situation where dashboard / client_detail /
+        # client_visibility / audit_summary each rolled their own
+        # cutoffs (a 65-score workspace was "Strong" on one page and
+        # "Moderate" on another).
+        "score_band": score_band,
+    }
+
+
+def score_band(score):
+    """Single source of truth for AEO/visibility score → band label
+    + interpretation copy + pill class. Used across dashboard,
+    workspace overview, visibility module, and audit summary.
+
+    Canonical thresholds (matches help_content.opportunity_level
+    glossary entry):
+      ≥ 75 → strong       (Low Opportunity)
+      ≥ 50 → moderate     (Moderate Opportunity)
+      < 50 → opportunity  (High Opportunity)
+    """
+    try:
+        s = float(score or 0)
+    except (TypeError, ValueError):
+        s = 0.0
+
+    if s >= 75:
+        return {
+            "band": "strong",
+            "label": "Strong visibility",
+            "note": "Strong visibility — hold the lead and expand to new query clusters.",
+            "pill_class": "score-pill score-pill-success",
+            "opportunity": "Low Opportunity",
+        }
+    if s >= 50:
+        return {
+            "band": "moderate",
+            "label": "Moderate visibility",
+            "note": "Developing — close the biggest pillar gap to move the score up.",
+            "pill_class": "score-pill score-pill-warning",
+            "opportunity": "Moderate Opportunity",
+        }
+    return {
+        "band": "opportunity",
+        "label": "High opportunity",
+        "note": "Significant upside — re-audit, fill content gaps, and start tracking the queries you want to win.",
+        "pill_class": "score-pill score-pill-opportunity",
+        "opportunity": "High Opportunity",
     }
 
 

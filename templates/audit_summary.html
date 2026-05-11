@@ -37,19 +37,23 @@
 {% set biggest_problem = summary.get('biggest_problem', 'The brand is not appearing strongly enough in important AI answer scenarios.') %}
 {% set top_actions = summary.get('top_3_actions', []) %}
 
-{% if normalized >= 70 %}
-    {% set score_band = "Strong" %}
-    {% set score_note = "Strong AI visibility foundation with room to scale." %}
+{# Use the canonical score_band() helper so this page agrees with
+   dashboard / workspace overview / visibility on what each score
+   means. The audit summary used to set its own thresholds (≥70
+   strong vs ≥75 canonical) which made a 72-score workspace read
+   as "Strong" here but "Moderate" elsewhere. #}
+{% set band = score_band(normalized) %}
+{% if band.band == 'strong' %}
+    {% set score_band_label = "Strong" %}
     {% set score_explanation = "This website has a strong base. The next step is to expand visibility and strengthen coverage across more customer questions." %}
-{% elif normalized >= 40 %}
-    {% set score_band = "Developing" %}
-    {% set score_note = "Moderate visibility with clear room to improve." %}
+{% elif band.band == 'moderate' %}
+    {% set score_band_label = "Developing" %}
     {% set score_explanation = "This website has some useful signals, but visibility is not yet consistent enough across important AI answer scenarios." %}
 {% else %}
-    {% set score_band = "Early-stage" %}
-    {% set score_note = "Early-stage position with clear upside." %}
+    {% set score_band_label = "Early-stage" %}
     {% set score_explanation = "This website is still weak in AI visibility. The opportunity is high because targeted improvements can make a meaningful difference." %}
 {% endif %}
+{% set score_note = band.note %}
 
 {% set can_execute = false %}
 {% if can_generate_brief is defined and can_generate_brief %}
@@ -101,7 +105,7 @@
             <article class="summary-score-card surface-card">
                 <div class="summary-score-top">
                     <span class="summary-score-label">AEO Score</span>
-                    <span class="summary-score-band">{{ score_band }}</span>
+                    <span class="summary-score-band">{{ score_band_label }}</span>
                 </div>
 
                 <div class="summary-score-value">{{ normalized|round(1) }}</div>
