@@ -17520,7 +17520,6 @@ html[data-theme="dark"] .workspace-next-step-card,
 html[data-theme="dark"] .workspace-top-strip,
 html[data-theme="dark"] .am-card,
 html[data-theme="dark"] .am-stat,
-html[data-theme="dark"] .mp-card,
 html[data-theme="dark"] .shopify-card,
 html[data-theme="dark"] .topup-bundle-card,
 html[data-theme="dark"] .pricing-plan-card,
@@ -17602,7 +17601,6 @@ html[data-theme="dark"] .topup-bundle-price {
 html[data-theme="dark"] p,
 html[data-theme="dark"] .summary-copy,
 html[data-theme="dark"] .am-header p,
-html[data-theme="dark"] .mp-header p,
 html[data-theme="dark"] .topup-bundle-rate,
 html[data-theme="dark"] .topup-cost-list li,
 html[data-theme="dark"] .settings-v3-info-row span:first-child {
@@ -19622,6 +19620,152 @@ html[data-theme="dark"] .metric-tile-value {
     color: var(--theme-text-primary);
 }
 
+/* Marketplace audits */
+.mp-page {
+    max-width: 1080px;
+    display: grid;
+    gap: 16px;
+}
+
+.mp-add-card,
+.mp-presence-card {
+    padding: 22px;
+}
+
+.mp-add-card h2,
+.mp-presence-card h3 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+}
+
+.mp-add-copy {
+    margin: 0 0 16px 0;
+    max-width: 640px;
+    color: var(--text-soft);
+    font-size: 13.5px;
+    line-height: 1.5;
+}
+
+.mp-field-hint {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.mp-add-form {
+    display: grid;
+    gap: 14px;
+}
+
+.mp-presence-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.mp-presence-title-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.mp-presence-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mp-presence-meta {
+    margin-top: 10px;
+    color: var(--text-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 10px;
+    font-size: 13px;
+}
+
+.mp-presence-meta strong {
+    color: var(--text-strong);
+}
+
+.mp-presence-meta a {
+    color: var(--brand-primary);
+    text-decoration: none;
+}
+
+.mp-presence-meta a:hover {
+    text-decoration: underline;
+}
+
+.mp-citation-summary {
+    margin: 14px 0 0 0;
+    color: var(--text-main);
+    font-size: 14px;
+}
+
+.mp-citation-summary strong {
+    color: var(--text-strong);
+}
+
+.mp-query-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.mp-query-row {
+    background: var(--bg-soft-alt);
+    border-left: 3px solid var(--border-main);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.mp-query-row.mp-query-cited {
+    border-left-color: var(--brand-primary);
+}
+
+.mp-query-meta {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.mp-empty {
+    text-align: center;
+}
+
+.mp-empty h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-strong);
+    font-size: 18px;
+}
+
+.mp-empty p {
+    margin: 0 auto;
+    max-width: 480px;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+html[data-theme="dark"] .mp-field-hint,
+html[data-theme="dark"] .mp-query-meta {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .mp-query-row {
+    background: var(--theme-surface-alt);
+    border-left-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .mp-query-row.mp-query-cited {
+    border-left-color: var(--brand-primary);
+}
+
 /* Query ideas */
 .query-ideas-hero {
     display: grid;
@@ -20731,7 +20875,6 @@ html[data-theme="dark"] .dashboard-priority-empty-note {
      - admin-table clipped by `overflow:hidden` wrappers
      - public_audit_report tables overflowing the page
      - position_tracking table-card-header doesn't collapse
-     - .am-btn, .mp-btn touch targets <44px
      - prompt_research modal close button glyph-only target
      - dashboard-client-actions buttons cramped at 375px
 
@@ -20785,20 +20928,6 @@ html[data-theme="dark"] .dashboard-priority-empty-note {
     .table-card-actions .btn {
         width: 100%;
     }
-}
-
-/* --- Issue #4: .am-btn / .mp-btn touch targets under 44px ---
-   templates/answer_monitor.html `.am-btn { min-height: 38px }` and
-   templates/marketplace_audits.html `.mp-btn` (no min-height,
-   computed ~36px). Both fail Apple HIG's 44px guideline that we set
-   for `.btn-sm` and clickable score-pills in PR #69.
-
-   Lift them to 44px universally (not just at narrow widths) since
-   they're already small at desktop too — the cards stack many of
-   them in a row and a wider tap target reduces mistaps. */
-.am-btn,
-.mp-btn {
-    min-height: 44px;
 }
 
 /* --- Issue #6: .modal-close-btn has no minimum touch size ---
