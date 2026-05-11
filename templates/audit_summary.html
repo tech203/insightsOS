@@ -11,7 +11,7 @@
 
 {% block topbar_actions %}
 {% if data.get('client_id') %}
-<a href="{{ url_for('client_detail', client_id=data.get('client_id')) }}" class="btn btn-secondary">Open Client</a>
+<a href="{{ url_for('client_detail', client_id=data.get('client_id')) }}" class="btn btn-secondary">Open Workspace</a>
 {% endif %}
 
 <a href="{{ url_for('audit_summary_pdf', summary_filename=summary_filename) }}" class="btn btn-primary">Export PDF</a>
