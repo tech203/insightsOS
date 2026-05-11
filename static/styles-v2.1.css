@@ -22562,3 +22562,87 @@ html[data-theme="dark"] .woo-card label,
 html[data-theme="dark"] .woo-card small {
     color: var(--theme-text-secondary) !important;
 }
+
+/* =========================================================
+   Mobile responsiveness — table overflow safety net
+   =========================================================
+   Many pages put data tables inside `.surface-card` (the canonical
+   card primitive) without an explicit `.table-responsive` wrapper.
+   On mobile (<768px) those wide tables push the entire page
+   horizontally — content wraps off-screen, the user has to scroll
+   horizontally to read anything, and the page header drifts away
+   from the visible viewport.
+
+   This rule makes any `<table>` rendered inside a `.surface-card`
+   (or a `.page-shell` direct child that's a table) horizontally
+   scroll INSIDE its card, leaving the page itself fixed-width.
+   It's a defence-in-depth pattern: pages that already wrap their
+   tables in `.table-responsive` are unaffected; pages that forgot
+   the wrapper get auto-protected.
+
+   The bespoke prefix tables from the integration sweep (.gsc-table,
+   .ga-table, .cal-event-row, etc.) are explicitly listed so they
+   work at the page level too (they're not always inside a
+   .surface-card child container). */
+.surface-card {
+    /* Reserve overflow handling at the card level so the inner table
+       can establish its own horizontal scroll context. The card itself
+       still clips overflow at its rounded corners via `overflow: hidden`
+       only when needed; tables get their own scroll sandbox below. */
+    min-width: 0;
+}
+
+.surface-card > table,
+.surface-card > .gsc-table,
+.surface-card > .ga-table,
+.surface-card > .insights-table,
+.surface-card > .citation-table,
+.surface-card > .query-table,
+.surface-card > .signal-table,
+.surface-card > .simple-table,
+.surface-card > .topup-cost-table,
+.surface-card > .profile-table,
+.surface-card > .tracking-table,
+.surface-card > .admin-table {
+    /* Wrap the table in its own horizontal scroll sandbox so wide
+       tables stay contained at narrow viewports. `display: block`
+       is what unlocks overflow-x on a <table> element (tables
+       default to display: table which ignores overflow). */
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    /* Tighter card padding at narrow widths — 18px gives 339px of
+       usable card width on a 375px iPhone, vs 339-32 = 307px at the
+       desktop default. Worth the 14px when the content is a wide
+       table or a long form. */
+    .surface-card {
+        padding: 16px;
+    }
+
+    /* Same overflow safety for tables that aren't direct children
+       of a .surface-card (e.g. inside a wrapper div for layout). */
+    .page-shell table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Touch-target minimums for small interactive elements. Apple's
+       HIG recommends 44pt; Material recommends 48dp. We standardise
+       on 44px for clickable score-pill links (some are wrapped in
+       <a>) and `.btn-sm`. Inline non-clickable status pills keep
+       their compact 30px since they're indicators, not targets. */
+    a.score-pill,
+    button.score-pill,
+    .btn-sm {
+        min-height: 44px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
