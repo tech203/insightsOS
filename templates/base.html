@@ -841,6 +841,11 @@
         });
     </script>
 
+    {# Form validation enhancer — upgrades native HTML5 validation
+       into styled inline errors with focus-and-scroll behaviour.
+       Opt-out via <form data-no-validate-enhancer>. #}
+    <script src="{{ url_for('static', filename='form-validation.js') }}?v={{ static_css_version }}" defer></script>
+
     {# Task-completion notifier — when a long-running operation
        (audit, brief, draft) finishes and the user has the tab in
        the background, prepend "(✓) " to the document title so the
