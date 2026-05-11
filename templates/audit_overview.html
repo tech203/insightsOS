@@ -11,7 +11,8 @@
 {% if summary_filename %}
 <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Open Summary</a>
 {% endif %}
-{% if full_filename %}
+{% if full_filename and is_internal_user %}
+{# Admin-only — Full Audit is the raw JSON debug view. #}
 <a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
 {% endif %}
 {% endblock %}

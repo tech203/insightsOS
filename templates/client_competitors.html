@@ -165,11 +165,16 @@
         </div>
 
         <div class="table-toolbar">
+            {# Tabs filter by Priority (the only real status the row
+               data actually carries — High / Medium / Low). Earlier
+               iteration had Missing / Weak / Shared / Strong tabs
+               that mapped to priority but were named wrong, and
+               the "Strong" tab silently hid every row. #}
             <div class="toolbar-tabs">
-                <button type="button" class="table-tab active">Missing</button>
-                <button type="button" class="table-tab">Weak</button>
-                <button type="button" class="table-tab">Shared</button>
-                <button type="button" class="table-tab">Strong</button>
+                <button type="button" class="table-tab active" data-priority-filter="all">All</button>
+                <button type="button" class="table-tab" data-priority-filter="high">High priority</button>
+                <button type="button" class="table-tab" data-priority-filter="medium">Medium</button>
+                <button type="button" class="table-tab" data-priority-filter="low">Low</button>
             </div>
 
             <div class="toolbar-filters">
@@ -590,19 +595,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function applyTableFilters() {
-        const activeTab = document.querySelector(".table-tab.active")?.textContent.trim().toLowerCase() || "missing";
+        // Read the data-priority-filter attribute on the active tab
+        // (set by the markup) — falls back to "all" so we never hide
+        // every row by default.
+        const activeTab = document.querySelector(".table-tab.active")?.dataset.priorityFilter || "all";
         const topicQuery = (topicFilterInput?.value || "").trim().toLowerCase();
         const volumeFilter = volumeFilterSelect?.value || "All AI Volume";
 
         tableRows.forEach((row) => {
             const { topic, aiVolume, priority } = getRowData(row);
 
-            let matchesTab = true;
-
-            if (activeTab === "missing") matchesTab = true;
-            if (activeTab === "weak") matchesTab = priority === "medium";
-            if (activeTab === "shared") matchesTab = priority === "low";
-            if (activeTab === "strong") matchesTab = false;
+            // Tab filters by priority. "all" matches every row.
+            const matchesTab = activeTab === "all" || priority === activeTab;
 
             const matchesTopic = !topicQuery || topic.includes(topicQuery);
             const matchesVolume = matchesVolumeFilter(aiVolume, volumeFilter);

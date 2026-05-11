@@ -16,7 +16,10 @@
 
 <a href="{{ url_for('audit_summary_pdf', summary_filename=summary_filename) }}" class="btn btn-primary">Export PDF</a>
 
-{% if full_filename %}
+{# Full Audit JSON view is an internal/QA debug surface — gate it
+   to admins so non-admin users don't see a button to a raw-data
+   page they can't make sense of. #}
+{% if full_filename and is_internal_user %}
 <a href="{{ url_for('audit_full', summary_filename=full_filename) }}" class="btn btn-secondary">Open Full Audit</a>
 {% endif %}
 {% endblock %}
