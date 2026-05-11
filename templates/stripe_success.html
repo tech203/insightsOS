@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Payment received | DarInsights{% endblock %}
+
+{% block content %}
+{# Onboarding stepper isn't useful here — user just completed
+   a checkout, the page itself is a one-time confirmation. #}
+{% set hide_onboarding = True %}
+
+<div class="checkout-success-shell">
+
+    <section class="surface-card surface-card--featured checkout-success-hero">
+        <div class="checkout-success-icon" aria-hidden="true">&#10003;</div>
+
+        <span class="section-kicker checkout-success-kicker">Payment received</span>
+
+        {% if purchase.kind == "plan" %}
+        <h1>Welcome to {{ purchase.label }}</h1>
+        <p class="checkout-success-tagline">
+            {{ purchase.tagline }}
+        </p>
+        {% elif purchase.kind == "bundle" %}
+        <h1>{{ purchase.credits }} credit{% if purchase.credits != 1 %}s{% endif %} on the way</h1>
+        <p class="checkout-success-tagline">
+            Credits land in your wallet within a few seconds. The webhook
+            from Stripe is what does the actual deposit, so you might see
+            this page slightly before the balance updates.
+        </p>
+        {% else %}
+        <h1>Thanks for your purchase</h1>
+        <p class="checkout-success-tagline">
+            Your account will reflect the change within a few seconds.
+        </p>
+        {% endif %}
+    </section>
+
+    {% if purchase.kind == "plan" and purchase.features %}
+    <section class="surface-card checkout-success-features">
+        <span class="section-kicker">What you just unlocked</span>
+        <ul class="checkout-success-feature-list">
+            {% for feature in purchase.features %}
+            <li>
+                <span class="checkout-success-tick" aria-hidden="true">&#10003;</span>
+                <span>{{ feature }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <section class="surface-card surface-card--soft checkout-success-next">
+        <div class="checkout-success-next-copy">
+            <span class="section-kicker">What to do next</span>
+            <h2>
+                {% if purchase.kind == "plan" %}
+                    {% if has_any_workspace %}
+                        Run a fresh audit to use your new monthly credits
+                    {% else %}
+                        Set up your first workspace
+                    {% endif %}
+                {% elif purchase.kind == "bundle" %}
+                    {% if has_any_workspace %}
+                        Use your new credits — generate a brief or run an audit
+                    {% else %}
+                        Set up your first workspace to put these credits to work
+                    {% endif %}
+                {% else %}
+                    Open your dashboard
+                {% endif %}
+            </h2>
+
+            <p>
+                {% if purchase.kind == "plan" %}
+                    Pro and Growth plans include a monthly credit allowance plus
+                    everything in the feature list above. Your billing cycle starts now.
+                {% elif purchase.kind == "bundle" %}
+                    Each audit, brief, or draft pulls from your wallet. Briefs and
+                    drafts are 1 credit each, audits are 1 credit per run.
+                {% else %}
+                    Pick up where you left off.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="checkout-success-actions">
+            {% if has_any_workspace and next_workspace_id %}
+            <a href="{{ url_for('new_audit', client_id=next_workspace_id) }}" class="btn btn-primary">
+                Run an audit
+            </a>
+            <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
+                Open queue
+            </a>
+            {% else %}
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary">
+                Add your first workspace
+            </a>
+            <a href="{{ url_for('help_page') }}" class="btn btn-secondary">
+                See how it works
+            </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="checkout-success-meta">
+        <p>
+            Need a receipt or to update payment? Open the
+            <a href="{{ url_for('settings_billing') }}">billing settings</a> for the
+            Stripe portal link, or jump straight to your
+            <a href="{{ url_for('settings_credits') }}">credit history</a>.
+        </p>
+    </section>
+
+</div>
+
+<style>
+.checkout-success-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px;
+    display: grid;
+    gap: 18px;
+}
+
+.checkout-success-hero {
+    text-align: center;
+    padding: 36px 28px 32px 28px;
+}
+
+.checkout-success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 30px;
+    font-weight: 700;
+    margin: 0 auto 16px auto;
+}
+
+.checkout-success-kicker {
+    color: var(--brand-primary);
+    margin-bottom: 8px;
+}
+
+.checkout-success-hero h1 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-strong);
+    line-height: 1.25;
+}
+
+.checkout-success-tagline {
+    margin: 0 auto;
+    max-width: 480px;
+    color: var(--text-soft);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.checkout-success-features {
+    padding: 22px 24px;
+}
+
+.checkout-success-feature-list {
+    list-style: none;
+    margin: 12px 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.checkout-success-feature-list li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+.checkout-success-tick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.checkout-success-next {
+    padding: 22px 24px;
+    display: grid;
+    gap: 16px;
+}
+
+.checkout-success-next h2 {
+    margin: 6px 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-strong);
+    line-height: 1.3;
+}
+
+.checkout-success-next p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.checkout-success-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.checkout-success-meta {
+    text-align: center;
+    padding: 8px 16px 0 16px;
+}
+
+.checkout-success-meta p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.checkout-success-meta a {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
+.checkout-success-meta a:hover {
+    color: var(--brand-primary);
+}
+</style>
+{% endblock %}

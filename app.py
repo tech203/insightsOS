@@ -5796,10 +5796,16 @@ def pricing_page():
         if current_user.is_authenticated
         else None
     )
+    # ?canceled=1 is set by the Stripe Checkout cancel_url so we can
+    # show a "no charge — try again" banner instead of looking like
+    # the user landed on /pricing for no reason.
+    show_canceled_banner = request.args.get("canceled") == "1"
+
     return render_template(
         "pricing.html",
         plans=list_public_plans(),
         current_plan=current_plan,
+        show_canceled_banner=show_canceled_banner,
     )
 
 
@@ -6758,13 +6764,23 @@ def stripe_checkout_bundle(credits):
         return redirect(url_for("settings_credits"))
 
     try:
+        # Pass the purchase shape via URL params so /stripe/success can
+        # render the appropriate "you just bought 25 credits" framing
+        # without hitting the Stripe API to fetch session metadata.
+        success_url = (
+            url_for("stripe_success", _external=True)
+            + f"?kind=bundle&credits={int(credits)}"
+        )
+        cancel_url = (
+            url_for("settings_credits", _external=True) + "?canceled=1"
+        )
         result = create_bundle_checkout_session(
             user_id=current_user.id,
             user_email=current_user.email,
             credits=credits,
             is_subscriber=is_subscriber(getattr(current_user, "plan", "free")),
-            success_url=url_for("stripe_success", _external=True),
-            cancel_url=url_for("settings_credits", _external=True),
+            success_url=success_url,
+            cancel_url=cancel_url,
         )
     except StripeNotConfigured as exc:
         flash(f"Topup unavailable: {exc}", "error")
@@ -6797,12 +6813,22 @@ def stripe_checkout_plan(plan_slug):
         return redirect(url_for("start_subscription", plan_slug=plan_slug))
 
     try:
+        success_url = (
+            url_for("stripe_success", _external=True)
+            + f"?kind=plan&slug={plan_slug}"
+        )
+        # Cancel returns to /pricing with a flag so we can show a
+        # gentle "no charge — try again or pick a different plan"
+        # banner instead of looking like nothing happened.
+        cancel_url = (
+            url_for("pricing_page", _external=True) + "?canceled=1"
+        )
         result = create_subscription_checkout_session(
             user_id=current_user.id,
             user_email=current_user.email,
             plan_slug=plan_slug,
-            success_url=url_for("stripe_success", _external=True),
-            cancel_url=url_for("pricing_page", _external=True),
+            success_url=success_url,
+            cancel_url=cancel_url,
         )
     except StripeNotConfigured as exc:
         flash(f"Plan checkout unavailable: {exc}", "error")
@@ -6818,14 +6844,45 @@ def stripe_checkout_plan(plan_slug):
 @app.route("/stripe/success")
 @login_required
 def stripe_success():
-    """Landing page after Stripe Checkout completes. Note: the wallet
-    update happens in the webhook, so this page just confirms receipt
-    and redirects to the credits view."""
-    flash(
-        "Payment received — credits will land in your wallet within a few seconds.",
-        "success",
+    """Landing page after Stripe Checkout completes.
+
+    The wallet / plan update happens server-side in the webhook, so
+    this page just renders confirmation + a "what to do next" CTA.
+    Purchase context is passed via URL params (?kind=plan&slug=pro
+    or ?kind=bundle&credits=25) so the framing is specific to what
+    the user actually bought, not a one-size-fits-all flash."""
+    kind = request.args.get("kind", "").strip()
+    plan_slug = request.args.get("slug", "").strip().lower()
+    credits_param = request.args.get("credits", "").strip()
+
+    purchase = {"kind": "unknown"}
+
+    if kind == "plan" and plan_slug in PLAN_CATALOG:
+        plan = PLAN_CATALOG.get(plan_slug, {})
+        purchase = {
+            "kind": "plan",
+            "slug": plan_slug,
+            "label": plan.get("label", plan_slug.title()),
+            "tagline": plan.get("tagline", ""),
+            "features": plan.get("features", []) or [],
+        }
+    elif kind == "bundle" and credits_param.isdigit():
+        purchase = {
+            "kind": "bundle",
+            "credits": int(credits_param),
+        }
+
+    # First workspace exists? If so, link the next-step CTA to its
+    # audit form; otherwise to /clients/new.
+    workspaces = build_client_views()
+    next_workspace_id = workspaces[0]["id"] if workspaces else None
+
+    return render_template(
+        "stripe_success.html",
+        purchase=purchase,
+        next_workspace_id=next_workspace_id,
+        has_any_workspace=bool(workspaces),
     )
-    return redirect(url_for("settings_credits"))
 
 
 @app.route("/billing/buy-workspace", methods=["POST"])

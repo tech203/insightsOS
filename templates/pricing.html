@@ -4,6 +4,20 @@
 {% block content %}
 <div class="pricing-shell">
 
+    {% if show_canceled_banner %}
+    {# Stripe Checkout's cancel_url loops back here with ?canceled=1.
+       The banner reassures the user nothing was charged and gives
+       them an explicit retry path so it doesn't look like the page
+       reloaded for no reason. #}
+    <div class="pricing-canceled-banner" role="status">
+        <div class="pricing-canceled-copy">
+            <strong>Checkout cancelled — no charge made.</strong>
+            <p>If you changed your mind about the plan, take another look below or jump back to the dashboard.</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to dashboard</a>
+    </div>
+    {% endif %}
+
     <section class="pricing-hero-card">
         <div class="pricing-hero-main">
             <div class="pricing-badge-row">
@@ -216,6 +230,61 @@
     padding: 28px;
     display: grid;
     gap: 24px;
+}
+
+.pricing-canceled-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border: 1px solid #ffd8c6;
+    background: #fff7f3;
+    border-radius: 14px;
+    color: #4a3322;
+}
+
+.pricing-canceled-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pricing-canceled-copy strong {
+    display: block;
+    font-size: 15px;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.pricing-canceled-copy p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5c6a7d;
+}
+
+@media (max-width: 640px) {
+    .pricing-canceled-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .pricing-canceled-banner .btn {
+        width: 100%;
+    }
+}
+
+html[data-theme="dark"] .pricing-canceled-banner {
+    background: rgba(255, 215, 200, 0.06);
+    border-color: rgba(255, 215, 200, 0.18);
+    color: var(--theme-text-secondary);
+}
+
+html[data-theme="dark"] .pricing-canceled-copy strong {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .pricing-canceled-copy p {
+    color: var(--theme-text-muted);
 }
 
 .roi-inline {
