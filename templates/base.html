@@ -39,6 +39,13 @@
        nav and jump straight to the page content. #}
     <a href="#main-content" class="skip-to-content">Skip to main content</a>
 
+    {# Toast / flash-message renderer — sits at the body root so the
+       fixed-position stack doesn't get clipped by .app-shell's
+       overflow rules. Renders Flask's flashed messages as floating
+       notifications in the top-right. Until this existed, all 362
+       flash() calls in app.py were silently discarded. #}
+    {% include "partials/toasts.html" %}
+
     {% set current_endpoint = request.endpoint or '' %}
     {% set sidebar_client = focused_client if focused_client is defined and focused_client else none %}
     {% set active_queue_client_id = request.args.get('client_id', '') %}
