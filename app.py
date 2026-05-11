@@ -4794,6 +4794,37 @@ def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
     )
 
 
+def safe_return_url(candidate: str) -> str | None:
+    """Validate a `return_to` URL coming from a query parameter or
+    session value. Only allows same-origin paths (starting with /
+    and not //) so a malicious link can't redirect users to an
+    external site after checkout. Returns None for anything
+    suspicious; callers should fall back to a known-good default."""
+    if not candidate or not isinstance(candidate, str):
+        return None
+    candidate = candidate.strip()
+    # Must start with single / (server-relative path), not // (protocol-
+    # relative which can hop to another origin).
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return None
+    # Reject anything containing a scheme or @ (defence in depth).
+    if "://" in candidate or candidate.startswith("/\\"):
+        return None
+    return candidate
+
+
+def pricing_redirect_with_return_to():
+    """Build a `redirect(url_for('pricing_page', return_to=...))`
+    so /pricing can capture the return URL into the session and
+    /stripe/success can hop the user back to where they were
+    interrupted. Use this anywhere we'd otherwise just call
+    `redirect(url_for('pricing_page'))` mid-flow."""
+    target = safe_return_url(request.path)
+    if not target:
+        return redirect(url_for("pricing_page"))
+    return redirect(url_for("pricing_page", return_to=target))
+
+
 def insufficient_credits_message(user, action_key: str, action_label: str) -> str:
     """Build a richer 'you don't have enough credits' message that
     actually tells the user the cost vs. their balance, so they
@@ -5867,6 +5898,8 @@ def help_page():
 @app.route("/pricing")
 def pricing_page():
     """Public pricing page — renders the plan catalog."""
+    from services.stripe_helper import is_stripe_configured
+
     current_plan = (
         getattr(current_user, "plan", None)
         if current_user.is_authenticated
@@ -5877,11 +5910,26 @@ def pricing_page():
     # the user landed on /pricing for no reason.
     show_canceled_banner = request.args.get("canceled") == "1"
 
+    # If the user landed here mid-flow (e.g. ran out of credits while
+    # generating a brief), the redirect that bounced them here passed
+    # ?return_to=/path/they/were/on. Stash it in the session so
+    # /stripe/success can hop them back after they upgrade. Validated
+    # to be a same-origin path so a malicious link can't redirect to
+    # an external site.
+    return_to = safe_return_url(request.args.get("return_to", ""))
+    if return_to:
+        session["pricing_return_to"] = return_to
+
     return render_template(
         "pricing.html",
         plans=list_public_plans(),
         current_plan=current_plan,
         show_canceled_banner=show_canceled_banner,
+        # Surface the Stripe-config state so the template can show
+        # a "checkout temporarily unavailable" banner and disable
+        # plan / topup buttons instead of letting users click into
+        # an error flash + redirect.
+        stripe_configured=is_stripe_configured(),
     )
 
 
@@ -6953,11 +7001,22 @@ def stripe_success():
     workspaces = build_client_views()
     next_workspace_id = workspaces[0]["id"] if workspaces else None
 
+    # Deep-link recovery: if the user was bounced to /pricing while
+    # in the middle of a flow (audit / brief / draft credit-out),
+    # /pricing stashed the originating path in session under
+    # `pricing_return_to`. Surface it to the success template so the
+    # primary CTA can offer "Back to where you were" as a one-click
+    # return. Pop it so a future success page doesn't reuse a stale
+    # one. Validated on the way in via safe_return_url.
+    return_to = session.pop("pricing_return_to", None)
+    return_to = safe_return_url(return_to) if return_to else None
+
     return render_template(
         "stripe_success.html",
         purchase=purchase,
         next_workspace_id=next_workspace_id,
         has_any_workspace=bool(workspaces),
+        return_to=return_to,
     )
 
 
@@ -8200,7 +8259,7 @@ def run_client_audit(client_id):
                 insufficient_credits_message(current_user, "audit_run", "An audit"),
                 "warning",
             )
-            return redirect(url_for("pricing_page"))
+            return pricing_redirect_with_return_to()
 
         try:
             run_audit_for_input(
@@ -8235,7 +8294,16 @@ def run_client_audit(client_id):
             refund_credits(
                 current_user, 1, notes="Refund for failed client audit"
             )
-            flash(f"Audit failed: {str(e)}", "error")
+            # Map known OpenAI exception types (RateLimitError,
+            # APITimeoutError, etc.) to friendly user-facing copy
+            # instead of leaking raw exception strings. Full traceback
+            # is logged server-side for ops.
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "Client audit failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
+            flash(friendly_ai_error_message(e), "error")
             return redirect(url_for("client_detail", client_id=client_id))
 
     form_data = {
@@ -8321,7 +8389,7 @@ def generate_client_content_brief(client_id):
                 insufficient_credits_message(current_user, "content_brief", "A brief"),
                 "warning",
             )
-            return redirect(url_for("pricing_page"))
+            return pricing_redirect_with_return_to()
 
         # Prepend the structured Brand Kit to the brand_context blob so
         # the generator sees explicit voice / audience / differentiators.
@@ -8432,10 +8500,15 @@ def generate_client_content_brief(client_id):
                 1,
                 notes="Refund for failed content brief generation",
             )
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "Content brief generation failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
             return render_template(
                 "content_brief_form.html",
                 client=client,
-                error=f"Brief generation failed: {str(e)}",
+                error=friendly_ai_error_message(e),
                 form_data=request.form,
             )
 
@@ -8713,7 +8786,7 @@ def generate_client_content_draft(client_id):
                 insufficient_credits_message(current_user, "content_draft", "A draft"),
                 "warning",
             )
-            return redirect(url_for("pricing_page"))
+            return pricing_redirect_with_return_to()
 
         # Prepend the structured Brand Kit to brand_context.
         kit_block = brand_kit_context_block(client)
@@ -8769,10 +8842,15 @@ def generate_client_content_draft(client_id):
                 2,
                 notes="Refund for failed content draft generation",
             )
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "Content draft generation failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
             return render_template(
                 "content_draft_form.html",
                 client=client,
-                error=f"Draft generation failed: {str(e)}",
+                error=friendly_ai_error_message(e),
                 form_data=request.form,
             )
 
@@ -10937,7 +11015,7 @@ def new_audit():
                 insufficient_credits_message(current_user, "audit_run", "An audit"),
                 "warning",
             )
-            return redirect(url_for("pricing_page"))
+            return pricing_redirect_with_return_to()
 
         try:
             run_audit_for_input(
@@ -10973,10 +11051,15 @@ def new_audit():
             refund_credits(
                 current_user, 1, notes="Refund for failed new audit"
             )
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "New audit failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
             return render_template(
                 "new_audit.html",
                 clients=clients,
-                error=f"Audit failed: {str(e)}",
+                error=friendly_ai_error_message(e),
                 form_data=request.form,
                 view_mode=view_mode,
             )
