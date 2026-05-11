@@ -18,7 +18,7 @@
     </div>
     {% endif %}
 
-    <section class="pricing-hero-card">
+    <section class="surface-card surface-card--featured pricing-hero-card">
         <div class="pricing-hero-main">
             <div class="pricing-badge-row">
                 <span class="pricing-badge pricing-badge-primary">Pricing</span>
@@ -43,7 +43,7 @@
         </div>
 
         <div class="pricing-hero-side">
-            <div class="pricing-logic-card">
+            <div class="surface-card surface-card--soft pricing-logic-card">
                 <span class="pricing-logic-label">How billing works</span>
                 <strong class="pricing-logic-value">Plan + credits + add-ons</strong>
                 <p class="pricing-logic-text">
@@ -53,7 +53,7 @@
         </div>
     </section>
 
-<section class="pricing-roi-card">
+<section class="surface-card surface-card--featured pricing-roi-card">
     <div class="roi-copy">
         <span class="pricing-badge pricing-badge-primary">ROI</span>
         <h2>One new client covers the year.</h2>
@@ -74,7 +74,7 @@
 
         <div class="pricing-plan-grid">
             {% for plan in plans %}
-            <article class="pricing-plan-card {% if plan.popular %}featured{% endif %}">
+            <article class="surface-card surface-card--hover pricing-plan-card {% if plan.popular %}featured{% endif %}">
                 <div class="pricing-plan-top">
                     <span class="pricing-plan-name">{{ plan.label }}</span>
                     {% if plan.popular %}
@@ -115,7 +115,7 @@
 <p>Only needed if you deliver reports to clients.</p>
         </div>
 
-        <div class="pricing-addon-card">
+        <div class="surface-card pricing-addon-card">
             <div class="pricing-addon-copy">
                 <div class="pricing-plan-top">
                     <span class="pricing-plan-name">Agency Add-on</span>
@@ -139,7 +139,7 @@
                 </div>
             </div>
 
-            <div class="pricing-addon-note">
+            <div class="surface-card surface-card--soft pricing-addon-note">
                 <strong>Important</strong>
                 <p>
                     Agency is not a separate usage tier. You still need a main plan and credits.
@@ -157,21 +157,21 @@
         </div>
 
         <div class="pricing-topup-grid">
-            <article class="pricing-topup-card">
+            <article class="surface-card surface-card--hover pricing-topup-card">
                 <span class="pricing-topup-name">Starter Pack</span>
                 <strong>10 Credits</strong>
                 <p>For occasional extra audits and content generation.</p>
                 <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Buy Credits</a>
             </article>
 
-            <article class="pricing-topup-card featured">
+            <article class="surface-card surface-card--hover pricing-topup-card featured">
                 <span class="pricing-topup-name">Growth Pack</span>
                 <strong>25 Credits</strong>
                 <p>Good for regular extra usage beyond your monthly included credits.</p>
                 <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-primary full-width-btn">Buy Credits</a>
             </article>
 
-            <article class="pricing-topup-card">
+            <article class="surface-card surface-card--hover pricing-topup-card">
                 <span class="pricing-topup-name">Agency Pack</span>
                 <strong>75 Credits</strong>
                 <p>Best for teams, client work, and higher output volume.</p>
@@ -187,29 +187,29 @@
         </div>
 
         <div class="pricing-faq-list">
-            <div class="pricing-faq-item">
+            <div class="surface-card surface-card--soft pricing-faq-item">
                 <strong>Can I cancel anytime?</strong>
                 <p>Yes. Plans are month-to-month with no contract. Cancel from the Stripe portal and you keep access until the end of the current billing period.</p>
             </div>
 
-            <div class="pricing-faq-item">
+            <div class="surface-card surface-card--soft pricing-faq-item">
                 <strong>What happens if I run out of credits mid-month?</strong>
                 <p>Your workspace stays open. Credit-gated actions (briefs, drafts, audits) pause until you top up or the next billing cycle resets your included credits.</p>
             </div>
 
-            <div class="pricing-faq-item">
+            <div class="surface-card surface-card--soft pricing-faq-item">
                 <strong>Do I have to talk to sales?</strong>
                 <p>No. Free, Pro, and Growth are fully self-serve through Stripe. Reach out only if you want a custom Agency or white-label arrangement.</p>
             </div>
 
-            <div class="pricing-faq-item">
+            <div class="surface-card surface-card--soft pricing-faq-item">
                 <strong>Do plans and credits mean the same thing?</strong>
                 <p>No. Your plan controls workspace and feature access. Credits are the meter for AI actions like briefs, drafts, and audits — included with every plan and toppable any time.</p>
             </div>
         </div>
     </section>
 
-    <section class="pricing-cta-card">
+    <section class="surface-card surface-card--featured pricing-cta-card">
         <div class="pricing-cta-copy">
             <h2>Start small, then scale when needed</h2>
             <p>
@@ -303,8 +303,8 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 .pricing-faq-item,
 .pricing-cta-card,
 .pricing-summary-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -315,9 +315,6 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     grid-template-columns: 1.4fr 1fr;
     gap: 24px;
     padding: 26px;
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border: 1px solid #ffe3d6;
-    border-radius: 24px;
 }
 
 .roi-copy h2 {
@@ -327,14 +324,14 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 }
 
 .roi-copy p {
-    color: #627084;
+    color: var(--text-soft);
     line-height: 1.6;
 }
 
 .roi-points {
     margin-top: 14px;
     padding-left: 18px;
-    color: #445366;
+    color: var(--text-main);
 }
 
 .roi-math {
@@ -345,13 +342,13 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 .roi-box {
     padding: 14px;
     border-radius: 16px;
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
 }
 
 .roi-box span {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .roi-box strong {
@@ -386,8 +383,8 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
     color: #4a586c;
     font-size: 13px;
     font-weight: 800;
@@ -404,14 +401,14 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     font-size: 40px;
     line-height: 1.05;
     font-weight: 800;
-    color: #15233b;
+    color: var(--text-strong);
 }
 
 .pricing-hero-copy {
     margin: 16px 0 0;
     font-size: 16px;
     line-height: 1.65;
-    color: #617084;
+    color: var(--text-soft);
     max-width: 760px;
 }
 
@@ -425,16 +422,13 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 
 .pricing-logic-card {
     padding: 22px;
-    border-radius: 22px;
-    border: 1px solid #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
 }
 
 
 .pricing-logic-label {
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .pricing-logic-value {
@@ -448,7 +442,7 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 
 .pricing-logic-text {
     margin: 14px 0 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -479,7 +473,7 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 .pricing-explainer-card strong,
 .pricing-plan-name,
 .pricing-topup-name {
-    color: #16243c;
+    color: var(--text-strong);
     font-size: 18px;
     font-weight: 800;
 }
@@ -490,7 +484,7 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 .pricing-addon-note p,
 .pricing-topup-card p {
     margin: 8px 0 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -504,12 +498,12 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     margin: 0 0 8px;
     font-size: 24px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .pricing-section-head p {
     margin: 0;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 15px;
     line-height: 1.55;
 }
@@ -566,8 +560,8 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     align-items: center;
     padding: 7px 12px;
     border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
     color: #4a586c;
     font-size: 12px;
     font-weight: 800;
@@ -585,13 +579,13 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     font-size: 42px;
     line-height: 1;
     font-weight: 800;
-    color: #15233b;
+    color: var(--text-strong);
 }
 
 .pricing-price-block small {
     display: block;
     margin-top: 8px;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 14px;
     font-weight: 700;
 }
@@ -604,9 +598,9 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 .pricing-feature-item {
     padding: 12px 14px;
     border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
-    color: #445366;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
     font-size: 14px;
     font-weight: 700;
 }
@@ -625,13 +619,11 @@ html[data-theme="dark"] .pricing-canceled-copy p {
 
 .pricing-addon-note {
     padding: 22px;
-    border-color: #ffd8c6;
-    background: linear-gradient(180deg, #fff8f4 0%, #ffffff 100%);
 }
 
 .pricing-addon-note strong,
 .pricing-faq-item strong {
-    color: #16243c;
+    color: var(--text-strong);
     font-size: 18px;
     font-weight: 800;
 }
@@ -651,19 +643,17 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     justify-content: space-between;
     gap: 20px;
     align-items: center;
-    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
-    border-color: #ffe3d6;
 }
 
 .pricing-cta-copy h2 {
     margin: 0 0 8px;
     font-size: 28px;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .pricing-cta-copy p {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     line-height: 1.6;
     font-size: 15px;
     max-width: 760px;
@@ -732,113 +722,5 @@ html[data-theme="dark"] .pricing-canceled-copy p {
     }
 }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .pricing-addon-card,
-    html[data-theme="dark"] .pricing-addon-note,
-    html[data-theme="dark"] .pricing-cta-card,
-    html[data-theme="dark"] .pricing-explainer-card,
-    html[data-theme="dark"] .pricing-faq-item,
-    html[data-theme="dark"] .pricing-hero-card,
-    html[data-theme="dark"] .pricing-logic-card,
-    html[data-theme="dark"] .pricing-plan-card,
-    html[data-theme="dark"] .pricing-roi-card,
-    html[data-theme="dark"] .pricing-summary-card,
-    html[data-theme="dark"] .pricing-topup-card,
-    html[data-theme="dark"] .roi-box {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .pricing-badge,
-    html[data-theme="dark"] .pricing-feature-item,
-    html[data-theme="dark"] .pricing-plan-badge {
-        background: var(--theme-surface-alt);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .pricing-addon-note,
-    html[data-theme="dark"] .pricing-cta-copy,
-    html[data-theme="dark"] .pricing-explainer-card,
-    html[data-theme="dark"] .pricing-faq-item,
-    html[data-theme="dark"] .pricing-hero-main,
-    html[data-theme="dark"] .pricing-plan-name,
-    html[data-theme="dark"] .pricing-price-block,
-    html[data-theme="dark"] .pricing-section-head,
-    html[data-theme="dark"] .pricing-topup-name,
-    html[data-theme="dark"] .pricing-addon-card h1,
-    html[data-theme="dark"] .pricing-addon-card h2,
-    html[data-theme="dark"] .pricing-addon-card h3,
-    html[data-theme="dark"] .pricing-addon-card h4,
-    html[data-theme="dark"] .pricing-addon-card strong,
-    html[data-theme="dark"] .pricing-addon-note h1,
-    html[data-theme="dark"] .pricing-addon-note h2,
-    html[data-theme="dark"] .pricing-addon-note h3,
-    html[data-theme="dark"] .pricing-addon-note h4,
-    html[data-theme="dark"] .pricing-addon-note strong,
-    html[data-theme="dark"] .pricing-cta-card h1,
-    html[data-theme="dark"] .pricing-cta-card h2,
-    html[data-theme="dark"] .pricing-cta-card h3,
-    html[data-theme="dark"] .pricing-cta-card h4,
-    html[data-theme="dark"] .pricing-cta-card strong,
-    html[data-theme="dark"] .pricing-explainer-card h1,
-    html[data-theme="dark"] .pricing-explainer-card h2,
-    html[data-theme="dark"] .pricing-explainer-card h3,
-    html[data-theme="dark"] .pricing-explainer-card h4,
-    html[data-theme="dark"] .pricing-explainer-card strong,
-    html[data-theme="dark"] .pricing-faq-item h1,
-    html[data-theme="dark"] .pricing-faq-item h2,
-    html[data-theme="dark"] .pricing-faq-item h3,
-    html[data-theme="dark"] .pricing-faq-item h4,
-    html[data-theme="dark"] .pricing-faq-item strong,
-    html[data-theme="dark"] .pricing-hero-card h1,
-    html[data-theme="dark"] .pricing-hero-card h2,
-    html[data-theme="dark"] .pricing-hero-card h3,
-    html[data-theme="dark"] .pricing-hero-card h4,
-    html[data-theme="dark"] .pricing-hero-card strong,
-    html[data-theme="dark"] .pricing-logic-card h1,
-    html[data-theme="dark"] .pricing-logic-card h2,
-    html[data-theme="dark"] .pricing-logic-card h3,
-    html[data-theme="dark"] .pricing-logic-card h4,
-    html[data-theme="dark"] .pricing-logic-card strong,
-    html[data-theme="dark"] .pricing-plan-card h1,
-    html[data-theme="dark"] .pricing-plan-card h2,
-    html[data-theme="dark"] .pricing-plan-card h3,
-    html[data-theme="dark"] .pricing-plan-card h4,
-    html[data-theme="dark"] .pricing-plan-card strong,
-    html[data-theme="dark"] .pricing-roi-card h1,
-    html[data-theme="dark"] .pricing-roi-card h2,
-    html[data-theme="dark"] .pricing-roi-card h3,
-    html[data-theme="dark"] .pricing-roi-card h4,
-    html[data-theme="dark"] .pricing-roi-card strong,
-    html[data-theme="dark"] .pricing-summary-card h1,
-    html[data-theme="dark"] .pricing-summary-card h2,
-    html[data-theme="dark"] .pricing-summary-card h3,
-    html[data-theme="dark"] .pricing-summary-card h4,
-    html[data-theme="dark"] .pricing-summary-card strong,
-    html[data-theme="dark"] .pricing-topup-card h1,
-    html[data-theme="dark"] .pricing-topup-card h2,
-    html[data-theme="dark"] .pricing-topup-card h3,
-    html[data-theme="dark"] .pricing-topup-card h4,
-    html[data-theme="dark"] .pricing-topup-card strong,
-    html[data-theme="dark"] .roi-box h1,
-    html[data-theme="dark"] .roi-box h2,
-    html[data-theme="dark"] .roi-box h3,
-    html[data-theme="dark"] .roi-box h4,
-    html[data-theme="dark"] .roi-box strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .pricing-logic-label,
-    html[data-theme="dark"] .pricing-logic-text,
-    html[data-theme="dark"] .pricing-plan-desc,
-    html[data-theme="dark"] .pricing-topup-card,
-    html[data-theme="dark"] .roi-box,
-    html[data-theme="dark"] .roi-copy {
-        color: var(--theme-text-secondary);
-    }
-    html[data-theme="dark"] .pricing-badge,
-    html[data-theme="dark"] .pricing-feature-item,
-    html[data-theme="dark"] .pricing-plan-badge {
-        border-color: var(--theme-border-subtle);
-    }
 </style>
 {% endblock %}

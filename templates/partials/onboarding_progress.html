@@ -1,0 +1,64 @@
+{# Reusable onboarding stepper.
+
+   Renders a 3-step horizontal progress bar showing where the user is
+   in their first-run flow (Account → Workspace → First audit). Hidden
+   automatically once all steps are complete (onboarding_state.active
+   flips to False).
+
+   Pulled into base.html so EVERY authenticated page renders it
+   consistently above the page header until the user has both a
+   workspace and at least one audit.
+
+   onboarding_state is provided globally via inject_template_globals()
+   so no route needs to pass it explicitly.
+
+   To suppress on a specific page, wrap the include with a guard:
+     {% if not hide_onboarding %} {% include ... %} {% endif %}
+#}
+{% if onboarding_state and onboarding_state.active %}
+<div class="onboarding-stepper" role="region" aria-label="Onboarding progress">
+    <div class="onboarding-stepper-inner">
+        <div class="onboarding-stepper-copy">
+            <span class="onboarding-stepper-kicker">Getting started</span>
+            <strong class="onboarding-stepper-title">
+                {% if onboarding_state.current_step == 2 %}
+                    Add your first workspace to begin
+                {% elif onboarding_state.current_step == 3 %}
+                    Run your first audit — uses 1 of your 3 starter credits
+                {% endif %}
+            </strong>
+        </div>
+
+        <ol class="onboarding-stepper-list">
+            {% for step in onboarding_state.steps %}
+            {% set is_current = (loop.index == onboarding_state.current_step) and not step.done %}
+            <li class="onboarding-step
+                {% if step.done %}is-done{% endif %}
+                {% if is_current %}is-current{% endif %}">
+                <span class="onboarding-step-marker" aria-hidden="true">
+                    {% if step.done %}&#10003;{% else %}{{ loop.index }}{% endif %}
+                </span>
+                <span class="onboarding-step-label">{{ step.label }}</span>
+            </li>
+            {% endfor %}
+        </ol>
+
+        <div class="onboarding-stepper-action">
+            {# Hide the CTA when the user is already on the
+               destination page — the page itself IS the action,
+               so a button to "Add workspace" while on /clients/new
+               would just no-op-refresh. The stepper still renders
+               as a passive progress indicator. #}
+            {% if onboarding_state.current_step == 2 and request.endpoint != 'create_client' %}
+            <a href="{{ url_for('create_client') }}" class="btn btn-primary btn-sm">
+                Add workspace
+            </a>
+            {% elif onboarding_state.current_step == 3 and request.endpoint != 'new_audit' %}
+            <a href="{{ url_for('new_audit') }}" class="btn btn-primary btn-sm">
+                Run first audit
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}

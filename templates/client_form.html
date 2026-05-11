@@ -7,10 +7,20 @@
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
-        <h1>{% if mode == "edit" %}Edit Workspace{% else %}New Workspace{% endif %}</h1>
+        <h1>
+            {% if mode == "edit" %}
+                Edit Workspace
+            {% elif is_first_workspace %}
+                Add your first workspace
+            {% else %}
+                New Workspace
+            {% endif %}
+        </h1>
         <p>
             {% if mode == "edit" %}
                 Keep this workspace accurate, clean, and ready for audits and collaboration.
+            {% elif is_first_workspace %}
+                Just name + website to start — takes about 30 seconds. We'll use these to run your first audit on the next step.
             {% else %}
                 Create a workspace for one client or brand.
             {% endif %}
@@ -52,6 +62,10 @@
             </div>
 
             <form method="POST" enctype="multipart/form-data" class="workspace-form-stack">
+                {# Logo upload is hidden during first-workspace setup —
+                   it's optional and not blocking the audit. Returning
+                   users still see it in the same position. #}
+                {% if not is_first_workspace %}
                 <div class="workspace-logo-section">
                     <div class="workspace-logo-preview-wrap">
                         {% if client and client.logo_url %}
@@ -69,18 +83,62 @@
                         <input id="logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.svg">
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="form-grid-2">
                     <div class="form-field">
                         <label for="name">Workspace Name</label>
-                        <input type="text" id="name" name="name" value="{{ form_data.get('name', '') if form_data else '' }}" required>
+                        <input type="text" id="name" name="name" value="{{ form_data.get('name', '') if form_data else '' }}" placeholder="{% if is_first_workspace %}e.g. Acme Co{% endif %}" required>
                     </div>
 
                     <div class="form-field">
                         <label for="website">Website</label>
-                        <input type="text" id="website" name="website" value="{{ form_data.get('website', '') if form_data else '' }}" required>
+                        <input type="text" id="website" name="website" value="{{ form_data.get('website', '') if form_data else '' }}" placeholder="{% if is_first_workspace %}https://example.com{% endif %}" required>
                     </div>
 
+                    {% if is_first_workspace %}
+                    {# Optional fields collapsed for first-run users.
+                       Industry / location strengthen the audit but
+                       aren't required — open the disclosure to fill
+                       them, or skip and add them later from the
+                       workspace edit page. #}
+                    </div>
+
+                    <details class="workspace-form-disclosure">
+                        <summary>
+                            <span>More details</span>
+                            <span class="workspace-form-disclosure-meta">Optional · helps tune the audit</span>
+                        </summary>
+
+                        <div class="form-grid-2 workspace-form-disclosure-grid">
+                            <div class="form-field">
+                                <label for="industry">Industry</label>
+                                <input type="text" id="industry" name="industry" value="{{ form_data.get('industry', '') if form_data else '' }}" placeholder="e.g. local bakery">
+                            </div>
+
+                            <div class="form-field">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" name="location" value="{{ form_data.get('location', '') if form_data else '' }}" placeholder="e.g. Singapore">
+                            </div>
+
+                            <div class="form-field">
+                                <label for="owner_type">Workspace Type</label>
+                                <select id="owner_type" name="owner_type">
+                                    {% set selected_owner_type = form_data.get('owner_type', 'company') if form_data else 'company' %}
+                                    <option value="company" {% if selected_owner_type == 'company' %}selected{% endif %}>Company</option>
+                                    <option value="personal_brand" {% if selected_owner_type == 'personal_brand' %}selected{% endif %}>Personal Brand</option>
+                                    <option value="agency" {% if selected_owner_type == 'agency' %}selected{% endif %}>Agency</option>
+                                    <option value="local_business" {% if selected_owner_type == 'local_business' %}selected{% endif %}>Local Business</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field form-field-full">
+                                <label for="notes">Internal Notes</label>
+                                <textarea id="notes" name="notes" rows="3" placeholder="Anything you want to remember about this workspace.">{{ form_data.get('notes', '') if form_data else '' }}</textarea>
+                            </div>
+                        </div>
+                    </details>
+                    {% else %}
                     <div class="form-field">
                         <label for="industry">Industry</label>
                         <input type="text" id="industry" name="industry" value="{{ form_data.get('industry', '') if form_data else '' }}">
@@ -107,10 +165,14 @@
                         <textarea id="notes" name="notes" rows="5">{{ form_data.get('notes', '') if form_data else '' }}</textarea>
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        {% if mode == "edit" %}Save Changes{% else %}Create Workspace{% endif %}
+                        {% if mode == "edit" %}Save Changes
+                        {% elif is_first_workspace %}Continue to first audit
+                        {% else %}Create Workspace
+                        {% endif %}
                     </button>
 
                     <a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients_page') }}{% endif %}" class="btn btn-secondary">
@@ -209,6 +271,56 @@
 .workspace-form-stack {
     display: grid;
     gap: 22px;
+}
+
+.workspace-form-disclosure {
+    border: 1px dashed var(--border-main);
+    border-radius: 14px;
+    padding: 0;
+    background: var(--bg-soft-alt);
+}
+
+.workspace-form-disclosure summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    list-style: none;
+    color: var(--text-strong);
+    font-weight: 600;
+    font-size: 14px;
+    user-select: none;
+}
+
+.workspace-form-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.workspace-form-disclosure summary::after {
+    content: "+";
+    margin-left: auto;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text-muted);
+    font-weight: 700;
+    transition: transform 0.2s ease;
+}
+
+.workspace-form-disclosure[open] summary::after {
+    content: "\2212";
+}
+
+.workspace-form-disclosure-meta {
+    margin-left: 8px;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.workspace-form-disclosure-grid {
+    padding: 4px 16px 16px 16px;
 }
 
 .workspace-logo-section {

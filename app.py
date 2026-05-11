@@ -4493,6 +4493,55 @@ def get_active_queue_count(client_id, user_id):
     )
 
 
+def get_onboarding_state(user_id):
+    """Three-step first-run flow state for the onboarding stepper.
+
+    Steps:
+      1. signup        — implicit, completed once user_id exists
+      2. workspace     — has at least 1 workspace
+      3. audit         — has at least 1 saved audit
+
+    Returns a dict the templates render directly:
+      {
+        "active": bool,            # True until all 3 steps done
+        "current_step": 1|2|3,     # the step the user is on now
+        "steps": [
+          {"key": "signup", "label": "Account", "done": True},
+          {"key": "workspace", "label": "Workspace", "done": bool},
+          {"key": "audit", "label": "First audit", "done": bool},
+        ],
+      }
+
+    Cheap: workspace and audit lookups are already done elsewhere on
+    every page render, so calling this in a template context isn't a
+    new DB hit on hot paths."""
+    if not user_id:
+        return {"active": False, "current_step": 1, "steps": []}
+
+    workspaces = load_clients(user_id=user_id)
+    audits = get_saved_audits(user_id=user_id)
+
+    has_workspace = bool(workspaces)
+    has_audit = bool(audits)
+
+    if not has_workspace:
+        current_step = 2
+    elif not has_audit:
+        current_step = 3
+    else:
+        current_step = 3  # done — stepper inactive
+
+    return {
+        "active": not (has_workspace and has_audit),
+        "current_step": current_step,
+        "steps": [
+            {"key": "signup", "label": "Account", "done": True},
+            {"key": "workspace", "label": "Workspace", "done": has_workspace},
+            {"key": "audit", "label": "First audit", "done": has_audit},
+        ],
+    }
+
+
 def get_view_mode(user):
     forced_mode = session.get("dev_view_mode")
     if forced_mode in ["single", "multi", "admin"]:
@@ -7512,6 +7561,7 @@ def _apply_subscription_to_user_modules(*, user_id: int, subscription: Any) -> N
 def create_client():
     view_mode = get_view_mode(current_user)
     existing_clients = build_client_views()
+    is_first_workspace = len(existing_clients) == 0
 
     # Single mode = one business only
     if view_mode == "single" and len(existing_clients) >= 1:
@@ -7545,6 +7595,7 @@ def create_client():
                 form_data=request.form,
                 mode="create",
                 client=None,
+                is_first_workspace=is_first_workspace,
             )
 
         client = add_client(
@@ -7559,6 +7610,19 @@ def create_client():
             user_id=current_user.id,
         )
 
+        # First-workspace users skip the workspace overview (which is
+        # mostly empty placeholders pre-audit) and go straight to the
+        # audit form — that's the next step on the onboarding stepper
+        # and the only non-trivial thing they can do now.
+        if is_first_workspace:
+            flash(
+                "Workspace created. Now run your first audit — uses 1 of your starter credits.",
+                "success",
+            )
+            return redirect(
+                url_for("new_audit", client_id=client["id"])
+            )
+
         flash("Client workspace created successfully.", "success")
         return redirect(url_for("client_detail", client_id=client["id"]))
 
@@ -7568,6 +7632,7 @@ def create_client():
         form_data={},
         mode="create",
         client=None,
+        is_first_workspace=is_first_workspace,
     )
 
 
@@ -7896,7 +7961,8 @@ def signup():
 
         login_user(user)
         flash(
-            "Welcome! Set up your first workspace to run an audit.",
+            "Welcome! You have 3 starter credits — enough for your first audit. "
+            "Set up your workspace to begin.",
             "success",
         )
         return redirect(url_for("create_client"))
@@ -10950,6 +11016,7 @@ def inject_template_globals():
     workspace_limit = 0
     can_add_workspace = False
     focused_client = None
+    onboarding_state = {"active": False, "current_step": 1, "steps": []}
 
     if current_user.is_authenticated:
         has_unlimited_credits = user_has_unlimited_credits(current_user)
@@ -10962,6 +11029,7 @@ def inject_template_globals():
             workspace_limit is None or workspace_count < workspace_limit
         )
         focused_client = get_focused_client_for_user(current_user)
+        onboarding_state = get_onboarding_state(current_user.id)
 
         if has_unlimited_credits:
             wallet_balance = "Unlimited"
@@ -10981,6 +11049,7 @@ def inject_template_globals():
         "workspace_limit": workspace_limit,
         "can_add_workspace": can_add_workspace,
         "focused_client": focused_client,
+        "onboarding_state": onboarding_state,
         "can_run_audit": (
             current_user.is_authenticated
             and (
