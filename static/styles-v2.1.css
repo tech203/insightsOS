@@ -21852,3 +21852,62 @@ html[data-theme="dark"] .query-status-pill {
     background: rgba(254, 215, 170, 0.12) !important;
     color: #fdba74 !important;
 }
+
+/* =========================================================
+   Tablet sidebar — 1024-1199px gets desktop layout
+   =========================================================
+   Original layout switched to mobile drawer at <1200px, which
+   meant iPad landscape (1024), iPad Pro 11" (834 portrait, 1194
+   landscape), Surface Go 3 (1024), and most 13" tablets all got
+   a hamburger + drawer despite having plenty of horizontal room.
+
+   Override the 1024-1199px range to use the desktop sidebar
+   layout instead. Below 1024px (true tablet portrait + phones)
+   the existing mobile drawer pattern still applies. */
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    /* Layout: 2-col shell with the standard 292px sidebar. Slightly
+       narrower sidebar at this breakpoint so the content column
+       gets more breathing room than the normal 292px. */
+    .app-shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
+    }
+
+    /* Hide the mobile drawer chrome at this width */
+    .mobile-topbar { display: none !important; }
+    .mobile-menu-btn { display: none !important; }
+    .sidebar-overlay { display: none !important; }
+
+    /* Show the desktop sidebar inline (sticky, full-height) */
+    .app-sidebar {
+        position: sticky !important;
+        top: 0;
+        transform: none !important;
+        width: 248px;
+        max-width: none;
+        height: 100vh;
+        box-shadow: none;
+        z-index: 1400;
+        overflow: visible;
+        background: var(--shell-panel, #0d1523);
+    }
+
+    .app-main {
+        min-width: 0;
+        min-height: 100vh;
+    }
+
+    /* Tighter sidebar internal padding to match the narrower width */
+    .sidebar-inner {
+        padding: 20px 16px 16px;
+    }
+
+    .sidebar-brand { padding-top: 0; }
+
+    /* Re-show desktop affordances that were hidden by the
+       max-width:1199 mobile rules. */
+    .nav-tooltip { display: none; }   /* still hidden — full labels visible */
+    .sidebar-rail-toggle { display: inline-flex; }
+}
