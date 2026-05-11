@@ -22572,6 +22572,21 @@ html[data-theme="dark"] .woo-card small {
 }
 
 /* =========================================================
+   Dashboard priority-tile empty-state note
+   =========================================================
+   Replaces inline low-contrast copy with theme-token styling. */
+.dashboard-priority-empty-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+    line-height: 1.45;
+}
+
+html[data-theme="dark"] .dashboard-priority-empty-note {
+    color: var(--theme-text-muted);
+}
+
+/* =========================================================
    Mobile responsiveness — punch-list fixes (Cluster 11B)
    =========================================================
    Companion to Cluster 11A (PR #69). 11A added the table-overflow
@@ -22673,4 +22688,3 @@ html[data-theme="dark"] .woo-card small {
         width: 100%;
     }
 }
-
