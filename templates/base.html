@@ -834,6 +834,11 @@
         });
     </script>
 
+    {# Pending submit state — flips submit buttons to a disabled +
+       spinner state the moment the form is submitted, so the user
+       gets immediate feedback that something is happening. #}
+    <script src="{{ url_for('static', filename='form-pending.js') }}?v={{ static_css_version }}" defer></script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
