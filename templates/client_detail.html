@@ -14,32 +14,65 @@
             <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="btn btn-primary">
                 View Audit
             </a>
-            <a href="{{ url_for('export_client_audit_pdf', client_id=client.id) }}" class="btn btn-secondary">
-                Export PDF
-            </a>
-            {# Share toggle — generates a tokenized public URL the user
-               can copy to send to clients without forcing login. #}
-            {% if workspace_row and workspace_row.public_share_token %}
-                {% set share_url = url_for('public_audit_report', token=workspace_row.public_share_token, _external=True) %}
-                <details class="share-details">
-                    <summary class="btn btn-secondary">Share link</summary>
-                    <div class="share-popover">
-                        <p style="font-size:0.78rem; color:#555; margin:0 0 0.4rem 0;">Anyone with this link can view the report. No login required.</p>
-                        <input type="text" readonly value="{{ share_url }}" style="width:100%; padding:0.4rem 0.55rem; border:1px solid #d4d4dc; border-radius:6px; font-size:0.8rem; margin-bottom:0.4rem;" onclick="this.select();">
-                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-                            <a href="{{ share_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Open ↗</a>
-                            <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;" onsubmit="return confirm('Revoke this link? Anyone with the URL will lose access.');">
-                                <input type="hidden" name="action" value="revoke">
-                                <button type="submit" class="btn btn-secondary btn-sm" style="background:#fdecea; color:#b22424;">Revoke</button>
-                            </form>
+
+            {# Secondary actions group — visible inline on desktop,
+               collapsed into a "⋯ More" overflow on mobile (<640px)
+               so the workspace content isn't pushed off-screen by
+               three stacked full-width buttons. #}
+            <div class="client-header-secondary">
+                <a href="{{ url_for('export_client_audit_pdf', client_id=client.id) }}" class="btn btn-secondary">
+                    Export PDF
+                </a>
+                {% if workspace_row and workspace_row.public_share_token %}
+                    {% set share_url = url_for('public_audit_report', token=workspace_row.public_share_token, _external=True) %}
+                    <details class="share-details">
+                        <summary class="btn btn-secondary">Share link</summary>
+                        <div class="share-popover">
+                            <p style="font-size:0.78rem; color:#555; margin:0 0 0.4rem 0;">Anyone with this link can view the report. No login required.</p>
+                            <input type="text" readonly value="{{ share_url }}" style="width:100%; padding:0.4rem 0.55rem; border:1px solid #d4d4dc; border-radius:6px; font-size:0.8rem; margin-bottom:0.4rem;" onclick="this.select();">
+                            <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                                <a href="{{ share_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Open ↗</a>
+                                <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;" onsubmit="return confirm('Revoke this link? Anyone with the URL will lose access.');">
+                                    <input type="hidden" name="action" value="revoke">
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="background:#fdecea; color:#b22424;">Revoke</button>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                </details>
-            {% else %}
-                <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;">
-                    <button type="submit" class="btn btn-secondary">Share link</button>
-                </form>
-            {% endif %}
+                    </details>
+                {% else %}
+                    <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary">Share link</button>
+                    </form>
+                {% endif %}
+            </div>
+
+            {# Mobile-only ⋯ overflow trigger — wraps the same actions
+               above so users can reach Export PDF + Share without
+               three stacked full-width buttons taking over the page
+               header. Hidden on desktop where the inline buttons
+               are already visible. #}
+            <details class="client-header-overflow">
+                <summary class="btn btn-secondary client-header-overflow-trigger" aria-label="More actions">&#8943;</summary>
+                <div class="client-header-overflow-menu">
+                    <a href="{{ url_for('export_client_audit_pdf', client_id=client.id) }}" class="overflow-item">
+                        Export PDF
+                    </a>
+                    {% if workspace_row and workspace_row.public_share_token %}
+                        {% set _share_url = url_for('public_audit_report', token=workspace_row.public_share_token, _external=True) %}
+                        <a href="{{ _share_url }}" target="_blank" rel="noopener" class="overflow-item">
+                            Open share link ↗
+                        </a>
+                        <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" onsubmit="return confirm('Revoke this link? Anyone with the URL will lose access.');">
+                            <input type="hidden" name="action" value="revoke">
+                            <button type="submit" class="overflow-item overflow-item-danger">Revoke share link</button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}">
+                            <button type="submit" class="overflow-item">Create share link</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </details>
         {% else %}
             {% if current_user.is_authenticated and current_user.plan != "free" %}
             <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">
