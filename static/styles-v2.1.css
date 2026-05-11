@@ -108,6 +108,47 @@ h1, h2, h3 {
     outline-offset: 2px;
     border-radius: 4px;
 }
+
+/* Skip-to-content link for keyboard / screen-reader users. Hidden
+   off-screen until focused, then slides into view at top-left as
+   a brand-styled pill. Lets the user bypass the entire sidebar
+   on every page. */
+.skip-to-content {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 9999;
+    padding: 10px 16px;
+    background: var(--brand-primary);
+    color: #15161e;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+    transform: translateY(-200%);
+    transition: transform 0.2s ease;
+}
+.skip-to-content:focus,
+.skip-to-content:focus-visible {
+    transform: translateY(0);
+    outline: none;
+}
+
+/* Honor the user's OS-level reduced-motion preference: disable
+   all transitions, animations, and scroll-behavior smoothing.
+   Set to a near-zero duration rather than 0 so single-shot
+   transition listeners still fire. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
 button:focus-visible,
 .btn:focus-visible,
 .btn-primary:focus-visible,
