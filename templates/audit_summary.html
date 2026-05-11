@@ -789,6 +789,27 @@
     }
 }
 
+/* ===== Dark-mode flips for the peach/orange accent surfaces =====
+   These celebration-style surfaces hardcode #fff* tints + gradients.
+   In dark mode we keep the warm-accent feel using a coral-on-deep-navy
+   tint instead of pure white. */
+html[data-theme="dark"] .audit-summary-badge-primary {
+    background: rgba(232, 50, 86, 0.16);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffb1bd;
+}
+html[data-theme="dark"] .summary-score-card {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(255, 216, 198, 0.22);
+}
+html[data-theme="dark"] .summary-score-band {
+    background: rgba(232, 50, 86, 0.14);
+    color: #ffd0d6;
+}
+html[data-theme="dark"] .audit-summary-conversion-banner {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(255, 216, 198, 0.22);
+}
 </style>
 
 {% endblock %}
