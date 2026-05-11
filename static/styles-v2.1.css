@@ -22288,3 +22288,48 @@ html[data-theme="dark"] select.is-invalid {
     border-color: #ef4444 !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
 }
+
+/* =========================================================
+   Pending-submit button state
+   =========================================================
+   Set by static/form-pending.js when a form starts submitting.
+   Button gets disabled, dimmed, with a small spinner before
+   the (now-friendly progressive) label. */
+
+button.is-pending,
+input.is-pending {
+    opacity: 0.85;
+    cursor: progress !important;
+    position: relative;
+}
+
+button.is-pending::before,
+input.is-pending::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: -2px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button.is-pending::before,
+    input.is-pending::before {
+        animation: none;
+        border-right-color: currentColor;
+        opacity: 0.5;
+    }
+}
+
+.btn-pending-label {
+    display: inline;
+}
