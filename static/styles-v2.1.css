@@ -17120,16 +17120,44 @@ html[data-theme="dark"] .workspace-more-divider {
        phones, especially when the trigger is full-width. */
     max-width: calc(100vw - 24px);
     padding: 0.85rem;
-    background: white;
-    border: 1px solid #ececf2;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 10px;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+.share-popover-copy {
+    margin: 0 0 0.4rem 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+.share-link-input {
+    width: 100%;
+    margin-bottom: 0.4rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--border-main);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 0.8rem;
+}
+.share-popover-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.share-inline-form {
+    display: inline;
+    margin: 0;
 }
 html[data-theme="dark"] .share-popover {
     background: var(--theme-surface);
     border-color: var(--theme-border-strong);
 }
-html[data-theme="dark"] .share-popover input[type="text"] {
+html[data-theme="dark"] .share-popover-copy {
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .share-link-input {
     background: var(--theme-surface-alt);
     color: var(--theme-text-primary);
     border-color: var(--theme-border-strong);
