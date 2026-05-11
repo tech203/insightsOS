@@ -21852,3 +21852,88 @@ html[data-theme="dark"] .query-status-pill {
     background: rgba(254, 215, 170, 0.12) !important;
     color: #fdba74 !important;
 }
+
+/* =========================================================
+   Button restyle to match sidebar nav-item aesthetic
+   =========================================================
+   Per user request: "change all the buttons to those similar
+   to the sidebar icons". The sidebar nav-items are rounded
+   squares with a 16px radius, subtle border, mint accent on
+   active. Aligning the button system so primary and secondary
+   buttons read as the same visual family as the sidebar.
+
+   Changes (overrides the base .btn at line ~14661):
+     - 14px border-radius (was 12px) — closer to sidebar's 16px
+       while keeping a slight pill-like feel for shorter labels
+     - Softer shadows so buttons sit on the surface instead of
+       hovering above it like the previous primary did
+     - Mint border on .btn-primary so it reads as a "filled
+       version of the same card", not a totally different shape
+     - .btn-secondary gets the same hover-mint-border treatment
+       the sidebar nav uses on hover
+   Light + dark mode covered. */
+
+.btn {
+    border-radius: 14px !important;
+}
+
+.btn-primary {
+    border: 1px solid var(--brand-primary) !important;
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.22) !important;
+}
+
+.btn-primary:hover {
+    background: var(--brand-primary-hover, #2BCBB7) !important;
+    border-color: var(--brand-primary-hover, #2BCBB7) !important;
+    box-shadow: 0 8px 22px rgba(62, 223, 203, 0.30) !important;
+    transform: translateY(-1px);
+}
+
+.btn-primary:focus-visible {
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.22),
+                0 0 0 3px var(--brand-primary-soft) !important;
+}
+
+.btn-secondary {
+    box-shadow: none !important;
+}
+
+.btn-secondary:hover {
+    border-color: var(--brand-primary) !important;
+    background: var(--brand-primary-soft) !important;
+    color: var(--text-strong) !important;
+}
+
+/* Smaller button variant — used in inline contexts (table rows,
+   queue cards). Keeps the same family but with tighter padding. */
+.btn-sm {
+    border-radius: 12px !important;
+}
+
+/* Dark-mode polish: secondary buttons should sit on the dark
+   surface with the same brand-mint border accent the sidebar
+   uses. The primary button keeps its mint solid fill — we
+   just soften its shadow to match the dark canvas. */
+html[data-theme="dark"] .btn-primary {
+    box-shadow: 0 6px 16px rgba(62, 223, 203, 0.18) !important;
+}
+
+html[data-theme="dark"] .btn-secondary {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] .btn-secondary:hover {
+    border-color: var(--brand-primary) !important;
+    background: rgba(62, 223, 203, 0.10) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+/* Reduced motion — drop the lift animation */
+@media (prefers-reduced-motion: reduce) {
+    .btn-primary:hover,
+    .btn-secondary:hover {
+        transform: none !important;
+    }
+}
