@@ -27,10 +27,10 @@
                         <p style="font-size:0.78rem; color:#555; margin:0 0 0.4rem 0;">Anyone with this link can view the report. No login required.</p>
                         <input type="text" readonly value="{{ share_url }}" style="width:100%; padding:0.4rem 0.55rem; border:1px solid #d4d4dc; border-radius:6px; font-size:0.8rem; margin-bottom:0.4rem;" onclick="this.select();">
                         <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-                            <a href="{{ share_url }}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:0.78rem; padding:0.3rem 0.65rem;">Open ↗</a>
+                            <a href="{{ share_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Open ↗</a>
                             <form method="post" action="{{ url_for('toggle_public_share', client_id=client.db_id or client.id) }}" style="display:inline;" onsubmit="return confirm('Revoke this link? Anyone with the URL will lose access.');">
                                 <input type="hidden" name="action" value="revoke">
-                                <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.3rem 0.65rem; background:#fdecea; color:#b22424;">Revoke</button>
+                                <button type="submit" class="btn btn-secondary btn-sm" style="background:#fdecea; color:#b22424;">Revoke</button>
                             </form>
                         </div>
                     </div>
