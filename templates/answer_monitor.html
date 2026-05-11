@@ -2,163 +2,16 @@
 
 {% block title %}AI Answer Monitor — {{ selected_client.name if selected_client else "Workspaces" }}{% endblock %}
 
-{% block head %}
-<style>
-    /* Page-specific layout — surfaces, buttons, pills, tiles come from the design system. */
-    .am-stat-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 0.75rem;
-    }
-
-    .am-card-head {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-start;
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
-    .am-prompt-text {
-        font-weight: 600;
-        margin: 0 0 0.35rem 0;
-        font-size: 1.02rem;
-        line-height: 1.35;
-        color: var(--text-strong);
-    }
-    .am-prompt-meta {
-        display: flex;
-        gap: 0.75rem;
-        font-size: 0.82rem;
-        color: var(--text-muted);
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    /* Sparkline — small inline data viz, kept page-local */
-    .am-spark {
-        display: flex;
-        gap: 4px;
-        align-items: flex-end;
-        height: 28px;
-        margin: 0.65rem 0 0.5rem 0;
-    }
-    .am-spark-dot {
-        width: 16px;
-        border-radius: 3px;
-        background: var(--theme-border-subtle, #d8d8e0);
-    }
-    .am-spark-dot.cited { background: var(--brand-primary, #3EDFCB); }
-    .am-spark-dot.not-cited { background: var(--theme-border-subtle, #d8d8e0); }
-    .am-spark-empty {
-        font-size: 0.82rem;
-        color: var(--text-muted);
-        margin: 0.5rem 0;
-    }
-
-    .am-actions {
-        display: flex;
-        gap: 0.45rem;
-        flex-wrap: wrap;
-    }
-
-    .am-answer-excerpt {
-        margin: 0.6rem 0 0 0;
-        font-size: 0.86rem;
-        color: var(--text-main);
-        background: var(--bg-soft-alt);
-        border-radius: 8px;
-        padding: 0.6rem 0.75rem;
-        border-left: 3px solid var(--border-main);
-    }
-
-    .am-workspace-picker {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-    .am-workspace-picker select {
-        padding: 0.45rem 0.7rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-main);
-        font-size: 0.92rem;
-        background: var(--bg-card);
-        color: var(--text-strong);
-    }
-
-    .am-engine-row {
-        display: flex;
-        gap: 0.6rem;
-        align-items: center;
-        margin-top: 0.4rem;
-        flex-wrap: wrap;
-    }
-    .am-engine-label {
-        font-size: 0.78rem;
-        color: var(--text-strong);
-        font-weight: 600;
-        min-width: 86px;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    .am-engine-tag {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        background: var(--brand-secondary, #9D7CE3);
-        color: white;
-        padding: 1px 6px;
-        border-radius: 999px;
-        font-weight: 700;
-    }
-    .am-engine-empty {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-    }
-    .am-engine-score {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-    }
-
-    .am-engines-banner {
-        background: var(--bg-soft-alt);
-        border: 1px dashed var(--border-main);
-        border-radius: 8px;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.85rem;
-        color: var(--text-main);
-    }
-
-    /* Status pills not covered by .score-pill-* — small uppercase tags */
-    .am-tag {
-        display: inline-block;
-        padding: 0.18rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: 700;
-    }
-    .am-tag.cited,
-    .am-tag.gained { background: var(--status-success-soft, #e6f7f1); color: var(--status-success, #1f7a5f); }
-    .am-tag.not-cited,
-    .am-tag.lost { background: var(--status-danger-soft, #f7e6e6); color: var(--status-danger, #8a3030); }
-    .am-tag.stable { background: var(--bg-soft, #f0f0f5); color: var(--text-main, #444); }
-    .am-tag.first { background: var(--brand-secondary-soft, #fdf0e6); color: var(--brand-secondary, #8c4a1f); }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-shell">
-    <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+    <div class="am-page-head">
         <div>
-            <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
+            <h1>AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
         </div>
 
         {% if clients|length > 1 %}
         <form class="am-workspace-picker" method="get" action="{{ url_for('answer_monitor_page') }}">
-            <label for="am-client" style="font-size:0.82rem; color:var(--text-muted);">Workspace</label>
+            <label for="am-client">Workspace</label>
             <select id="am-client" name="client_id" onchange="this.form.submit()">
                 {% for c in clients %}
                 <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.name }}</option>
@@ -209,7 +62,7 @@
     {% for prompt in prompts %}
     <article class="surface-card">
         <div class="am-card-head">
-            <div style="flex: 1 1 60%;">
+            <div class="am-card-main">
                 <p class="am-prompt-text">{{ prompt.prompt }}</p>
                 <div class="am-prompt-meta">
                     {% if prompt.latest %}
@@ -282,20 +135,20 @@
 
     {% elif selected_client %}
     <div class="empty-card">
-        <h2 style="margin:0 0 0.5rem 0; font-size:1.1rem;">No tracked prompts yet for {{ selected_client.name }}</h2>
+        <h2>No tracked prompts yet for {{ selected_client.name }}</h2>
         <p>
             Add the questions you want to monitor — anything a prospect might ask an AI assistant about your business — then run checks here to see how often you get cited.
         </p>
-        <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:1.25rem;">
+        <div class="am-empty-actions">
             <a href="{{ url_for('position_tracking_page', client_id=selected_client.id) }}" class="btn btn-primary">Add tracked prompts</a>
             <a href="{{ url_for('run_client_audit', client_id=selected_client.id) }}" class="btn btn-secondary">Run an audit first</a>
         </div>
     </div>
     {% else %}
     <div class="empty-card">
-        <h2 style="margin:0 0 0.5rem 0; font-size:1.1rem;">Create a workspace to start monitoring</h2>
+        <h2>Create a workspace to start monitoring</h2>
         <p>Each workspace tracks a different brand or website.</p>
-        <a href="{{ url_for('create_client') }}" class="btn btn-primary" style="margin-top:1.25rem;">Create your first workspace</a>
+        <a href="{{ url_for('create_client') }}" class="btn btn-primary am-empty-primary">Create your first workspace</a>
     </div>
     {% endif %}
 </div>

@@ -17518,8 +17518,6 @@ html[data-theme="dark"] .workspace-summary-grid > *,
 html[data-theme="dark"] .workspace-module-card,
 html[data-theme="dark"] .workspace-next-step-card,
 html[data-theme="dark"] .workspace-top-strip,
-html[data-theme="dark"] .am-card,
-html[data-theme="dark"] .am-stat,
 html[data-theme="dark"] .shopify-card,
 html[data-theme="dark"] .topup-bundle-card,
 html[data-theme="dark"] .pricing-plan-card,
@@ -17559,27 +17557,18 @@ html[data-theme="dark"] .settings-v3-note-box {
 /* Inline-styled subsurfaces (rgba-style backgrounds inside our newer
    pages). Targets common light backgrounds via attribute selectors so
    shopify_products / answer_monitor / marketplace_audits flip too. */
-html[data-theme="dark"] .am-empty,
 html[data-theme="dark"] .mp-empty,
-html[data-theme="dark"] .shopify-empty,
-html[data-theme="dark"] .am-engines-banner {
+html[data-theme="dark"] .shopify-empty {
     background: var(--theme-surface);
     color: var(--theme-text-secondary);
     border-color: var(--theme-border-subtle);
 }
 
-html[data-theme="dark"] .am-spark-dot.not-cited {
-    background: rgba(255, 255, 255, 0.10);
-}
-html[data-theme="dark"] .am-engine-empty,
-html[data-theme="dark"] .am-engine-score,
-html[data-theme="dark"] .am-prompt-meta,
 html[data-theme="dark"] .mp-presence-meta,
 html[data-theme="dark"] .shopify-product .vendor {
     color: var(--theme-text-muted);
 }
 
-html[data-theme="dark"] .am-answer-excerpt,
 html[data-theme="dark"] .mp-query-row {
     background: var(--theme-surface-alt);
     color: var(--theme-text-secondary);
@@ -17592,7 +17581,6 @@ html[data-theme="dark"] h2,
 html[data-theme="dark"] h3,
 html[data-theme="dark"] h4,
 html[data-theme="dark"] strong,
-html[data-theme="dark"] .am-stat-value,
 html[data-theme="dark"] .summary-value,
 html[data-theme="dark"] .topup-bundle-credits,
 html[data-theme="dark"] .topup-bundle-price {
@@ -17600,7 +17588,6 @@ html[data-theme="dark"] .topup-bundle-price {
 }
 html[data-theme="dark"] p,
 html[data-theme="dark"] .summary-copy,
-html[data-theme="dark"] .am-header p,
 html[data-theme="dark"] .topup-bundle-rate,
 html[data-theme="dark"] .topup-cost-list li,
 html[data-theme="dark"] .settings-v3-info-row span:first-child {
@@ -19618,6 +19605,237 @@ html[data-theme="dark"] .metric-tile-label {
 }
 html[data-theme="dark"] .metric-tile-value {
     color: var(--theme-text-primary);
+}
+
+/* Answer monitor */
+.am-page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.am-page-head h1 {
+    margin: 0 0 0.35rem 0;
+    color: var(--text-strong);
+    font-size: 1.55rem;
+}
+
+.am-stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+}
+
+.am-card-head {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.am-card-main {
+    flex: 1 1 60%;
+}
+
+.am-prompt-text {
+    margin: 0 0 0.35rem 0;
+    color: var(--text-strong);
+    font-size: 1.02rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.am-prompt-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.am-spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 28px;
+    margin: 0.65rem 0 0.5rem 0;
+}
+
+.am-spark-dot {
+    width: 16px;
+    border-radius: 3px;
+    background: var(--theme-border-subtle, #d8d8e0);
+}
+
+.am-spark-dot.cited {
+    background: var(--brand-primary, #3EDFCB);
+}
+
+.am-spark-dot.not-cited {
+    background: var(--theme-border-subtle, #d8d8e0);
+}
+
+.am-spark-empty {
+    margin: 0.5rem 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.am-actions,
+.am-empty-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.am-empty-actions {
+    justify-content: center;
+    margin-top: 1.25rem;
+}
+
+.am-empty-primary {
+    margin-top: 1.25rem;
+}
+
+.am-answer-excerpt {
+    margin: 0.6rem 0 0 0;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid var(--border-main);
+    border-radius: 8px;
+    background: var(--bg-soft-alt);
+    color: var(--text-main);
+    font-size: 0.86rem;
+}
+
+.am-workspace-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.am-workspace-picker label {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.am-workspace-picker select {
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--border-main);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-strong);
+    font-size: 0.92rem;
+}
+
+.am-engine-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+}
+
+.am-engine-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 86px;
+    color: var(--text-strong);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.am-engine-tag {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--brand-secondary, #9D7CE3);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.am-engine-empty,
+.am-engine-score {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.am-engines-banner {
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--border-main);
+    border-radius: 8px;
+    background: var(--bg-soft-alt);
+    color: var(--text-main);
+    font-size: 0.85rem;
+}
+
+.am-tag {
+    display: inline-block;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.am-tag.cited,
+.am-tag.gained {
+    background: var(--status-success-soft, #e6f7f1);
+    color: var(--status-success, #1f7a5f);
+}
+
+.am-tag.not-cited,
+.am-tag.lost {
+    background: var(--status-danger-soft, #f7e6e6);
+    color: var(--status-danger, #8a3030);
+}
+
+.am-tag.stable {
+    background: var(--bg-soft, #f0f0f5);
+    color: var(--text-main, #444);
+}
+
+.am-tag.first {
+    background: var(--brand-secondary-soft, #fdf0e6);
+    color: var(--brand-secondary, #8c4a1f);
+}
+
+html[data-theme="dark"] .am-page-head h1,
+html[data-theme="dark"] .am-prompt-text,
+html[data-theme="dark"] .am-engine-label {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .am-workspace-picker label,
+html[data-theme="dark"] .am-engine-empty,
+html[data-theme="dark"] .am-engine-score,
+html[data-theme="dark"] .am-prompt-meta,
+html[data-theme="dark"] .am-spark-empty {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .am-workspace-picker select {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .am-answer-excerpt,
+html[data-theme="dark"] .am-spark-dot.not-cited {
+    background: var(--theme-surface-alt);
+}
+
+html[data-theme="dark"] .am-answer-excerpt {
+    border-left-color: var(--theme-border-subtle);
+    color: var(--theme-text-secondary);
 }
 
 /* Marketplace audits */
