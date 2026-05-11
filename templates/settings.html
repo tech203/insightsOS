@@ -841,7 +841,7 @@
                     <input type="checkbox" name="enable" {% if current_user.is_white_label_enabled %}checked{% endif %}>
                     <span style="font-size:0.95rem; font-weight:600; color:var(--brand-text-strong, #191929);">Enable white-label branding</span>
                 </label>
-                <p style="font-size:0.82rem; color:#666; margin:0 0 0.65rem 0;">When on, the sidebar brand mark, mobile topbar, and PDF reports use your agency's name and logo instead of DarInsights.</p>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.65rem 0;">When on, the sidebar brand mark, mobile topbar, and PDF reports use your agency's name and logo instead of DarInsights.</p>
 
                 <label for="wl-name">Agency name</label>
                 <input id="wl-name" type="text" name="agency_name" value="{{ current_user.agency_name or '' }}" maxlength="255" placeholder="e.g. Astra Strategy">
