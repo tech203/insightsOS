@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 {% if data.client_id %}
-<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Workspace</a>
 {% endif %}
 {% if summary_filename %}
 <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Open Summary</a>
@@ -771,6 +771,28 @@
     .audit-ai-row {
         min-width: 760px;
     }
+}
+
+/* ===== Dark-mode flips for accent surfaces =====
+   Peach badges + score card stay coral-tinted; lavender signal/next-step
+   cards stay purple-tinted; status-bad keeps a red-on-dark feel. */
+html[data-theme="dark"] .audit-overview-badge-primary {
+    background: rgba(232, 50, 86, 0.16);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffb1bd;
+}
+html[data-theme="dark"] .overview-score-card {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(255, 216, 198, 0.22);
+}
+html[data-theme="dark"] .signal-card-accent,
+html[data-theme="dark"] .next-step-card {
+    background: linear-gradient(180deg, rgba(157, 124, 227, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(235, 231, 255, 0.18);
+}
+html[data-theme="dark"] .status-bad {
+    background: rgba(190, 18, 60, 0.18);
+    color: #ffb1bd;
 }
 
 </style>

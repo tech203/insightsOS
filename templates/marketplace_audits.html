@@ -2,229 +2,111 @@
 
 {% block title %}Marketplace Visibility — {{ workspace.name }}{% endblock %}
 
-{% block head %}
-<style>
-    .mp-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-    .mp-header { margin-bottom: 1.5rem; }
-    .mp-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
-    .mp-header p { margin: 0; color: #555; max-width: 640px; }
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ workspace.name }} · Marketplace Visibility</h1>
+        <p>Check whether your storefronts on Etsy, Amazon, Shopee, eBay, TikTok Shop, or Lazada get recommended when shoppers ask AI assistants for marketplace shops. Generated queries — no catalog ingestion needed.</p>
+    </div>
 
-    .mp-card {
-        background: white;
-        border: 1px solid #ececf2;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-    .mp-add-form {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.5rem;
-        align-items: end;
-    }
-    .mp-add-form label { font-size: 0.78rem; color: #666; display: block; margin-bottom: 0.2rem; }
-    .mp-add-form input, .mp-add-form select {
-        width: 100%;
-        padding: 0.5rem 0.7rem;
-        border: 1px solid #d4d4dc;
-        border-radius: 8px;
-        font-size: 16px;
-    }
-
-    .mp-presence {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    .mp-presence-head {
-        display: flex;
-        gap: 1rem;
-        justify-content: space-between;
-        align-items: flex-start;
-        flex-wrap: wrap;
-    }
-    .mp-presence-title {
-        margin: 0;
-        font-size: 1.05rem;
-    }
-    .mp-presence-meta {
-        font-size: 0.85rem;
-        color: #666;
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-    .mp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .mp-btn {
-        padding: 0.5rem 0.95rem;
-        border-radius: 8px;
-        border: none;
-        font-weight: 600;
-        font-size: 0.85rem;
-        cursor: pointer;
-        background: var(--brand-primary, #3EDFCB);
-        color: var(--brand-text-strong, #191929);
-    }
-    .mp-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
-    .mp-btn-danger { background: #fdecea; color: #b22424; }
-
-    .mp-score-pill {
-        display: inline-block;
-        padding: 0.25rem 0.7rem;
-        border-radius: 999px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        background: #f0f0f5;
-        color: #444;
-    }
-    .mp-score-pill.high { background: #e6f7f1; color: #1f7a5f; }
-    .mp-score-pill.med { background: #fdf0e6; color: #8c4a1f; }
-    .mp-score-pill.low { background: #f7e6e6; color: #8a3030; }
-
-    .mp-query-list {
-        display: grid;
-        gap: 0.4rem;
-        margin-top: 0.5rem;
-    }
-    .mp-query-row {
-        background: #fafafe;
-        border-left: 3px solid #ececf2;
-        border-radius: 6px;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.88rem;
-    }
-    .mp-query-row.cited { border-left-color: var(--brand-primary, #3EDFCB); }
-    .mp-empty {
-        background: white;
-        border: 1px dashed #d4d4dc;
-        border-radius: 12px;
-        padding: 1.5rem;
-        text-align: center;
-        color: #555;
-    }
-
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .mp-btn-secondary,
-    html[data-theme="dark"] .mp-card,
-    html[data-theme="dark"] .mp-empty {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .mp-btn,
-    html[data-theme="dark"] .mp-btn-secondary h1,
-    html[data-theme="dark"] .mp-btn-secondary h2,
-    html[data-theme="dark"] .mp-btn-secondary h3,
-    html[data-theme="dark"] .mp-btn-secondary h4,
-    html[data-theme="dark"] .mp-btn-secondary strong,
-    html[data-theme="dark"] .mp-card h1,
-    html[data-theme="dark"] .mp-card h2,
-    html[data-theme="dark"] .mp-card h3,
-    html[data-theme="dark"] .mp-card h4,
-    html[data-theme="dark"] .mp-card strong,
-    html[data-theme="dark"] .mp-empty h1,
-    html[data-theme="dark"] .mp-empty h2,
-    html[data-theme="dark"] .mp-empty h3,
-    html[data-theme="dark"] .mp-empty h4,
-    html[data-theme="dark"] .mp-empty strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .mp-add-form,
-    html[data-theme="dark"] .mp-query-row {
-        border-color: var(--theme-border-subtle);
-    }
-</style>
+    <div class="page-header-actions">
+        <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="btn btn-secondary">Back to Workspace</a>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
-<div class="mp-page">
-    <div class="mp-header">
-        <h1>Marketplace visibility {{ info_tip("Checks whether " + workspace.name + "'s storefronts on Etsy, Amazon, Shopee, eBay, TikTok Shop, or Lazada get recommended when shoppers ask AI assistants for marketplace shops. Generated queries — no catalog ingestion needed.") }}</h1>
-    </div>
+<div class="page-shell mp-page">
 
-    <div class="mp-card">
-        <h2 style="margin:0 0 0.85rem 0; font-size:1.05rem;">Link a marketplace shop</h2>
+    {# ---------- Add a marketplace shop ---------- #}
+    <section class="surface-card mp-add-card">
+        <h2>Link a marketplace shop</h2>
+        <p class="mp-add-copy">Paste your storefront URL and we'll generate marketplace-specific queries to check whether your shop is one of the AI-recommended results.</p>
+
         <form class="mp-add-form" method="post" action="{{ url_for('marketplace_add_presence', client_id=workspace.id) }}">
-            <div>
-                <label for="mp-marketplace">Marketplace</label>
-                <select id="mp-marketplace" name="marketplace" required>
-                    {% for slug, label in marketplace_options %}
-                    <option value="{{ slug }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="mp-shop-name">Shop name</label>
-                <input id="mp-shop-name" type="text" name="shop_name" placeholder="e.g. Astra Ceramics">
-            </div>
-            <div style="grid-column: span 2;">
-                <label for="mp-shop-url">Shop URL</label>
-                <input id="mp-shop-url" type="url" name="shop_url" placeholder="https://www.etsy.com/shop/yourshop" required>
-            </div>
-            <div>
-                <label for="mp-category">Category</label>
-                <input id="mp-category" type="text" name="category" placeholder="ceramic mugs">
-            </div>
-            <div>
-                <label for="mp-region">Region</label>
-                <input id="mp-region" type="text" name="region" placeholder="Singapore / US / EU">
-            </div>
-            <div>
-                <button type="submit" class="mp-btn" style="width:100%;">Link shop</button>
-            </div>
-        </form>
-    </div>
+            <div class="form-grid-2">
+                <div class="form-field">
+                    <label for="mp-marketplace">Marketplace</label>
+                    <select id="mp-marketplace" name="marketplace" required>
+                        {% for slug, label in marketplace_options %}
+                        <option value="{{ slug }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
+                <div class="form-field">
+                    <label for="mp-shop-name">Shop name</label>
+                    <input id="mp-shop-name" type="text" name="shop_name" placeholder="e.g. Astra Ceramics">
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="mp-shop-url">Shop URL</label>
+                    <input id="mp-shop-url" type="url" name="shop_url" placeholder="https://www.etsy.com/shop/yourshop" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="mp-category">Category</label>
+                    <input id="mp-category" type="text" name="category" placeholder="ceramic mugs">
+                </div>
+
+                <div class="form-field">
+                    <label for="mp-region">Region</label>
+                    <input id="mp-region" type="text" name="region" placeholder="e.g. Singapore">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Link shop</button>
+        </form>
+    </section>
+
+    {# ---------- Linked storefronts ---------- #}
     {% if presences %}
         {% for presence in presences %}
-        <article class="mp-card mp-presence">
-            <div class="mp-presence-head">
-                <div>
-                    <h3 class="mp-presence-title">
-                        {{ presence.shop_name or presence.shop_url }}
-                        <span class="mp-score-pill
-                            {% if presence.last_visibility_score is not none and presence.last_visibility_score >= 60 %}high
-                            {% elif presence.last_visibility_score is not none and presence.last_visibility_score >= 30 %}med
-                            {% elif presence.last_visibility_score is not none %}low
-                            {% endif %}">
-                            {% if presence.last_visibility_score is not none %}
-                                {{ presence.last_visibility_score }}% visibility
-                            {% else %}
-                                Not audited yet
-                            {% endif %}
-                        </span>
-                    </h3>
-                    <div class="mp-presence-meta">
-                        <span>{{ presence.marketplace|capitalize }}</span>
-                        {% if presence.category %}<span>· {{ presence.category }}</span>{% endif %}
-                        {% if presence.region %}<span>· {{ presence.region }}</span>{% endif %}
-                        {% if presence.last_audited_at %}
-                            <span>· Last audit {{ presence.last_audited_at.strftime('%d %b %Y, %H:%M UTC') }}</span>
-                        {% endif %}
-                        <a href="{{ presence.shop_url }}" target="_blank" rel="noopener">View shop ↗</a>
-                    </div>
+        {% set vis = presence.last_visibility_score %}
+        <article class="surface-card mp-presence-card">
+            <header class="mp-presence-head">
+                <div class="mp-presence-title-block">
+                    <h3>{{ presence.shop_name or presence.shop_url }}</h3>
+                    <span class="score-pill
+                        {% if vis is not none and vis >= 60 %}score-pill-success
+                        {% elif vis is not none and vis >= 30 %}score-pill-warning
+                        {% elif vis is not none %}score-pill-opportunity
+                        {% else %}score-pill-info{% endif %}">
+                        {% if vis is not none %}{{ vis }}% visibility{% else %}Not audited yet{% endif %}
+                    </span>
                 </div>
-                <div class="mp-actions">
+
+                <div class="mp-presence-actions">
                     <form method="post" action="{{ url_for('marketplace_run_audit', client_id=workspace.id, presence_id=presence.id) }}" onsubmit="return __creditCheckBeforeSubmit(this, {{ marketplace_audit_cost }}, 'Run a marketplace audit for this shop? Costs {{ marketplace_audit_cost }} credits.');">
-                        <button type="submit" class="mp-btn">Run audit ({{ marketplace_audit_cost }} cr)</button>
+                        <button type="submit" class="btn btn-primary">Run audit ({{ marketplace_audit_cost }} cr)</button>
                     </form>
                     <form method="post" action="{{ url_for('marketplace_delete_presence', client_id=workspace.id, presence_id=presence.id) }}" onsubmit="return confirm('Remove this marketplace listing?');">
-                        <button type="submit" class="mp-btn mp-btn-danger">Remove</button>
+                        <button type="submit" class="btn btn-secondary mp-btn-danger">Remove</button>
                     </form>
                 </div>
+            </header>
+
+            <div class="mp-presence-meta">
+                <span><strong>{{ presence.marketplace|capitalize }}</strong></span>
+                {% if presence.category %}<span>· {{ presence.category }}</span>{% endif %}
+                {% if presence.region %}<span>· {{ presence.region }}</span>{% endif %}
+                {% if presence.last_audited_at %}
+                    <span>· Last audit {{ presence.last_audited_at.strftime('%d %b %Y, %H:%M UTC') }}</span>
+                {% endif %}
+                <a href="{{ presence.shop_url }}" target="_blank" rel="noopener">View shop ↗</a>
             </div>
 
             {% if presence.last_audit_payload %}
                 {% set payload = presence.last_audit_payload %}
-                <p style="margin: 0; font-size: 0.88rem; color: #555;">
-                    {{ (payload.citation_rate * 100)|round|int }}% of generated queries cited your shop · avg score {{ payload.avg_score }}
+                <p class="mp-citation-summary">
+                    <strong>{{ (payload.citation_rate * 100)|round|int }}%</strong> of generated queries cited your shop · avg score {{ payload.avg_score }}
                 </p>
+
                 <div class="mp-query-list">
                     {% for q in payload.queries %}
-                    <div class="mp-query-row {% if q.any_cited %}cited{% endif %}">
+                    <div class="mp-query-row {% if q.any_cited %}mp-query-cited{% endif %}">
                         <strong>{{ q.query }}</strong>
-                        <div style="font-size:0.78rem; color:#666; margin-top:0.2rem;">
+                        <div class="mp-query-meta">
                             {% if q.any_cited %}Cited{% else %}Not cited{% endif %} ·
                             best score {{ q.best_score }}
                             {% if q.engines %}
@@ -238,12 +120,162 @@
         </article>
         {% endfor %}
     {% else %}
-        <div class="mp-empty">
-            <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">Link your first marketplace shop</p>
-            <p style="margin:0; max-width:480px; margin-left:auto; margin-right:auto;">
-                Use the form above to paste your Etsy, Amazon, Shopee, eBay, TikTok Shop, or Lazada storefront URL. We'll generate marketplace-specific queries and check whether your shop is one of the AI-recommended results.
-            </p>
-        </div>
+        <section class="surface-card empty-card mp-empty">
+            <h3>Link your first marketplace shop</h3>
+            <p>Use the form above to paste your storefront URL. We'll generate marketplace-specific queries and check whether your shop is one of the AI-recommended results.</p>
+        </section>
     {% endif %}
+
 </div>
+
+<style>
+/* Marketplace Audits — page-specific layout only.
+   Surfaces, buttons, inputs, score pills, and empty state all
+   come from the global design system (.surface-card / .btn /
+   .form-field / .form-grid-2 / .score-pill / .empty-card).
+   Removed ~140 lines of bespoke .mp-* CSS that shipped its own
+   white surfaces and patched dark mode reactively. */
+
+.mp-page {
+    max-width: 1080px;
+    display: grid;
+    gap: 16px;
+}
+
+.mp-add-card,
+.mp-presence-card {
+    padding: 22px;
+}
+
+.mp-add-card h2,
+.mp-presence-card h3 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+}
+
+.mp-add-copy {
+    margin: 0 0 16px 0;
+    font-size: 13.5px;
+    color: var(--text-soft);
+    line-height: 1.5;
+    max-width: 640px;
+}
+
+.mp-add-form {
+    display: grid;
+    gap: 14px;
+}
+
+.mp-presence-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.mp-presence-title-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.mp-presence-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mp-presence-meta {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 10px;
+}
+
+.mp-presence-meta strong {
+    color: var(--text-strong);
+}
+
+.mp-presence-meta a {
+    color: var(--brand-primary);
+    text-decoration: none;
+}
+
+.mp-presence-meta a:hover {
+    text-decoration: underline;
+}
+
+.mp-citation-summary {
+    margin: 14px 0 0 0;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.mp-citation-summary strong {
+    color: var(--text-strong);
+}
+
+.mp-query-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.mp-query-row {
+    background: var(--bg-soft-alt);
+    border-left: 3px solid var(--border-main);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.mp-query-row.mp-query-cited {
+    border-left-color: var(--brand-primary);
+}
+
+.mp-query-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.mp-empty {
+    text-align: center;
+}
+
+.mp-empty h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--text-strong);
+}
+
+.mp-empty p {
+    margin: 0 auto;
+    max-width: 480px;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.mp-btn-danger {
+    color: #b91c1c !important;
+}
+
+html[data-theme="dark"] .mp-query-row {
+    background: var(--theme-surface-alt);
+    border-left-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .mp-query-row.mp-query-cited {
+    border-left-color: var(--brand-primary);
+}
+
+html[data-theme="dark"] .mp-btn-danger {
+    color: #fca5a5 !important;
+}
+</style>
 {% endblock %}

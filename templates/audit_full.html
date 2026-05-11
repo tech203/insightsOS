@@ -13,7 +13,7 @@
     <div class="page-header-actions">
         <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Back to Summary</a>
         {% if data.client_id %}
-        <a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
+        <a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Workspace</a>
         {% endif %}
     </div>
 </div>
@@ -200,8 +200,8 @@
 .guide-item,
 .audit-full-badge,
 .meta-chip {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -517,6 +517,17 @@
     html[data-theme="dark"] .quick-access-label,
     html[data-theme="dark"] .quick-access-meta {
         color: var(--theme-text-secondary);
+    }
+
+    /* ===== Dark-mode flips for the peach accent surfaces ===== */
+    html[data-theme="dark"] .audit-full-badge-primary {
+        background: rgba(232, 50, 86, 0.16);
+        border-color: rgba(255, 216, 198, 0.25);
+        color: #ffb1bd;
+    }
+    html[data-theme="dark"] .quick-access-card {
+        background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(255, 216, 198, 0.22);
     }
 </style>
 

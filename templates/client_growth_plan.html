@@ -849,5 +849,19 @@
     }
 }
 
+/* ===== Dark-mode flips for peach accent surfaces ===== */
+html[data-theme="dark"] .growth-badge-soft,
+html[data-theme="dark"] .quick-win-number,
+html[data-theme="dark"] .roadmap-step,
+html[data-theme="dark"] .execution-icon {
+    background: rgba(232, 50, 86, 0.16);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffb1bd;
+}
+html[data-theme="dark"] .growth-score-card {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(255, 216, 198, 0.22);
+}
+
 </style>
 {% endblock %}
