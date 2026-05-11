@@ -29,7 +29,7 @@
 
 <div class="page-shell">
 
-    <section class="query-ideas-hero">
+    <section class="surface-card query-ideas-hero">
         <div>
             <span class="section-kicker">Query Discovery</span>
             <h2>Suggested search queries</h2>
@@ -39,16 +39,17 @@
             </p>
 
             {% if not has_brand_context %}
-            <div class="query-warning-box">
+            <div class="query-warning-box" role="status">
                 Brand context has not been added yet. You can still add queries to the queue, but briefs and drafts may be more generic until brand context is saved.
             </div>
             {% endif %}
         </div>
 
-        <form method="GET" action="{{ url_for('client_query_ideas', client_id=client_route_id) }}" class="query-service-form">
-            <label>
+        <form method="GET" action="{{ url_for('client_query_ideas', client_id=client_route_id) }}" class="query-service-form form-field">
+            <label for="query-services">
                 Services or topics
-                <input type="text" name="services" value="{{ services }}" placeholder="birthday cake, custom cake, bakery delivery">
+                <span>Separate multiple services with commas.</span>
+                <input id="query-services" type="text" name="services" value="{{ services }}" placeholder="birthday cake, custom cake, bakery delivery">
             </label>
 
             <button type="submit" class="btn btn-primary">
@@ -57,7 +58,7 @@
         </form>
     </section>
 
-    <section class="query-flow-note">
+    <section class="surface-card query-flow-note">
         <div>
             <span class="section-kicker">Recommended Flow</span>
             <h2>Add to Queue → Generate Brief → Generate Draft</h2>
@@ -70,9 +71,9 @@
 
     <section class="query-ideas-grid">
         {% for query in query_ideas %}
-        <article class="query-idea-card">
+        <article class="surface-card query-idea-card">
             <div>
-                <span class="query-status-pill">Suggested · Not validated</span>
+                <span class="score-pill score-pill-warning">Suggested · Not validated</span>
                 <h3>{{ query }}</h3>
                 <p>
                     Add this to the queue if it matches the client’s offer and sounds like something a real customer may search.
@@ -95,7 +96,7 @@
             </div>
         </article>
         {% else %}
-        <section class="query-empty-card">
+        <section class="surface-card query-empty-card">
             <span class="section-kicker">No Ideas Yet</span>
             <h2>Generate query ideas first</h2>
             <p>
@@ -106,196 +107,4 @@
     </section>
 
 </div>
-
-<style>
-.query-ideas-hero,
-.query-idea-card,
-.query-flow-note,
-.query-empty-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-main);
-    border-radius: 24px;
-    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
-}
-
-.query-ideas-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 420px;
-    gap: 24px;
-    align-items: end;
-    padding: 28px;
-    margin-bottom: 24px;
-}
-
-.query-ideas-hero h2,
-.query-flow-note h2,
-.query-empty-card h2 {
-    margin: 12px 0 0;
-    font-size: 34px;
-    line-height: 1.1;
-    letter-spacing: -0.04em;
-    color: #0f172a;
-}
-
-.query-ideas-hero p,
-.query-idea-card p,
-.query-flow-note p,
-.query-empty-card p {
-    color: #64748b;
-    line-height: 1.7;
-}
-
-.query-warning-box {
-    margin-top: 16px;
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid #fed7aa;
-    background: #fff7ed;
-    color: #9a3412;
-    font-size: 14px;
-    line-height: 1.6;
-    font-weight: 700;
-}
-
-.query-service-form {
-    display: grid;
-    gap: 12px;
-}
-
-.query-service-form label {
-    display: grid;
-    gap: 8px;
-    font-weight: 700;
-    color: #334155;
-}
-
-.query-service-form input {
-    width: 100%;
-    padding: 13px 14px;
-    border-radius: 14px;
-    border: 1px solid #dbe6f3;
-    font-size: 15px;
-}
-
-.query-flow-note {
-    padding: 24px 28px;
-    margin-bottom: 24px;
-}
-
-.query-flow-note h2 {
-    font-size: 26px;
-}
-
-.query-ideas-grid {
-    display: grid;
-    gap: 16px;
-}
-
-.query-idea-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 20px;
-    align-items: center;
-    padding: 22px;
-}
-
-.query-idea-card h3 {
-    margin: 12px 0 0;
-    font-size: 24px;
-    line-height: 1.2;
-    color: #0f172a;
-}
-
-.query-status-pill {
-    display: inline-flex;
-    width: fit-content;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #fff7ed;
-    color: #c2410c;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.query-card-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    align-items: center;
-}
-
-.query-card-actions form {
-    margin: 0;
-}
-
-.query-empty-card {
-    padding: 28px;
-}
-
-@media (max-width: 900px) {
-    .query-ideas-hero,
-    .query-idea-card {
-        grid-template-columns: 1fr;
-    }
-
-    .query-card-actions {
-        justify-content: stretch;
-    }
-
-    .query-card-actions .btn,
-    .query-card-actions form,
-    .query-card-actions button {
-        width: 100%;
-    }
-}
-
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .query-empty-card,
-    html[data-theme="dark"] .query-flow-note,
-    html[data-theme="dark"] .query-idea-card,
-    html[data-theme="dark"] .query-ideas-hero {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .query-empty-card,
-    html[data-theme="dark"] .query-flow-note,
-    html[data-theme="dark"] .query-idea-card,
-    html[data-theme="dark"] .query-ideas-hero,
-    html[data-theme="dark"] .query-empty-card h1,
-    html[data-theme="dark"] .query-empty-card h2,
-    html[data-theme="dark"] .query-empty-card h3,
-    html[data-theme="dark"] .query-empty-card h4,
-    html[data-theme="dark"] .query-empty-card strong,
-    html[data-theme="dark"] .query-flow-note h1,
-    html[data-theme="dark"] .query-flow-note h2,
-    html[data-theme="dark"] .query-flow-note h3,
-    html[data-theme="dark"] .query-flow-note h4,
-    html[data-theme="dark"] .query-flow-note strong,
-    html[data-theme="dark"] .query-idea-card h1,
-    html[data-theme="dark"] .query-idea-card h2,
-    html[data-theme="dark"] .query-idea-card h3,
-    html[data-theme="dark"] .query-idea-card h4,
-    html[data-theme="dark"] .query-idea-card strong,
-    html[data-theme="dark"] .query-ideas-hero h1,
-    html[data-theme="dark"] .query-ideas-hero h2,
-    html[data-theme="dark"] .query-ideas-hero h3,
-    html[data-theme="dark"] .query-ideas-hero h4,
-    html[data-theme="dark"] .query-ideas-hero strong {
-        color: var(--theme-text-primary);
-    }
-
-    /* Peach accent warnings + status pill */
-    html[data-theme="dark"] .query-warning-box {
-        background: rgba(255, 247, 237, 0.08);
-        border-color: rgba(254, 215, 170, 0.25);
-        color: #ffd591;
-    }
-    html[data-theme="dark"] .query-status-pill {
-        background: rgba(255, 247, 237, 0.10);
-        color: #ffb89e;
-    }
-</style>
-
 {% endblock %}

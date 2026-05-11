@@ -19594,6 +19594,128 @@ html[data-theme="dark"] .metric-tile-value {
     color: var(--theme-text-primary);
 }
 
+/* Query ideas */
+.query-ideas-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+    gap: 24px;
+    align-items: end;
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+.query-ideas-hero h2,
+.query-flow-note h2,
+.query-empty-card h2 {
+    margin: 12px 0 0;
+    font-size: 1.8rem;
+    line-height: 1.15;
+    color: var(--text-strong);
+}
+
+.query-flow-note h2 {
+    font-size: 1.35rem;
+}
+
+.query-ideas-hero p,
+.query-idea-card p,
+.query-flow-note p,
+.query-empty-card p {
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.query-warning-box {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--status-warning-border, #fed7aa);
+    background: var(--status-warning-soft, #fff7ed);
+    color: var(--status-warning, #9a3412);
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 700;
+}
+
+.query-service-form {
+    gap: 12px;
+}
+
+.query-service-form label {
+    display: grid;
+    gap: 8px;
+}
+
+.query-service-form label span {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.query-flow-note {
+    padding: 24px 28px;
+    margin-bottom: 24px;
+}
+
+.query-ideas-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.query-idea-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 20px;
+    align-items: center;
+    padding: 22px;
+}
+
+.query-idea-card h3 {
+    margin: 12px 0 0;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    color: var(--text-strong);
+}
+
+.query-card-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.query-card-actions form {
+    margin: 0;
+}
+
+.query-empty-card {
+    padding: 28px;
+}
+
+html[data-theme="dark"] .query-warning-box {
+    background: rgba(255, 247, 237, 0.08);
+    border-color: rgba(254, 215, 170, 0.25);
+    color: #ffd591;
+}
+
+@media (max-width: 900px) {
+    .query-ideas-hero,
+    .query-idea-card {
+        grid-template-columns: 1fr;
+    }
+
+    .query-card-actions {
+        justify-content: stretch;
+    }
+
+    .query-card-actions .btn,
+    .query-card-actions form,
+    .query-card-actions button {
+        width: 100%;
+    }
+}
+
 /* =========================================================
    Onboarding stepper
    =========================================================
@@ -20017,39 +20139,6 @@ html[data-theme="dark"] .context-checklist div {
     background: var(--theme-surface-alt) !important;
     border-color: var(--theme-border-subtle) !important;
     color: var(--theme-text-secondary) !important;
-}
-
-html[data-theme="dark"] .query-ideas-hero,
-html[data-theme="dark"] .query-flow-note,
-html[data-theme="dark"] .query-idea-card,
-html[data-theme="dark"] .query-empty-card {
-    background: var(--theme-surface) !important;
-    border-color: var(--theme-border-subtle) !important;
-}
-
-html[data-theme="dark"] .query-service-form label {
-    color: var(--theme-text-secondary) !important;
-}
-
-html[data-theme="dark"] .query-service-form input {
-    background: var(--theme-surface-alt) !important;
-    border-color: var(--theme-border-subtle) !important;
-    color: var(--theme-text-primary) !important;
-}
-
-html[data-theme="dark"] .query-service-form input::placeholder {
-    color: var(--theme-text-muted) !important;
-}
-
-html[data-theme="dark"] .query-warning-box {
-    background: rgba(254, 215, 170, 0.10) !important;
-    border-color: rgba(254, 215, 170, 0.30) !important;
-    color: #fed7aa !important;
-}
-
-html[data-theme="dark"] .query-status-pill {
-    background: rgba(254, 215, 170, 0.12) !important;
-    color: #fdba74 !important;
 }
 
 /* =========================================================
