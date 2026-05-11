@@ -4,60 +4,13 @@
 
 {% block head %}
 <style>
-    .answer-monitor-page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem 1.5rem;
-    }
-    .am-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        margin-bottom: 1.25rem;
-    }
-    .am-header h1 {
-        margin: 0 0 0.35rem 0;
-        font-size: 1.55rem;
-    }
-    .am-header p {
-        margin: 0;
-        color: #555;
-        max-width: 560px;
-    }
+    /* Page-specific layout — surfaces, buttons, pills, tiles come from the design system. */
     .am-stat-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 0.75rem;
-        margin-bottom: 1.5rem;
     }
-    .am-stat {
-        background: white;
-        border: 1px solid #ececf2;
-        border-radius: 10px;
-        padding: 0.85rem 1rem;
-    }
-    .am-stat-label {
-        font-size: 0.78rem;
-        color: #777;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin: 0;
-    }
-    .am-stat-value {
-        font-size: 1.6rem;
-        font-weight: 600;
-        margin: 0.15rem 0 0 0;
-        color: var(--brand-text-strong, #191929);
-    }
-    .am-card {
-        background: white;
-        border: 1px solid #ececf2;
-        border-radius: 12px;
-        padding: 1.25rem 1.25rem 1rem;
-        margin-bottom: 1rem;
-    }
+
     .am-card-head {
         display: flex;
         gap: 1rem;
@@ -70,30 +23,18 @@
         margin: 0 0 0.35rem 0;
         font-size: 1.02rem;
         line-height: 1.35;
+        color: var(--text-strong);
     }
     .am-prompt-meta {
         display: flex;
         gap: 0.75rem;
         font-size: 0.82rem;
-        color: #666;
+        color: var(--text-muted);
         flex-wrap: wrap;
+        align-items: center;
     }
-    .am-pill {
-        display: inline-block;
-        padding: 0.18rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        background: #eef0fb;
-        color: #2a2a48;
-    }
-    .am-pill.cited { background: #e6f7f1; color: #1f7a5f; }
-    .am-pill.not-cited { background: #f7e6e6; color: #8a3030; }
-    .am-pill.gained { background: #e6f7f1; color: #1f7a5f; }
-    .am-pill.lost { background: #f7e6e6; color: #8a3030; }
-    .am-pill.stable { background: #f0f0f5; color: #444; }
-    .am-pill.first { background: #fdf0e6; color: #8c4a1f; }
+
+    /* Sparkline — small inline data viz, kept page-local */
     .am-spark {
         display: flex;
         gap: 4px;
@@ -104,59 +45,47 @@
     .am-spark-dot {
         width: 16px;
         border-radius: 3px;
-        background: #d8d8e0;
+        background: var(--theme-border-subtle, #d8d8e0);
     }
     .am-spark-dot.cited { background: var(--brand-primary, #3EDFCB); }
-    .am-spark-dot.not-cited { background: #d8d8e0; }
+    .am-spark-dot.not-cited { background: var(--theme-border-subtle, #d8d8e0); }
     .am-spark-empty {
         font-size: 0.82rem;
-        color: #888;
+        color: var(--text-muted);
         margin: 0.5rem 0;
     }
+
     .am-actions {
         display: flex;
         gap: 0.45rem;
         flex-wrap: wrap;
     }
-    .am-btn {
-        padding: 0.5rem 0.95rem;
-        border-radius: 8px;
-        border: none;
-        font-weight: 600;
-        font-size: 0.88rem;
-        cursor: pointer;
-        background: var(--brand-primary, #3EDFCB);
-        color: var(--brand-text-strong, #191929);
-        min-height: 38px;
-    }
-    .am-btn-secondary {
-        background: white;
-        border: 1px solid #d4d4dc;
-        color: #333;
-    }
-    .am-empty {
-        background: white;
-        border: 1px dashed #d4d4dc;
-        border-radius: 12px;
-        padding: 2rem 1.5rem;
-        text-align: center;
-        color: #555;
-    }
+
     .am-answer-excerpt {
         margin: 0.6rem 0 0 0;
         font-size: 0.86rem;
-        color: #555;
-        background: #fafafe;
+        color: var(--text-main);
+        background: var(--bg-soft-alt);
         border-radius: 8px;
         padding: 0.6rem 0.75rem;
-        border-left: 3px solid #ececf2;
+        border-left: 3px solid var(--border-main);
     }
+
     .am-workspace-picker {
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
         align-items: center;
     }
+    .am-workspace-picker select {
+        padding: 0.45rem 0.7rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-main);
+        font-size: 0.92rem;
+        background: var(--bg-card);
+        color: var(--text-strong);
+    }
+
     .am-engine-row {
         display: flex;
         gap: 0.6rem;
@@ -166,7 +95,7 @@
     }
     .am-engine-label {
         font-size: 0.78rem;
-        color: #444;
+        color: var(--text-strong);
         font-weight: 600;
         min-width: 86px;
         display: inline-flex;
@@ -185,79 +114,51 @@
     }
     .am-engine-empty {
         font-size: 0.78rem;
-        color: #999;
+        color: var(--text-muted);
     }
     .am-engine-score {
         font-size: 0.78rem;
-        color: #555;
+        color: var(--text-muted);
     }
+
     .am-engines-banner {
-        background: #f6f6fa;
-        border: 1px dashed #d4d4dc;
+        background: var(--bg-soft-alt);
+        border: 1px dashed var(--border-main);
         border-radius: 8px;
         padding: 0.5rem 0.75rem;
         font-size: 0.85rem;
-        color: #555;
-        margin-bottom: 1rem;
-    }
-    .am-workspace-picker select {
-        padding: 0.45rem 0.7rem;
-        border-radius: 8px;
-        border: 1px solid #d4d4dc;
-        font-size: 0.92rem;
+        color: var(--text-main);
     }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .am-btn-secondary,
-    html[data-theme="dark"] .am-card,
-    html[data-theme="dark"] .am-empty,
-    html[data-theme="dark"] .am-stat {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
+    /* Status pills not covered by .score-pill-* — small uppercase tags */
+    .am-tag {
+        display: inline-block;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
     }
-    html[data-theme="dark"] .am-btn,
-    html[data-theme="dark"] .am-stat-value,
-    html[data-theme="dark"] .am-btn-secondary h1,
-    html[data-theme="dark"] .am-btn-secondary h2,
-    html[data-theme="dark"] .am-btn-secondary h3,
-    html[data-theme="dark"] .am-btn-secondary h4,
-    html[data-theme="dark"] .am-btn-secondary strong,
-    html[data-theme="dark"] .am-card h1,
-    html[data-theme="dark"] .am-card h2,
-    html[data-theme="dark"] .am-card h3,
-    html[data-theme="dark"] .am-card h4,
-    html[data-theme="dark"] .am-card strong,
-    html[data-theme="dark"] .am-empty h1,
-    html[data-theme="dark"] .am-empty h2,
-    html[data-theme="dark"] .am-empty h3,
-    html[data-theme="dark"] .am-empty h4,
-    html[data-theme="dark"] .am-empty strong,
-    html[data-theme="dark"] .am-stat h1,
-    html[data-theme="dark"] .am-stat h2,
-    html[data-theme="dark"] .am-stat h3,
-    html[data-theme="dark"] .am-stat h4,
-    html[data-theme="dark"] .am-stat strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .am-answer-excerpt,
-    html[data-theme="dark"] .am-engines-banner,
-    html[data-theme="dark"] .am-workspace-picker {
-        border-color: var(--theme-border-subtle);
-    }
+    .am-tag.cited,
+    .am-tag.gained { background: var(--status-success-soft, #e6f7f1); color: var(--status-success, #1f7a5f); }
+    .am-tag.not-cited,
+    .am-tag.lost { background: var(--status-danger-soft, #f7e6e6); color: var(--status-danger, #8a3030); }
+    .am-tag.stable { background: var(--bg-soft, #f0f0f5); color: var(--text-main, #444); }
+    .am-tag.first { background: var(--brand-secondary-soft, #fdf0e6); color: var(--brand-secondary, #8c4a1f); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="answer-monitor-page">
-    <div class="am-header">
+<div class="page-shell">
+    <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
         <div>
-            <h1>AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
+            <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
         </div>
 
         {% if clients|length > 1 %}
         <form class="am-workspace-picker" method="get" action="{{ url_for('answer_monitor_page') }}">
-            <label for="am-client" style="font-size:0.82rem; color:#666;">Workspace</label>
+            <label for="am-client" style="font-size:0.82rem; color:var(--text-muted);">Workspace</label>
             <select id="am-client" name="client_id" onchange="this.form.submit()">
                 {% for c in clients %}
                 <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.name }}</option>
@@ -269,25 +170,25 @@
 
     {% if selected_client and prompts %}
     <div class="am-stat-row">
-        <div class="am-stat">
-            <p class="am-stat-label">Tracked prompts</p>
-            <p class="am-stat-value">{{ prompts|length }}</p>
+        <div class="metric-tile">
+            <span class="metric-tile-label">Tracked prompts</span>
+            <span class="metric-tile-value">{{ prompts|length }}</span>
         </div>
-        <div class="am-stat">
-            <p class="am-stat-label">Cited in last check</p>
-            <p class="am-stat-value">{{ summary.cited_now }}</p>
+        <div class="metric-tile">
+            <span class="metric-tile-label">Cited in last check</span>
+            <span class="metric-tile-value">{{ summary.cited_now }}</span>
         </div>
-        <div class="am-stat">
-            <p class="am-stat-label">Newly cited</p>
-            <p class="am-stat-value">{{ summary.gained }}</p>
+        <div class="metric-tile">
+            <span class="metric-tile-label">Newly cited</span>
+            <span class="metric-tile-value">{{ summary.gained }}</span>
         </div>
-        <div class="am-stat">
-            <p class="am-stat-label">Lost citations</p>
-            <p class="am-stat-value">{{ summary.lost }}</p>
+        <div class="metric-tile">
+            <span class="metric-tile-label">Lost citations</span>
+            <span class="metric-tile-value">{{ summary.lost }}</span>
         </div>
-        <div class="am-stat">
-            <p class="am-stat-label">Avg. visibility score</p>
-            <p class="am-stat-value">{{ summary.avg_score }}</p>
+        <div class="metric-tile">
+            <span class="metric-tile-label">Avg. visibility score</span>
+            <span class="metric-tile-value">{{ summary.avg_score }}</span>
         </div>
     </div>
 
@@ -300,25 +201,25 @@
         {% endif %}
     </div>
 
-    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" style="margin-bottom:1rem;" onsubmit="return __creditCheckBeforeSubmit(this, 2, 'Re-run every tracked prompt across every active engine? Costs 2 credits.');">
+    <form method="post" action="{{ url_for('answer_monitor_run_all') }}" onsubmit="return __creditCheckBeforeSubmit(this, 2, 'Re-run every tracked prompt across every active engine? Costs 2 credits.');">
         <input type="hidden" name="client_id" value="{{ selected_client.id }}">
-        <button type="submit" class="am-btn">Run all checks now</button>
+        <button type="submit" class="btn btn-primary">Run all checks now</button>
     </form>
 
     {% for prompt in prompts %}
-    <article class="am-card">
+    <article class="surface-card">
         <div class="am-card-head">
             <div style="flex: 1 1 60%;">
                 <p class="am-prompt-text">{{ prompt.prompt }}</p>
                 <div class="am-prompt-meta">
                     {% if prompt.latest %}
                         {% if prompt.latest.brand_mentioned %}
-                            <span class="am-pill cited">Cited</span>
+                            <span class="am-tag cited">Cited</span>
                         {% else %}
-                            <span class="am-pill not-cited">Not cited</span>
+                            <span class="am-tag not-cited">Not cited</span>
                         {% endif %}
                         {% if prompt.change %}
-                            <span class="am-pill {{ prompt.change|lower|replace(' ', '-') }}">{{ prompt.change }}</span>
+                            <span class="am-tag {{ prompt.change|lower|replace(' ', '-') }}">{{ prompt.change }}</span>
                         {% endif %}
                         <span>Score {{ prompt.latest.score }}</span>
                         {% if prompt.latest.brand_position %}
@@ -328,7 +229,7 @@
                             <span>Competitors: {{ prompt.latest.competitors[:3]|join(', ') }}{% if prompt.latest.competitors|length > 3 %}…{% endif %}</span>
                         {% endif %}
                     {% else %}
-                        <span class="am-pill first">No checks yet</span>
+                        <span class="am-tag first">No checks yet</span>
                     {% endif %}
                     {% if prompt.last_checked %}
                         <span>· {{ prompt.last_checked }}</span>
@@ -353,9 +254,9 @@
                         {% endif %}
                         {% if engine_view.latest %}
                             {% if engine_view.latest.brand_mentioned %}
-                                <span class="am-pill cited">Cited</span>
+                                <span class="am-tag cited">Cited</span>
                             {% else %}
-                                <span class="am-pill not-cited">Not cited</span>
+                                <span class="am-tag not-cited">Not cited</span>
                             {% endif %}
                             <span class="am-engine-score">Score {{ engine_view.latest.score }}</span>
                         {% endif %}
@@ -372,7 +273,7 @@
 
             <div class="am-actions">
                 <form method="post" action="{{ url_for('answer_monitor_run_single', prompt_id=prompt.id) }}">
-                    <button type="submit" class="am-btn am-btn-secondary">Re-run check</button>
+                    <button type="submit" class="btn btn-secondary">Re-run check</button>
                 </form>
             </div>
         </div>
@@ -380,21 +281,21 @@
     {% endfor %}
 
     {% elif selected_client %}
-    <div class="am-empty">
-        <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">No tracked prompts yet for {{ selected_client.name }}</p>
-        <p style="margin:0 0 1.25rem 0; max-width:480px; margin-left:auto; margin-right:auto;">
+    <div class="empty-card">
+        <h2 style="margin:0 0 0.5rem 0; font-size:1.1rem;">No tracked prompts yet for {{ selected_client.name }}</h2>
+        <p>
             Add the questions you want to monitor — anything a prospect might ask an AI assistant about your business — then run checks here to see how often you get cited.
         </p>
-        <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
-            <a href="{{ url_for('position_tracking_page', client_id=selected_client.id) }}" class="am-btn">Add tracked prompts</a>
-            <a href="{{ url_for('run_client_audit', client_id=selected_client.id) }}" class="am-btn am-btn-secondary">Run an audit first</a>
+        <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:1.25rem;">
+            <a href="{{ url_for('position_tracking_page', client_id=selected_client.id) }}" class="btn btn-primary">Add tracked prompts</a>
+            <a href="{{ url_for('run_client_audit', client_id=selected_client.id) }}" class="btn btn-secondary">Run an audit first</a>
         </div>
     </div>
     {% else %}
-    <div class="am-empty">
-        <p style="margin:0 0 0.5rem 0; font-size:1.1rem; font-weight:600;">Create a workspace to start monitoring</p>
-        <p style="margin:0 0 1.25rem 0;">Each workspace tracks a different brand or website.</p>
-        <a href="{{ url_for('create_client') }}" class="am-btn">Create your first workspace</a>
+    <div class="empty-card">
+        <h2 style="margin:0 0 0.5rem 0; font-size:1.1rem;">Create a workspace to start monitoring</h2>
+        <p>Each workspace tracks a different brand or website.</p>
+        <a href="{{ url_for('create_client') }}" class="btn btn-primary" style="margin-top:1.25rem;">Create your first workspace</a>
     </div>
     {% endif %}
 </div>

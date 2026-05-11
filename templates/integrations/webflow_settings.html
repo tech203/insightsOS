@@ -1,221 +1,241 @@
 {% extends "base.html" %}
 
-{% block title %}Webflow Integration - DarInsights{% endblock %}
+{% block title %}Webflow Integration — DarInsights{% endblock %}
 
 {% block head %}
 <style>
-    .webflow-page {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-
-    .card {
-        background: white;
-        border: 1px solid #ddd;
+    /* Page-specific layout only — surfaces, buttons, and form controls come from the design system. */
+    .wf-alert {
+        padding: 1rem 1.25rem;
         border-radius: 8px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-    }
-
-    .card-title {
-        font-size: 1.4rem;
-        font-weight: 600;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #f5f5f5;
-    }
-
-    .alert {
-        padding: 1.5rem;
-        border-radius: 6px;
-        margin-bottom: 1.5rem;
         border-left: 4px solid;
     }
-
-    .alert-error {
-        background-color: #ffebee;
-        border-color: #c62828;
-        color: #c62828;
+    .wf-alert strong { display: block; margin-bottom: 0.4rem; }
+    .wf-alert-error {
+        background: var(--status-danger-soft, #fdecea);
+        border-color: var(--status-danger, #c62828);
+        color: var(--status-danger, #b22424);
+    }
+    .wf-alert-success {
+        background: var(--status-success-soft, #e8f5e9);
+        border-color: var(--status-success, #2e7d32);
+        color: var(--status-success, #1f7a5f);
+    }
+    .wf-alert-warning {
+        background: var(--brand-secondary-soft, #fff5e6);
+        border-color: var(--brand-secondary, #ff9800);
+        color: var(--brand-secondary, #8c4a1f);
     }
 
-    .alert-success {
-        background-color: #e8f5e9;
-        border-color: #2e7d32;
-        color: #2e7d32;
+    .wf-instructions {
+        padding: 1.25rem 1.5rem;
+        border-radius: 8px;
+        background: var(--bg-soft-alt);
+        border-left: 4px solid var(--brand-secondary, #ff9800);
     }
-
-    .alert strong { display: block; margin-bottom: 0.5rem; }
-
-    /* .btn and .btn-primary used to be redefined here with a
-       hardcoded #0066cc blue, which leaked into every page that
-       loaded webflow_settings.html via the unscoped <style> block.
-       Removed — the global design-system buttons (mint primary,
-       outlined secondary) already cover this page consistently. */
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-        display: block;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        color: #333;
-    }
-
-    .form-group input {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+    .wf-instructions h3 {
+        margin: 0 0 0.5rem 0;
         font-size: 1rem;
+        color: var(--brand-secondary, #ff9800);
     }
-
-    .form-group input:focus {
-        outline: none;
-        border-color: #0066cc;
-        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
-    }
-
-    .form-group small {
-        display: block;
-        margin-top: 0.5rem;
-        color: #666;
-    }
-
-    .collection-id-display {
-        background-color: #f5f5f5;
-        padding: 0.75rem;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 0.9rem;
-        word-break: break-all;
-    }
-
-    .collection-id-display.missing {
-        color: #c62828;
-        background-color: #ffebee;
-    }
-
-    .instructions {
-        background-color: #f9f9f9;
-        border-left: 4px solid #ff9800;
-        padding: 1.5rem;
-        border-radius: 4px;
-        margin-bottom: 1.5rem;
-    }
-
-    .instructions h3 {
-        margin-top: 0;
-        color: #ff9800;
-    }
-
-    .instructions ol {
-        margin: 1rem 0;
+    .wf-instructions ol {
+        margin: 0.75rem 0;
         padding-left: 1.5rem;
+        color: var(--text-main);
     }
+    .wf-instructions li { margin-bottom: 0.5rem; line-height: 1.55; }
 
-    .instructions li {
-        margin-bottom: 0.75rem;
-        line-height: 1.6;
-    }
-
-    .code {
-        background-color: #272822;
+    .wf-code {
+        background: #272822;
         color: #f8f8f2;
         padding: 1rem;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 0.9rem;
-        overflow-x: auto;
-        margin: 1rem 0;
-    }
-
-    .config-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1.5rem;
-    }
-
-    .config-item {
-        background-color: #f9f9f9;
-        border: 1px solid #ddd;
         border-radius: 6px;
-        padding: 1.5rem;
-    }
-
-    .config-item h3 {
-        margin-top: 0;
-        margin-bottom: 0.75rem;
-        font-size: 1rem;
-    }
-
-    .config-item p {
-        margin: 0.5rem 0;
-        font-size: 0.95rem;
-        color: #666;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 0.4rem 0.8rem;
-        border-radius: 4px;
-        font-weight: 500;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
         font-size: 0.85rem;
+        overflow-x: auto;
+        margin: 0.75rem 0;
+        white-space: pre;
     }
 
-    .status-badge.connected {
-        background-color: #e8f5e9;
-        color: #2e7d32;
+    .wf-config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
     }
 
-    .status-badge.error {
-        background-color: #ffebee;
-        color: #c62828;
+    .wf-id-display {
+        background: var(--bg-soft-alt);
+        padding: 0.6rem 0.75rem;
+        border-radius: 6px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.85rem;
+        word-break: break-all;
+        color: var(--text-strong);
+    }
+    .wf-id-display.missing {
+        background: var(--status-danger-soft, #fdecea);
+        color: var(--status-danger, #c62828);
+    }
+
+    .wf-status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .wf-status-badge.connected {
+        background: var(--status-success-soft, #e6f7f1);
+        color: var(--status-success, #1f7a5f);
+    }
+    .wf-status-badge.error {
+        background: var(--status-danger-soft, #f7e6e6);
+        color: var(--status-danger, #8a3030);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="webflow-page">
-    <h1>Webflow Integration</h1>
-    <p>Use DarInsights as your AI CMS editor for Webflow websites</p>
+<div class="page-shell">
+    <div>
+        <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">Webflow integration</h1>
+        <p style="margin:0; color:var(--text-muted); max-width:640px;">
+            Use DarInsights as your AI CMS editor for Webflow websites. Push blog posts, FAQs, and services from
+            DarInsights straight into your Webflow CMS as drafts (or publish on export, if you enable it).
+        </p>
+    </div>
 
     {% if config_error %}
-        <div class="card">
-            <div class="alert alert-error">
-                <strong>Configuration Required</strong>
+        <div class="surface-card">
+            <div class="wf-alert wf-alert-error">
+                <strong>Configuration required</strong>
                 {{ config_error }}
             </div>
 
-            <div class="instructions">
-                <h3>Setup Instructions</h3>
+            <div class="wf-instructions" style="margin-top:1.25rem;">
+                <h3>Setup instructions</h3>
                 <ol>
-                    <li>Go to <a href="https://webflow.com/account/settings/api-tokens" target="_blank">Webflow API Settings</a> and create/copy an API token</li>
-                    <li>Find your Site ID and Collection IDs in your Webflow site settings</li>
-                    <li>Add to your <code>.env</code> file:
-                        <div class="code">WEBFLOW_API_TOKEN=your_token_here
+                    <li>Go to <a href="https://webflow.com/account/settings/api-tokens" target="_blank" rel="noopener">Webflow API Settings</a> and create or copy an API token.</li>
+                    <li>Find your Site ID and Collection IDs in your Webflow site settings.</li>
+                    <li>Add the following to your <code>.env</code> file:
+                        <div class="wf-code">WEBFLOW_API_TOKEN=your_token_here
 WEBFLOW_SITE_ID=your_site_id
 WEBFLOW_BLOG_COLLECTION_ID=your_blog_id
 WEBFLOW_FAQ_COLLECTION_ID=your_faq_id
 WEBFLOW_SERVICE_COLLECTION_ID=your_service_id
+WEBFLOW_LOCATION_COLLECTION_ID=your_location_id
 WEBFLOW_PUBLISH_ON_EXPORT=false</div>
                     </li>
-                    <li>Restart the Flask app and reload this page.</li>
+                    <li>Restart the server. This page will show your live collections once it can authenticate.</li>
                 </ol>
             </div>
         </div>
     {% else %}
-        <div class="card">
-            <div class="alert alert-success">
-                <strong>Webflow connected.</strong>
-                Your API token, site ID, and collection IDs are loaded.
-                Use the per-content-type export buttons on each queue
-                item to publish drafts.
+        <div class="surface-card">
+            <div style="display:flex; gap:1rem; justify-content:space-between; align-items:flex-start; flex-wrap:wrap;">
+                <div>
+                    <h2 style="margin:0 0 0.25rem 0; font-size:1.15rem; color:var(--text-strong);">Connection status</h2>
+                    <p style="margin:0; font-size:0.88rem; color:var(--text-muted);">
+                        Tested at page load. The "Test connection" button below re-verifies on demand.
+                    </p>
+                </div>
+                <div>
+                    {% if connection_status == 'connected' %}
+                        <span class="wf-status-badge connected">Connected</span>
+                    {% else %}
+                        <span class="wf-status-badge error">Error</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if connection_status == 'connected' %}
+                <div class="wf-alert wf-alert-success" style="margin-top:1rem;">
+                    <strong>Webflow API is reachable</strong>
+                    Your token authenticated successfully and {{ collections|length }} collection{{ '' if collections|length == 1 else 's' }} were found.
+                </div>
+            {% elif connection_status %}
+                <div class="wf-alert wf-alert-error" style="margin-top:1rem;">
+                    <strong>Connection failed</strong>
+                    {{ connection_status }}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('webflow_test_connection') }}" style="margin-top:1rem;">
+                <button type="submit" class="btn btn-primary">Test connection</button>
+            </form>
+        </div>
+
+        <div class="surface-card">
+            <h2 style="margin:0 0 0.5rem 0; font-size:1.15rem; color:var(--text-strong);">Configured collection IDs</h2>
+            <p style="margin:0; font-size:0.88rem; color:var(--text-muted);">
+                These come from your <code>.env</code> file. Anything missing will block exports for that content type.
+            </p>
+            <div class="wf-config-grid">
+                <div>
+                    <h3 style="margin:0 0 0.4rem 0; font-size:0.95rem; color:var(--text-strong);">Blog posts</h3>
+                    {% if blog_collection_id %}
+                        <div class="wf-id-display">{{ blog_collection_id }}</div>
+                    {% else %}
+                        <div class="wf-id-display missing">Not configured</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 style="margin:0 0 0.4rem 0; font-size:0.95rem; color:var(--text-strong);">FAQs</h3>
+                    {% if faq_collection_id %}
+                        <div class="wf-id-display">{{ faq_collection_id }}</div>
+                    {% else %}
+                        <div class="wf-id-display missing">Not configured</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 style="margin:0 0 0.4rem 0; font-size:0.95rem; color:var(--text-strong);">Services</h3>
+                    {% if service_collection_id %}
+                        <div class="wf-id-display">{{ service_collection_id }}</div>
+                    {% else %}
+                        <div class="wf-id-display missing">Not configured</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 style="margin:0 0 0.4rem 0; font-size:0.95rem; color:var(--text-strong);">Locations</h3>
+                    {% if location_collection_id %}
+                        <div class="wf-id-display">{{ location_collection_id }}</div>
+                    {% else %}
+                        <div class="wf-id-display missing">Not configured</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="wf-alert {% if publish_on_export %}wf-alert-warning{% else %}wf-alert-success{% endif %}" style="margin-top:1.25rem;">
+                <strong>Publish on export: {{ 'ON' if publish_on_export else 'OFF (drafts)' }}</strong>
+                {% if publish_on_export %}
+                    Exports go live immediately. Set <code>WEBFLOW_PUBLISH_ON_EXPORT=false</code> to push drafts instead.
+                {% else %}
+                    Exports are created as drafts so you can review them in Webflow Designer before publishing.
+                {% endif %}
             </div>
         </div>
+
+        {% if collections %}
+        <div class="surface-card">
+            <h2 style="margin:0 0 0.5rem 0; font-size:1.15rem; color:var(--text-strong);">Collections discovered on your site</h2>
+            <p style="margin:0 0 0.75rem 0; font-size:0.88rem; color:var(--text-muted);">
+                Pulled live from the Webflow API. Use these IDs to fill in any missing collection IDs above.
+            </p>
+            <div style="display:grid; gap:0.5rem;">
+                {% for col in collections %}
+                <div class="surface-card surface-card--soft" style="padding: 0.75rem 1rem;">
+                    <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap;">
+                        <strong style="color:var(--text-strong);">{{ col.displayName or col.name or col.slug }}</strong>
+                        <code class="wf-id-display" style="margin:0;">{{ col.id }}</code>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     {% endif %}
 </div>
 {% endblock %}

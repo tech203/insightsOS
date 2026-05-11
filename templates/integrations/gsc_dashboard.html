@@ -4,52 +4,11 @@
 
 {% block head %}
 <style>
-    .gsc-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-    .gsc-header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.5rem; }
-    .gsc-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
-    .gsc-header p { margin: 0; color: #555; max-width: 600px; }
-
-    .gsc-card {
-        background: white;
-        border: 1px solid #ececf2;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-    .gsc-empty {
-        background: white;
-        border: 1px dashed #d4d4dc;
-        border-radius: 12px;
-        padding: 2.5rem 1.5rem;
-        text-align: center;
-        color: #555;
-    }
-
+    /* Page-specific layout only — surfaces, buttons, pills, tiles come from the design system. */
     .gsc-kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 0.75rem;
-        margin-bottom: 1.25rem;
-    }
-    .gsc-kpi {
-        background: white;
-        border: 1px solid #ececf2;
-        border-radius: 10px;
-        padding: 0.85rem 1rem;
-    }
-    .gsc-kpi-label {
-        font-size: 0.78rem;
-        color: #777;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin: 0;
-    }
-    .gsc-kpi-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        margin: 0.15rem 0 0 0;
-        color: var(--brand-text-strong, #191929);
     }
 
     .gsc-table {
@@ -60,43 +19,20 @@
     .gsc-table th {
         text-align: left;
         font-weight: 600;
-        color: #555;
+        color: var(--text-muted);
         font-size: 0.78rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         padding: 0.5rem 0.65rem;
-        border-bottom: 1px solid #ececf2;
+        border-bottom: 1px solid var(--border-main);
     }
     .gsc-table td {
         padding: 0.55rem 0.65rem;
-        border-bottom: 1px solid #f4f4f8;
+        border-bottom: 1px solid var(--theme-border-subtle, #f4f4f8);
+        color: var(--text-main);
     }
-    .gsc-table td:first-child { font-weight: 500; color: #222; }
+    .gsc-table td:first-child { font-weight: 500; color: var(--text-strong); }
     .gsc-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
-
-    .gsc-btn {
-        padding: 0.55rem 1rem;
-        border-radius: 8px;
-        border: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-        background: var(--brand-primary, #3EDFCB);
-        color: var(--brand-text-strong, #191929);
-        min-height: 40px;
-    }
-    .gsc-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
-    .gsc-btn-danger { background: #fdecea; color: #b22424; }
-
-    .gsc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-    .gsc-error {
-        padding: 0.85rem 1rem;
-        background: #fdecea;
-        color: #b22424;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-    }
 
     .gsc-grid-two {
         display: grid;
@@ -110,69 +46,71 @@
 {% endblock %}
 
 {% block content %}
-<div class="gsc-page">
-    <div class="gsc-header">
+<div class="page-shell">
+    <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
         <div>
-            <h1>Google Search Console {{ info_tip("Real organic-search data for " + workspace.name + ": clicks, impressions, CTR, avg position, top queries + pages. Last 28 days. Pulled directly from your verified GSC property.") }}</h1>
+            <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">Google Search Console {{ info_tip("Real organic-search data for " + workspace.name + ": clicks, impressions, CTR, avg position, top queries + pages. Last 28 days. Pulled directly from your verified GSC property.") }}</h1>
         </div>
-        <div class="gsc-actions">
-            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="gsc-btn gsc-btn-secondary">← Workspace</a>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="btn btn-secondary">← Workspace</a>
             {% if connection %}
             <form method="post" action="{{ url_for('gsc_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect Google Search Console? Your tokens will be removed but Google Search Console data on Google’s side stays untouched.');">
-                <button type="submit" class="gsc-btn gsc-btn-danger">Disconnect</button>
+                <button type="submit" class="btn btn-danger">Disconnect</button>
             </form>
             {% endif %}
         </div>
     </div>
 
     {% if error %}
-        <div class="gsc-error">{{ error }}</div>
+        <div class="surface-card" style="border-color: var(--status-danger, #d24b4b); color: var(--status-danger, #b22424);">{{ error }}</div>
     {% endif %}
 
     {% if not gsc_configured %}
-        <div class="gsc-empty">
+        <div class="empty-card">
             <h2 style="margin:0 0 0.5rem 0; font-size:1.15rem;">Search Console isn't configured on this server</h2>
             <p>Ask your admin to set <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to enable the connector.</p>
         </div>
     {% elif not connection %}
-        <div class="gsc-empty">
+        <div class="empty-card">
             <div style="font-size:2.5rem; margin-bottom:0.5rem;">🔍</div>
             <h2 style="margin:0 0 0.5rem 0; font-size:1.3rem;">Connect Google Search Console</h2>
-            <p style="max-width:480px; margin:0 auto 1.25rem auto;">
+            <p>
                 Pull real Google search data into your visibility view — actual clicks, impressions,
                 queries, and pages — and let recommendations factor in what's already working.
                 Read-only access; we never write back to Google.
             </p>
-            <a href="{{ url_for('gsc_connect', client_id=workspace.id) }}" class="gsc-btn">Connect with Google</a>
-            <p style="font-size:0.78rem; color:#888; margin-top:1rem;">
+            <a href="{{ url_for('gsc_connect', client_id=workspace.id) }}" class="btn btn-primary" style="margin-top: 1.25rem;">Connect with Google</a>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-top:1rem;">
                 You'll be redirected to Google to grant read-only access. Disconnect any time from this page.
             </p>
         </div>
     {% elif not connection.site_url %}
-        <div class="gsc-card">
-            <h2 style="margin:0 0 0.4rem 0; font-size:1.1rem;">Pick the property to track</h2>
-            <p style="margin:0 0 1rem 0; color:#555;">These are the verified properties on your connected Google account.</p>
+        <div class="surface-card">
+            <h2 style="margin:0 0 0.4rem 0; font-size:1.1rem; color:var(--text-strong);">Pick the property to track</h2>
+            <p style="margin:0 0 1rem 0; color:var(--text-muted);">These are the verified properties on your connected Google account.</p>
             {% if sites %}
-            <form method="post" action="{{ url_for('gsc_select_site', client_id=workspace.id) }}" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:end;">
-                <div style="flex:1 1 320px;">
-                    <label for="gsc-site-url" style="font-size:0.78rem; color:#555; display:block; margin-bottom:0.25rem;">Property</label>
-                    <select id="gsc-site-url" name="site_url" required style="width:100%; padding:0.5rem 0.7rem; border:1px solid #d4d4dc; border-radius:8px; font-size:16px;">
+            <form method="post" action="{{ url_for('gsc_select_site', client_id=workspace.id) }}" class="form-grid-2" style="align-items: end;">
+                <div class="form-field" style="grid-column: span 2;">
+                    <label for="gsc-site-url">Property</label>
+                    <select id="gsc-site-url" name="site_url" required>
                         {% for site in sites %}
                         <option value="{{ site.siteUrl }}">{{ site.siteUrl }}{% if site.permissionLevel %} · {{ site.permissionLevel }}{% endif %}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="gsc-btn">Track this property</button>
+                <div class="form-field form-field-full">
+                    <button type="submit" class="btn btn-primary">Track this property</button>
+                </div>
             </form>
             {% else %}
-            <p style="color:#888;">No verified properties found on this Google account. Add a property in <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Search Console</a> and reconnect.</p>
+            <p style="color:var(--text-muted);">No verified properties found on this Google account. Add a property in <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Search Console</a> and reconnect.</p>
             {% endif %}
         </div>
     {% else %}
-        <div class="gsc-card" style="display:flex; gap:1rem; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
+        <div class="surface-card" style="display:flex; gap:1rem; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
             <div>
-                <h2 style="margin:0 0 0.25rem 0; font-size:1.05rem;">{{ connection.site_url }}</h2>
-                <p style="margin:0; font-size:0.85rem; color:#666;">
+                <h2 style="margin:0 0 0.25rem 0; font-size:1.05rem; color:var(--text-strong);">{{ connection.site_url }}</h2>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">
                     {% if summary.range_start and summary.range_end %}
                         Window: {{ summary.range_start }} → {{ summary.range_end }}
                     {% endif %}
@@ -181,20 +119,20 @@
                     {% endif %}
                 </p>
             </div>
-            <div class="gsc-actions">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                 <form method="post" action="{{ url_for('gsc_sync', client_id=workspace.id) }}">
-                    <button type="submit" class="gsc-btn">Refresh data</button>
+                    <button type="submit" class="btn btn-primary">Refresh data</button>
                 </form>
                 {% if sites and sites|length > 1 %}
                 <details>
-                    <summary style="cursor:pointer; font-size:0.88rem; color:#666;">Switch property</summary>
-                    <form method="post" action="{{ url_for('gsc_select_site', client_id=workspace.id) }}" style="margin-top:0.5rem;">
-                        <select name="site_url" required style="padding:0.4rem 0.6rem; border:1px solid #d4d4dc; border-radius:6px;">
+                    <summary style="cursor:pointer; font-size:0.88rem; color:var(--text-muted);">Switch property</summary>
+                    <form method="post" action="{{ url_for('gsc_select_site', client_id=workspace.id) }}" style="margin-top:0.5rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
+                        <select name="site_url" required style="padding:0.4rem 0.6rem; border:1px solid var(--border-main); border-radius:6px; background:var(--bg-card); color:var(--text-strong);">
                             {% for site in sites %}
                             <option value="{{ site.siteUrl }}" {% if site.siteUrl == connection.site_url %}selected{% endif %}>{{ site.siteUrl }}</option>
                             {% endfor %}
                         </select>
-                        <button type="submit" class="gsc-btn gsc-btn-secondary" style="font-size:0.8rem;">Switch</button>
+                        <button type="submit" class="btn btn-secondary" style="font-size:0.8rem;">Switch</button>
                     </form>
                 </details>
                 {% endif %}
@@ -203,27 +141,27 @@
 
         {% set totals = summary.totals or {} %}
         <div class="gsc-kpi-grid">
-            <div class="gsc-kpi">
-                <p class="gsc-kpi-label">Clicks (28d)</p>
-                <p class="gsc-kpi-value">{{ totals.clicks|default(0)|int }}</p>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Clicks (28d)</span>
+                <span class="metric-tile-value">{{ totals.clicks|default(0)|int }}</span>
             </div>
-            <div class="gsc-kpi">
-                <p class="gsc-kpi-label">Impressions (28d)</p>
-                <p class="gsc-kpi-value">{{ totals.impressions|default(0)|int }}</p>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Impressions (28d)</span>
+                <span class="metric-tile-value">{{ totals.impressions|default(0)|int }}</span>
             </div>
-            <div class="gsc-kpi">
-                <p class="gsc-kpi-label">Avg CTR</p>
-                <p class="gsc-kpi-value">{{ ((totals.ctr|default(0)) * 100) | round(1) }}%</p>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Avg CTR</span>
+                <span class="metric-tile-value">{{ ((totals.ctr|default(0)) * 100) | round(1) }}%</span>
             </div>
-            <div class="gsc-kpi">
-                <p class="gsc-kpi-label">Avg Position</p>
-                <p class="gsc-kpi-value">{{ totals.position|default(0)|round(1) }}</p>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Avg Position</span>
+                <span class="metric-tile-value">{{ totals.position|default(0)|round(1) }}</span>
             </div>
         </div>
 
         <div class="gsc-grid-two">
-            <div class="gsc-card">
-                <h3 style="margin:0 0 0.6rem 0; font-size:1rem;">Top queries</h3>
+            <div class="surface-card">
+                <h3 style="margin:0 0 0.6rem 0; font-size:1rem; color:var(--text-strong);">Top queries</h3>
                 {% if summary.top_queries %}
                 <table class="gsc-table">
                     <thead><tr><th>Query</th><th class="num">Clicks</th><th class="num">Imp.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead>
@@ -240,12 +178,12 @@
                     </tbody>
                 </table>
                 {% else %}
-                <p style="color:#888; font-size:0.88rem;">No queries returned for this window.</p>
+                <p style="color:var(--text-muted); font-size:0.88rem;">No queries returned for this window.</p>
                 {% endif %}
             </div>
 
-            <div class="gsc-card">
-                <h3 style="margin:0 0 0.6rem 0; font-size:1rem;">Top pages</h3>
+            <div class="surface-card">
+                <h3 style="margin:0 0 0.6rem 0; font-size:1rem; color:var(--text-strong);">Top pages</h3>
                 {% if summary.top_pages %}
                 <table class="gsc-table">
                     <thead><tr><th>Page</th><th class="num">Clicks</th><th class="num">Imp.</th><th class="num">Pos.</th></tr></thead>
@@ -261,7 +199,7 @@
                     </tbody>
                 </table>
                 {% else %}
-                <p style="color:#888; font-size:0.88rem;">No pages returned for this window.</p>
+                <p style="color:var(--text-muted); font-size:0.88rem;">No pages returned for this window.</p>
                 {% endif %}
             </div>
         </div>

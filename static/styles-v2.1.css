@@ -8107,6 +8107,14 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     color: var(--status-danger);
 }
 
+/* Alias used by score_band(score) helper — "opportunity" reads
+   better than "danger" for the low-score band, but the colour
+   treatment is the same. */
+.score-pill-opportunity {
+    background: var(--status-danger-soft);
+    color: var(--status-danger);
+}
+
 .score-pill-info {
     background: var(--brand-primary-soft);
     color: var(--brand-deep, #16a99a);
@@ -22562,3 +22570,107 @@ html[data-theme="dark"] .woo-card label,
 html[data-theme="dark"] .woo-card small {
     color: var(--theme-text-secondary) !important;
 }
+
+/* =========================================================
+   Mobile responsiveness — punch-list fixes (Cluster 11B)
+   =========================================================
+   Companion to Cluster 11A (PR #69). 11A added the table-overflow
+   safety net for `.surface-card > table`. This block fixes the
+   remaining mobile issues uncovered by the audit:
+     - admin-table clipped by `overflow:hidden` wrappers
+     - public_audit_report tables overflowing the page
+     - position_tracking table-card-header doesn't collapse
+     - .am-btn, .mp-btn touch targets <44px
+     - prompt_research modal close button glyph-only target
+     - dashboard-client-actions buttons cramped at 375px
+
+   All CSS-only — no template changes required, so this PR doesn't
+   conflict with any of the open cluster-sweep PRs (#57–#68). */
+
+/* --- Issue #1: Admin tables clipped by overflow:hidden wrappers ---
+   templates/admin/users_list.html etc. use
+   `<section class="admin-card" style="padding:0; overflow:hidden;">`
+   around `.admin-table`. The inline `overflow:hidden` is intentional
+   (so the rounded corners clip the table head) but on mobile it hides
+   the rightmost columns entirely.
+
+   We make the table itself horizontally scrollable so the card
+   keeps its rounded corners but the table can scroll inside. */
+.admin-table {
+    /* `display: block` is what unlocks overflow-x on a <table>. */
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --- Issue #2: Public audit report tables overflow the body ---
+   templates/public_audit_report.html uses `.profile-table` and
+   `.citation-table` inside <div class="section"> with no overflow
+   wrapper. On mobile the tables push past 375px and a horizontal
+   scrollbar appears on the entire body — disorienting for non-
+   logged-in customers. */
+.profile-table,
+.citation-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --- Issue #3: position_tracking .table-card-header doesn't collapse ---
+   The h2 + "Add More Prompts" CTA stay on one row at 375px; the long
+   h2 wraps but the button can be pushed off-canvas. Stack vertically
+   on mobile so both pieces stay readable + tappable. */
+@media (max-width: 768px) {
+    .table-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+    .table-card-actions {
+        width: 100%;
+    }
+    .table-card-actions .btn {
+        width: 100%;
+    }
+}
+
+/* --- Issue #4: .am-btn / .mp-btn touch targets under 44px ---
+   templates/answer_monitor.html `.am-btn { min-height: 38px }` and
+   templates/marketplace_audits.html `.mp-btn` (no min-height,
+   computed ~36px). Both fail Apple HIG's 44px guideline that we set
+   for `.btn-sm` and clickable score-pills in PR #69.
+
+   Lift them to 44px universally (not just at narrow widths) since
+   they're already small at desktop too — the cards stack many of
+   them in a row and a wider tap target reduces mistaps. */
+.am-btn,
+.mp-btn {
+    min-height: 44px;
+}
+
+/* --- Issue #6: .modal-close-btn has no minimum touch size ---
+   templates/prompt_research.html line ~847: `border:0;
+   background:transparent; font-size:34px;` produces a glyph-only
+   target ≈22×34px. Pad it out to 44×44 minimum. */
+.modal-close-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Issue #7: .dashboard-client-actions .btn min-width too wide ---
+   `min-width: 190px` from line 8362 wastes ~80px of card width at
+   375px (card body is ≈290px). At narrow widths, drop the min-width
+   and let buttons fill the row instead — less wasted whitespace,
+   wider tap targets. */
+@media (max-width: 768px) {
+    .dashboard-client-actions .btn {
+        min-width: 0;
+        width: 100%;
+    }
+}
+

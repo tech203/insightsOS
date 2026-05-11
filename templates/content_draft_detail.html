@@ -238,8 +238,8 @@ For businesses, content like this does more than educate readers. It also improv
 .summary-item,
 .improvement-item,
 .draft-cta-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -393,10 +393,10 @@ For businesses, content like this does more than educate readers. It also improv
 }
 
 .draft-editor-shell {
-    border: 1px solid #e7ebf3;
+    border: 1px solid var(--border-main);
     border-radius: 20px;
     overflow: hidden;
-    background: #ffffff;
+    background: var(--bg-card);
 }
 
 .draft-editor {
@@ -407,8 +407,8 @@ For businesses, content like this does more than educate readers. It also improv
     resize: vertical;
     font: inherit;
     line-height: 1.75;
-    color: #16243c;
-    background: #ffffff;
+    color: var(--text-strong);
+    background: var(--bg-card);
 }
 
 .draft-editor:focus {
@@ -623,6 +623,16 @@ For businesses, content like this does more than educate readers. It also improv
     html[data-theme="dark"] .check-item,
     html[data-theme="dark"] .draft-badge {
         border-color: var(--theme-border-subtle);
+    }
+
+    /* ===== Dark-mode flips for peach accent surfaces ===== */
+    html[data-theme="dark"] .draft-summary-card {
+        background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(255, 216, 198, 0.22);
+    }
+    html[data-theme="dark"] .draft-cta-card {
+        background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(255, 216, 198, 0.22);
     }
 </style>
 {% endblock %}

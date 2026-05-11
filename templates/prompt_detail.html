@@ -278,8 +278,8 @@
 .summary-card,
 .detail-card,
 .workflow-card {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -350,8 +350,8 @@
 .prompt-detail-score-card {
     padding: 22px;
     border-radius: 22px;
-    border: 1px solid #e7ebf3;
-    background: #ffffff;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
     display: grid;
     gap: 16px;
     align-self: start;
@@ -751,6 +751,18 @@
     html[data-theme="dark"] .summary-copy,
     html[data-theme="dark"] .summary-label {
         color: var(--theme-text-secondary);
+    }
+
+    /* ===== Dark-mode flips for accent gradients ===== */
+    /* Lavender hero gradient */
+    html[data-theme="dark"] .prompt-detail-hero-card {
+        background: linear-gradient(180deg, rgba(157, 124, 227, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(235, 231, 255, 0.18);
+    }
+    /* Peach action-band gradient */
+    html[data-theme="dark"] .prompt-detail-action-band {
+        background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(255, 216, 198, 0.22);
     }
 </style>
 {% endblock %}
