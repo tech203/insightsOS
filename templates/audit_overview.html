@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 {% if data.client_id %}
-<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
+<a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Workspace</a>
 {% endif %}
 {% if summary_filename %}
 <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Open Summary</a>

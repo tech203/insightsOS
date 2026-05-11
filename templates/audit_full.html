@@ -13,7 +13,7 @@
     <div class="page-header-actions">
         <a href="{{ url_for('audit_summary', summary_filename=summary_filename) }}" class="btn btn-secondary">Back to Summary</a>
         {% if data.client_id %}
-        <a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Client</a>
+        <a href="{{ url_for('client_detail', client_id=data.client_id) }}" class="btn btn-secondary">Open Workspace</a>
         {% endif %}
     </div>
 </div>
