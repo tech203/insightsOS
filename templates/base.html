@@ -32,12 +32,19 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}"{% if task_complete_notify is defined and task_complete_notify %} data-task-complete-notify="{{ task_complete_notify }}"{% endif %}>
     {# Skip-to-content link: visually hidden until a keyboard user
        tabs to it, then a brand-styled pill appears at top-left.
        Lets screen-reader / keyboard users bypass the entire sidebar
        nav and jump straight to the page content. #}
     <a href="#main-content" class="skip-to-content">Skip to main content</a>
+
+    {# Toast / flash-message renderer — sits at the body root so the
+       fixed-position stack doesn't get clipped by .app-shell's
+       overflow rules. Renders Flask's flashed messages as floating
+       notifications in the top-right. Until this existed, all 362
+       flash() calls in app.py were silently discarded. #}
+    {% include "partials/toasts.html" %}
 
     {% set current_endpoint = request.endpoint or '' %}
     {% set sidebar_client = focused_client if focused_client is defined and focused_client else none %}
@@ -833,6 +840,23 @@
             document.documentElement.removeAttribute("data-sidebar-collapsed");
         });
     </script>
+
+    {# Form validation enhancer — upgrades native HTML5 validation
+       into styled inline errors with focus-and-scroll behaviour.
+       Opt-out via <form data-no-validate-enhancer>. #}
+    <script src="{{ url_for('static', filename='form-validation.js') }}?v={{ static_css_version }}" defer></script>
+
+    {# Pending submit state — flips submit buttons to a disabled +
+       spinner state the moment the form is submitted. #}
+    <script src="{{ url_for('static', filename='form-pending.js') }}?v={{ static_css_version }}" defer></script>
+
+    {# Task-completion notifier — when a long-running operation
+       (audit, brief, draft) finishes and the user has the tab in
+       the background, prepend "(✓) " to the document title so the
+       browser tab + OS task switcher show the result is ready.
+       Only fires on pages that opt in via a `task_complete_notify`
+       template variable. #}
+    <script src="{{ url_for('static', filename='task-completion.js') }}?v={{ static_css_version }}" defer></script>
 
     {% block scripts %}{% endblock %}
 </body>

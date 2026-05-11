@@ -150,27 +150,31 @@
             </div>
         </div>
 
+        {% if has_audit %}
+        {# Score card only renders when an audit exists. Pre-audit
+           workspaces get the inviting hero card below instead, in
+           place of the score card + 4-stat grid full of "—". #}
         <div class="workspace-score-card">
             <span class="workspace-score-label">Latest Score</span>
             <strong class="workspace-score-value">
-                {% if latest %}{{ latest.normalized_score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}
+                {{ latest.normalized_score|round|int }}<small class="score-unit">/100</small>
             </strong>
             <p class="workspace-score-note">
                 {% if comparison and comparison.overall_change %}
                     Trend: {{ comparison.overall_change|capitalize }}
-                {% elif latest %}
-                    Latest audit available
                 {% else %}
-                    Awaiting first audit
+                    Latest audit available
                 {% endif %}
             </p>
         </div>
+        {% endif %}
     </section>
 
+    {% if has_audit %}
     <section class="workspace-summary-grid">
         <article class="summary-stat-card">
             <span class="summary-label">Visibility</span>
-            <strong class="summary-value">{% if latest %}{{ latest.visibility_score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}</strong>
+            <strong class="summary-value">{{ latest.visibility_score|round|int }}<small class="score-unit">/100</small></strong>
             <p class="summary-copy">Current visibility score from the latest audit.</p>
         </article>
 
@@ -188,11 +192,54 @@
 
         <article class="summary-stat-card">
             <span class="summary-label">Schema</span>
-            <strong class="summary-value">{% if latest %}{{ latest.schema_score|round|int }}<small class="score-unit">/100</small>{% else %}—{% endif %}</strong>
+            <strong class="summary-value">{{ latest.schema_score|round|int }}<small class="score-unit">/100</small></strong>
             <p class="summary-copy">Structured-data signal from the latest audit.</p>
         </article>
     </section>
+    {% else %}
+    {# Pre-audit hero — replaces the empty score card + 4-stat grid
+       full of "—" with a single inviting card explaining what the
+       user will get. The new audit form is pre-filled from the
+       workspace's website / industry / location. #}
+    <section class="workspace-empty-hero surface-card surface-card--featured">
+        <div class="workspace-empty-hero-copy">
+            <span class="section-kicker">First audit</span>
+            <h2>Run your first audit to unlock the scorecard</h2>
+            <p>
+                We'll scan {{ client.website if client.website else "this website" }} for AI visibility signals, score
+                Visibility / Content / Entity / Trust pillars, and queue
+                up the highest-impact opportunities to fix first.
+            </p>
 
+            <ul class="workspace-empty-hero-checklist">
+                <li><span class="workspace-empty-hero-tick" aria-hidden="true">&#10003;</span> Scorecard with pillar breakdown</li>
+                <li><span class="workspace-empty-hero-tick" aria-hidden="true">&#10003;</span> Top opportunity queries you're missing</li>
+                <li><span class="workspace-empty-hero-tick" aria-hidden="true">&#10003;</span> Recommended next actions queued automatically</li>
+            </ul>
+        </div>
+
+        <div class="workspace-empty-hero-actions">
+            {% if can_run_audit %}
+            <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">
+                Run audit (1 credit)
+            </a>
+            {% else %}
+            <a href="{{ url_for('pricing_page') }}" class="btn btn-primary">
+                Upgrade to Pro
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('client_brand_context', client_id=client.id) }}" class="btn btn-secondary">
+                Add brand context first
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
+    {# "Do this next" only renders post-audit. Pre-audit, the
+       workspace-empty-hero above already serves as the call to
+       action and showing a generic next-step here would compete. #}
+    {% if has_audit %}
     <section class="workspace-next-step-card workspace-next-step-card-clean">
         <div class="workspace-next-copy">
             <span class="section-kicker">Do this next</span>
@@ -242,6 +289,7 @@
             {% endif %}
         </div>
     </section>
+    {% endif %}
 
 <section class="workspace-modules-grid">
     <a href="{{ url_for('client_visibility_page', client_id=client.id) }}" class="workspace-module-card">
@@ -316,6 +364,9 @@
     {% endif %}
 </section>
 
+    {# "Latest Audit Snapshot" is meaningless without an audit —
+       the workspace-empty-hero above covers the no-audit case. #}
+    {% if has_audit %}
     <section class="workspace-section-card">
         <div class="section-head compact">
             <div>
@@ -327,19 +378,19 @@
         <div class="workspace-snapshot-grid">
             <div class="snapshot-item">
                 <span>Overall Score</span>
-                <strong>{% if latest %}{{ latest.normalized_score }}{% else %}—{% endif %}</strong>
+                <strong>{{ latest.normalized_score }}</strong>
             </div>
             <div class="snapshot-item">
                 <span>Visibility</span>
-                <strong>{% if latest %}{{ latest.visibility_score }}{% else %}—{% endif %}</strong>
+                <strong>{{ latest.visibility_score }}</strong>
             </div>
             <div class="snapshot-item">
                 <span>Content</span>
-                <strong>{% if latest %}{{ latest.content_score }}{% else %}—{% endif %}</strong>
+                <strong>{{ latest.content_score }}</strong>
             </div>
             <div class="snapshot-item">
                 <span>Schema</span>
-                <strong>{% if latest %}{{ latest.schema_score }}{% else %}—{% endif %}</strong>
+                <strong>{{ latest.schema_score }}</strong>
             </div>
         </div>
 
@@ -349,26 +400,19 @@
                     {% if comparison and comparison.overall_change == 'improved' %}↑{% elif comparison and comparison.overall_change == 'declined' %}!{% else %}i{% endif %}
                 </div>
                 <div class="finding-copy">
-                    <strong>
-                        {% if latest %}
-                            Latest audit available
-                        {% else %}
-                            No audit available yet
-                        {% endif %}
-                    </strong>
+                    <strong>Latest audit available</strong>
                     <p>
-                        {% if latest and comparison %}
+                        {% if comparison %}
                             Overall score has {{ comparison.overall_change }} since the previous audit.
-                        {% elif latest %}
-                            This is your current baseline for the workspace.
                         {% else %}
-                            Run your first audit to unlock scores, findings, and recommended actions.
+                            This is your current baseline for the workspace.
                         {% endif %}
                     </p>
                 </div>
             </div>
         </div>
     </section>
+    {% endif %}
 
 <section class="workspace-section-card">
     <div class="section-head compact">

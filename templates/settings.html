@@ -8,9 +8,24 @@
 {% block content %}
 <div class="settings-v3-page">
 
+    {# Section-name lookup for the hero chip. Maps the route key to
+       the user-facing label (Account → Security after the IA group
+       rename). Falls back to a title-cased version for any unknown
+       section so we never render an empty chip. #}
+    {% set section_label = {
+        'profile': 'Profile',
+        'account': 'Security',
+        'preferences': 'Preferences',
+        'billing': 'Billing',
+        'credits': 'Credits',
+        'referrals': 'Referrals',
+        'team': 'Team',
+        'white_label': 'White-label',
+    }.get(active_settings_section, active_settings_section|replace('_', ' ')|title) %}
+
     <section class="settings-v3-hero settings-v3-hero-tight">
         <div class="settings-v3-hero-copy">
-            <span class="settings-chip settings-chip-primary">{{ active_settings_section|replace('_', ' ')|title }}</span>
+            <span class="settings-chip settings-chip-primary">{{ section_label }}</span>
             <h1>Settings</h1>
             <p>Workspace controls, billing, credits, and account preferences in one place.</p>
         </div>
@@ -45,48 +60,79 @@
         </div>
     </section>
 
-    <section class="settings-v3-section-nav">
-        <a href="{{ url_for('settings_page') }}"
-           class="settings-v3-tab {% if active_settings_section == 'profile' %}active{% endif %}">
-            Profile
-        </a>
+    {# Settings nav — grouped by mental model:
+         "You"        → Profile, Security (was "Account"), Preferences
+         "Billing"    → Billing, Credits, Referrals
+         "Workspace"  → Team, White-label
 
-        <a href="{{ url_for('settings_account') }}"
-           class="settings-v3-tab {% if active_settings_section == 'account' %}active{% endif %}">
-            Account
-        </a>
+       Group labels reduce the wall-of-text feel of 8 flat tabs and
+       help users find the right section without scanning every label.
+       Routes themselves are unchanged. #}
+    <section class="settings-v3-section-nav settings-v3-section-nav-grouped">
+        <div class="settings-v3-tab-group">
+            <span class="settings-v3-tab-group-label">You</span>
+            <div class="settings-v3-tab-row">
+                <a href="{{ url_for('settings_page') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'profile' %}active{% endif %}"
+                   title="Display name and account identity">
+                    Profile
+                </a>
 
-        <a href="{{ url_for('settings_billing') }}"
-           class="settings-v3-tab {% if active_settings_section == 'billing' %}active{% endif %}">
-            Billing
-        </a>
+                <a href="{{ url_for('settings_account') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'account' %}active{% endif %}"
+                   title="Password and sessions">
+                    Security
+                </a>
 
-        <a href="{{ url_for('settings_credits') }}"
-           class="settings-v3-tab {% if active_settings_section == 'credits' %}active{% endif %}">
-            Credits
-        </a>
+                <a href="{{ url_for('settings_preferences') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'preferences' %}active{% endif %}"
+                   title="Theme and sidebar layout">
+                    Preferences
+                </a>
+            </div>
+        </div>
 
-        <a href="{{ url_for('settings_referrals') }}"
-           class="settings-v3-tab {% if active_settings_section == 'referrals' %}active{% endif %}">
-            Referrals
-        </a>
+        <div class="settings-v3-tab-group">
+            <span class="settings-v3-tab-group-label">Billing</span>
+            <div class="settings-v3-tab-row">
+                <a href="{{ url_for('settings_billing') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'billing' %}active{% endif %}"
+                   title="Subscription and Stripe portal">
+                    Billing
+                </a>
 
-        <a href="{{ url_for('settings_white_label') }}"
-           class="settings-v3-tab {% if active_settings_section == 'white_label' %}active{% endif %}">
-            White-label
-        </a>
+                <a href="{{ url_for('settings_credits') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'credits' %}active{% endif %}"
+                   title="Wallet balance, topups, transactions">
+                    Credits
+                </a>
 
-        <a href="{{ url_for('settings_preferences') }}"
-           class="settings-v3-tab {% if active_settings_section == 'preferences' %}active{% endif %}">
-            Preferences
-        </a>
+                <a href="{{ url_for('settings_referrals') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'referrals' %}active{% endif %}"
+                   title="Invite friends, earn credits">
+                    Referrals
+                </a>
+            </div>
+        </div>
 
-        {% if plan_allows_seats or is_internal_user %}
-        <a href="{{ url_for('settings_team') }}"
-           class="settings-v3-tab {% if active_settings_section == 'team' %}active{% endif %}">
-            Team
-        </a>
-        {% endif %}
+        <div class="settings-v3-tab-group">
+            <span class="settings-v3-tab-group-label">Workspace</span>
+            <div class="settings-v3-tab-row">
+                {% if plan_allows_seats or is_internal_user %}
+                <a href="{{ url_for('settings_team') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'team' %}active{% endif %}"
+                   title="Invite teammates, manage seats">
+                    Team
+                </a>
+                {% endif %}
+
+                <a href="{{ url_for('settings_white_label') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'white_label' %}active{% endif %}"
+                   title="Agency branding for client reports">
+                    White-label
+                </a>
+            </div>
+        </div>
     </section>
 
     <section class="settings-v3-summary-grid">
@@ -1111,6 +1157,79 @@
     border: 1px solid var(--border-main, #e7ebf3);
     border-radius: 16px;
     box-shadow: none;
+}
+
+/* Grouped variant — three sections separated by subtle vertical
+   rules with a small uppercase label above each group. Replaces
+   the wall-of-tabs feel with a clearer mental model: You /
+   Billing / Workspace. */
+.settings-v3-section-nav-grouped {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: stretch;
+    gap: 0;
+    padding: 12px 14px;
+}
+
+.settings-v3-tab-group {
+    padding: 0 14px;
+    border-right: 1px solid var(--border-soft, #e9edf5);
+    display: grid;
+    gap: 6px;
+}
+
+.settings-v3-tab-group:last-child {
+    border-right: 0;
+}
+
+.settings-v3-tab-group:first-child {
+    padding-left: 0;
+}
+
+.settings-v3-tab-group-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-muted, #6b7280);
+    padding: 0 4px;
+}
+
+.settings-v3-tab-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+@media (max-width: 880px) {
+    .settings-v3-section-nav-grouped {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .settings-v3-tab-group {
+        padding: 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-soft, #e9edf5);
+        padding-bottom: 12px;
+    }
+    .settings-v3-tab-group:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+}
+
+html[data-theme="dark"] .settings-v3-tab-group {
+    border-right-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .settings-v3-tab-group-label {
+    color: var(--theme-text-muted);
+}
+
+@media (max-width: 880px) {
+    html[data-theme="dark"] .settings-v3-tab-group {
+        border-bottom-color: var(--theme-border-subtle);
+    }
 }
 
 .settings-v3-tab {
