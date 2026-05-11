@@ -32,7 +32,7 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}"{% if task_complete_notify is defined and task_complete_notify %} data-task-complete-notify="{{ task_complete_notify }}"{% endif %}>
     {# Skip-to-content link: visually hidden until a keyboard user
        tabs to it, then a brand-styled pill appears at top-left.
        Lets screen-reader / keyboard users bypass the entire sidebar
@@ -840,6 +840,14 @@
             document.documentElement.removeAttribute("data-sidebar-collapsed");
         });
     </script>
+
+    {# Task-completion notifier — when a long-running operation
+       (audit, brief, draft) finishes and the user has the tab in
+       the background, prepend "(✓) " to the document title so the
+       browser tab + OS task switcher show the result is ready.
+       Only fires on pages that opt in via a `task_complete_notify`
+       template variable. #}
+    <script src="{{ url_for('static', filename='task-completion.js') }}?v={{ static_css_version }}" defer></script>
 
     {% block scripts %}{% endblock %}
 </body>
