@@ -199,7 +199,7 @@
                         <h3>{{ total_clients or clients|length }} active workspace{% if (total_clients or clients|length) != 1 %}s{% endif %}</h3>
                     {% else %}
                         <h3>No workspace yet</h3>
-                        <p style="font-size: 0.88rem; color: #666;">Create one to start tracking AI visibility.</p>
+                        <p class="dashboard-priority-empty-note">Create one to start tracking AI visibility.</p>
                     {% endif %}
                     <div class="dashboard-priority-actions">
                         {% if has_clients %}

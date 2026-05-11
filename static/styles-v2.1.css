@@ -22562,3 +22562,21 @@ html[data-theme="dark"] .woo-card label,
 html[data-theme="dark"] .woo-card small {
     color: var(--theme-text-secondary) !important;
 }
+
+/* =========================================================
+   Dashboard priority-tile empty-state note
+   =========================================================
+   Replaces inline `style="font-size: 0.88rem; color: #666"` on
+   the dashboard's "No workspace yet" sub-copy. The hardcoded
+   #666 grey was low-contrast in dark mode. Theme tokens flip
+   automatically. */
+.dashboard-priority-empty-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+    line-height: 1.45;
+}
+
+html[data-theme="dark"] .dashboard-priority-empty-note {
+    color: var(--theme-text-muted);
+}
