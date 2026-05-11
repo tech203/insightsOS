@@ -330,8 +330,8 @@
 .guidance-card,
 .brief-score-card,
 .brief-mini-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -768,6 +768,22 @@
     }
     html[data-theme="dark"] .brief-badge {
         border-color: var(--theme-border-subtle);
+    }
+
+    /* ===== Dark-mode flips for peach accent surfaces ===== */
+    html[data-theme="dark"] .brief-badge-primary,
+    html[data-theme="dark"] .card-tag,
+    html[data-theme="dark"] .question-number,
+    html[data-theme="dark"] .outline-step {
+        background: rgba(232, 50, 86, 0.16);
+        border-color: rgba(255, 216, 198, 0.25);
+        color: #ffb1bd;
+    }
+    html[data-theme="dark"] .brief-score-card,
+    html[data-theme="dark"] .brief-priority-card,
+    html[data-theme="dark"] .brief-cta-card {
+        background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+        border-color: rgba(255, 216, 198, 0.22);
     }
 </style>
 {% endblock %}
