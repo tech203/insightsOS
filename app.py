@@ -8235,7 +8235,16 @@ def run_client_audit(client_id):
             refund_credits(
                 current_user, 1, notes="Refund for failed client audit"
             )
-            flash(f"Audit failed: {str(e)}", "error")
+            # Map known OpenAI exception types (RateLimitError,
+            # APITimeoutError, etc.) to friendly user-facing copy
+            # instead of leaking raw exception strings. Full traceback
+            # is logged server-side for ops.
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "Client audit failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
+            flash(friendly_ai_error_message(e), "error")
             return redirect(url_for("client_detail", client_id=client_id))
 
     form_data = {
@@ -8432,10 +8441,15 @@ def generate_client_content_brief(client_id):
                 1,
                 notes="Refund for failed content brief generation",
             )
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "Content brief generation failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
             return render_template(
                 "content_brief_form.html",
                 client=client,
-                error=f"Brief generation failed: {str(e)}",
+                error=friendly_ai_error_message(e),
                 form_data=request.form,
             )
 
@@ -8769,10 +8783,15 @@ def generate_client_content_draft(client_id):
                 2,
                 notes="Refund for failed content draft generation",
             )
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "Content draft generation failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
             return render_template(
                 "content_draft_form.html",
                 client=client,
-                error=f"Draft generation failed: {str(e)}",
+                error=friendly_ai_error_message(e),
                 form_data=request.form,
             )
 
@@ -10973,10 +10992,15 @@ def new_audit():
             refund_credits(
                 current_user, 1, notes="Refund for failed new audit"
             )
+            from services.ai_errors import friendly_ai_error_message
+            logger.exception(
+                "New audit failed for user_id=%s client_id=%s",
+                current_user.id, client_id,
+            )
             return render_template(
                 "new_audit.html",
                 clients=clients,
-                error=f"Audit failed: {str(e)}",
+                error=friendly_ai_error_message(e),
                 form_data=request.form,
                 view_mode=view_mode,
             )
