@@ -22097,3 +22097,126 @@ html[data-theme="dark"] select:focus-visible {
     border-color: var(--brand-primary) !important;
     box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
 }
+
+/* =========================================================
+   Workspace empty-state hero (pre-audit)
+   =========================================================
+   (From PR #45 — preserved through merge.) */
+
+.workspace-empty-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.7fr);
+    gap: 24px;
+    align-items: center;
+    padding: 28px;
+}
+
+.workspace-empty-hero-copy h2 {
+    margin: 8px 0 10px 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--text-strong);
+    font-weight: 700;
+}
+
+.workspace-empty-hero-copy p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 14.5px;
+    line-height: 1.6;
+    max-width: 540px;
+}
+
+.workspace-empty-hero-checklist {
+    list-style: none;
+    margin: 16px 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.workspace-empty-hero-checklist li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    font-size: 13.5px;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+.workspace-empty-hero-tick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.workspace-empty-hero-actions {
+    display: grid;
+    gap: 10px;
+    align-content: center;
+}
+
+.workspace-empty-hero-actions .btn {
+    width: 100%;
+}
+
+@media (max-width: 880px) {
+    .workspace-empty-hero {
+        grid-template-columns: 1fr;
+        padding: 22px;
+    }
+}
+
+/* =========================================================
+   Tablet sidebar — 1024-1199px gets desktop layout
+   =========================================================
+   (From PR #49 — preserved through merge.) */
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .app-shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
+    }
+
+    .mobile-topbar { display: none !important; }
+    .mobile-menu-btn { display: none !important; }
+    .sidebar-overlay { display: none !important; }
+
+    .app-sidebar {
+        position: sticky !important;
+        top: 0;
+        transform: none !important;
+        width: 248px;
+        max-width: none;
+        height: 100vh;
+        box-shadow: none;
+        z-index: 1400;
+        overflow: visible;
+        background: var(--shell-panel, #0d1523);
+    }
+
+    .app-main {
+        min-width: 0;
+        min-height: 100vh;
+    }
+
+    .sidebar-inner {
+        padding: 20px 16px 16px;
+    }
+
+    .sidebar-brand { padding-top: 0; }
+
+    .nav-tooltip { display: none; }
+    .sidebar-rail-toggle { display: inline-flex; }
+}
