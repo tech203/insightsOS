@@ -90,7 +90,7 @@
     </section>
 
     <section class="settings-v3-summary-grid">
-        <div class="settings-v3-summary-card">
+        <div class="settings-v3-summary-card surface-card">
             <span>Credits Balance</span>
             <strong>
                 {% if current_user.wallet %}
@@ -102,19 +102,19 @@
             <small>Available credits in your workspace</small>
         </div>
 
-        <div class="settings-v3-summary-card">
+        <div class="settings-v3-summary-card surface-card">
             <span>Referral Code</span>
             <strong>{{ current_user.referral_code or "Pending setup" }}</strong>
             <small>For future referral sharing and rewards</small>
         </div>
 
-        <div class="settings-v3-summary-card">
+        <div class="settings-v3-summary-card surface-card">
             <span>Account Email</span>
             <strong>{{ current_user.email }}</strong>
             <small>Primary login and notification email</small>
         </div>
 
-        <div class="settings-v3-summary-card">
+        <div class="settings-v3-summary-card surface-card">
             <span>Workspace Status</span>
             <strong>Active</strong>
             <small>Your workspace is ready to use</small>
@@ -123,7 +123,7 @@
 
     {% if active_settings_section == "profile" %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Display Name</h2>
                 <p>How your name appears across DarInsights.</p>
@@ -136,29 +136,29 @@
             </form>
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Account Identity</h2>
                 <p>Read-only details tied to your login.</p>
             </div>
 
             <div class="settings-v3-info-list">
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Email</span>
                     <strong>{{ current_user.email }}</strong>
                 </div>
 
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Plan</span>
                     <strong>{{ current_user.plan|default("free")|replace('_', ' ')|title }}</strong>
                 </div>
 
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Role</span>
                     <strong>{{ current_user.role|default("user")|title }}</strong>
                 </div>
 
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Member since</span>
                     <strong>{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</strong>
                 </div>
@@ -169,7 +169,7 @@
 
     {% if active_settings_section == "account" %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Change password</h2>
                 <p>Sign-in password for {{ current_user.email }}.</p>
@@ -189,7 +189,7 @@
             </form>
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Sign out everywhere</h2>
                 <p>Ends your current session on this device.</p>
@@ -208,19 +208,19 @@
     {% set plan_label = plan_slug|replace('_', ' ')|title %}
     {% set plan_allowance = action_credit_costs and 0 %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Subscription</h2>
                 <p>Your current plan and what it includes.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Current Plan</span>
                     <strong>{{ plan_label }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Monthly Credits</span>
                     <strong>
                         {% if plan_slug == 'dev_unlimited' %}Unlimited
@@ -231,12 +231,12 @@
                     </strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Per-Credit Topup</span>
                     <strong>${{ '%.2f' | format(baseline_credit_price or 2.0) }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Subscription Status</span>
                     <strong>
                         {% if current_user.stripe_subscription_id %}Active
@@ -258,26 +258,26 @@
             </div>
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Workspaces</h2>
                 <p>How many workspaces this account can run.</p>
             </div>
 
             <div class="settings-v3-info-list">
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Used</span>
                     <strong>{{ workspace_count_used or 0 }}</strong>
                 </div>
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Plan base cap</span>
                     <strong>{{ workspace_base_limit }}</strong>
                 </div>
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Extra workspaces ($9 / mo each)</span>
                     <strong>{{ current_user.extra_workspaces or 0 }}</strong>
                 </div>
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Total available</span>
                     <strong>
                         {% if workspace_total_limit is none %}Unlimited
@@ -301,26 +301,26 @@
                 Each extra workspace bills as a recurring $9 / month addon on your subscription.
             </p>
             {% else %}
-            <div class="settings-v3-note-box" style="margin-top:1rem;">
+            <div class="settings-v3-note-box surface-card" style="margin-top:1rem;">
                 Extra workspaces aren't available on the Free plan.
                 <a href="{{ url_for('pricing_page') }}">Upgrade to a paid plan</a> to add more.
             </div>
             {% endif %}
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>White-label add-on</h2>
                 <p>Deliver client reports under your own brand.</p>
             </div>
 
             <div class="settings-v3-info-list">
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Agency white-label</span>
                     <strong>{% if current_user.is_white_label_enabled %}Enabled{% else %}Not enabled{% endif %}</strong>
                 </div>
                 {% if current_user.agency_name %}
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Agency name</span>
                     <strong>{{ current_user.agency_name }}</strong>
                 </div>
@@ -339,14 +339,14 @@
     {% set total_earned = tx_list | selectattr('amount', 'gt', 0) | sum(attribute='amount') %}
     {% set total_spent = tx_list | selectattr('amount', 'lt', 0) | sum(attribute='amount') %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Credits</h2>
                 <p>Current balance and recent activity on your wallet.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Current Balance</span>
                     <strong>
                         {% if current_user.plan == 'dev_unlimited' %}Unlimited
@@ -355,17 +355,17 @@
                     </strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Total Earned</span>
                     <strong>{{ total_earned or 0 }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Total Spent</span>
                     <strong>{{ (total_spent or 0) * -1 }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Recent Transactions</span>
                     <strong>{{ tx_list|length }}</strong>
                 </div>
@@ -380,7 +380,7 @@
                     <span>Balance</span>
                 </div>
                 {% for tx in tx_list %}
-                <div class="settings-v3-tx-row">
+                <div class="settings-v3-tx-row surface-card">
                     <span>{{ tx.created_at.strftime('%d %b %Y') if tx.created_at else '—' }}</span>
                     <span>{{ tx.type|replace('_', ' ')|title }}</span>
                     <span class="{% if tx.amount > 0 %}settings-v3-tx-pos{% elif tx.amount < 0 %}settings-v3-tx-neg{% endif %}">
@@ -391,13 +391,13 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="settings-v3-note-box">
+            <div class="settings-v3-note-box surface-card">
                 No credit activity yet. Audits, briefs, and drafts will draw from your balance and show up here.
             </div>
             {% endif %}
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Top up</h2>
                 <p>
@@ -452,7 +452,7 @@
             {% endif %}
 
             <div class="settings-v3-card-list" style="margin-top:1rem;">
-                <div class="settings-v3-mini-card">
+                <div class="settings-v3-mini-card surface-card">
                     <h3>Upgrade plan</h3>
                     <p>Subscribers pay half the per-credit price and get a monthly allowance bundled in.</p>
                     <a href="{{ url_for('pricing_page') }}" class="btn btn-secondary" style="margin-top:12px;">View Plans</a>
@@ -556,29 +556,29 @@
     {% set ref_rewarded = ref_list | selectattr('status', 'equalto', 'rewarded') | list %}
     {% set rewards_total = ref_rewarded | sum(attribute='reward_credits_referrer') %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Refer &amp; earn</h2>
                 <p>Earn 25% in credits on every dollar your referrals spend within their first 30 days — subscriptions and credit bundles both qualify.</p>
             </div>
 
             <div class="settings-v3-metric-grid">
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Your Referral Code</span>
                     <strong>{{ current_user.referral_code or "Pending setup" }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Paid referrals</span>
                     <strong>{{ ref_rewarded|length }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Lifetime payouts (USD)</span>
                     <strong>${{ '%.2f' | format((ref_rewarded | sum(attribute='referred_payment_usd', start=0)|float) * 0.25) }}</strong>
                 </div>
 
-                <div class="settings-v3-metric-card">
+                <div class="settings-v3-metric-card surface-card">
                     <span>Credits Earned</span>
                     <strong>{{ rewards_total or 0 }}</strong>
                 </div>
@@ -592,7 +592,7 @@
             {% endif %}
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>How it works</h2>
                 <p>Three rules so it stays simple.</p>
@@ -608,7 +608,7 @@
             </p>
         </div>
 
-        <div class="settings-v3-panel" style="grid-column: 1 / -1;">
+        <div class="settings-v3-panel surface-card" style="grid-column: 1 / -1;">
             <div class="settings-v3-panel-head">
                 <h2>Recent referrals</h2>
                 <p>Each row is a single qualifying paid purchase.</p>
@@ -623,7 +623,7 @@
                     <span>You earned</span>
                 </div>
                 {% for ref in ref_list %}
-                <div class="settings-v3-tx-row">
+                <div class="settings-v3-tx-row surface-card">
                     <span>{{ ref.created_at.strftime('%d %b %Y') if ref.created_at else '—' }}</span>
                     <span>{{ ref.status|title }}</span>
                     <span>{% if ref.referred_payment_usd %}${{ '%.2f' | format(ref.referred_payment_usd|float) }}{% else %}—{% endif %}</span>
@@ -634,7 +634,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="settings-v3-note-box">
+            <div class="settings-v3-note-box surface-card">
                 Share your link above. Paid referrals will show up here once someone you referred makes a purchase within 30 days of signing up.
             </div>
             {% endif %}
@@ -664,7 +664,7 @@
 
     {% if active_settings_section == "preferences" %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Appearance</h2>
                 <p>Light or dark mode. Defaults to your operating system's preference; explicit choices persist for this browser. Click the toggle in the page header for a quick switch, or pick a specific mode here.</p>
@@ -676,7 +676,7 @@
             </div>
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Sidebar layout</h2>
                 <p>Choose between the full labelled sidebar and the compact icon rail. The setting persists for this browser session.</p>
@@ -691,7 +691,7 @@
         </div>
 
         {% if is_internal_user %}
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Developer controls</h2>
                 <p>Internal testing controls for switching interface modes.</p>
@@ -784,7 +784,7 @@
 
     {% if active_settings_section == "white_label" %}
     <section class="settings-v3-grid">
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Agency white-label</h2>
                 <p>Replace the DarInsights brand with your own — across the dashboard sidebar, the audit PDFs, and any client-facing surfaces invited team members see.</p>
@@ -816,7 +816,7 @@
             </form>
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Agency logo</h2>
                 <p>PNG, JPG, SVG, or WEBP. Up to 5 MB. Used in the sidebar, the audit PDF topbar, and client-facing report headers.</p>
@@ -845,37 +845,37 @@
     {% if active_settings_section == "team" %}
     <section class="settings-v3-grid">
         {% if not plan_allows_seats and not is_internal_user %}
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Team &amp; access</h2>
                 <p>Inviting team members is available on Pro and Growth plans.</p>
             </div>
-            <div class="settings-v3-note-box">
+            <div class="settings-v3-note-box surface-card">
                 Pro plans include 3 seats, Growth includes 10. Extra seats are $5 / seat / month.
                 <a href="{{ url_for('pricing_page') }}">Upgrade to invite teammates</a>.
             </div>
         </div>
         {% else %}
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Team seats</h2>
                 <p>Members and pending invites use the same wallet, plan, and workspaces as the owner.</p>
             </div>
 
             <div class="settings-v3-info-list">
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Used (you + members + pending)</span>
                     <strong>{{ team_seats_used }}</strong>
                 </div>
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Plan base</span>
                     <strong>{{ team_seats_base }}</strong>
                 </div>
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Extra seats ($5 / mo each)</span>
                     <strong>{{ current_user.extra_seats or 0 }}</strong>
                 </div>
-                <div class="settings-v3-info-row">
+                <div class="settings-v3-info-row surface-card">
                     <span>Total available</span>
                     <strong>{{ team_seats_total }}</strong>
                 </div>
@@ -893,7 +893,7 @@
             </div>
         </div>
 
-        <div class="settings-v3-panel">
+        <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Invite a teammate</h2>
                 <p>We'll generate a one-time link — copy it and send to your teammate via your usual channel.</p>
@@ -909,7 +909,7 @@
         </div>
 
         {% if team_pending_invites or team_active_members %}
-        <div class="settings-v3-panel" style="grid-column: 1 / -1;">
+        <div class="settings-v3-panel surface-card" style="grid-column: 1 / -1;">
             <div class="settings-v3-panel-head">
                 <h2>Members &amp; pending invites</h2>
                 <p>Active teammates and outstanding invitations.</p>
@@ -924,12 +924,12 @@
                     <span>Action</span>
                 </div>
                 {% for member in team_active_members %}
-                <div class="settings-v3-tx-row">
+                <div class="settings-v3-tx-row surface-card">
                     <span>{{ member.email }}</span>
                     <span>{{ member.created_at.strftime('%d %b %Y') if member.created_at else '—' }}</span>
                     <span>
                         <form method="post" action="{{ url_for('team_remove_member', member_id=member.id) }}" style="display:inline;" onsubmit="return confirm('Remove {{ member.email }} from your team?');">
-                            <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.6rem;">Remove</button>
+                            <button type="submit" class="btn btn-secondary btn-sm">Remove</button>
                         </form>
                     </span>
                 </div>
@@ -946,12 +946,12 @@
                     <span>Action</span>
                 </div>
                 {% for inv in team_pending_invites %}
-                <div class="settings-v3-tx-row">
+                <div class="settings-v3-tx-row surface-card">
                     <span>{{ inv.email }}</span>
                     <span>{{ inv.invited_at.strftime('%d %b %Y') if inv.invited_at else '—' }}</span>
                     <span>
                         <form method="post" action="{{ url_for('team_revoke_invite', invite_id=inv.id) }}" style="display:inline;" onsubmit="return confirm('Revoke invite for {{ inv.email }}?');">
-                            <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.6rem;">Revoke</button>
+                            <button type="submit" class="btn btn-secondary btn-sm">Revoke</button>
                         </form>
                     </span>
                 </div>
@@ -987,7 +987,7 @@
     border: 1px solid #d4d4dc;
     border-radius: 8px;
     font-size: 16px;
-    background: #fff;
+    background: var(--bg-card);
 }
 .settings-v3-form input:focus {
     outline: 2px solid var(--brand-primary, #3EDFCB);
@@ -1008,8 +1008,8 @@
 .settings-v3-metric-card,
 .settings-v3-note-box,
 .settings-v3-tab {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -1034,8 +1034,8 @@
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
     color: #4a586c;
     font-size: 13px;
     font-weight: 800;
@@ -1060,7 +1060,7 @@
     line-height: 1.2;
     font-weight: 800;
     letter-spacing: -0.01em;
-    color: #15233b;
+    color: var(--text-strong);
     max-width: 760px;
 }
 
@@ -1068,7 +1068,7 @@
     margin: 6px 0 0;
     font-size: 13.5px;
     line-height: 1.55;
-    color: #617084;
+    color: var(--text-soft);
     max-width: 760px;
 }
 
@@ -1082,7 +1082,7 @@
     display: block;
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 10px;
 }
 
@@ -1097,7 +1097,7 @@
 .settings-v3-active-card small {
     display: block;
     margin-top: 12px;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -1200,7 +1200,7 @@ html[data-theme="dark"] .settings-v3-tab:hover {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--bg-card);
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
     transition: transform 0.22s cubic-bezier(0.4, 0.0, 0.2, 1);
     z-index: 1;
@@ -1238,7 +1238,7 @@ html[data-theme="dark"] .theme-toggle-text {
 .settings-v3-summary-card,
 .settings-v3-metric-card {
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
 }
 
 .settings-v3-summary-card span,
@@ -1246,7 +1246,7 @@ html[data-theme="dark"] .theme-toggle-text {
     display: block;
     font-size: 13px;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
@@ -1256,14 +1256,14 @@ html[data-theme="dark"] .theme-toggle-text {
     font-size: 22px;
     line-height: 1.35;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
     word-break: break-word;
 }
 
 .settings-v3-summary-card small {
     display: block;
     margin-top: 8px;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 13px;
     line-height: 1.5;
 }
@@ -1276,7 +1276,7 @@ html[data-theme="dark"] .theme-toggle-text {
 
 .settings-v3-tx-table {
     margin-top: 18px;
-    border: 1px solid #e7ebf3;
+    border: 1px solid var(--border-main);
     border-radius: 14px;
     overflow: hidden;
 }
@@ -1288,7 +1288,7 @@ html[data-theme="dark"] .theme-toggle-text {
     gap: 12px;
     padding: 12px 16px;
     font-size: 14px;
-    color: #16243c;
+    color: var(--text-strong);
     border-top: 1px solid #f1f5f9;
 }
 
@@ -1297,12 +1297,12 @@ html[data-theme="dark"] .theme-toggle-text {
 }
 
 .settings-v3-tx-head {
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
     text-transform: uppercase;
     letter-spacing: 0.10em;
     font-size: 11px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .settings-v3-tx-pos {
@@ -1327,9 +1327,9 @@ html[data-theme="dark"] .theme-toggle-text {
     min-height: 46px;
     padding: 0 14px;
     border-radius: 12px;
-    border: 1px solid #e7ebf3;
-    background: #f8fafc;
-    color: #16243c;
+    border: 1px solid var(--border-main);
+    background: var(--bg-soft-alt);
+    color: var(--text-strong);
     font-size: 14px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -1352,6 +1352,28 @@ html[data-theme="dark"] .theme-toggle-text {
     }
 }
 
+@media (max-width: 480px) {
+    /* Collapse rows to a vertical stack on phone — 4-col grids
+       at 2 columns are still cramped at 375px wide and amounts
+       wrap mid-value. Each value gets its own line; first value
+       (date or email) is bold to anchor the row. */
+    .settings-v3-tx-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 12px 14px;
+    }
+
+    .settings-v3-tx-row > span:first-child {
+        font-weight: 600;
+        color: var(--text-strong);
+    }
+
+    .settings-v3-tx-row > span {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+}
+
 .settings-v3-panel {
     padding: 24px;
 }
@@ -1364,12 +1386,12 @@ html[data-theme="dark"] .theme-toggle-text {
     margin: 0 0 8px;
     font-size: 22px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .settings-v3-panel-head p {
     margin: 0;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 15px;
     line-height: 1.55;
 }
@@ -1387,18 +1409,18 @@ html[data-theme="dark"] .theme-toggle-text {
     gap: 14px;
     padding: 14px 16px;
     border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
 }
 
 .settings-v3-info-row span {
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 700;
 }
 
 .settings-v3-info-row strong {
-    color: #16243c;
+    color: var(--text-strong);
     font-size: 14px;
     font-weight: 800;
     text-align: right;
@@ -1407,21 +1429,21 @@ html[data-theme="dark"] .theme-toggle-text {
 
 .settings-v3-mini-card {
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft-alt);
 }
 
 .settings-v3-mini-card h3 {
     margin: 0 0 8px;
     font-size: 18px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .settings-v3-mini-card p,
 .settings-v3-bullet-item,
 .settings-v3-note-box {
     margin: 0;
-    color: #627084;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -1429,8 +1451,8 @@ html[data-theme="dark"] .theme-toggle-text {
 .settings-v3-bullet-item {
     padding: 14px 16px;
     border-radius: 16px;
-    background: #f8fafc;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-soft-alt);
+    border: 1px solid var(--border-main);
 }
 
 .settings-v3-note-box {
@@ -1454,8 +1476,8 @@ html[data-theme="dark"] .theme-toggle-text {
     justify-content: center;
     padding: 10px 14px;
     border-radius: 12px;
-    border: 1px solid #e7ebf3;
-    background: #ffffff;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
     color: #4a586c;
     font-size: 14px;
     font-weight: 800;
@@ -1525,114 +1547,6 @@ html[data-theme="dark"] .theme-toggle-text {
     }
 }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .dev-view-btn,
-    html[data-theme="dark"] .settings-v3-active-card,
-    html[data-theme="dark"] .settings-v3-form,
-    html[data-theme="dark"] .settings-v3-hero,
-    html[data-theme="dark"] .settings-v3-metric-card,
-    html[data-theme="dark"] .settings-v3-mini-card,
-    html[data-theme="dark"] .settings-v3-note-box,
-    html[data-theme="dark"] .settings-v3-panel,
-    html[data-theme="dark"] .settings-v3-summary-card,
-    html[data-theme="dark"] .settings-v3-tab,
-    html[data-theme="dark"] .topup-bundle-card {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .settings-chip,
-    html[data-theme="dark"] .settings-v3-bullet-item,
-    html[data-theme="dark"] .settings-v3-info-row,
-    html[data-theme="dark"] .settings-v3-share-row,
-    html[data-theme="dark"] .settings-v3-tx-head {
-        background: var(--theme-surface-alt);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .settings-v3-hero-copy,
-    html[data-theme="dark"] .settings-v3-info-row,
-    html[data-theme="dark"] .settings-v3-metric-card,
-    html[data-theme="dark"] .settings-v3-mini-card,
-    html[data-theme="dark"] .settings-v3-panel-head,
-    html[data-theme="dark"] .settings-v3-share-row,
-    html[data-theme="dark"] .settings-v3-summary-card,
-    html[data-theme="dark"] .settings-v3-tx-row,
-    html[data-theme="dark"] .topup-bundle-credits,
-    html[data-theme="dark"] .topup-bundle-price,
-    html[data-theme="dark"] .topup-cost-list,
-    html[data-theme="dark"] .dev-view-btn h1,
-    html[data-theme="dark"] .dev-view-btn h2,
-    html[data-theme="dark"] .dev-view-btn h3,
-    html[data-theme="dark"] .dev-view-btn h4,
-    html[data-theme="dark"] .dev-view-btn strong,
-    html[data-theme="dark"] .settings-v3-active-card h1,
-    html[data-theme="dark"] .settings-v3-active-card h2,
-    html[data-theme="dark"] .settings-v3-active-card h3,
-    html[data-theme="dark"] .settings-v3-active-card h4,
-    html[data-theme="dark"] .settings-v3-active-card strong,
-    html[data-theme="dark"] .settings-v3-form h1,
-    html[data-theme="dark"] .settings-v3-form h2,
-    html[data-theme="dark"] .settings-v3-form h3,
-    html[data-theme="dark"] .settings-v3-form h4,
-    html[data-theme="dark"] .settings-v3-form strong,
-    html[data-theme="dark"] .settings-v3-hero h1,
-    html[data-theme="dark"] .settings-v3-hero h2,
-    html[data-theme="dark"] .settings-v3-hero h3,
-    html[data-theme="dark"] .settings-v3-hero h4,
-    html[data-theme="dark"] .settings-v3-hero strong,
-    html[data-theme="dark"] .settings-v3-metric-card h1,
-    html[data-theme="dark"] .settings-v3-metric-card h2,
-    html[data-theme="dark"] .settings-v3-metric-card h3,
-    html[data-theme="dark"] .settings-v3-metric-card h4,
-    html[data-theme="dark"] .settings-v3-metric-card strong,
-    html[data-theme="dark"] .settings-v3-mini-card h1,
-    html[data-theme="dark"] .settings-v3-mini-card h2,
-    html[data-theme="dark"] .settings-v3-mini-card h3,
-    html[data-theme="dark"] .settings-v3-mini-card h4,
-    html[data-theme="dark"] .settings-v3-mini-card strong,
-    html[data-theme="dark"] .settings-v3-note-box h1,
-    html[data-theme="dark"] .settings-v3-note-box h2,
-    html[data-theme="dark"] .settings-v3-note-box h3,
-    html[data-theme="dark"] .settings-v3-note-box h4,
-    html[data-theme="dark"] .settings-v3-note-box strong,
-    html[data-theme="dark"] .settings-v3-panel h1,
-    html[data-theme="dark"] .settings-v3-panel h2,
-    html[data-theme="dark"] .settings-v3-panel h3,
-    html[data-theme="dark"] .settings-v3-panel h4,
-    html[data-theme="dark"] .settings-v3-panel strong,
-    html[data-theme="dark"] .settings-v3-summary-card h1,
-    html[data-theme="dark"] .settings-v3-summary-card h2,
-    html[data-theme="dark"] .settings-v3-summary-card h3,
-    html[data-theme="dark"] .settings-v3-summary-card h4,
-    html[data-theme="dark"] .settings-v3-summary-card strong,
-    html[data-theme="dark"] .settings-v3-tab h1,
-    html[data-theme="dark"] .settings-v3-tab h2,
-    html[data-theme="dark"] .settings-v3-tab h3,
-    html[data-theme="dark"] .settings-v3-tab h4,
-    html[data-theme="dark"] .settings-v3-tab strong,
-    html[data-theme="dark"] .topup-bundle-card h1,
-    html[data-theme="dark"] .topup-bundle-card h2,
-    html[data-theme="dark"] .topup-bundle-card h3,
-    html[data-theme="dark"] .topup-bundle-card h4,
-    html[data-theme="dark"] .topup-bundle-card strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .settings-v3-active-card,
-    html[data-theme="dark"] .settings-v3-bullet-item,
-    html[data-theme="dark"] .settings-v3-note-box,
-    html[data-theme="dark"] .settings-v3-tx-head {
-        color: var(--theme-text-secondary);
-    }
-    html[data-theme="dark"] .settings-chip,
-    html[data-theme="dark"] .settings-v3-bullet-item,
-    html[data-theme="dark"] .settings-v3-info-row,
-    html[data-theme="dark"] .settings-v3-share-row,
-    html[data-theme="dark"] .settings-v3-tx-table,
-    html[data-theme="dark"] .topup-cost-list,
-    html[data-theme="dark"] .topup-cost-table {
-        border-color: var(--theme-border-subtle);
-    }
 </style>
 
 <script>
