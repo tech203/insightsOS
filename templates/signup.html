@@ -57,13 +57,21 @@
             <form method="POST" class="form-stack-dark" onsubmit="handleSignupSubmit()">
                 <div class="form-field-dark">
                     <label for="name">Full name</label>
-                    <input type="text" id="name" name="name" placeholder="Your name" required autocomplete="name">
+                    <input type="text" id="name" name="name" value="{{ form_name or '' }}" placeholder="Your name" required autocomplete="name">
                 </div>
 
                 <div class="form-field-dark">
                     <label for="email">Email address</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+                    <input type="email" id="email" name="email" value="{{ form_email or '' }}" placeholder="you@example.com" required autocomplete="email">
                 </div>
+
+                {% if form_referral_code %}
+                {# Hidden carrier so a referral code from ?ref=... or
+                   a previous failed submit doesn't get dropped on
+                   re-render. The signup form has no visible input
+                   for it today (referrals are link-driven). #}
+                <input type="hidden" name="referral_code" value="{{ form_referral_code }}">
+                {% endif %}
 
                 <div class="form-field-dark">
                     <label for="password">Password</label>

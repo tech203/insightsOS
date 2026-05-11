@@ -4745,6 +4745,33 @@ def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
     )
 
 
+def insufficient_credits_message(user, action_key: str, action_label: str) -> str:
+    """Build a richer 'you don't have enough credits' message that
+    actually tells the user the cost vs. their balance, so they
+    know whether to top up or upgrade. Used by every credit-gated
+    action route just before redirecting to /pricing."""
+    from pricing import get_action_cost
+    cost = get_action_cost(action_key)
+
+    balance = 0
+    if user_has_unlimited_credits(user):
+        balance = "Unlimited"
+    elif user and getattr(user, "wallet", None):
+        balance = user.wallet.balance
+
+    if isinstance(balance, int) and balance < cost:
+        short_by = cost - balance
+        return (
+            f"{action_label} costs {cost} credit"
+            f"{'s' if cost != 1 else ''}, you have {balance}. "
+            f"Top up {short_by} credit{'s' if short_by != 1 else ''} or upgrade your plan to continue."
+        )
+    return (
+        f"Couldn't deduct {cost} credit{'s' if cost != 1 else ''} for {action_label.lower()}. "
+        "Your balance may have changed mid-request — try again."
+    )
+
+
 def has_enough_credits(user, amount):
     if user_has_unlimited_credits(user):
         return True
@@ -7785,14 +7812,24 @@ def signup():
         referral_code = request.form.get("referral_code", "").strip()
 
         if not name or not email or not password:
+            # Preserve name + email so user only retypes the missing
+            # field, never echo the password.
             return render_template(
-                "signup.html", error="All fields are required."
+                "signup.html",
+                error="All fields are required.",
+                form_name=name,
+                form_email=email,
+                form_referral_code=referral_code,
             )
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             return render_template(
-                "signup.html", error="Email already registered."
+                "signup.html",
+                error="Email already registered.",
+                form_name=name,
+                form_email=email,
+                form_referral_code=referral_code,
             )
 
         referrer = None
@@ -7844,7 +7881,13 @@ def signup():
         )
         return redirect(url_for("create_client"))
 
-    return render_template("signup.html", error=None)
+    return render_template(
+        "signup.html",
+        error=None,
+        form_name="",
+        form_email="",
+        form_referral_code=request.args.get("ref", "").strip(),
+    )
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -7962,8 +8005,12 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if not user or not check_password_hash(user.password_hash, password):
+            # Preserve the email so the user doesn't have to retype it
+            # on the second attempt — never echo the password back.
             return render_template(
-                "login.html", error="Invalid email or password."
+                "login.html",
+                error="Invalid email or password.",
+                form_email=email,
             )
 
         session.pop("_flashes", None)
@@ -7971,7 +8018,7 @@ def login():
         flash("Logged in successfully.", "success")
         return redirect(url_for("index"))
 
-    return render_template("login.html", error=None)
+    return render_template("login.html", error=None, form_email="")
 
 
 @app.route("/logout")
@@ -8026,7 +8073,10 @@ def run_client_audit(client_id):
             return redirect(url_for("pricing_page"))
 
         if not spend_credits_for(current_user, "audit_run", notes="Client audit run"):
-            flash("Unable to deduct credits for audit.", "warning")
+            flash(
+                insufficient_credits_message(current_user, "audit_run", "An audit"),
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
         try:
@@ -8144,7 +8194,10 @@ def generate_client_content_brief(client_id):
         if not spend_credits_for(
             current_user, "content_brief", notes="Content brief generation"
         ):
-            flash("Unable to deduct credits for brief generation.", "warning")
+            flash(
+                insufficient_credits_message(current_user, "content_brief", "A brief"),
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
         # Prepend the structured Brand Kit to the brand_context blob so
@@ -8533,7 +8586,10 @@ def generate_client_content_draft(client_id):
         if not spend_credits_for(
             current_user, "content_draft", notes="Content draft generation"
         ):
-            flash("Unable to deduct credits for draft generation.", "warning")
+            flash(
+                insufficient_credits_message(current_user, "content_draft", "A draft"),
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
         # Prepend the structured Brand Kit to brand_context.
@@ -10754,7 +10810,10 @@ def new_audit():
             return redirect(url_for("pricing_page"))
 
         if not spend_credits_for(current_user, "audit_run", notes="New audit run"):
-            flash("Unable to deduct credits for audit.", "warning")
+            flash(
+                insufficient_credits_message(current_user, "audit_run", "An audit"),
+                "warning",
+            )
             return redirect(url_for("pricing_page"))
 
         try:
@@ -14522,6 +14581,43 @@ def squarespace_disconnect(client_id):
         db.session.commit()
         flash("Disconnected Squarespace site.", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    """Render the branded 403 page instead of Flask's bare default."""
+    return render_template("errors/403.html"), 403
+
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Render the branded 404 page instead of Flask's bare default.
+
+    Triggered by every `abort(404)` call (50+ sites — workspace lookup
+    misses, audit not found, draft missing, etc.) plus any unmatched
+    URL. Authenticated users keep their sidebar + topbar so they're
+    not bounced out of the dashboard chrome on a stray bad link."""
+    return render_template("errors/404.html"), 404
+
+
+@app.errorhandler(429)
+def rate_limited_error(error):
+    """Render the branded 429 page (per-minute rate limit hit)."""
+    return render_template("errors/429.html"), 429
+
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Render the branded 500 page. We rollback any pending DB session
+    state so the user can retry without leaving stale transactions
+    around. The full traceback is in app.logger; the user sees a
+    friendly 'something broke' page with a Get help CTA."""
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    logger.exception("Unhandled 500 error: %s", error)
+    return render_template("errors/500.html"), 500
 
 
 if __name__ == "__main__":

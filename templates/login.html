@@ -60,7 +60,7 @@
             <form method="POST" class="form-stack-dark" onsubmit="handleLoginSubmit(this)">
                 <div class="form-field-dark">
                     <label for="email">Email address</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" required autofocus>
+                    <input type="email" id="email" name="email" value="{{ form_email or '' }}" placeholder="you@example.com" required {% if not form_email %}autofocus{% endif %}>
                 </div>
 
                 <div class="form-field-dark">

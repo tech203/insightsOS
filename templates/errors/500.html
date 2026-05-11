@@ -1,0 +1,16 @@
+{% extends "errors/_error_shell.html" %}
+{% block error_title_tag %}Something broke{% endblock %}
+{% block error_code %}500{% endblock %}
+{% block error_title %}Something broke on our end{% endblock %}
+{% block error_body %}
+<p>We logged the error and our team will look at it. Refreshing usually fixes one-off glitches.</p>
+<p>If this keeps happening, drop us a note via the help page with what you were doing when it broke.</p>
+{% endblock %}
+{% block error_actions %}
+{% if current_user.is_authenticated %}
+<a href="{{ url_for('index') }}" class="btn btn-primary">Back to dashboard</a>
+<a href="{{ url_for('help_page') }}" class="btn btn-secondary">Get help</a>
+{% else %}
+<a href="{{ url_for('login') }}" class="btn btn-primary">Sign in</a>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "errors/_error_shell.html" %}
+{% block error_title_tag %}Page not found{% endblock %}
+{% block error_code %}404{% endblock %}
+{% block error_title %}This page doesn't exist{% endblock %}
+{% block error_body %}
+<p>The link you followed might be out of date, or the workspace / audit / draft was deleted.</p>
+<p>Try the dashboard for the latest workspace data, or use the sidebar to jump to a specific section.</p>
+{% endblock %}
