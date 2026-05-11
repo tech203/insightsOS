@@ -21731,3 +21731,101 @@ html[data-theme="dark"] .onboarding-step.is-done {
 html[data-theme="dark"] .onboarding-step.is-current {
     color: var(--theme-text-primary);
 }
+
+/* =========================================================
+   Mobile / narrow-viewport dark-mode hardening
+   =========================================================
+   Reported regression: at narrow widths and on mobile, the
+   page rendered as bright white in dark mode. Root cause:
+     1. --brand-surface-tint (used by every <input> via the
+        global input baseline at line ~170) was hardcoded
+        #E4E4EC and never remapped in the dark token block.
+        Every form input was rendering with a light-grey fill
+        on dark surfaces.
+     2. Mobile-topbar / mobile-menu-btn re-declared their
+        backgrounds in a later block (line ~15617) which won
+        the cascade over earlier dark-mode flips on some
+        configurations.
+     3. The app shell containers (.app-main, .app-content,
+        body) sometimes rendered light when the desktop
+        sidebar collapsed and the page bg wasn't recomputed.
+
+   Defensive fix: use !important on the canvas + form input
+   surfaces so no later cascade rule can re-introduce a light
+   fill on dark mode. Light mode is unchanged. */
+
+html[data-theme="dark"] {
+    /* Remap the input-baseline token so inputs get dark
+       surface fills automatically. */
+    --brand-surface-tint: var(--theme-surface-alt);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .app-main,
+html[data-theme="dark"] .app-content {
+    background: var(--theme-canvas) !important;
+    color: var(--theme-text-primary);
+}
+
+/* Mobile topbar — lock the dark fill across all the
+   re-declarations of .mobile-topbar (lines ~2834, ~15312,
+   ~15617). */
+html[data-theme="dark"] .mobile-topbar {
+    background: rgba(13, 21, 35, 0.92) !important;
+    border-bottom-color: var(--theme-border-subtle) !important;
+}
+
+html[data-theme="dark"] .mobile-menu-btn {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .mobile-menu-btn span {
+    background: var(--theme-text-primary) !important;
+}
+
+/* Drawer-mode sidebar (under 1199px the desktop sidebar
+   collapses to a slide-in drawer). */
+@media (max-width: 1199px) {
+    html[data-theme="dark"] .app-sidebar,
+    html[data-theme="dark"] .app-sidebar.open,
+    html[data-theme="dark"] .sidebar-inner {
+        background: var(--theme-surface) !important;
+        border-color: var(--theme-border-subtle) !important;
+    }
+    html[data-theme="dark"] .sidebar-overlay {
+        background: rgba(0, 0, 0, 0.6) !important;
+    }
+}
+
+/* Form inputs — every <input>, <textarea>, <select> across
+   the app picks up dark surface in dark mode. The global
+   baseline at line ~164 uses var(--brand-surface-tint) which
+   we've now remapped above, but lock with !important so any
+   page-local override that re-introduces #ffffff loses. */
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-subtle) !important;
+    color: var(--theme-text-primary) !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] textarea:focus,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] select:focus-visible {
+    background: var(--theme-surface) !important;
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px var(--brand-primary-soft) !important;
+}
