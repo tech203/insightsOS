@@ -33,6 +33,12 @@
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
+    {# Skip-to-content link: visually hidden until a keyboard user
+       tabs to it, then a brand-styled pill appears at top-left.
+       Lets screen-reader / keyboard users bypass the entire sidebar
+       nav and jump straight to the page content. #}
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+
     {% set current_endpoint = request.endpoint or '' %}
     {% set sidebar_client = focused_client if focused_client is defined and focused_client else none %}
     {% set active_queue_client_id = request.args.get('client_id', '') %}
@@ -522,7 +528,7 @@
                 </a>
             {% endif %}
 
-            <main class="app-content">
+            <main class="app-content" id="main-content" tabindex="-1">
                 {% block content %}{% endblock %}
             </main>
         </div>
