@@ -929,7 +929,7 @@
                     <span>{{ member.created_at.strftime('%d %b %Y') if member.created_at else '—' }}</span>
                     <span>
                         <form method="post" action="{{ url_for('team_remove_member', member_id=member.id) }}" style="display:inline;" onsubmit="return confirm('Remove {{ member.email }} from your team?');">
-                            <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.6rem;">Remove</button>
+                            <button type="submit" class="btn btn-secondary btn-sm">Remove</button>
                         </form>
                     </span>
                 </div>
@@ -951,7 +951,7 @@
                     <span>{{ inv.invited_at.strftime('%d %b %Y') if inv.invited_at else '—' }}</span>
                     <span>
                         <form method="post" action="{{ url_for('team_revoke_invite', invite_id=inv.id) }}" style="display:inline;" onsubmit="return confirm('Revoke invite for {{ inv.email }}?');">
-                            <button type="submit" class="btn btn-secondary" style="font-size:0.78rem; padding:0.25rem 0.6rem;">Revoke</button>
+                            <button type="submit" class="btn btn-secondary btn-sm">Revoke</button>
                         </form>
                     </span>
                 </div>
@@ -1349,6 +1349,28 @@ html[data-theme="dark"] .theme-toggle-text {
 
     .settings-v3-tx-head {
         display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Collapse rows to a vertical stack on phone — 4-col grids
+       at 2 columns are still cramped at 375px wide and amounts
+       wrap mid-value. Each value gets its own line; first value
+       (date or email) is bold to anchor the row. */
+    .settings-v3-tx-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 12px 14px;
+    }
+
+    .settings-v3-tx-row > span:first-child {
+        font-weight: 600;
+        color: var(--text-strong);
+    }
+
+    .settings-v3-tx-row > span {
+        font-size: 13px;
+        line-height: 1.4;
     }
 }
 

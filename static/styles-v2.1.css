@@ -2794,11 +2794,16 @@ a {
     position: sticky;
     top: 0;
     z-index: 1200;
-    height: 64px;
+    /* Reserve room for the iOS status bar / notch when the app is
+       installed as a PWA. env() values resolve to 0 in browsers
+       without notch, so this is a no-op on Android / desktop. */
+    height: calc(64px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 0 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
     background: rgba(255, 255, 255, 0.96);
     border-bottom: 1px solid var(--line);
     backdrop-filter: blur(14px);
@@ -2898,6 +2903,10 @@ a {
     overflow-y: auto;
     overflow-x: visible;
     position: relative;
+    /* Native momentum scrolling on iOS — without this the sidebar
+       feels sluggish on iPhones once the nav is long enough to
+       require scrolling. */
+    -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-brand {
@@ -12489,11 +12498,24 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
 .modal-close-btn {
     border: 0;
     background: transparent;
-    font-size: 34px;
+    font-size: 28px;
     line-height: 1;
     color: #6b7280;
     cursor: pointer;
-    padding: 0;
+    /* min 44×44 tap target — iOS HIG / Material guideline */
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-close-btn:hover,
+.modal-close-btn:focus-visible {
+    background: rgba(107, 114, 128, 0.08);
+    color: #1f2937;
+    outline: none;
 }
 
 .app-modal-body {
@@ -19162,6 +19184,10 @@ html[data-theme="dark"] .workspace-more-divider {
     right: 0;
     z-index: 20;
     min-width: 320px;
+    /* Never wider than the viewport (minus a 12px safety margin
+       per side). Without this the popover can clip off-screen on
+       phones, especially when the trigger is full-width. */
+    max-width: calc(100vw - 24px);
     padding: 0.85rem;
     background: white;
     border: 1px solid #ececf2;
@@ -19249,8 +19275,8 @@ html[data-theme="dark"] .workspace-logo-remove-btn {
     top: 14px;
     right: 14px;
     z-index: 5;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.04);
@@ -19671,7 +19697,20 @@ html[data-theme="dark"] .topup-bundle-strike {
     padding: 0;
     vertical-align: middle;
     position: relative;
+    /* Expand the tap area without changing the visible 18×18 disc.
+       Negative margins keep the inline flow unchanged on desktop;
+       the transparent ::before is a 32×32 hit zone that makes the
+       tooltip reliably tappable on phones. */
     transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.info-tip::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
 }
 .info-tip:hover,
 .info-tip:focus-visible,
@@ -21061,6 +21100,9 @@ html[data-theme="dark"] .score-unit {
     right: 0;
     z-index: 30;
     min-width: 200px;
+    /* Phone-safe — keeps the menu inside the viewport even when
+       the trigger sits near the right edge of a wrapped flex row. */
+    max-width: calc(100vw - 24px);
     padding: 6px;
     border: 1px solid var(--border-main);
     border-radius: 12px;
