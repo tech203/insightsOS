@@ -257,8 +257,8 @@
 .stat-card,
 .hero-takeaway-card,
 .timeline-card {
-    background: #ffffff;
-    border: 1px solid #e8edf5;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 20px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
@@ -654,5 +654,22 @@
         border-color: var(--theme-border-subtle);
     }
     html[data-theme="dark"] .priority-chip { color: #FCD34D; background: rgba(245, 158, 11, 0.18); }
+
+    /* ===== Dark-mode flips for peach badge + priority chips ===== */
+    html[data-theme="dark"] .hero-badge-primary {
+        background: rgba(232, 50, 86, 0.16);
+        border-color: rgba(255, 216, 198, 0.25);
+        color: #ffb1bd;
+    }
+    html[data-theme="dark"] .priority-chip.high {
+        background: rgba(232, 50, 86, 0.18);
+        border-color: rgba(255, 216, 198, 0.25);
+        color: #ffb1bd;
+    }
+    html[data-theme="dark"] .priority-chip.medium {
+        background: rgba(180, 83, 9, 0.20);
+        border-color: rgba(246, 215, 167, 0.25);
+        color: #fed7a8;
+    }
 </style>
 {% endblock %}
