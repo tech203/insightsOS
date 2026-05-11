@@ -25,9 +25,12 @@
 
     {% if show_scorecard %}
     {% set latest = focused_client.latest_audit or {} %}
-    {% set opportunity_level = latest.get('opportunity_level') if latest.get('opportunity_level') and latest.get('opportunity_level') != 'N/A' else (
-        'Strong Visibility' if aeo_score >= 80 else 'Moderate Opportunity' if aeo_score >= 55 else 'High Opportunity'
-    ) %}
+    {# Use the canonical score_band() helper from app.py rather than
+       inlining ad-hoc thresholds — all four score-band surfaces
+       (dashboard, workspace overview, visibility, audit summary)
+       now agree on what "Strong / Moderate / High opportunity" means. #}
+    {% set band = score_band(aeo_score) %}
+    {% set opportunity_level = latest.get('opportunity_level') if latest.get('opportunity_level') and latest.get('opportunity_level') != 'N/A' else band.opportunity %}
     <section class="visibility-scorecard">
         <div class="visibility-scorecard-glow"></div>
 
@@ -37,13 +40,8 @@
                 <h2>AI Visibility Scorecard</h2>
                 <p>{{ focused_client.name or 'Workspace' }}{% if focused_client.industry %} · {{ focused_client.industry }}{% endif %}</p>
             </div>
-            <span class="visibility-scorecard-pill
-                {% if aeo_score >= 80 %}visibility-scorecard-pill-strong
-                {% elif aeo_score >= 55 %}visibility-scorecard-pill-moderate
-                {% else %}visibility-scorecard-pill-opportunity{% endif %}">
-                {% if aeo_score >= 80 %}Strong Visibility
-                {% elif aeo_score >= 55 %}Moderate Visibility
-                {% else %}High Opportunity{% endif %}
+            <span class="visibility-scorecard-pill visibility-scorecard-pill-{{ band.band }}">
+                {{ band.label }}
             </span>
         </header>
 
@@ -81,12 +79,10 @@
         <div class="visibility-scorecard-takeaway">
             <span class="visibility-scorecard-takeaway-label">Takeaway</span>
             <p>
-                {% if aeo_score >= 80 %}
-                    Strong visibility — hold the lead and expand to new query clusters.
-                {% elif aeo_score >= 55 %}
+                {% if band.band == 'moderate' %}
                     Developing. Close the {% if vis_score < cont_score %}Visibility{% else %}Content{% endif %} gap first to move the needle.
                 {% else %}
-                    Significant upside. Re-audit, fill content gaps, and start tracking the queries you want to win.
+                    {{ band.note }}
                 {% endif %}
             </p>
         </div>
@@ -239,23 +235,21 @@
 
             <strong class="dashboard-score-value">{{ aeo_score|round|int }}<small class="score-unit">/100</small></strong>
 
+            {# Reuse the canonical score_band — even when this block
+               renders without the scorecard above, we re-call to get
+               a fresh band (cheap; pure function of score). #}
+            {% set snapshot_band = score_band(aeo_score) %}
             <div class="dashboard-score-pill-row">
-                {% if aeo_score >= 80 %}
-                    <span class="score-pill score-pill-success">Strong visibility</span>
-                {% elif aeo_score >= 55 %}
-                    <span class="score-pill score-pill-warning">Moderate visibility</span>
-                {% else %}
-                    <span class="score-pill score-pill-danger">High opportunity</span>
-                {% endif %}
+                <span class="{{ snapshot_band.pill_class }}">{{ snapshot_band.label }}</span>
                 {% if view_mode == "multi" and total_clients > 1 %}
                 <span class="score-pill score-pill-info">Portfolio avg {{ portfolio_avg_score|round|int }}/100 across {{ total_clients }}</span>
                 {% endif %}
             </div>
 
             <p class="dashboard-score-text">
-                {% if aeo_score >= 80 %}
+                {% if snapshot_band.band == 'strong' %}
                     {% if spotlight_client %}{{ spotlight_client.name }}{% else %}Your workspace{% endif %} is showing strong visibility across tracked AI answers.
-                {% elif aeo_score >= 55 %}
+                {% elif snapshot_band.band == 'moderate' %}
                     Visibility is developing, but there are still meaningful gaps to improve.
                 {% else %}
                     Visibility is still low, so there is strong upside if you act on the findings.

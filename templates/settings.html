@@ -515,8 +515,8 @@
             margin-top: 1rem;
         }
         .topup-bundle-card {
-            background: white;
-            border: 1px solid #ececf2;
+            background: var(--bg-card);
+            border: 1px solid var(--border-main);
             border-radius: 12px;
             padding: 1rem 1.05rem;
             display: flex;
@@ -524,7 +524,7 @@
         }
         .topup-bundle-card.is-best {
             border: 2px solid var(--brand-primary, #3EDFCB);
-            background: linear-gradient(180deg, #f0fffd 0%, white 60%);
+            background: linear-gradient(180deg, var(--brand-primary-soft, #f0fffd) 0%, var(--bg-card) 60%);
         }
         .topup-bundle-head {
             display: flex;
@@ -1666,6 +1666,23 @@ html[data-theme="dark"] .theme-toggle-text {
     }
 }
 
+/* ===== Dark-mode flips for peach accent surfaces ===== */
+html[data-theme="dark"] .settings-chip-primary,
+html[data-theme="dark"] .dev-view-btn.active {
+    background: rgba(232, 50, 86, 0.16);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffb1bd;
+}
+html[data-theme="dark"] .dev-view-btn:hover {
+    background: rgba(232, 50, 86, 0.10);
+    border-color: rgba(255, 216, 198, 0.25);
+    color: #ffb1bd;
+}
+html[data-theme="dark"] .settings-v3-active-card,
+html[data-theme="dark"] .settings-v3-note-box {
+    background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
+    border-color: rgba(255, 216, 198, 0.22);
+}
 </style>
 
 <script>

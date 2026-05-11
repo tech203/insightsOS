@@ -243,8 +243,8 @@
 
 .audit-form-card-clean,
 .audit-side-card {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -450,16 +450,16 @@
 .audit-stage-item {
     padding: 14px 16px;
     border-radius: 16px;
-    border: 1px solid #e7ebf3;
-    background: #ffffff;
+    border: 1px solid var(--border-main);
+    background: var(--bg-card);
     opacity: 0.55;
     transition: all 0.25s ease;
 }
 
 .audit-stage-item.active {
     opacity: 1;
-    border-color: #d8cdfd;
-    background: #f9f6ff;
+    border-color: var(--brand-secondary, #d8cdfd);
+    background: var(--brand-secondary-soft, #f9f6ff);
 }
 
 .audit-stage-item strong {

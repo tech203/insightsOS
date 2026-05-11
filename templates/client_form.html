@@ -226,8 +226,8 @@
 .workspace-form-card,
 .workspace-mini-card,
 .form-alert {
-    background: #ffffff;
-    border: 1px solid #e7ebf3;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
     border-radius: 22px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
@@ -395,12 +395,12 @@
 .form-field select,
 .form-field textarea {
     width: 100%;
-    border: 1px solid #d9e2ef;
+    border: 1px solid var(--border-main);
     border-radius: 16px;
-    background: #ffffff;
+    background: var(--bg-card);
     padding: 14px 16px;
     font: inherit;
-    color: #16243c;
+    color: var(--text-strong);
     transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -562,6 +562,17 @@
     html[data-theme="dark"] .workspace-mini-card h4,
     html[data-theme="dark"] .workspace-mini-card strong {
         color: var(--theme-text-primary);
+    }
+
+    /* Danger surface flips — keep red-on-deep-navy feel */
+    html[data-theme="dark"] .workspace-mini-card-danger {
+        background: rgba(220, 38, 38, 0.08);
+        border-color: rgba(254, 202, 202, 0.22);
+    }
+    html[data-theme="dark"] .form-alert-danger {
+        background: rgba(220, 38, 38, 0.10);
+        border-color: rgba(254, 202, 202, 0.22);
+        color: #fca5a5;
     }
 </style>
 {% endblock %}

@@ -4,100 +4,121 @@
 
 {% block head %}
 <style>
-    .ga-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-    .ga-header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.5rem; }
-    .ga-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
-    .ga-header p { margin: 0; color: #555; max-width: 600px; }
-    .ga-card { background: white; border: 1px solid #ececf2; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
-    .ga-empty { background: white; border: 1px dashed #d4d4dc; border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; color: #555; }
-    .ga-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
-    .ga-kpi { background: white; border: 1px solid #ececf2; border-radius: 10px; padding: 0.85rem 1rem; }
-    .ga-kpi-label { font-size: 0.78rem; color: #777; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
-    .ga-kpi-value { font-size: 1.6rem; font-weight: 700; margin: 0.15rem 0 0 0; color: var(--brand-text-strong, #191929); }
-    .ga-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .ga-table th { text-align: left; font-weight: 600; color: #555; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.65rem; border-bottom: 1px solid #ececf2; }
-    .ga-table td { padding: 0.55rem 0.65rem; border-bottom: 1px solid #f4f4f8; }
+    /* Page-specific layout only — surfaces, buttons, pills, tiles come from the design system. */
+    .ga-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .ga-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .ga-table th {
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.5rem 0.65rem;
+        border-bottom: 1px solid var(--border-main);
+    }
+    .ga-table td {
+        padding: 0.55rem 0.65rem;
+        border-bottom: 1px solid var(--theme-border-subtle, #f4f4f8);
+        color: var(--text-main);
+    }
+    .ga-table td:first-child { color: var(--text-strong); }
     .ga-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
-    .ga-btn { padding: 0.55rem 1rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; background: var(--brand-primary, #3EDFCB); color: var(--brand-text-strong, #191929); min-height: 40px; }
-    .ga-btn-secondary { background: white; border: 1px solid #d4d4dc; color: #333; }
-    .ga-btn-danger { background: #fdecea; color: #b22424; }
-    .ga-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .ga-error { padding: 0.85rem 1rem; background: #fdecea; color: #b22424; border-radius: 8px; margin-bottom: 1rem; }
-    .ga-grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 800px) { .ga-grid-two { grid-template-columns: 1fr; } }
+
+    .ga-grid-two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    @media (max-width: 800px) {
+        .ga-grid-two { grid-template-columns: 1fr; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="ga-page">
-    <div class="ga-header">
+<div class="page-shell">
+    <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
         <div>
-            <h1>Google Analytics {{ info_tip("GA4 audience + traffic for " + workspace.name + ": sessions, engaged users, top pages, channel mix. Last 28 days. Shares the same Google connection as Search Console.") }}</h1>
+            <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">Google Analytics {{ info_tip("GA4 audience + traffic for " + workspace.name + ": sessions, engaged users, top pages, channel mix. Last 28 days. Shares the same Google connection as Search Console.") }}</h1>
         </div>
-        <div class="ga-actions">
-            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="ga-btn ga-btn-secondary">← Workspace</a>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="btn btn-secondary">← Workspace</a>
             {% if connection and connection.ga_property_id %}
             <form method="post" action="{{ url_for('ga_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect Google Analytics for this workspace? Your Search Console connection stays intact.');">
-                <button type="submit" class="ga-btn ga-btn-danger">Disconnect GA</button>
+                <button type="submit" class="btn btn-danger">Disconnect GA</button>
             </form>
             {% endif %}
         </div>
     </div>
 
-    {% if error %}<div class="ga-error">{{ error }}</div>{% endif %}
+    {% if error %}
+        <div class="surface-card" style="border-color: var(--status-danger, #d24b4b); color: var(--status-danger, #b22424);">{{ error }}</div>
+    {% endif %}
 
     {% if not connection %}
-        <div class="ga-empty">
+        <div class="empty-card">
             <div style="font-size:2.2rem; margin-bottom:0.5rem;">📊</div>
             <h2 style="margin:0 0 0.5rem 0; font-size:1.2rem;">Connect Google first</h2>
-            <p style="max-width:480px; margin:0 auto 1.25rem auto;">
+            <p>
                 Google Analytics shares the same connection as Google Search Console. Start there — once you authorize, both products are available.
             </p>
-            <a href="{{ url_for('gsc_dashboard', client_id=workspace.id) }}" class="ga-btn">Go to Search Console</a>
+            <a href="{{ url_for('gsc_dashboard', client_id=workspace.id) }}" class="btn btn-primary" style="margin-top: 1.25rem;">Go to Search Console</a>
         </div>
     {% elif not connection.ga_property_id %}
-        <div class="ga-card">
-            <h2 style="margin:0 0 0.4rem 0; font-size:1.1rem;">Pick the GA4 property</h2>
-            <p style="margin:0 0 1rem 0; color:#555;">Properties from every GA4 account on your connected Google login.</p>
+        <div class="surface-card">
+            <h2 style="margin:0 0 0.4rem 0; font-size:1.1rem; color:var(--text-strong);">Pick the GA4 property</h2>
+            <p style="margin:0 0 1rem 0; color:var(--text-muted);">Properties from every GA4 account on your connected Google login.</p>
             {% if properties %}
-            <form method="post" action="{{ url_for('ga_select_property', client_id=workspace.id) }}" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:end;">
-                <div style="flex:1 1 320px;">
-                    <label for="ga-prop" style="font-size:0.78rem; color:#555; display:block; margin-bottom:0.25rem;">Property</label>
-                    <select id="ga-prop" name="property_id" required style="width:100%; padding:0.5rem 0.7rem; border:1px solid #d4d4dc; border-radius:8px; font-size:16px;">
+            <form method="post" action="{{ url_for('ga_select_property', client_id=workspace.id) }}" class="form-grid-2" style="align-items: end;">
+                <div class="form-field" style="grid-column: span 2;">
+                    <label for="ga-prop">Property</label>
+                    <select id="ga-prop" name="property_id" required>
                         {% for prop in properties %}
                         <option value="{{ prop.id }}">{{ prop.display_name }} · {{ prop.account_name }} (#{{ prop.id }})</option>
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="ga-btn">Track this property</button>
+                <div class="form-field form-field-full">
+                    <button type="submit" class="btn btn-primary">Track this property</button>
+                </div>
             </form>
             {% else %}
-            <p style="color:#888;">No GA4 properties found on this Google account. Create one in <a href="https://analytics.google.com" target="_blank" rel="noopener">Google Analytics</a> and refresh.</p>
+            <p style="color:var(--text-muted);">No GA4 properties found on this Google account. Create one in <a href="https://analytics.google.com" target="_blank" rel="noopener">Google Analytics</a> and refresh.</p>
             {% endif %}
         </div>
     {% else %}
-        <div class="ga-card" style="display:flex; gap:1rem; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
+        <div class="surface-card" style="display:flex; gap:1rem; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
             <div>
-                <h2 style="margin:0 0 0.25rem 0; font-size:1.05rem;">GA4 Property #{{ connection.ga_property_id }}</h2>
-                <p style="margin:0; font-size:0.85rem; color:#666;">
+                <h2 style="margin:0 0 0.25rem 0; font-size:1.05rem; color:var(--text-strong);">GA4 Property #{{ connection.ga_property_id }}</h2>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">
                     {% if payload.range_start and payload.range_end %}Window: {{ payload.range_start }} → {{ payload.range_end }}{% endif %}
                     {% if connection.ga_synced_at %} · Last synced {{ connection.ga_synced_at.strftime('%d %b %Y, %H:%M UTC') }}{% endif %}
                 </p>
             </div>
-            <div class="ga-actions">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                 <form method="post" action="{{ url_for('ga_sync', client_id=workspace.id) }}">
-                    <button type="submit" class="ga-btn">Refresh data</button>
+                    <button type="submit" class="btn btn-primary">Refresh data</button>
                 </form>
                 {% if properties and properties|length > 1 %}
                 <details>
-                    <summary style="cursor:pointer; font-size:0.88rem; color:#666;">Switch property</summary>
-                    <form method="post" action="{{ url_for('ga_select_property', client_id=workspace.id) }}" style="margin-top:0.5rem;">
-                        <select name="property_id" required style="padding:0.4rem 0.6rem; border:1px solid #d4d4dc; border-radius:6px;">
+                    <summary style="cursor:pointer; font-size:0.88rem; color:var(--text-muted);">Switch property</summary>
+                    <form method="post" action="{{ url_for('ga_select_property', client_id=workspace.id) }}" style="margin-top:0.5rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
+                        <select name="property_id" required style="padding:0.4rem 0.6rem; border:1px solid var(--border-main); border-radius:6px; background:var(--bg-card); color:var(--text-strong);">
                             {% for prop in properties %}
                             <option value="{{ prop.id }}" {% if prop.id == connection.ga_property_id %}selected{% endif %}>{{ prop.display_name }}</option>
                             {% endfor %}
                         </select>
-                        <button type="submit" class="ga-btn ga-btn-secondary" style="font-size:0.8rem;">Switch</button>
+                        <button type="submit" class="btn btn-secondary" style="font-size:0.8rem;">Switch</button>
                     </form>
                 </details>
                 {% endif %}
@@ -106,15 +127,27 @@
 
         {% set totals = payload.totals or {} %}
         <div class="ga-kpi-grid">
-            <div class="ga-kpi"><p class="ga-kpi-label">Sessions (28d)</p><p class="ga-kpi-value">{{ totals.sessions|default(0)|int }}</p></div>
-            <div class="ga-kpi"><p class="ga-kpi-label">Total users (28d)</p><p class="ga-kpi-value">{{ totals.totalUsers|default(0)|int }}</p></div>
-            <div class="ga-kpi"><p class="ga-kpi-label">Engaged sessions</p><p class="ga-kpi-value">{{ totals.engagedSessions|default(0)|int }}</p></div>
-            <div class="ga-kpi"><p class="ga-kpi-label">Avg session (s)</p><p class="ga-kpi-value">{{ totals.averageSessionDuration|default(0)|round(0)|int }}</p></div>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Sessions (28d)</span>
+                <span class="metric-tile-value">{{ totals.sessions|default(0)|int }}</span>
+            </div>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Total users (28d)</span>
+                <span class="metric-tile-value">{{ totals.totalUsers|default(0)|int }}</span>
+            </div>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Engaged sessions</span>
+                <span class="metric-tile-value">{{ totals.engagedSessions|default(0)|int }}</span>
+            </div>
+            <div class="metric-tile">
+                <span class="metric-tile-label">Avg session (s)</span>
+                <span class="metric-tile-value">{{ totals.averageSessionDuration|default(0)|round(0)|int }}</span>
+            </div>
         </div>
 
         <div class="ga-grid-two">
-            <div class="ga-card">
-                <h3 style="margin:0 0 0.6rem 0; font-size:1rem;">Top pages</h3>
+            <div class="surface-card">
+                <h3 style="margin:0 0 0.6rem 0; font-size:1rem; color:var(--text-strong);">Top pages</h3>
                 {% if payload.top_pages %}
                 <table class="ga-table">
                     <thead><tr><th>Page</th><th class="num">Sessions</th><th class="num">Engaged</th></tr></thead>
@@ -128,11 +161,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                {% else %}<p style="color:#888; font-size:0.88rem;">No page data for this window.</p>{% endif %}
+                {% else %}<p style="color:var(--text-muted); font-size:0.88rem;">No page data for this window.</p>{% endif %}
             </div>
 
-            <div class="ga-card">
-                <h3 style="margin:0 0 0.6rem 0; font-size:1rem;">Channel mix</h3>
+            <div class="surface-card">
+                <h3 style="margin:0 0 0.6rem 0; font-size:1rem; color:var(--text-strong);">Channel mix</h3>
                 {% if payload.top_sources %}
                 <table class="ga-table">
                     <thead><tr><th>Channel</th><th class="num">Sessions</th></tr></thead>
@@ -145,7 +178,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                {% else %}<p style="color:#888; font-size:0.88rem;">No channel data.</p>{% endif %}
+                {% else %}<p style="color:var(--text-muted); font-size:0.88rem;">No channel data.</p>{% endif %}
             </div>
         </div>
     {% endif %}
