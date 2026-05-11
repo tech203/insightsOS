@@ -1,0 +1,83 @@
+{# Toast / flash-message renderer.
+
+   Renders Flask's flashed messages as floating toast notifications
+   in the top-right corner. Until this partial existed, all 362
+   flash() calls in app.py were silently discarded — users got no
+   confirmation when they saved, published, deleted, hit a credit
+   limit, or triggered any other server-side feedback.
+
+   Categories map to visual variants:
+     "success" → green border + checkmark
+     "info"    → brand-mint border + info icon
+     "warning" → amber border + warning icon
+     "error" / "danger" → red border + cross icon
+
+   Auto-dismisses after 6s (success/info) or 9s (warning/error).
+   Manual dismiss via the × button. ESC dismisses the most
+   recent. The whole stack collapses if the user navigates away
+   (page reload clears the session flashes naturally).
+
+   Pulled into base.html so EVERY authenticated page renders it.
+#}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="toast-stack" role="region" aria-label="Notifications" id="toastStack">
+    {% for category, message in messages %}
+    {% set variant = category if category in ['success', 'info', 'warning', 'error', 'danger'] else 'info' %}
+    {% if variant == 'danger' %}{% set variant = 'error' %}{% endif %}
+    <div class="toast toast--{{ variant }}" role="alert" data-toast>
+        <span class="toast-icon" aria-hidden="true">
+            {% if variant == 'success' %}&#10003;
+            {% elif variant == 'warning' %}!
+            {% elif variant == 'error' %}&times;
+            {% else %}i
+            {% endif %}
+        </span>
+        <span class="toast-message">{{ message }}</span>
+        <button type="button" class="toast-close" aria-label="Dismiss notification" data-toast-close>&times;</button>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+(function () {
+    var stack = document.getElementById("toastStack");
+    if (!stack) return;
+    var toasts = stack.querySelectorAll("[data-toast]");
+
+    function dismiss(t) {
+        if (!t || t.classList.contains("is-dismissing")) return;
+        t.classList.add("is-dismissing");
+        setTimeout(function () {
+            if (t.parentNode) t.parentNode.removeChild(t);
+            if (stack.children.length === 0 && stack.parentNode) {
+                stack.parentNode.removeChild(stack);
+            }
+        }, 220);
+    }
+
+    toasts.forEach(function (toast) {
+        // Auto-dismiss timing: longer for warnings + errors so the
+        // user has time to read what went wrong.
+        var isUrgent = toast.classList.contains("toast--warning") ||
+                       toast.classList.contains("toast--error");
+        var ttl = isUrgent ? 9000 : 6000;
+        var timer = setTimeout(function () { dismiss(toast); }, ttl);
+
+        // Cancel auto-dismiss if user hovers — they're reading it.
+        toast.addEventListener("mouseenter", function () { clearTimeout(timer); });
+
+        var btn = toast.querySelector("[data-toast-close]");
+        if (btn) btn.addEventListener("click", function () { dismiss(toast); });
+    });
+
+    // ESC dismisses the most recent toast.
+    document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape") return;
+        var remaining = stack.querySelectorAll("[data-toast]:not(.is-dismissing)");
+        if (remaining.length) dismiss(remaining[remaining.length - 1]);
+    });
+})();
+</script>
+{% endif %}
+{% endwith %}

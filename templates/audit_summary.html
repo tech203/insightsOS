@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{# Tab-title notify: if the audit finished while the user was on
+   another tab, prepend "(✓) " to the title so they see it in the
+   browser's tab bar / OS task switcher. #}
+{% set task_complete_notify = "Audit complete" %}
+
 {% block title %}Audit Summary | DarInsights{% endblock %}
 {% block page_title %}Audit Summary{% endblock %}
 {% block page_subtitle %}Quick summary view of the saved audit result with scores, verdict, and next actions.{% endblock %}

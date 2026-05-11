@@ -18,6 +18,21 @@
     </div>
     {% endif %}
 
+    {% if stripe_configured is defined and not stripe_configured %}
+    {# Stripe wasn't configured on this server (no STRIPE_SECRET_KEY).
+       Without this banner, plan + topup buttons would still look
+       active but bounce the user back here with an error flash —
+       a confusing dead-end. Surface the state explicitly so the
+       user knows it's a server config issue, not their problem. #}
+    <div class="pricing-stripe-banner" role="status">
+        <div class="pricing-stripe-copy">
+            <strong>Checkout temporarily unavailable</strong>
+            <p>Stripe billing isn't connected on this server yet. Plans and topups can be browsed below, but purchases need to wait until billing is wired up. Reach out via the help page if you need access right now.</p>
+        </div>
+        <a href="{{ url_for('help_page') if url_for else '#' }}" class="btn btn-secondary">Get help</a>
+    </div>
+    {% endif %}
+
     <section class="surface-card surface-card--featured pricing-hero-card">
         <div class="pricing-hero-main">
             <div class="pricing-badge-row">
@@ -99,6 +114,14 @@
 
                 {% if plan.slug == 'free' %}
                 <a href="{{ url_for('signup') }}" class="btn btn-secondary full-width-btn">Get Started</a>
+                {% elif stripe_configured is defined and not stripe_configured %}
+                {# Stripe not configured — show a disabled button so the
+                   user sees the plan exists but knows checkout is blocked. #}
+                <button type="button" class="btn btn-secondary full-width-btn" disabled
+                        aria-disabled="true"
+                        title="Checkout temporarily unavailable — Stripe billing is not configured on this server.">
+                    Checkout unavailable
+                </button>
                 {% else %}
                 <a href="{{ url_for('stripe_checkout_plan', plan_slug=plan.slug) }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} full-width-btn">
                     {% if current_plan == plan.slug %}Current Plan{% else %}Choose {{ plan.label }}{% endif %}
@@ -284,6 +307,65 @@ html[data-theme="dark"] .pricing-canceled-copy strong {
 }
 
 html[data-theme="dark"] .pricing-canceled-copy p {
+    color: var(--theme-text-muted);
+}
+
+/* Stripe-not-configured banner — same shell as the cancel
+   banner above but neutral grey/info tone since it's a server
+   state not a user action. Reuses .pricing-canceled-copy for
+   the inner copy treatment. */
+.pricing-stripe-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 14px;
+    color: #4b5563;
+}
+
+.pricing-stripe-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pricing-stripe-copy strong {
+    display: block;
+    font-size: 15px;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.pricing-stripe-copy p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5c6a7d;
+}
+
+@media (max-width: 640px) {
+    .pricing-stripe-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .pricing-stripe-banner .btn {
+        width: 100%;
+    }
+}
+
+html[data-theme="dark"] .pricing-stripe-banner {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-secondary);
+}
+
+html[data-theme="dark"] .pricing-stripe-copy strong {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .pricing-stripe-copy p {
     color: var(--theme-text-muted);
 }
 
