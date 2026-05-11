@@ -21733,11 +21733,209 @@ html[data-theme="dark"] .onboarding-step.is-current {
 }
 
 /* =========================================================
+   Toasts / flash messages
+   =========================================================
+   Floating notification stack in the top-right corner. Each
+   toast slides in from the right, auto-dismisses (6s normal,
+   9s urgent), or can be dismissed manually with × / ESC.
+
+   Variants: success / info / warning / error — each has its
+   own border + icon color. Background is always the standard
+   surface so multiple toasts stack cleanly. */
+
+.toast-stack {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(380px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 12px;
+    padding: 14px 14px 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-left-width: 4px;
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+    color: var(--text-strong);
+    font-size: 14px;
+    line-height: 1.5;
+    animation: toast-slide-in 0.22s ease-out;
+}
+
+@keyframes toast-slide-in {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+.toast.is-dismissing {
+    animation: toast-slide-out 0.22s ease-in forwards;
+}
+
+@keyframes toast-slide-out {
+    to { transform: translateX(110%); opacity: 0; }
+}
+
+.toast-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.toast-message {
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.toast-close {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: -2px;
+}
+
+.toast-close:hover,
+.toast-close:focus-visible {
+    background: rgba(107, 114, 128, 0.12);
+    color: var(--text-strong);
+    outline: none;
+}
+
+/* --- Variants --- */
+
+.toast--success {
+    border-left-color: #16a34a;
+}
+.toast--success .toast-icon {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.toast--info {
+    border-left-color: var(--brand-primary);
+}
+.toast--info .toast-icon {
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+}
+
+.toast--warning {
+    border-left-color: #d97706;
+}
+.toast--warning .toast-icon {
+    background: rgba(217, 119, 6, 0.12);
+    color: #d97706;
+}
+
+.toast--error {
+    border-left-color: #dc2626;
+}
+.toast--error .toast-icon {
+    background: rgba(220, 38, 38, 0.12);
+    color: #dc2626;
+}
+
+/* --- Mobile / narrow --- */
+
+@media (max-width: 640px) {
+    .toast-stack {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+        width: auto;
+    }
+    .toast {
+        font-size: 13px;
+        padding: 12px;
+    }
+}
+
+/* --- Dark mode --- */
+
+html[data-theme="dark"] .toast {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] .toast-close {
+    color: var(--theme-text-muted);
+}
+
+html[data-theme="dark"] .toast-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .toast--success {
+    border-left-color: #22c55e;
+}
+html[data-theme="dark"] .toast--success .toast-icon {
+    background: rgba(34, 197, 94, 0.18);
+    color: #22c55e;
+}
+
+html[data-theme="dark"] .toast--warning {
+    border-left-color: #f59e0b;
+}
+html[data-theme="dark"] .toast--warning .toast-icon {
+    background: rgba(245, 158, 11, 0.18);
+    color: #f59e0b;
+}
+
+html[data-theme="dark"] .toast--error {
+    border-left-color: #ef4444;
+}
+html[data-theme="dark"] .toast--error .toast-icon {
+    background: rgba(239, 68, 68, 0.18);
+    color: #ef4444;
+}
+
+/* Reduced motion — no slide, just appear/disappear */
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        animation: none;
+    }
+    .toast.is-dismissing {
+        animation: none;
+        opacity: 0;
+    }
+}
+
+/* =========================================================
    Dark-mode polish pass — surface backgrounds
    =========================================================
-   (Originally landed in PR #36, kept here so both polish
-   passes — PR #36 page-specific surfaces and PR #37 mobile
-   shell + global inputs — coexist after merge.) */
+   (Originally landed in PR #36, kept here so multiple polish
+   passes coexist after merge.) */
 
 html[data-theme="dark"] .workspace-notes {
     background: var(--theme-surface-alt) !important;
@@ -21830,20 +22028,6 @@ html[data-theme="dark"] .query-status-pill {
 /* =========================================================
    Mobile / narrow-viewport dark-mode hardening
    =========================================================
-   Reported regression: at narrow widths and on mobile, the
-   page rendered as bright white in dark mode. Root cause:
-     1. --brand-surface-tint (used by every <input> via the
-        global input baseline at line ~170) was hardcoded
-        #E4E4EC and never remapped in the dark token block.
-        Every form input was rendering with a light-grey fill
-        on dark surfaces.
-     2. Mobile-topbar / mobile-menu-btn re-declared their
-        backgrounds in a later block (line ~15617) which won
-        the cascade over earlier dark-mode flips.
-     3. The app shell containers (.app-main, .app-content,
-        body) sometimes rendered light when the desktop
-        sidebar collapsed and the page bg wasn't recomputed.
-
    Defensive fix: use !important on the canvas + form input
    surfaces so no later cascade rule can re-introduce a light
    fill on dark mode. Light mode is unchanged. */
@@ -21862,9 +22046,6 @@ html[data-theme="dark"] .app-content {
     color: var(--theme-text-primary);
 }
 
-/* Mobile topbar — lock the dark fill across all the
-   re-declarations of .mobile-topbar (lines ~2834, ~15312,
-   ~15617). */
 html[data-theme="dark"] .mobile-topbar {
     background: rgba(13, 21, 35, 0.92) !important;
     border-bottom-color: var(--theme-border-subtle) !important;
@@ -21881,8 +22062,6 @@ html[data-theme="dark"] .mobile-menu-btn span {
     background: var(--theme-text-primary) !important;
 }
 
-/* Drawer-mode sidebar (under 1199px the desktop sidebar
-   collapses to a slide-in drawer). */
 @media (max-width: 1199px) {
     html[data-theme="dark"] .app-sidebar,
     html[data-theme="dark"] .app-sidebar.open,
@@ -21895,11 +22074,6 @@ html[data-theme="dark"] .mobile-menu-btn span {
     }
 }
 
-/* Form inputs — every <input>, <textarea>, <select> across
-   the app picks up dark surface in dark mode. The global
-   baseline at line ~164 uses var(--brand-surface-tint) which
-   we've now remapped above, but lock with !important so any
-   page-local override that re-introduces #ffffff loses. */
 html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
