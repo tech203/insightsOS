@@ -144,7 +144,9 @@
                     <p class="workspace-domain">{{ client.website if client.website else "No website added yet" }}</p>
 
                     {% if client.notes %}
-                    <p class="workspace-notes">{{ client.notes }}</p>
+                    <p class="workspace-notes-summary">
+                        <a href="{{ url_for('client_brand_context', client_id=client.id) }}" class="workspace-notes-link">Brand context added</a> — used in all audits and content generation.
+                    </p>
                     {% endif %}
                 </div>
             </div>
@@ -387,6 +389,36 @@
 
 </div>
 
+    {# Brand context section — only shows when brand context has been saved.
+       Parses the structured "Label:\nContent" block format written by the
+       brand_context route and displays each field as a labelled card. #}
+    {% if client.notes %}
+    <section class="workspace-section-card">
+        <div class="section-head compact">
+            <div>
+                <span class="section-kicker">Workspace brief</span>
+                <h3>Brand Context</h3>
+                <p>Used by all audits, content briefs, and AI generations for this workspace.</p>
+            </div>
+            <a href="{{ url_for('client_brand_context', client_id=client.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+        </div>
+
+        <div class="brand-ctx-grid">
+            {% for block in client.notes.split('\n\n') %}
+                {% set lines = block.strip().split('\n') %}
+                {% set label = lines[0].rstrip(':').strip() if lines else '' %}
+                {% set value = lines[1:] | join(' ') | trim if lines | length > 1 else '' %}
+                {% if label and value and value != 'Not specified' %}
+                <div class="brand-ctx-item">
+                    <span class="brand-ctx-label">{{ label }}</span>
+                    <p class="brand-ctx-value">{{ value }}</p>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     {# "Latest Audit Snapshot" is meaningless without an audit —
        the workspace-empty-hero above covers the no-audit case. #}
     {% if has_audit %}
@@ -587,4 +619,73 @@
 
 </div>
 
+<style>
+/* ── Brand context summary link (top strip) ─────────────────────── */
+.workspace-notes-summary {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.workspace-notes-link {
+    color: var(--brand-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.workspace-notes-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Brand context structured grid ─────────────────────────────── */
+.brand-ctx-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.brand-ctx-item {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--surface-alt, #f8f9fb);
+    border: 1px solid var(--border-subtle, #ebebf3);
+}
+
+.brand-ctx-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brand-primary, #7c5fe6);
+    margin-bottom: 6px;
+}
+
+.brand-ctx-value {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text-main, #435267);
+}
+
+html[data-theme="dark"] .brand-ctx-item {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .brand-ctx-label {
+    color: #c4b5fd;
+}
+
+html[data-theme="dark"] .brand-ctx-value {
+    color: var(--theme-text-secondary);
+}
+
+@media (max-width: 640px) {
+    .brand-ctx-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}

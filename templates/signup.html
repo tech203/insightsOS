@@ -6,6 +6,14 @@
     <title>Sign Up | DarInsights</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+    <script>
+    /* Apply saved theme before first paint to avoid flash of wrong theme. */
+    (function () {
+        var t = localStorage.getItem('darInsightsTheme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
 </head>
 <body class="auth-page-light">
 {% include "partials/toasts.html" %}
@@ -94,6 +102,20 @@
                     Create Account
                 </button>
             </form>
+
+            <div class="auth-divider-dark">
+                <span>or</span>
+            </div>
+
+            <a href="{{ url_for('google_login') }}" class="auth-google-btn">
+                <svg class="auth-google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Sign up with Google
+            </a>
 
             <div class="auth-footer-dark">
                 <p>Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
@@ -478,6 +500,97 @@ body.auth-page-light {
     .auth-submit-btn {
         font-size: 15px;
     }
+}
+
+/* ── Google button ─────────────────────────────────────────────── */
+.auth-divider-dark {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 16px;
+    color: var(--auth-text-muted);
+    font-size: 13px;
+}
+
+.auth-divider-dark::before,
+.auth-divider-dark::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--auth-border);
+}
+
+.auth-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: 54px;
+    border-radius: 14px;
+    border: 1.5px solid var(--auth-border);
+    background: var(--auth-bg-card);
+    color: var(--auth-text-strong);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-google-btn:hover {
+    background: var(--auth-bg-soft);
+    border-color: #9aa0ad;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+}
+
+.auth-google-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* ── Dark mode overrides ───────────────────────────────────────── */
+html[data-theme="dark"] {
+    --auth-bg-page: #0d0f1c;
+    --auth-bg-card: #161928;
+    --auth-bg-soft: #1f2235;
+    --auth-text-strong: #eceef8;
+    --auth-text-main: #8b95af;
+    --auth-text-muted: #5c6580;
+    --auth-border: #272b40;
+    --auth-accent-soft: rgba(62, 223, 203, 0.14);
+    --auth-danger-bg: rgba(153, 27, 27, 0.25);
+    --auth-danger-border: #7f1d1d;
+    --auth-danger-text: #fca5a5;
+}
+
+html[data-theme="dark"] body.auth-page-light {
+    background:
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.07), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.06), transparent 30%),
+        var(--auth-bg-page);
+}
+
+html[data-theme="dark"] .auth-point-card {
+    background: var(--auth-bg-card);
+    border-color: var(--auth-border);
+}
+
+html[data-theme="dark"] .auth-pill-row span {
+    background: var(--auth-bg-card);
+    border-color: var(--auth-border);
+}
+
+html[data-theme="dark"] .auth-google-btn {
+    background: var(--auth-bg-soft);
+    border-color: var(--auth-border);
+    color: var(--auth-text-strong);
+}
+
+html[data-theme="dark"] .auth-google-btn:hover {
+    background: #252840;
+    border-color: #3a3f5a;
 }
 </style>
 

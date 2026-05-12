@@ -70,8 +70,9 @@ from flask import (
     make_response,
 )
 from datetime import datetime, timedelta
+import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -8216,6 +8217,163 @@ def login():
         return redirect(url_for("index"))
 
     return render_template("login.html", error=None, form_email="")
+
+
+# ── Google OAuth ──────────────────────────────────────────────────────────────
+# Uses the Google Identity "OAuth 2.0 for Web Server Applications" flow.
+# Credentials are pulled from the environment:
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_OAUTH_REDIRECT_URI
+# A random state token is stored in the session to prevent CSRF on the
+# callback. No extra library required — just the `requests` package that
+# is already part of the dependency stack.
+
+_GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+
+@app.route("/auth/google")
+def google_login():
+    """Redirect the browser to Google's OAuth consent screen."""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    redirect_uri = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI", "")
+
+    if not client_id or not redirect_uri:
+        flash("Google sign-in is not configured for this environment.", "error")
+        return redirect(url_for("login"))
+
+    state = secrets.token_urlsafe(20)
+    session["google_oauth_state"] = state
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "select_account",
+        "state": state,
+    }
+    return redirect(f"{_GOOGLE_AUTH_URL}?{urlencode(params)}")
+
+
+@app.route("/auth/google/callback")
+def google_callback():
+    """Exchange the authorization code for user info and sign the user in.
+
+    Creates a new account automatically on first sign-in (same flow as
+    email signup, including 3 starter credits). Subsequent sign-ins just
+    log the existing user in — Google email is the stable identifier.
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    # CSRF: verify state matches what we set in google_login.
+    state_expected = session.pop("google_oauth_state", None)
+    state_received = request.args.get("state", "")
+    if not state_expected or state_expected != state_received:
+        flash("Google sign-in failed: invalid state. Please try again.", "error")
+        return redirect(url_for("login"))
+
+    error = request.args.get("error")
+    if error:
+        flash("Google sign-in was cancelled or denied.", "info")
+        return redirect(url_for("login"))
+
+    code = request.args.get("code", "")
+    if not code:
+        flash("Google sign-in failed: no code returned.", "error")
+        return redirect(url_for("login"))
+
+    # Exchange code for access token.
+    token_resp = requests_lib.post(
+        _GOOGLE_TOKEN_URL,
+        data={
+            "code": code,
+            "client_id": os.environ.get("GOOGLE_CLIENT_ID", ""),
+            "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+            "redirect_uri": os.environ.get("GOOGLE_OAUTH_REDIRECT_URI", ""),
+            "grant_type": "authorization_code",
+        },
+        timeout=10,
+    )
+    if not token_resp.ok:
+        app.logger.error("Google token exchange failed: %s", token_resp.text)
+        flash("Google sign-in failed. Please try again.", "error")
+        return redirect(url_for("login"))
+
+    access_token = token_resp.json().get("access_token", "")
+    if not access_token:
+        flash("Google sign-in failed: no access token.", "error")
+        return redirect(url_for("login"))
+
+    # Fetch the user's Google profile.
+    userinfo_resp = requests_lib.get(
+        _GOOGLE_USERINFO_URL,
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=10,
+    )
+    if not userinfo_resp.ok:
+        flash("Could not retrieve Google account information.", "error")
+        return redirect(url_for("login"))
+
+    userinfo = userinfo_resp.json()
+    email = (userinfo.get("email") or "").strip().lower()
+    name = (userinfo.get("name") or "").strip()
+
+    if not email:
+        flash("No email address returned from Google.", "error")
+        return redirect(url_for("login"))
+
+    # Find existing account or create a new one.
+    user = User.query.filter_by(email=email).first()
+    if user:
+        # Existing user — just log them in.
+        session.pop("_flashes", None)
+        login_user(user)
+        flash("Welcome back!", "success")
+    else:
+        # New user via Google — provision account with starter credits.
+        user = User(
+            name=name or email.split("@")[0].capitalize(),
+            email=email,
+            # OAuth users have no password; generate a random un-guessable
+            # hash so the column constraint is satisfied while preventing
+            # password-based login for this account.
+            password_hash=generate_password_hash(secrets.token_urlsafe(32)),
+        )
+        db.session.add(user)
+        db.session.flush()
+
+        user.referral_code = generate_referral_code(user.name, user.id)
+
+        wallet = Wallet(user_id=user.id, balance=3)
+        db.session.add(wallet)
+
+        tx = CreditTransaction(
+            user_id=user.id,
+            type="signup_bonus",
+            amount=3,
+            balance_after=3,
+            notes="Starter credits on Google signup",
+        )
+        db.session.add(tx)
+        db.session.commit()
+
+        login_user(user)
+        flash(
+            "Welcome! Your account is ready — you have 3 starter credits. "
+            "Set up your first workspace to begin.",
+            "success",
+        )
+
+    next_url = request.args.get("next") or (
+        url_for("index") if user.clients else url_for("create_client")
+    )
+    return redirect(next_url)
 
 
 @app.route("/logout")
