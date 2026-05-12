@@ -21332,3 +21332,17 @@ html[data-theme="dark"] .workspace-logo-image {
     background: var(--theme-surface-alt);
     border-color: var(--theme-border-subtle);
 }
+
+/* ===================================================================
+   iOS ZOOM PREVENTION
+   Any input/select/textarea with font-size < 16px triggers auto-zoom
+   on iOS Safari when focused. Force 16px on mobile so users don't
+   get unexpected viewport jumps. Desktop font-sizes are unaffected.
+   =================================================================== */
+@media (max-width: 768px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}

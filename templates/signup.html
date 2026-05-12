@@ -55,7 +55,7 @@
             </div>
             {% endif %}
 
-            <form method="POST" class="form-stack-dark" onsubmit="handleSignupSubmit()">
+            <form method="POST" class="form-stack-dark" onsubmit="return handleSignupSubmit()">
                 <div class="form-field-dark">
                     <label for="name">Full name</label>
                     <input type="text" id="name" name="name" value="{{ form_name or '' }}" placeholder="Your name" required autocomplete="name">
@@ -77,7 +77,7 @@
                 <div class="form-field-dark">
                     <label for="password">Password</label>
                     <div class="password-input-wrapper-dark">
-                        <input type="password" id="password" name="password" placeholder="Create a password" required autocomplete="new-password">
+                        <input type="password" id="password" name="password" placeholder="Create a password" required minlength="8" autocomplete="new-password">
                         <button type="button" class="password-toggle-dark" onclick="togglePasswordVisibility('password', this)">Show</button>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
                 <div class="form-field-dark">
                     <label for="confirm_password">Confirm password</label>
                     <div class="password-input-wrapper-dark">
-                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required autocomplete="new-password">
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required minlength="8" autocomplete="new-password">
                         <button type="button" class="password-toggle-dark" onclick="togglePasswordVisibility('confirm_password', this)">Show</button>
                     </div>
                 </div>
@@ -483,11 +483,22 @@ body.auth-page-light {
 
 <script>
 function handleSignupSubmit() {
+    const pw = document.getElementById('password');
+    const confirm = document.getElementById('confirm_password');
+
+    if (pw && confirm && pw.value !== confirm.value) {
+        confirm.setCustomValidity("Passwords don't match.");
+        confirm.reportValidity();
+        return false;
+    }
+    if (confirm) confirm.setCustomValidity('');
+
     const btn = document.getElementById('signupBtn');
     if (btn) {
         btn.disabled = true;
         btn.innerText = 'Creating account...';
     }
+    return true;
 }
 
 function togglePasswordVisibility(inputId, buttonEl) {

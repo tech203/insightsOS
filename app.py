@@ -6819,7 +6819,11 @@ def report_page(client_id):
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
-    return render_template("report_page.html", client=client)
+    # Full report generation not yet implemented — redirect to the
+    # visibility dashboard which shows the same underlying audit data.
+    # The sidebar Report link stays so the nav section is coherent;
+    # remove this redirect once the report-generation route is built.
+    return redirect(url_for("client_visibility_page", client_id=client_id))
 
 
 def get_workspace_limit(user):
@@ -7982,6 +7986,7 @@ def signup():
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
         referral_code = request.form.get("referral_code", "").strip()
 
         if not name or not email or not password:
@@ -7990,6 +7995,24 @@ def signup():
             return render_template(
                 "signup.html",
                 error="All fields are required.",
+                form_name=name,
+                form_email=email,
+                form_referral_code=referral_code,
+            )
+
+        if len(password) < 8:
+            return render_template(
+                "signup.html",
+                error="Password must be at least 8 characters.",
+                form_name=name,
+                form_email=email,
+                form_referral_code=referral_code,
+            )
+
+        if confirm_password and password != confirm_password:
+            return render_template(
+                "signup.html",
+                error="Passwords don't match.",
                 form_name=name,
                 form_email=email,
                 form_referral_code=referral_code,
