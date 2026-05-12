@@ -5,7 +5,7 @@
 
 {% block title %}Brief Result | DarInsights{% endblock %}
 
-{% block page_title %}{% if client %}{{ client.name if client.name is defined else client.get('name', 'Workspace') }}{% endif %} · Content Brief{% endblock %}
+{% block page_title %}{% if client %}{{ client.name if client.name is defined else client.get('name', 'Workspace') }}{% endif %} | Content Brief{% endblock %}
 {% block page_subtitle %}Review and use the generated content brief below.{% endblock %}
 
 {% block content %}
@@ -114,7 +114,7 @@
 
     <div class="page-header">
         <div>
-            <h1>{{ client_name }} · Brief Result</h1>
+            <h1>{{ client_name }} | Brief Result</h1>
             <p>Review the generated brief, then move into drafting or save it to the content queue.</p>
         </div>
 

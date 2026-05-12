@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Google Analytics — {{ workspace.name }}{% endblock %}
+{% block title %}Google Analytics | {{ workspace.name }}{% endblock %}
 
 {% block head %}
 <style>
-    /* Page-specific layout only — surfaces, buttons, pills, tiles come from the design system. */
+    /* Page-specific layout only | surfaces, buttons, pills, tiles come from the design system. */
     .ga-kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -70,7 +70,7 @@
             <div style="font-size:2.2rem; margin-bottom:0.5rem;">📊</div>
             <h2 style="margin:0 0 0.5rem 0; font-size:1.2rem;">Connect Google first</h2>
             <p>
-                Google Analytics shares the same connection as Google Search Console. Start there — once you authorize, both products are available.
+                Google Analytics shares the same connection as Google Search Console. Start there | once you authorize, both products are available.
             </p>
             <a href="{{ url_for('gsc_dashboard', client_id=workspace.id) }}" class="btn btn-primary" style="margin-top: 1.25rem;">Go to Search Console</a>
         </div>

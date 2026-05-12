@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Cal.com — {{ workspace.name }}{% endblock %}
+{% block title %}Cal.com | {{ workspace.name }}{% endblock %}
 
 {% block head %}
 <style>
-    /* Page-specific layout only — surfaces, buttons, pills, tiles come from the design system. */
+    /* Page-specific layout only | surfaces, buttons, pills, tiles come from the design system. */
     .cal-kpi-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -46,7 +46,7 @@
             <div style="text-align:center; font-size: 2.4rem; margin-bottom:0.5rem;">🗓</div>
             <h2 style="text-align:center; margin:0 0 0.4rem 0; font-size: 1.3rem;">Connect Cal.com</h2>
             <p style="text-align:center;">
-                Generate an API key in <em>Cal.com → Settings → Developer</em> and paste it below alongside your Cal.com username. Read-only — we list event types and recent bookings, never create or cancel anything.
+                Generate an API key in <em>Cal.com → Settings → Developer</em> and paste it below alongside your Cal.com username. Read-only | we list event types and recent bookings, never create or cancel anything.
             </p>
             <form method="post" action="{{ url_for('calcom_connect', client_id=workspace.id) }}" class="form-grid-2" style="max-width: 520px; margin: 1.25rem auto 0 auto;">
                 <div class="form-field form-field-full">

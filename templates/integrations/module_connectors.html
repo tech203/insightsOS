@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Module connectors — {{ workspace.name }}{% endblock %}
+{% block title %}Module connectors | {{ workspace.name }}{% endblock %}
 
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
         <h1>Module connectors</h1>
-        <p>Foundation connectors for the Ecommerce and Website modules — connect your platform credentials so future audit + publish flows can pick them up.</p>
+        <p>Foundation connectors for the Ecommerce and Website modules | connect your platform credentials so future audit + publish flows can pick them up.</p>
     </div>
 
     <div class="page-header-actions">
@@ -18,7 +18,7 @@
 {% block content %}
 <div class="page-shell mc-page">
 
-    {# Foundation banner — kept warm-amber to signal "wired but
+    {# Foundation banner | kept warm-amber to signal "wired but
        not auto-firing yet". Uses .surface-card--soft so it
        inherits theme tokens but reads as a tinted info note. #}
     <div class="mc-foundation-banner">
@@ -186,7 +186,7 @@
                         {{ 'Connected' if framer else 'Not connected' }}
                     </span>
                 </h2>
-                <p>Connects a Framer project for CMS publishing. Framer's CMS API is in beta — surface stays narrow until they ship a stable update API.</p>
+                <p>Connects a Framer project for CMS publishing. Framer's CMS API is in beta | surface stays narrow until they ship a stable update API.</p>
             </div>
         </div>
         {% if framer %}
@@ -267,7 +267,7 @@
 </div>
 
 <style>
-/* Module Connectors — page-specific layout only.
+/* Module Connectors | page-specific layout only.
    All surfaces, buttons, inputs, and badges come from the
    global design system (.surface-card / .btn / .form-field /
    .score-pill). Removed ~280 lines of bespoke .mc-* CSS that

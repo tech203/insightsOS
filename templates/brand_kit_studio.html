@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Brand Kit — {{ workspace.name }}{% endblock %}
+{% block title %}Brand Kit | {{ workspace.name }}{% endblock %}
 
-{% block page_title %}{{ workspace.name }} · Brand Kit{% endblock %}
+{% block page_title %}{{ workspace.name }} | Brand Kit{% endblock %}
 {% block page_subtitle %}Set brand direction once — audits, briefs, drafts, and generators all read from these fields.{% endblock %}
 
 {% block head %}
@@ -76,7 +76,7 @@
     {% set kit_dirty = kit_approved and workspace.brand_kit_updated_at and workspace.brand_kit_updated_at > workspace.brand_kit_approved_at %}
     <div class="brand-kit-header">
         <div>
-            <h1>Brand Kit · {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Approve when you're happy with the direction — generators only lift values from approved kits.") }}</h1>
+            <h1>Brand Kit | {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Approve when you're happy with the direction — generators only lift values from approved kits.") }}</h1>
             {% if kit_approved and not kit_dirty %}
                 <span class="score-pill score-pill-success">Approved · in use</span>
             {% elif kit_dirty %}
