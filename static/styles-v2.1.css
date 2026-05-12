@@ -17877,6 +17877,32 @@ html[data-theme="dark"] .growth-calendar-empty p {
     color: var(--theme-text-secondary);
 }
 
+/* Non-heading elements with hardcoded navy/dark text that won't be
+   caught by the generic html[data-theme="dark"] h1/h2/h3/p rules
+   because they're divs or spans with explicit class-based color rules. */
+html[data-theme="dark"] .panel-header,
+html[data-theme="dark"] .upgrade-banner-copy,
+html[data-theme="dark"] .dashboard-client-copy,
+html[data-theme="dark"] .app-modal-header,
+html[data-theme="dark"] .modal-meta-card,
+html[data-theme="dark"] .audit-form-header,
+html[data-theme="dark"] .mobile-brand-text,
+html[data-theme="dark"] .outline-copy,
+html[data-theme="dark"] .improvement-item,
+html[data-theme="dark"] .report-action-copy,
+html[data-theme="dark"] .draft-meta-card,
+html[data-theme="dark"] .brief-priority-card,
+html[data-theme="dark"] .workspace-more-btn,
+html[data-theme="dark"] .insights-table {
+    color: var(--theme-text-primary);
+}
+
+html[data-theme="dark"] .finding-icon {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-secondary);
+}
+
 /* Portfolio Snapshot's big number was using -webkit-text-fill-color:
    transparent + a brand-gradient background-clip. On a dark canvas
    the gradient still paints, but the contrast ratio against the dark

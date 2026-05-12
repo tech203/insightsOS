@@ -644,7 +644,7 @@
                 <p>Three rules so it stays simple.</p>
             </div>
 
-            <ol style="margin: 0; padding-left: 1.2rem; line-height: 1.65; font-size: 0.92rem; color: #444;">
+            <ol class="panel-subtitle" style="margin: 0; padding-left: 1.2rem; line-height: 1.65; font-size: 0.92rem;">
                 <li>Free signups don't pay out — the link only earns when the referred user actually pays.</li>
                 <li>You earn <strong>25% of the dollar value</strong> they pay (subscription or credit bundle), as credits in your wallet.</li>
                 <li>The 30-day window starts at signup. Every paid purchase inside that window earns — outside it, the referral expires.</li>
@@ -839,7 +839,7 @@
             <form method="post" action="{{ url_for('settings_update_white_label') }}" class="settings-v3-form">
                 <label style="display:flex; gap:0.5rem; align-items:center; cursor:pointer; margin-top:0.4rem;">
                     <input type="checkbox" name="enable" {% if current_user.is_white_label_enabled %}checked{% endif %}>
-                    <span style="font-size:0.95rem; font-weight:600; color:var(--brand-text-strong, #191929);">Enable white-label branding</span>
+                    <span style="font-size:0.95rem; font-weight:600;">Enable white-label branding</span>
                 </label>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.65rem 0;">When on, the sidebar brand mark, mobile topbar, and PDF reports use your agency's name and logo instead of DarInsights.</p>
 
@@ -869,7 +869,7 @@
             </div>
 
             {% if agency_brand and agency_brand.logo_url %}
-            <div style="background:#fafafe; border:1px solid #ececf2; border-radius:10px; padding:1rem; text-align:center; margin-bottom:1rem;">
+            <div class="settings-v3-note-box" style="border-radius:10px; padding:1rem; text-align:center; margin-bottom:1rem;">
                 <img src="{{ agency_brand.logo_url }}"
                      alt="Agency logo"
                      style="max-height:80px; max-width:100%; object-fit:contain;">
