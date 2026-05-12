@@ -63,7 +63,7 @@
         </div>
     </section>
 
-    {% if (current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com") and result and result.summary_filename is defined %}
+    {% if (current_user.role == "admin" or current_user.plan == "dev_unlimited") and result and result.summary_filename is defined %}
     <section class="audit-admin-strip surface-card surface-card--soft">
         <span class="audit-admin-label">Admin / Dev tools</span>
         <div class="audit-admin-actions">

@@ -279,7 +279,7 @@
                     <strong>{{ data.get('saved_at')|pretty_datetime if data.get('saved_at') else 'N/A' }}</strong>
                 </div>
 
-                {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" or current_user.email == "pypteltd@gmail.com" %}
+                {% if current_user.role == "admin" or current_user.plan == "dev_unlimited" %}
                 <div class="info-row">
                     <span>Summary File</span>
                     <strong>{{ summary_filename }}</strong>
