@@ -129,6 +129,69 @@ def _check_env_health():
 _check_env_health()
 
 
+def _check_launch_config() -> None:
+    """Warn about env-var values that are technically set but wrong for
+    production — test Stripe keys, Resend sandbox sender, localhost OAuth
+    redirect URIs, and S3 placeholder endpoints.  Never raises; the app
+    starts regardless so dev stays frictionless."""
+    warns: list[str] = []
+
+    # --- Stripe: test keys present in a production-looking context ---
+    stripe_key = (os.getenv("STRIPE_SECRET_KEY") or "").strip()
+    if stripe_key.startswith("sk_test_") or stripe_key.startswith("rk_test_"):
+        warns.append(
+            "STRIPE_SECRET_KEY is a Stripe TEST key (sk_test_… / rk_test_…). "
+            "Swap for the live key (sk_live_…) before accepting real payments. "
+            "Get your live key at: https://dashboard.stripe.com/apikeys"
+        )
+
+    # --- Resend: sandbox @resend.dev sender ---
+    resend_from = (os.getenv("RESEND_FROM") or "").strip()
+    if "@resend.dev" in resend_from:
+        warns.append(
+            f"RESEND_FROM uses the @resend.dev sandbox domain ({resend_from!r}). "
+            "Resend only delivers sandbox mail to the account owner's verified email; "
+            "real users will never receive invites or password-reset emails. "
+            "Verify a custom sender domain at https://resend.com/domains and update "
+            "RESEND_FROM to e.g. 'YourApp <noreply@yourdomain.com>'."
+        )
+
+    # --- Shopify: redirect URI still pointing at localhost ---
+    shopify_uri = (os.getenv("SHOPIFY_REDIRECT_URI") or "").strip()
+    if shopify_uri and ("localhost" in shopify_uri or "127.0.0.1" in shopify_uri):
+        warns.append(
+            f"SHOPIFY_REDIRECT_URI points at localhost ({shopify_uri!r}). "
+            "Either remove this variable (the app derives the correct URI "
+            "from the live request host automatically) or set it to your "
+            "production URL: https://your-host/integrations/shopify/callback"
+        )
+
+    # --- S3: endpoint URL still contains placeholder text ---
+    s3_endpoint = (os.getenv("S3_ENDPOINT_URL") or "").strip()
+    s3_bucket = (os.getenv("S3_BUCKET") or "").strip()
+    if s3_endpoint and any(tok in s3_endpoint for tok in ("xxxxx", "your_", "<account")):
+        warns.append(
+            f"S3_ENDPOINT_URL looks like a placeholder ({s3_endpoint!r}). "
+            "Logo uploads will fail at runtime. Replace it with your real "
+            "R2 / B2 / MinIO endpoint, e.g. "
+            "https://<account-id>.r2.cloudflarestorage.com — or unset it "
+            "to use standard AWS S3."
+        )
+    elif s3_bucket and not s3_bucket.startswith("your_") and not s3_endpoint:
+        # S3_BUCKET set, no custom endpoint — fine for AWS S3 but note it.
+        pass  # normal AWS S3 setup; nothing to warn
+
+    if warns:
+        print("=" * 70)
+        print("LAUNCH CONFIG WARNINGS — fix before going live:")
+        for i, msg in enumerate(warns, 1):
+            print(f"\n  [{i}] {msg}")
+        print("\n" + "=" * 70)
+
+
+_check_launch_config()
+
+
 app = Flask(__name__)
 print("Flask app initialized")
 
