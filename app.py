@@ -9024,7 +9024,7 @@ def prompt_detail_page():
         ranking_position = "Not mentioned"
         last_checked = "Unknown"
         change = "New"
-        top_competitors = ["tawk.to"]
+        top_competitors = []
         recommended_actions = [
             "Create a page directly answering this prompt",
             "Add stronger supporting content and FAQs",
@@ -9033,7 +9033,7 @@ def prompt_detail_page():
         ]
         ai_answer = "No saved AI answer is available for this prompt yet."
 
-    source_domains = ["microsoft.com", "google.com", "g2.com"]
+    source_domains = []
 
     return render_template(
         "prompt_detail.html",
@@ -9087,18 +9087,6 @@ def save_prompts():
             )
         return redirect(url_for("position_tracking_page"))
 
-    def guess_competitor(prompt: str) -> str:
-        p = prompt.lower()
-        if "whatsapp" in p:
-            return "wati.io"
-        if "knowledge base" in p or "help center" in p:
-            return "tawk.to"
-        if "booking" in p or "calendar" in p or "appointment" in p:
-            return "botpenguin.com"
-        if "chat" in p or "messaging" in p:
-            return "tawk.to"
-        return "tawk.to"
-
     created_count = 0
 
     for i, prompt in enumerate(prompt_list):
@@ -9124,10 +9112,10 @@ def save_prompts():
             topic=topic or "Tracked prompts",
             prompt=prompt,
             status="Tracking",
-            visibility="Medium" if i == 0 else "Low",
-            mentioned="Sometimes" if i == 0 else "No",
-            top_competitor=guess_competitor(prompt),
-            last_checked="Just added",
+            visibility="Unknown",
+            mentioned="Unknown",
+            top_competitor=None,
+            last_checked="Not yet checked",
             change="New",
         )
 
