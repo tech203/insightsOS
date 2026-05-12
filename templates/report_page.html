@@ -11,24 +11,24 @@
 {% endblock %}
 
 {% block content %}
-{% set overall_score = overall_score if overall_score is defined else 68 %}
-{% set visibility_score = visibility_score if visibility_score is defined else 72 %}
-{% set content_score = content_score if content_score is defined else 61 %}
-{% set entity_score = entity_score if entity_score is defined else 57 %}
-{% set trust_score = trust_score if trust_score is defined else 66 %}
+{% set overall_score = overall_score if overall_score is defined else 0 %}
+{% set visibility_score = visibility_score if visibility_score is defined else 0 %}
+{% set content_score = content_score if content_score is defined else 0 %}
+{% set entity_score = entity_score if entity_score is defined else 0 %}
+{% set trust_score = trust_score if trust_score is defined else 0 %}
 
-{% set report_status = report_status if report_status is defined else "Ready" %}
-{% set report_date = report_date if report_date is defined else "Today" %}
-{% set prepared_for = prepared_for if prepared_for is defined else "Internal Review" %}
+{% set report_status = report_status if report_status is defined else "Not generated" %}
+{% set report_date = report_date if report_date is defined else "" %}
+{% set prepared_for = prepared_for if prepared_for is defined else "" %}
 
-{% set top_strength = top_strength if top_strength is defined else "Basic brand and service clarity" %}
-{% set top_weakness = top_weakness if top_weakness is defined else "Weak decision-stage content coverage" %}
-{% set fastest_win = fastest_win if fastest_win is defined else "Publish FAQ and pricing-focused content" %}
-{% set priority_level = priority_level if priority_level is defined else "Medium to High" %}
+{% set top_strength = top_strength if top_strength is defined else "" %}
+{% set top_weakness = top_weakness if top_weakness is defined else "" %}
+{% set fastest_win = fastest_win if fastest_win is defined else "" %}
+{% set priority_level = priority_level if priority_level is defined else "" %}
 
-{% set score_summary = score_summary if score_summary is defined else "The business is visible in some AI-assisted results, but important customer questions and trust signals still need stronger coverage." %}
-{% set executive_title = executive_title if executive_title is defined else "You have visibility, but not enough depth where decisions happen" %}
-{% set executive_summary = executive_summary if executive_summary is defined else "The business has a real presence online and some signals that support discoverability. However, important question areas such as pricing, comparisons, suitability, and next-step guidance are still underdeveloped. This limits both AI visibility and customer conversion." %}
+{% set score_summary = score_summary if score_summary is defined else "" %}
+{% set executive_title = executive_title if executive_title is defined else "Report not yet generated" %}
+{% set executive_summary = executive_summary if executive_summary is defined else "Run an audit to generate a full AI visibility report for this workspace." %}
 
 <div class="report-shell">
 
@@ -217,14 +217,7 @@
                     <div class="opportunity-chip">{{ item }}</div>
                     {% endfor %}
                 {% else %}
-                    <div class="opportunity-chip">Pricing and cost</div>
-                    <div class="opportunity-chip">Who the service is for</div>
-                    <div class="opportunity-chip">What to expect</div>
-                    <div class="opportunity-chip">Comparison content</div>
-                    <div class="opportunity-chip">Service-area clarity</div>
-                    <div class="opportunity-chip">FAQ coverage</div>
-                    <div class="opportunity-chip">Trust and proof</div>
-                    <div class="opportunity-chip">Next-step guidance</div>
+                    <p class="panel-subtitle" style="margin:0;">Run an audit to identify specific opportunity areas for this workspace.</p>
                 {% endif %}
             </div>
         </article>
