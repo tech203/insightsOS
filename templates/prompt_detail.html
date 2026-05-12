@@ -764,5 +764,22 @@
         background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
         border-color: rgba(255, 216, 198, 0.22);
     }
+    html[data-theme="dark"] .section-kicker,
+    html[data-theme="dark"] .context-pill,
+    html[data-theme="dark"] .tag-item {
+        background: rgba(157, 124, 227, 0.20);
+        color: #c4b5fd;
+    }
+    html[data-theme="dark"] .context-pill-soft {
+        background: var(--theme-surface-alt);
+        color: var(--theme-text-secondary);
+    }
+    html[data-theme="dark"] .action-checklist-item {
+        background: var(--theme-surface-alt);
+        border-color: var(--theme-border-subtle);
+    }
+    html[data-theme="dark"] .prompt-detail-hero-main h1 {
+        color: var(--theme-text-primary);
+    }
 </style>
 {% endblock %}
