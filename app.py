@@ -9497,7 +9497,7 @@ def position_tracking_page():
     if client_id:
         selected_client = get_client_by_id(client_id)
 
-    if not selected_client and view_mode == "single" and focused_client:
+    if not selected_client and focused_client:
         selected_client = focused_client
         client_id = str(focused_client.get("id", "")).strip()
 
