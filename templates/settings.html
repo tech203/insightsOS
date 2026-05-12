@@ -178,7 +178,7 @@
             <form method="post" action="{{ url_for('settings_update_profile') }}" class="settings-v3-form">
                 <label for="profile-name">Name</label>
                 <input id="profile-name" type="text" name="name" value="{{ current_user.name }}" required maxlength="200">
-                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Save name</button>
+                <button type="submit" class="btn btn-primary" style="margin-top:8px;">Save name</button>
             </form>
         </div>
 
@@ -231,7 +231,7 @@
                 <label for="acct-confirm">Confirm new password</label>
                 <input id="acct-confirm" type="password" name="confirm_password" required minlength="8" autocomplete="new-password">
 
-                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Update password</button>
+                <button type="submit" class="btn btn-primary" style="margin-top:8px;">Update password</button>
             </form>
         </div>
 

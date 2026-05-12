@@ -12561,6 +12561,16 @@ input {
     color: var(--danger);
 }
 
+/* Secondary button with danger-coloured text — use for destructive actions
+   that don't warrant a fully-filled danger button (e.g. "Disconnect"). */
+.btn-outline-danger {
+    color: #b91c1c;
+}
+
+html[data-theme="dark"] .btn-outline-danger {
+    color: #fca5a5;
+}
+
 /* Size modifiers */
 .btn-sm {
     min-height: 34px;

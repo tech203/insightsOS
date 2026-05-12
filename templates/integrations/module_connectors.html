@@ -61,7 +61,7 @@
                     <button type="submit" class="btn btn-primary">Sync &amp; audit</button>
                 </form>
                 <form method="post" action="{{ url_for('bigcommerce_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this BigCommerce store?');">
-                    <button type="submit" class="btn btn-secondary mc-btn-danger">Disconnect</button>
+                    <button type="submit" class="btn btn-secondary btn-outline-danger">Disconnect</button>
                 </form>
             </div>
         {% else %}
@@ -112,7 +112,7 @@
                     <button type="submit" class="btn btn-primary">Sync &amp; audit</button>
                 </form>
                 <form method="post" action="{{ url_for('shopline_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this SHOPLINE store?');">
-                    <button type="submit" class="btn btn-secondary mc-btn-danger">Disconnect</button>
+                    <button type="submit" class="btn btn-secondary btn-outline-danger">Disconnect</button>
                 </form>
             </div>
         {% else %}
@@ -156,7 +156,7 @@
                     <button type="submit" class="btn btn-primary">Refresh collections</button>
                 </form>
                 <form method="post" action="{{ url_for('wix_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Wix site?');">
-                    <button type="submit" class="btn btn-secondary mc-btn-danger">Disconnect</button>
+                    <button type="submit" class="btn btn-secondary btn-outline-danger">Disconnect</button>
                 </form>
             </div>
         {% else %}
@@ -200,7 +200,7 @@
                     <button type="submit" class="btn btn-primary">Refresh collections</button>
                 </form>
                 <form method="post" action="{{ url_for('framer_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Framer project?');">
-                    <button type="submit" class="btn btn-secondary mc-btn-danger">Disconnect</button>
+                    <button type="submit" class="btn btn-secondary btn-outline-danger">Disconnect</button>
                 </form>
             </div>
         {% else %}
@@ -249,7 +249,7 @@
                     <button type="submit" class="btn btn-primary">Sync &amp; audit</button>
                 </form>
                 <form method="post" action="{{ url_for('squarespace_disconnect', client_id=workspace.id) }}" onsubmit="return confirm('Disconnect this Squarespace site?');">
-                    <button type="submit" class="btn btn-secondary mc-btn-danger">Disconnect</button>
+                    <button type="submit" class="btn btn-secondary btn-outline-danger">Disconnect</button>
                 </form>
             </div>
         {% else %}
@@ -359,18 +359,12 @@
     line-height: 1.5;
 }
 
-.mc-btn-danger {
-    color: #b91c1c !important;
-}
-
 html[data-theme="dark"] .mc-foundation-banner {
     background: rgba(254, 215, 170, 0.10);
     border-color: rgba(254, 215, 170, 0.30);
     color: #fed7aa;
 }
 
-html[data-theme="dark"] .mc-btn-danger {
-    color: #fca5a5 !important;
-}
+/* .btn-outline-danger dark mode is in styles-v2.1.css */
 </style>
 {% endblock %}
