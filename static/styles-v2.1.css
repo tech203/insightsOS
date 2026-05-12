@@ -3164,6 +3164,10 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     gap: 12px;
 }
 
+.dev-view-panel {
+    max-width: 420px;
+}
+
 .dev-view-buttons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -12355,10 +12359,18 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .toolbar-filters input {
     min-width: 220px;
+}
+
+/* Volume threshold hint label next to the filter dropdown */
+.volume-threshold-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .table-wrap,
@@ -17432,6 +17444,43 @@ a.btn {
 .workspace-more-danger:hover {
     background: var(--status-danger-soft);
 }
+
+/* Two-step inline delete confirmation — replaces browser confirm() */
+.workspace-delete-confirm {
+    padding: 10px 12px 10px;
+    display: grid;
+    gap: 6px;
+}
+.workspace-delete-confirm span {
+    font-size: 12.5px;
+    color: var(--status-danger);
+    font-weight: 600;
+    line-height: 1.3;
+}
+.workspace-delete-yes,
+.workspace-delete-cancel {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+}
+.workspace-delete-yes {
+    background: var(--status-danger);
+    color: #fff;
+}
+.workspace-delete-yes:hover { filter: brightness(1.08); }
+.workspace-delete-cancel {
+    background: var(--bg-soft);
+    color: var(--text-muted);
+}
+.workspace-delete-cancel:hover { background: var(--border-main); }
+
 html[data-theme="dark"] .workspace-more-divider {
     background: var(--theme-border-subtle);
 }
@@ -22596,6 +22645,36 @@ html[data-theme="dark"] .woo-card small {
 
    We make the table itself horizontally scrollable so the card
    keeps its rounded corners but the table can scroll inside. */
+/* Admin page helper classes — replace inline styles in admin templates */
+.admin-card--flush {
+    padding: 0;
+    overflow: hidden; /* clips rounded corners against table header */
+}
+
+.admin-filter-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.admin-filter-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.admin-table-sub {
+    color: var(--text-muted);
+    font-size: 11.5px;
+}
+
+.admin-empty-state {
+    padding: 32px 20px;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 0;
+}
+
 .admin-table {
     /* `display: block` is what unlocks overflow-x on a <table>. */
     display: block;

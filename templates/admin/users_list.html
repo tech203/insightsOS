@@ -13,8 +13,8 @@
 
 {% block admin_content %}
 <section class="admin-toolbar">
-    <form method="GET" action="{{ url_for('admin_users_list') }}" style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
-        <input type="text" name="q" placeholder="Search email or name…" value="{{ active_query }}" style="flex:1; min-width:200px;">
+    <form method="GET" action="{{ url_for('admin_users_list') }}" class="admin-filter-form">
+        <input type="text" name="q" placeholder="Search email or name…" value="{{ active_query }}" class="admin-filter-input">
         <select name="plan">
             <option value="">All plans</option>
             {% for p in plans %}
@@ -28,7 +28,7 @@
     </form>
 </section>
 
-<section class="admin-card" style="padding:0; overflow:hidden;">
+<section class="admin-card admin-card--flush">
 {% if summaries %}
 <table class="admin-table">
     <thead>
@@ -47,7 +47,7 @@
         <tr>
             <td>
                 <strong>{{ s.user.email }}</strong>
-                {% if s.user.name %}<div style="color:var(--text-muted); font-size:11.5px;">{{ s.user.name }}</div>{% endif %}
+                {% if s.user.name %}<div class="admin-table-sub">{{ s.user.name }}</div>{% endif %}
             </td>
             <td><span class="admin-pill admin-pill-aqua">{{ s.user.plan }}</span></td>
             <td>
@@ -56,14 +56,14 @@
             </td>
             <td>{{ s.wallet_balance }}</td>
             <td>{{ s.workspace_count }}</td>
-            <td style="color:var(--text-muted); font-size:11.5px;">{{ s.user.created_at.strftime('%d %b %Y') if s.user.created_at else '—' }}</td>
-            <td><a href="{{ url_for('admin_user_detail', user_id=s.user.id) }}" class="btn btn-secondary" style="min-height:32px; padding:0 12px; font-size:12px;">Open</a></td>
+            <td class="admin-table-sub">{{ s.user.created_at.strftime('%d %b %Y') if s.user.created_at else '—' }}</td>
+            <td><a href="{{ url_for('admin_user_detail', user_id=s.user.id) }}" class="btn btn-secondary btn-sm">Open</a></td>
         </tr>
     {% endfor %}
     </tbody>
 </table>
 {% else %}
-<p style="padding:32px 20px; color:var(--text-muted); text-align:center; margin:0;">No users match this filter.</p>
+<p class="admin-empty-state">No users match this filter.</p>
 {% endif %}
 </section>
 {% endblock %}

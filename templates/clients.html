@@ -114,8 +114,13 @@
                             <a href="{{ url_for('run_client_audit', client_id=client.id) }}">Run audit</a>
                             <a href="{{ url_for('client_brand_context', client_id=client.id) }}">Brand context</a>
                             <div class="workspace-more-divider"></div>
-                            <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}" onsubmit="return confirm('Delete this workspace? This removes all audits, queue items, and tracked prompts inside it. This cannot be undone.');" style="margin:0;">
-                                <button type="submit" class="workspace-more-danger">Delete workspace</button>
+                            <form method="POST" action="{{ url_for('delete_client', client_id=client.id) }}" style="margin:0;" data-delete-form>
+                                <button type="button" class="workspace-more-danger" data-delete-trigger>Delete workspace</button>
+                                <div class="workspace-delete-confirm" hidden>
+                                    <span>Remove all audits &amp; data?</span>
+                                    <button type="submit" class="workspace-delete-yes">Yes, delete</button>
+                                    <button type="button" class="workspace-delete-cancel">Cancel</button>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -164,6 +169,26 @@ document.addEventListener("click", function (event) {
         document.querySelectorAll(".workspace-more-dropdown").forEach(menu => {
             menu.classList.remove("show");
         });
+    }
+});
+
+// Two-step inline delete confirmation — replaces browser confirm()
+document.addEventListener("click", function (e) {
+    // Step 1: "Delete workspace" → reveal confirmation row
+    const trigger = e.target.closest("[data-delete-trigger]");
+    if (trigger) {
+        const form = trigger.closest("[data-delete-form]");
+        trigger.hidden = true;
+        form.querySelector(".workspace-delete-confirm").hidden = false;
+        return;
+    }
+    // Step 2b: Cancel → restore trigger
+    const cancel = e.target.closest(".workspace-delete-cancel");
+    if (cancel) {
+        const form = cancel.closest("[data-delete-form]");
+        form.querySelector("[data-delete-trigger]").hidden = false;
+        form.querySelector(".workspace-delete-confirm").hidden = true;
+        return;
     }
 });
 </script>

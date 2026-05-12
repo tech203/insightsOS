@@ -400,16 +400,20 @@
 
 .audit-summary-verdict-card {
     margin-top: 20px;
-    padding: 18px;
+    padding: 16px 20px;
     background: var(--bg-soft-alt);
+    border-left: 4px solid var(--brand-primary);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
 .verdict-label {
     display: block;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 800;
-    color: var(--text-muted);
-    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+    margin-bottom: 6px;
 }
 
 .audit-summary-verdict-card p {
@@ -417,6 +421,7 @@
     color: var(--text-strong);
     font-size: 15px;
     line-height: 1.6;
+    font-weight: 500;
 }
 
 .summary-score-card {
