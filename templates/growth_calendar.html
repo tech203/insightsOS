@@ -41,11 +41,16 @@
 
     {% if not selected_client %}
         <section class="growth-calendar-empty">
+            {% if clients|length > 0 %}
+            <h2>Select a workspace to view its growth plan</h2>
+            <p>Pick a workspace from the dropdown above to see weekly growth recommendations based on your latest audit.</p>
+            {% else %}
             <h2>No workspace yet</h2>
             <p>Create a workspace and run an audit to start seeing weekly growth recommendations.</p>
+            {% endif %}
             <div class="growth-calendar-empty-actions">
-                <a href="{{ url_for('clients_page') }}" class="btn btn-primary">Open Workspaces</a>
-                <a href="{{ url_for('create_client') }}" class="btn btn-secondary">Add First Workspace</a>
+                <a href="{{ url_for('clients_page') }}" class="btn btn-primary">{% if clients|length > 0 %}View All Workspaces{% else %}Create a Workspace{% endif %}</a>
+                {% if clients|length == 0 %}<a href="{{ url_for('create_client') }}" class="btn btn-secondary">Add First Workspace</a>{% endif %}
             </div>
         </section>
     {% else %}

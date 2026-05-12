@@ -74,7 +74,7 @@
                 <p>{{ top_action_copy or "This is the clearest next move based on your latest audit." }}</p>
                 {% endif %}
                 <div class="action-meta-row">
-                    <span>{{ "Assisted" if top_action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}</span>
+                    <span>{{ "AI-assisted" if top_action.execution_type == "manual_or_ai_assisted" else "Automated" }}</span>
                     <span>{{ top_action.credits_required or 0 }} credits</span>
                 </div>
             {% else %}
@@ -209,7 +209,7 @@
                 {% endif %}
 
                 <div class="action-meta-row">
-                    <span>{{ "Assisted" if action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}</span>
+                    <span>{{ "AI-assisted" if action.execution_type == "manual_or_ai_assisted" else "Automated" }}</span>
                     <span>{{ action.credits_required or 0 }} credits</span>
                 </div>
 
@@ -297,7 +297,7 @@
                 {% endif %}
 
                 <div class="action-meta-row">
-                    <span>{{ "Assisted" if action.execution_type == "manual_or_ai_assisted" else "AI-assisted execution" }}</span>
+                    <span>{{ "AI-assisted" if action.execution_type == "manual_or_ai_assisted" else "Automated" }}</span>
                     <span>{{ action.credits_required or 0 }} credits</span>
                 </div>
 

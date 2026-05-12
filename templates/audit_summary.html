@@ -74,7 +74,7 @@
     {% set report_primary_url = url_for('content_queue_page', client_id=data.get('client_id')) if data.get('client_id') and can_execute else (url_for('pricing_page') if data.get('client_id') else url_for('content_queue_page')) %}
     {% set report_primary_label = "Start Execution" if can_execute else ("Upgrade to Pro" if data.get('client_id') else "Open Queue") %}
     {% set report_pdf_url = url_for('audit_summary_pdf', summary_filename=summary_filename) %}
-    {% set report_secondary_url = url_for('audit_full', summary_filename=summary_filename) if full_filename else none %}
+    {% set report_secondary_url = url_for('audit_full', summary_filename=full_filename) if full_filename and is_internal_user else none %}
     {% set report_secondary_label = "Open Full Audit" %}
     {% set report_client_url = url_for('client_detail', client_id=data.get('client_id')) if data.get('client_id') else none %}
     {% include "partials/report_actions.html" %}
@@ -373,7 +373,7 @@
     border-radius: 999px;
     background: var(--bg-soft-alt);
     box-shadow: none;
-    color: #4a586c;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 800;
 }
@@ -463,7 +463,7 @@
 .summary-score-track {
     width: 100%;
     height: 12px;
-    background: #eceff5;
+    background: var(--bg-soft);
     border-radius: 999px;
     overflow: hidden;
     margin-top: 18px;
@@ -614,14 +614,14 @@
 .readable-summary-item span {
     display: block;
     margin-bottom: 8px;
-    color: #667085;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 800;
 }
 
 .readable-summary-item strong {
     display: block;
-    color: #14213d;
+    color: var(--text-strong);
     font-size: 16px;
     line-height: 1.5;
 }
@@ -634,7 +634,7 @@
 
 .summary-action-list h3 {
     margin: 0 0 4px;
-    color: #14213d;
+    color: var(--text-strong);
     font-size: 20px;
 }
 

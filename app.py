@@ -7768,7 +7768,7 @@ def edit_client(client_id):
                 client=client,
             )
 
-        flash("Client updated successfully.")
+        flash("Client updated successfully.", "success")
         return redirect(
             url_for("client_detail", client_id=updated_client["id"])
         )
@@ -7943,7 +7943,7 @@ def delete_client(client_id):
     if not deleted:
         abort(404)
 
-    flash("Client deleted successfully.")
+    flash("Client deleted successfully.", "success")
     return redirect(url_for("clients_page"))
 
 
@@ -8410,7 +8410,7 @@ def generate_client_content_brief(client_id):
                 brand_context=brand_context,
             )
 
-            flash("Content brief generated successfully.")
+            flash("Content brief generated successfully.", "success")
 
             tracked_rows = (
                 PromptTracking.query.filter_by(user_id=current_user.id)
@@ -8806,7 +8806,7 @@ def generate_client_content_draft(client_id):
                 brief_context=brief_context,
                 brand_context=brand_context,
             )
-            flash("Content draft generated successfully.")
+            flash("Content draft generated successfully.", "success")
 
             draft_text = (
                 result.get("draft", "")
@@ -9569,7 +9569,7 @@ def update_content_queue_status(item_id):
         abort(404)
 
     client_id = request.form.get("client_id", "").strip()
-    flash("Queue item status updated.")
+    flash("Queue item status updated.", "success")
 
     if client_id:
         return redirect(url_for("content_queue_page", client_id=client_id))
@@ -10767,7 +10767,7 @@ def save_generated_brief(client_id):
         status="brief_generated",
         user_id=current_user.id,
     )
-    flash("Brief saved to content queue.")
+    flash("Brief saved to content queue.", "success")
     return redirect(url_for("content_queue_page", client_id=client.get("id")))
 
 
@@ -10798,7 +10798,7 @@ def save_generated_draft(client_id):
         user_id=current_user.id,
     )
 
-    flash("Draft saved to content queue.")
+    flash("Draft saved to content queue.", "success")
     return redirect(url_for("content_queue_page", client_id=client.get("id")))
 
 

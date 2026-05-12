@@ -587,27 +587,139 @@
     </script>
 
     <script>
-        // Info-tooltip: click toggles a popover on touch devices, hover
-        // handles it on desktop via CSS. One open at a time — clicking
-        // a different chip or anywhere else closes the active one.
-        document.addEventListener("DOMContentLoaded", function () {
-            var openTip = null;
-            function close() {
-                if (openTip) { openTip.classList.remove("info-tip-open"); openTip = null; }
+        // Info-tooltip — floating body-level div.
+        // The old ::after pseudo-element approach was clipped by any
+        // overflow:hidden ancestor (e.g. surface-card panels). This
+        // version appends one shared <div id="info-float"> to <body>,
+        // positions it with getBoundingClientRect(), and flips
+        // above/below based on available viewport space.
+        (function () {
+            var float, arrow, activeBtn, hideTimer;
+
+            function ensureFloat() {
+                if (float) return;
+                float = document.createElement("div");
+                float.id = "info-float";
+                float.setAttribute("role", "tooltip");
+                float.setAttribute("aria-live", "polite");
+                document.body.appendChild(float);
+
+                arrow = document.createElement("div");
+                arrow.id = "info-float-arrow";
+                document.body.appendChild(arrow);
             }
-            document.addEventListener("click", function (e) {
-                var btn = e.target.closest && e.target.closest(".info-tip");
-                if (!btn) { close(); return; }
-                e.stopPropagation();
-                if (openTip === btn) { close(); return; }
-                close();
-                btn.classList.add("info-tip-open");
-                openTip = btn;
+
+            function position(btn) {
+                ensureFloat();
+                var text = btn.getAttribute("data-info");
+                if (!text) return;
+
+                float.textContent = text;
+                float.className = "is-visible";
+                arrow.className = "";
+
+                var GAP = 10;
+                var PAD = 12;
+                var r = btn.getBoundingClientRect();
+                var sy = window.scrollY || document.documentElement.scrollTop;
+                var sx = window.scrollX || document.documentElement.scrollLeft;
+                var vw = window.innerWidth;
+                var vh = window.innerHeight;
+
+                // Measure after making visible (so offsetWidth/Height are real)
+                var tw = float.offsetWidth;
+                var th = float.offsetHeight;
+
+                // Center horizontally on the button, clamp to viewport
+                var idealLeft = r.left + r.width / 2 - tw / 2;
+                var clampedLeft = Math.max(PAD, Math.min(idealLeft, vw - tw - PAD));
+
+                // Prefer above; fall back to below when not enough room
+                var above = r.top >= th + GAP + 20;
+                var tipTop, arrowTop, arrowClass;
+
+                if (above) {
+                    tipTop  = sy + r.top - th - GAP;
+                    arrowTop = sy + r.top - GAP;
+                    arrowClass = "arrow-above is-visible";
+                } else {
+                    tipTop  = sy + r.bottom + GAP;
+                    arrowTop = sy + r.bottom + GAP - 12;
+                    arrowClass = "arrow-below is-visible";
+                }
+
+                float.style.top  = tipTop + "px";
+                float.style.left = (sx + clampedLeft) + "px";
+
+                // Arrow: center on button, clamp inside float bounds
+                var btnCx = sx + r.left + r.width / 2 - 6; // 6 = half border width
+                var minAx = sx + clampedLeft + 8;
+                var maxAx = sx + clampedLeft + tw - 20;
+                arrow.style.left = Math.max(minAx, Math.min(btnCx, maxAx)) + "px";
+                arrow.style.top  = arrowTop + "px";
+                arrow.className  = arrowClass;
+            }
+
+            function show(btn) {
+                clearTimeout(hideTimer);
+                if (activeBtn === btn) return;
+                activeBtn = btn;
+                position(btn);
+            }
+
+            function hide() {
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(function () {
+                    if (!float) return;
+                    float.className = "";
+                    if (arrow) arrow.className = "";
+                    activeBtn = null;
+                }, 80);
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                // Hover — desktop
+                document.addEventListener("mouseover", function (e) {
+                    var b = e.target.closest && e.target.closest(".info-tip");
+                    if (b) show(b);
+                });
+                document.addEventListener("mouseout", function (e) {
+                    var b = e.target.closest && e.target.closest(".info-tip");
+                    if (b) hide();
+                });
+
+                // Click / touch — toggles on mobile, works on desktop too
+                document.addEventListener("click", function (e) {
+                    var b = e.target.closest && e.target.closest(".info-tip");
+                    if (!b) { hide(); return; }
+                    e.stopPropagation();
+                    if (activeBtn === b) { hide(); activeBtn = null; return; }
+                    show(b);
+                });
+
+                // Focus — keyboard users
+                document.addEventListener("focusin", function (e) {
+                    var b = e.target.closest && e.target.closest(".info-tip");
+                    if (b) show(b);
+                });
+                document.addEventListener("focusout", function (e) {
+                    var b = e.target.closest && e.target.closest(".info-tip");
+                    if (b) hide();
+                });
+
+                document.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape") hide();
+                });
+
+                // Reposition on scroll/resize while open
+                window.addEventListener("scroll", function () {
+                    if (activeBtn) position(activeBtn);
+                }, { passive: true });
+                window.addEventListener("resize", function () {
+                    if (activeBtn) position(activeBtn);
+                }, { passive: true });
             });
-            document.addEventListener("keydown", function (e) {
-                if (e.key === "Escape") close();
-            });
-        });
+        })();
     </script>
 
     <script>

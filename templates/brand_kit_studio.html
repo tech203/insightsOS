@@ -4,218 +4,190 @@
 
 {% block head %}
 <style>
-    .bk-page { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
-    .bk-header { margin-bottom: 1.5rem; }
-    .bk-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
-    .bk-header p { margin: 0; color: #555; max-width: 640px; }
-    .bk-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-    @media (max-width: 960px) { .bk-layout { grid-template-columns: 1fr; } }
-
-    .bk-card { background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
-    .bk-card h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
-    .bk-card p.helper { margin: 0 0 0.85rem 0; font-size: 0.85rem; color: #666; }
-
-    .bk-form { display: grid; gap: 0.4rem; }
-    .bk-form label { font-size: 0.78rem; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.5rem; }
-    .bk-form input, .bk-form textarea, .bk-form select {
-        padding: 0.55rem 0.75rem; border: 1px solid var(--border-main); border-radius: 8px; font-size: 16px; background: var(--bg-card); color: var(--text-strong);
-        font-family: inherit;
+    .brand-kit-page { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .brand-kit-header {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+        margin-bottom: 1.5rem;
     }
-    .bk-form input:focus, .bk-form textarea:focus { outline: 2px solid var(--brand-primary, #3EDFCB); outline-offset: 1px; }
-    .bk-form textarea { resize: vertical; min-height: 70px; }
+    .brand-kit-header h1 { margin: 0 0 0.35rem 0; font-size: 1.55rem; }
+    .brand-kit-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .brand-kit-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr); gap: 1.25rem; }
+    @media (max-width: 960px) { .brand-kit-layout { grid-template-columns: 1fr; } }
 
-    .bk-color-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
-    .bk-color-row input[type="color"] {
+    .brand-kit-card { padding: 1.25rem; margin-bottom: 1rem; }
+    .brand-kit-card h2,
+    .brand-kit-preview h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
+    .brand-kit-card .helper { margin: 0 0 0.85rem 0; font-size: 0.85rem; color: var(--text-muted); }
+
+    .brand-kit-card .form-field { margin-top: 0.85rem; }
+    .brand-kit-color-label {
+        display: block; margin-bottom: 0.45rem;
+        font-weight: 700; font-size: 0.9rem; color: var(--text-strong);
+    }
+    .brand-kit-color-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+    .brand-kit-color-row + .brand-kit-color-row { margin-top: 0.5rem; }
+    .brand-kit-color-row input[type="color"] {
         width: 100%; height: 38px; padding: 2px; border: 1px solid var(--border-main); border-radius: 8px; cursor: pointer; background: var(--bg-card);
     }
-    .bk-color-row input[type="text"] { font-size: 13px; padding: 0.4rem 0.6rem; }
-
-    .bk-btn {
-        padding: 0.6rem 1.2rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer;
-        background: var(--brand-primary, #3EDFCB); color: var(--brand-text-strong, #191929); min-height: 42px;
+    .brand-kit-color-row input[type="text"] {
+        width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem 0.6rem;
+        font: inherit; font-size: 13px; color: var(--text); background: var(--bg-card);
     }
-    .bk-btn-secondary { background: var(--bg-card); border: 1px solid var(--border-main); color: var(--text-strong); }
+    .brand-kit-save-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
 
     /* ---- Live preview ---- */
-    .bk-preview {
+    .brand-kit-preview {
         position: sticky; top: 1.5rem;
-        border-radius: 14px; padding: 1.5rem;
-        background: #fafafe; border: 1px solid #ececf2;
+        padding: 1.5rem;
     }
-    .bk-preview-swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
-    .bk-swatch {
+    .brand-kit-preview-swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+    .brand-kit-swatch {
         height: 64px; border-radius: 10px; display: flex; align-items: flex-end; padding: 0.5rem;
         color: white; font-size: 0.75rem; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.25);
         border: 1px solid rgba(0, 0, 0, 0.06);
     }
-    .bk-preview-tone {
+    .brand-kit-preview-tone {
         background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;
     }
-    .bk-preview-tone h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
-    .bk-preview-tone p { margin: 0; font-size: 0.9rem; color: #444; line-height: 1.55; }
-    .bk-preview-button {
+    .brand-kit-preview-tone h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--bk-acc); }
+    .brand-kit-preview-tone p { margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 1.55; }
+    .brand-kit-preview-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .brand-kit-preview-button {
         display: inline-block; padding: 0.6rem 1.1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
         text-decoration: none;
     }
-    .bk-meta { font-size: 0.75rem; color: #888; margin-top: 0.85rem; }
+    .brand-kit-preview-button-primary { background: var(--bk-pri); color: var(--bk-acc); }
+    .brand-kit-preview-button-secondary { background: transparent; color: var(--bk-acc); border: 1px solid var(--bk-acc); }
+    .brand-kit-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.85rem; }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .bk-btn-secondary,
-    html[data-theme="dark"] .bk-card,
-    html[data-theme="dark"] .bk-color-row,
-    html[data-theme="dark"] .bk-form,
-    html[data-theme="dark"] .bk-preview-tone {
+    html[data-theme="dark"] .brand-kit-preview-tone {
         background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .bk-btn,
-    html[data-theme="dark"] .bk-btn-secondary h1,
-    html[data-theme="dark"] .bk-btn-secondary h2,
-    html[data-theme="dark"] .bk-btn-secondary h3,
-    html[data-theme="dark"] .bk-btn-secondary h4,
-    html[data-theme="dark"] .bk-btn-secondary strong,
-    html[data-theme="dark"] .bk-card h1,
-    html[data-theme="dark"] .bk-card h2,
-    html[data-theme="dark"] .bk-card h3,
-    html[data-theme="dark"] .bk-card h4,
-    html[data-theme="dark"] .bk-card strong,
-    html[data-theme="dark"] .bk-color-row h1,
-    html[data-theme="dark"] .bk-color-row h2,
-    html[data-theme="dark"] .bk-color-row h3,
-    html[data-theme="dark"] .bk-color-row h4,
-    html[data-theme="dark"] .bk-color-row strong,
-    html[data-theme="dark"] .bk-form h1,
-    html[data-theme="dark"] .bk-form h2,
-    html[data-theme="dark"] .bk-form h3,
-    html[data-theme="dark"] .bk-form h4,
-    html[data-theme="dark"] .bk-form strong,
-    html[data-theme="dark"] .bk-preview-tone h1,
-    html[data-theme="dark"] .bk-preview-tone h2,
-    html[data-theme="dark"] .bk-preview-tone h3,
-    html[data-theme="dark"] .bk-preview-tone h4,
-    html[data-theme="dark"] .bk-preview-tone strong {
-        color: var(--theme-text-primary);
-    }
-    html[data-theme="dark"] .bk-preview {
         border-color: var(--theme-border-subtle);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="bk-page">
+<div class="brand-kit-page">
     {% set kit_approved = workspace.brand_kit_approved_at is not none %}
     {% set kit_dirty = kit_approved and workspace.brand_kit_updated_at and workspace.brand_kit_updated_at > workspace.brand_kit_approved_at %}
-    <div class="bk-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+    <div class="brand-kit-header">
         <div>
-            <h1 style="margin:0 0 0.35rem 0;">Brand Kit · {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Approve when you're happy with the direction — generators only lift values from approved kits.") }}</h1>
+            <h1>Brand Kit · {{ workspace.name }} {{ info_tip("Set brand direction once. Audits, briefs, drafts, AI editing, and website generation all read from these fields so output stays on-brand. Approve when you're happy with the direction — generators only lift values from approved kits.") }}</h1>
             {% if kit_approved and not kit_dirty %}
-                <span style="display:inline-block; padding:0.22rem 0.7rem; border-radius:999px; background:rgba(62,223,203,0.16); color:#0E7C6F; font-size:0.78rem; font-weight:700;">✓ Approved · in use</span>
+                <span class="score-pill score-pill-success">Approved · in use</span>
             {% elif kit_dirty %}
-                <span style="display:inline-block; padding:0.22rem 0.7rem; border-radius:999px; background:rgba(252,165,0,0.14); color:#8c4a1f; font-size:0.78rem; font-weight:700;">Edited since approval — re-approve to apply</span>
+                <span class="score-pill score-pill-warning">Edited since approval · re-approve to apply</span>
             {% else %}
-                <span style="display:inline-block; padding:0.22rem 0.7rem; border-radius:999px; background:#f0f0f5; color:#555; font-size:0.78rem; font-weight:700;">Draft · not yet applied to generators</span>
+                <span class="score-pill score-pill-info">Draft · not yet applied to generators</span>
             {% endif %}
         </div>
-        <div style="display:flex; gap:0.5rem;">
+        <div class="brand-kit-actions">
             {% if kit_approved and not kit_dirty %}
             <form method="post" action="{{ url_for('client_brand_kit_unapprove', client_id=workspace.id) }}" onsubmit="return confirm('Set the Brand Kit back to draft? Generators will fall back to your typed brand_context until re-approved.');">
-                <button type="submit" class="bk-btn bk-btn-secondary">Unapprove</button>
+                <button type="submit" class="btn btn-secondary">Unapprove</button>
             </form>
             {% else %}
             <form method="post" action="{{ url_for('client_brand_kit_approve', client_id=workspace.id) }}">
-                <button type="submit" class="bk-btn">Approve Brand Kit</button>
+                <button type="submit" class="btn btn-primary">Approve Brand Kit</button>
             </form>
             {% endif %}
         </div>
     </div>
 
     <form method="post" action="{{ url_for('client_brand_kit', client_id=workspace.id) }}">
-        <div class="bk-layout">
+        <div class="brand-kit-layout">
             <div>
-                <div class="bk-card">
+                <section class="surface-card brand-kit-card">
                     <h2>Visual identity</h2>
                     <p class="helper">Colours flow into generated banners, comparison cards, and PDF accents.</p>
 
-                    <label>Primary, secondary, accent colours</label>
-                    <div class="bk-color-row">
+                    <label class="brand-kit-color-label">Primary, secondary, accent colours</label>
+                    <div class="brand-kit-color-row">
                         <input type="color" name="brand_primary_color" value="{{ workspace.brand_primary_color or '#3EDFCB' }}" oninput="document.getElementById('bk-pri-text').value=this.value; bkSyncPreview();">
                         <input type="color" name="brand_secondary_color" value="{{ workspace.brand_secondary_color or '#9D7CE3' }}" oninput="document.getElementById('bk-sec-text').value=this.value; bkSyncPreview();">
                         <input type="color" name="brand_accent_color" value="{{ workspace.brand_accent_color or '#191929' }}" oninput="document.getElementById('bk-acc-text').value=this.value; bkSyncPreview();">
                     </div>
-                    <div class="bk-color-row" style="margin-top:0.5rem;">
+                    <div class="brand-kit-color-row">
                         <input id="bk-pri-text" type="text" value="{{ workspace.brand_primary_color or '#3EDFCB' }}" readonly>
                         <input id="bk-sec-text" type="text" value="{{ workspace.brand_secondary_color or '#9D7CE3' }}" readonly>
                         <input id="bk-acc-text" type="text" value="{{ workspace.brand_accent_color or '#191929' }}" readonly>
                     </div>
 
-                    <div class="bk-form">
+                    <div class="form-field">
                         <label for="bk-typo">Typography direction</label>
                         <input id="bk-typo" type="text" name="brand_typography" value="{{ workspace.brand_typography or '' }}" placeholder="e.g. Inter for body, IBM Plex Serif for display" oninput="bkSyncPreview()">
-
+                    </div>
+                    <div class="form-field">
                         <label for="bk-imagery">Imagery direction</label>
                         <textarea id="bk-imagery" name="brand_imagery_direction" placeholder="e.g. Editorial product shots on neutral backgrounds, no people in frame.">{{ workspace.brand_imagery_direction or '' }}</textarea>
                     </div>
-                </div>
+                </section>
 
-                <div class="bk-card">
+                <section class="surface-card brand-kit-card">
                     <h2>Voice &amp; positioning</h2>
                     <p class="helper">Drives the tone of every AI-generated piece.</p>
 
-                    <div class="bk-form">
+                    <div class="form-field">
                         <label for="bk-audience">Target audience</label>
                         <textarea id="bk-audience" name="brand_audience" placeholder="e.g. Independent ceramic shops with 50–500 SKUs, founder-led, US/EU markets.">{{ workspace.brand_audience or '' }}</textarea>
-
+                    </div>
+                    <div class="form-field">
                         <label for="bk-services">Main services / products</label>
                         <textarea id="bk-services" name="brand_services" placeholder="e.g. Hand-thrown stoneware mugs, gift sets, custom commissions.">{{ workspace.brand_services or '' }}</textarea>
-
+                    </div>
+                    <div class="form-field">
                         <label for="bk-diff">What makes the brand different</label>
                         <textarea id="bk-diff" name="brand_differentiators" placeholder="e.g. Locally sourced clay, two-week turnaround, founder-signs each piece.">{{ workspace.brand_differentiators or '' }}</textarea>
-
+                    </div>
+                    <div class="form-field">
                         <label for="bk-voice">Voice / tone (one line)</label>
                         <input id="bk-voice" type="text" name="brand_voice" value="{{ workspace.brand_voice or '' }}" placeholder="e.g. Calm, considered, slightly poetic — never salesy." oninput="bkSyncPreview()">
-
+                    </div>
+                    <div class="form-field">
                         <label for="bk-personality">Personality (3–5 adjectives)</label>
                         <input id="bk-personality" type="text" name="brand_personality" value="{{ workspace.brand_personality or '' }}" placeholder="e.g. quiet, crafted, warm, intentional, durable">
-
+                    </div>
+                    <div class="form-field">
                         <label for="bk-avoid">Things to avoid</label>
                         <textarea id="bk-avoid" name="brand_avoid" placeholder="e.g. Hype words like 'revolutionary', exclamation marks, stock product shots.">{{ workspace.brand_avoid or '' }}</textarea>
                     </div>
-                </div>
+                </section>
 
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
-                    <button type="submit" class="bk-btn">Save Brand Kit</button>
-                    <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="bk-btn bk-btn-secondary">← Back to workspace</a>
+                <div class="brand-kit-save-actions">
+                    <button type="submit" class="btn btn-primary">Save Brand Kit</button>
+                    <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="btn btn-secondary">Back to workspace</a>
                 </div>
             </div>
 
             <div>
-                <div class="bk-preview" id="bkPreview" style="--bk-pri: {{ workspace.brand_primary_color or '#3EDFCB' }}; --bk-sec: {{ workspace.brand_secondary_color or '#9D7CE3' }}; --bk-acc: {{ workspace.brand_accent_color or '#191929' }};">
-                    <h2 style="margin:0 0 0.85rem 0; font-size: 1rem;">Live preview</h2>
+                <aside class="surface-card brand-kit-preview" id="bkPreview" style="--bk-pri: {{ workspace.brand_primary_color or '#3EDFCB' }}; --bk-sec: {{ workspace.brand_secondary_color or '#9D7CE3' }}; --bk-acc: {{ workspace.brand_accent_color or '#191929' }};">
+                    <h2>Live preview</h2>
 
-                    <div class="bk-preview-swatches">
-                        <div class="bk-swatch" style="background: var(--bk-pri);">Primary</div>
-                        <div class="bk-swatch" style="background: var(--bk-sec);">Secondary</div>
-                        <div class="bk-swatch" style="background: var(--bk-acc);">Accent</div>
+                    <div class="brand-kit-preview-swatches">
+                        <div class="brand-kit-swatch" style="background: var(--bk-pri);">Primary</div>
+                        <div class="brand-kit-swatch" style="background: var(--bk-sec);">Secondary</div>
+                        <div class="brand-kit-swatch" style="background: var(--bk-acc);">Accent</div>
                     </div>
 
-                    <div class="bk-preview-tone">
-                        <h3 style="color: var(--bk-acc);" id="bk-pv-title">Sample headline · {{ workspace.name }}</h3>
+                    <div class="brand-kit-preview-tone">
+                        <h3 id="bk-pv-title">Sample headline · {{ workspace.name }}</h3>
                         <p id="bk-pv-body">A short paragraph rendered in the brand voice.{% if workspace.brand_voice %} Tone: {{ workspace.brand_voice }}.{% endif %}{% if workspace.brand_typography %} Typography: {{ workspace.brand_typography }}.{% endif %}</p>
                     </div>
 
-                    <a href="#" class="bk-preview-button" style="background: var(--bk-pri); color: var(--bk-acc);">Sample CTA</a>
-                    <a href="#" class="bk-preview-button" style="background: transparent; color: var(--bk-acc); border: 1px solid var(--bk-acc); margin-left: 0.4rem;">Secondary CTA</a>
+                    <div class="brand-kit-preview-actions">
+                        <span class="brand-kit-preview-button brand-kit-preview-button-primary">Sample CTA</span>
+                        <span class="brand-kit-preview-button brand-kit-preview-button-secondary">Secondary CTA</span>
+                    </div>
 
-                    <div class="bk-meta">
+                    <div class="brand-kit-meta">
                         {% if workspace.brand_kit_updated_at %}
                             Last updated {{ workspace.brand_kit_updated_at.strftime('%d %b %Y, %H:%M UTC') }}
                         {% else %}
                             Save the kit to lock these values in for downstream generation.
                         {% endif %}
                     </div>
-                </div>
+                </aside>
             </div>
         </div>
     </form>

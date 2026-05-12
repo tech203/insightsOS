@@ -51,7 +51,8 @@
 
                 <div class="form-field">
                     <label for="mp-region">Region</label>
-                    <input id="mp-region" type="text" name="region" placeholder="e.g. Singapore">
+                    <input id="mp-region" type="text" name="region" placeholder="e.g. Singapore, United States">
+                    <span class="mp-field-hint">Free text. Use a market like Singapore, United States, or Southeast Asia.</span>
                 </div>
             </div>
 
@@ -81,7 +82,7 @@
                         <button type="submit" class="btn btn-primary">Run audit ({{ marketplace_audit_cost }} cr)</button>
                     </form>
                     <form method="post" action="{{ url_for('marketplace_delete_presence', client_id=workspace.id, presence_id=presence.id) }}" onsubmit="return confirm('Remove this marketplace listing?');">
-                        <button type="submit" class="btn btn-secondary mp-btn-danger">Remove</button>
+                        <button type="submit" class="btn btn-danger">Remove</button>
                     </form>
                 </div>
             </header>
@@ -127,155 +128,4 @@
     {% endif %}
 
 </div>
-
-<style>
-/* Marketplace Audits — page-specific layout only.
-   Surfaces, buttons, inputs, score pills, and empty state all
-   come from the global design system (.surface-card / .btn /
-   .form-field / .form-grid-2 / .score-pill / .empty-card).
-   Removed ~140 lines of bespoke .mp-* CSS that shipped its own
-   white surfaces and patched dark mode reactively. */
-
-.mp-page {
-    max-width: 1080px;
-    display: grid;
-    gap: 16px;
-}
-
-.mp-add-card,
-.mp-presence-card {
-    padding: 22px;
-}
-
-.mp-add-card h2,
-.mp-presence-card h3 {
-    margin: 0 0 6px 0;
-    font-size: 18px;
-}
-
-.mp-add-copy {
-    margin: 0 0 16px 0;
-    font-size: 13.5px;
-    color: var(--text-soft);
-    line-height: 1.5;
-    max-width: 640px;
-}
-
-.mp-add-form {
-    display: grid;
-    gap: 14px;
-}
-
-.mp-presence-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.mp-presence-title-block {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.mp-presence-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.mp-presence-meta {
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--text-soft);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 10px;
-}
-
-.mp-presence-meta strong {
-    color: var(--text-strong);
-}
-
-.mp-presence-meta a {
-    color: var(--brand-primary);
-    text-decoration: none;
-}
-
-.mp-presence-meta a:hover {
-    text-decoration: underline;
-}
-
-.mp-citation-summary {
-    margin: 14px 0 0 0;
-    font-size: 14px;
-    color: var(--text-main);
-}
-
-.mp-citation-summary strong {
-    color: var(--text-strong);
-}
-
-.mp-query-list {
-    display: grid;
-    gap: 6px;
-    margin-top: 10px;
-}
-
-.mp-query-row {
-    background: var(--bg-soft-alt);
-    border-left: 3px solid var(--border-main);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 13px;
-}
-
-.mp-query-row.mp-query-cited {
-    border-left-color: var(--brand-primary);
-}
-
-.mp-query-meta {
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.mp-empty {
-    text-align: center;
-}
-
-.mp-empty h3 {
-    margin: 0 0 8px 0;
-    font-size: 18px;
-    color: var(--text-strong);
-}
-
-.mp-empty p {
-    margin: 0 auto;
-    max-width: 480px;
-    color: var(--text-soft);
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.mp-btn-danger {
-    color: #b91c1c !important;
-}
-
-html[data-theme="dark"] .mp-query-row {
-    background: var(--theme-surface-alt);
-    border-left-color: var(--theme-border-subtle);
-}
-
-html[data-theme="dark"] .mp-query-row.mp-query-cited {
-    border-left-color: var(--brand-primary);
-}
-
-html[data-theme="dark"] .mp-btn-danger {
-    color: #fca5a5 !important;
-}
-</style>
 {% endblock %}

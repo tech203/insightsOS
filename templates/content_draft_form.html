@@ -104,7 +104,7 @@
         </div>
         </div>
 
-        <div id="draftLoadingState" class="gen-loading-state" style="display:none;">
+        <div id="draftLoadingState" class="gen-loading-state" style="display:none;" role="status" aria-live="polite" aria-busy="true">
             <div class="panel gen-loading-card">
                 <div class="gen-loading-top">
                     <span class="section-kicker">Draft Generating</span>
@@ -144,6 +144,21 @@
                         <strong>5. Finalising draft</strong>
                         <p>Formatting and saving to your workspace.</p>
                     </div>
+                </div>
+
+                <div class="skeleton-result-preview gen-skeleton-preview" aria-hidden="true">
+                    <div class="skeleton-preview-header">
+                        <span class="skeleton-pill"></span>
+                        <span class="skeleton-line skeleton-line-short"></span>
+                    </div>
+                    <div class="skeleton-content-grid">
+                        <span class="skeleton-line"></span>
+                        <span class="skeleton-line"></span>
+                        <span class="skeleton-line skeleton-line-medium"></span>
+                        <span class="skeleton-line"></span>
+                        <span class="skeleton-line skeleton-line-short"></span>
+                    </div>
+                    <div class="skeleton-draft-block"></div>
                 </div>
 
                 <div class="gen-loading-note">

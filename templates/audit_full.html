@@ -225,9 +225,9 @@
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
+    background: var(--bg-soft);
     box-shadow: none;
-    color: #4a586c;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 800;
 }
@@ -243,13 +243,13 @@
     font-size: 40px;
     line-height: 1.05;
     font-weight: 800;
-    color: #15233b;
+    color: var(--text-strong);
     word-break: break-word;
 }
 
 .audit-full-subcopy {
     margin: 16px 0 0;
-    color: #617084;
+    color: var(--text-muted);
     font-size: 16px;
     line-height: 1.65;
     max-width: 760px;
@@ -258,20 +258,20 @@
 .audit-full-file-card {
     margin-top: 20px;
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft);
 }
 
 .file-label {
     display: block;
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
 .audit-full-file-card strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     font-size: 15px;
     line-height: 1.6;
     word-break: break-word;
@@ -286,20 +286,20 @@
 .quick-access-label {
     font-size: 13px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .quick-access-value {
     font-size: 30px;
     line-height: 1.15;
     font-weight: 800;
-    color: #E83256;
+    color: var(--brand-primary);
     margin-top: 14px;
 }
 
 .quick-access-meta {
     margin-top: 10px;
-    color: #627084;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -312,14 +312,14 @@
 
 .stat-card {
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft);
 }
 
 .stat-card span {
     display: block;
     font-size: 13px;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
@@ -327,7 +327,7 @@
     display: block;
     font-size: 30px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .audit-full-grid {
@@ -348,12 +348,12 @@
     margin: 0 0 8px;
     font-size: 22px;
     font-weight: 800;
-    color: #16243c;
+    color: var(--text-strong);
 }
 
 .panel-subtitle {
     margin: 0;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 15px;
     line-height: 1.55;
 }
@@ -369,9 +369,9 @@
     align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: #f8fafc;
+    background: var(--bg-soft);
     box-shadow: none;
-    color: #445366;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 700;
 }
@@ -383,18 +383,18 @@
 
 .guide-item {
     padding: 18px;
-    background: #f8fafc;
+    background: var(--bg-soft);
 }
 
 .guide-item strong {
     display: block;
-    color: #16243c;
+    color: var(--text-strong);
     margin-bottom: 8px;
 }
 
 .guide-item p {
     margin: 0;
-    color: #627084;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
 }
@@ -448,6 +448,12 @@
 
     .audit-full-hero-main h1 {
         font-size: 30px;
+    }
+
+    /* Deferred #8 — large metric numbers overflow on 375px screens */
+    .stat-card strong,
+    .quick-access-value {
+        font-size: 22px;
     }
 }
 

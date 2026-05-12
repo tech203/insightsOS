@@ -133,7 +133,7 @@
                 </section>
             </div>
 
-            <div id="auditLoadingState" class="audit-loading-state" style="display:none;">
+            <div id="auditLoadingState" class="audit-loading-state" style="display:none;" role="status" aria-live="polite" aria-busy="true">
                 <section class="audit-form-card-clean audit-loading-card">
                     <div class="audit-loading-top">
                         <span class="audit-section-kicker">Audit Running</span>
@@ -172,6 +172,24 @@
                         <div class="audit-stage-item" data-stage-index="4">
                             <strong>5. Recommendations</strong>
                             <p>Building prioritised actions and summary output.</p>
+                        </div>
+                    </div>
+
+                    <div class="skeleton-result-preview audit-skeleton-preview" aria-hidden="true">
+                        <div class="skeleton-preview-header">
+                            <span class="skeleton-pill"></span>
+                            <span class="skeleton-line skeleton-line-short"></span>
+                        </div>
+                        <div class="skeleton-score-row">
+                            <span class="skeleton-score"></span>
+                            <span class="skeleton-score"></span>
+                            <span class="skeleton-score"></span>
+                        </div>
+                        <div class="skeleton-content-grid">
+                            <span class="skeleton-line"></span>
+                            <span class="skeleton-line skeleton-line-medium"></span>
+                            <span class="skeleton-line"></span>
+                            <span class="skeleton-line skeleton-line-short"></span>
                         </div>
                     </div>
 
