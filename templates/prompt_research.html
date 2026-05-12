@@ -31,7 +31,7 @@
                 identify the sources shaping answers, and turn those insights into action.
             </p>
 
-            <form method="POST" action="{{ url_for('prompt_research_page') }}" class="prompt-search-form">
+            <form method="POST" action="{{ url_for('answer_monitor_page') }}" class="prompt-search-form">
                 <div class="prompt-search-bar">
                     <input
                         type="text"
@@ -127,9 +127,9 @@
         </div>
 
         <div class="insight-band-actions">
-            <a href="{{ url_for('prompt_tracking_page') }}" class="btn btn-secondary">Open Prompt Tracking</a>
+            <a href="{{ url_for('position_tracking_page') }}" class="btn btn-secondary">Open Prompt Tracking</a>
             <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">Open Queue</a>
-            <a href="{{ url_for('competitor_page') }}" class="btn btn-secondary">Compare Competitors</a>
+            <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Compare Competitors</a>
         </div>
     </section>
 
@@ -420,7 +420,7 @@
             <button type="button" class="modal-close-btn" data-close-modal>&times;</button>
         </div>
 
-        <form method="POST" action="{{ url_for('prompt_tracking_page') }}" class="app-modal-body track-form-grid">
+        <form method="POST" action="{{ url_for('position_tracking_page') }}" class="app-modal-body track-form-grid">
             <div class="form-group full-span">
                 <label for="tracked_prompts">Prompts</label>
                 <textarea id="tracked_prompts" name="tracked_prompts" rows="7" placeholder="Enter one prompt per line"></textarea>

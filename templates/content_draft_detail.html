@@ -33,7 +33,7 @@
 
             <div class="draft-hero-actions">
                 <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
-                <a href="{{ url_for('content_brief_detail', item_id=draft.id) if draft is defined and draft.id else '#' }}" class="btn btn-secondary">View Brief</a>
+                <a href="{{ url_for('view_queue_brief', item_id=draft.id) if draft is defined and draft.id else url_for('content_queue_page') }}" class="btn btn-secondary">View Brief</a>
                 <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-secondary">Re-Audit Later</a>
             </div>
         </div>
