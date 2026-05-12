@@ -2748,6 +2748,10 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     gap: 12px;
 }
 
+.dev-view-panel {
+    max-width: 420px;
+}
+
 .dev-view-buttons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7336,6 +7340,12 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     border-color: #bbf7d0;
 }
 
+/* Soft warning tier: score 40-55 — watch zone, not yet a hard blocker */
+.blocker-card-warning {
+    background: #fefce8;
+    border-color: #fde68a;
+}
+
 .blocker-card strong {
     display: block;
     color: #16243c;
@@ -8960,6 +8970,70 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     line-height: 1.55;
 }
 
+/* ── Module card visual hierarchy ───────────────────────────────────
+   Three-tier grouping: Core / Tools / Integrations.
+   Each tier has a labelled section header and its own grid variant.
+   ─────────────────────────────────────────────────────────────────── */
+.workspace-module-section {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.module-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.module-group-label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Core cards — slightly taller with a stronger visual weight */
+.workspace-module-card--primary {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-main);
+}
+
+.workspace-module-card--primary strong {
+    font-size: 17px;
+}
+
+/* Integration cards — compact, two-column, lighter feel */
+.workspace-modules-grid--compact {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.workspace-module-card--integration {
+    padding: 14px 16px;
+    background: var(--bg-soft);
+}
+
+.workspace-module-card--integration strong {
+    font-size: 14px;
+}
+
+.workspace-module-card--integration p {
+    font-size: 12.5px;
+}
+
+/* Secondary integration card (e.g. "More connectors") — subdued */
+.workspace-module-card--secondary {
+    border-style: dashed;
+    opacity: 0.75;
+}
+
+.workspace-module-card--secondary:hover {
+    opacity: 1;
+}
+
 .section-head.compact {
     margin-bottom: 14px;
 }
@@ -10258,10 +10332,18 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .toolbar-filters input {
     min-width: 220px;
+}
+
+/* Volume threshold hint label next to the filter dropdown */
+.volume-threshold-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .table-wrap,
@@ -15335,6 +15417,43 @@ a.btn {
 .workspace-more-danger:hover {
     background: var(--status-danger-soft);
 }
+
+/* Two-step inline delete confirmation — replaces browser confirm() */
+.workspace-delete-confirm {
+    padding: 10px 12px 10px;
+    display: grid;
+    gap: 6px;
+}
+.workspace-delete-confirm span {
+    font-size: 12.5px;
+    color: var(--status-danger);
+    font-weight: 600;
+    line-height: 1.3;
+}
+.workspace-delete-yes,
+.workspace-delete-cancel {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+}
+.workspace-delete-yes {
+    background: var(--status-danger);
+    color: #fff;
+}
+.workspace-delete-yes:hover { filter: brightness(1.08); }
+.workspace-delete-cancel {
+    background: var(--bg-soft);
+    color: var(--text-muted);
+}
+.workspace-delete-cancel:hover { background: var(--border-main); }
+
 html[data-theme="dark"] .workspace-more-divider {
     background: var(--theme-border-subtle);
 }
@@ -17536,6 +17655,15 @@ html[data-theme="dark"] .dashboard-ops-card,
 html[data-theme="dark"] .dashboard-welcome-card,
 html[data-theme="dark"] .summary-stat-card,
 html[data-theme="dark"] .workspace-section-card,
+html[data-theme="dark"] .workspace-module-card--primary,
+html[data-theme="dark"] .workspace-module-card--integration {
+    border-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .workspace-module-card--integration {
+    background: var(--theme-surface-alt, rgba(255,255,255,0.04));
+}
+
 html[data-theme="dark"] .workspace-summary-grid > *,
 html[data-theme="dark"] .workspace-module-card,
 html[data-theme="dark"] .workspace-next-step-card,
@@ -18058,6 +18186,7 @@ html[data-theme="dark"] .module-card,
 html[data-theme="dark"] .summary-card,
 html[data-theme="dark"] .pillar-card,
 html[data-theme="dark"] .blocker-card,
+html[data-theme="dark"] .blocker-card-warning,
 html[data-theme="dark"] .query-summary-card,
 html[data-theme="dark"] .empty-state-card,
 html[data-theme="dark"] .next-action-card,
@@ -21162,6 +21291,36 @@ html[data-theme="dark"] .dashboard-priority-empty-note {
 
    We make the table itself horizontally scrollable so the card
    keeps its rounded corners but the table can scroll inside. */
+/* Admin page helper classes — replace inline styles in admin templates */
+.admin-card--flush {
+    padding: 0;
+    overflow: hidden; /* clips rounded corners against table header */
+}
+
+.admin-filter-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.admin-filter-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.admin-table-sub {
+    color: var(--text-muted);
+    font-size: 11.5px;
+}
+
+.admin-empty-state {
+    padding: 32px 20px;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 0;
+}
+
 .admin-table {
     /* `display: block` is what unlocks overflow-x on a <table>. */
     display: block;
