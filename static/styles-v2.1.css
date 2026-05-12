@@ -17475,6 +17475,11 @@ html[data-theme="dark"] {
 
     --shadow-card: var(--theme-shadow-card);
     --shadow-elevated: 0 10px 28px rgba(0, 0, 0, 0.45);
+
+    /* Legacy --panel token — used by .panel, .stat-card, etc.
+       Override here so every var(--panel) consumer gets a dark surface. */
+    --panel: var(--theme-surface);
+    --panel-muted: var(--theme-surface-alt);
 }
 
 /* Smooth the swap so it doesn't feel like a hard refresh. */
@@ -17504,8 +17509,11 @@ html[data-theme="dark"] .app-main {
     color: var(--theme-text-primary);
 }
 
-/* Card / panel surfaces — the highest-frequency container classes. */
+/* Card / panel surfaces — the highest-frequency container classes.
+   Many of these have hardcoded background:#ffffff that overrides var(--panel),
+   so we need explicit background here in addition to border-color. */
 html[data-theme="dark"] .panel,
+html[data-theme="dark"] .stat-card,
 html[data-theme="dark"] .settings-v3-panel,
 html[data-theme="dark"] .settings-v3-summary-card,
 html[data-theme="dark"] .settings-v3-active-card,
@@ -17520,9 +17528,18 @@ html[data-theme="dark"] .dashboard-welcome-card,
 html[data-theme="dark"] .summary-stat-card,
 html[data-theme="dark"] .workspace-section-card,
 html[data-theme="dark"] .workspace-module-card--primary,
-html[data-theme="dark"] .workspace-module-card--integration {
+html[data-theme="dark"] .workspace-module-card--integration,
+html[data-theme="dark"] .brief-generator-top-strip,
+html[data-theme="dark"] .brief-generator-top-card,
+html[data-theme="dark"] .draft-generator-top-strip,
+html[data-theme="dark"] .draft-generator-top-card,
+html[data-theme="dark"] .website-mini-card,
+html[data-theme="dark"] .website-faq-item,
+html[data-theme="dark"] .premium-queue-item-card,
+html[data-theme="dark"] .gen-loading-card {
     background: var(--theme-surface);
     border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
 }
 
 html[data-theme="dark"] .workspace-module-card--integration {

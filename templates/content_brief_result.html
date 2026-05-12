@@ -5,6 +5,9 @@
 
 {% block title %}Brief Result | DarInsights{% endblock %}
 
+{% block page_title %}{% if client %}{{ client.name if client.name is defined else client.get('name', 'Workspace') }}{% endif %} · Content Brief{% endblock %}
+{% block page_subtitle %}Review and use the generated content brief below.{% endblock %}
+
 {% block content %}
 
 {% set client_route_id = client.id if client.id is defined else client.get('id') %}
