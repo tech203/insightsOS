@@ -17686,52 +17686,15 @@ html[data-theme="dark"] .topup-bundle-strike {
     background: rgba(62, 223, 203, 0.08);
     outline: none;
 }
-.info-tip::after {
-    content: attr(data-info);
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #191929;
-    color: #f4f6fb;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    line-height: 1.45;
-    font-weight: 500;
-    width: max-content;
-    max-width: 280px;
-    text-align: left;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.16s ease, visibility 0.16s ease;
-    z-index: 1000;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
-    white-space: normal;
-    cursor: default;
-}
+/* Pseudo-element tooltip is replaced by #info-float (a body-level
+   floating div) — see the info-tip JS in base.html. The pseudo-element
+   approach clips inside overflow:hidden ancestors; the body-level div
+   escapes all such clipping. We keep ::after/::before hidden so there
+   is no flash if JS is slow. */
+.info-tip::after,
 .info-tip::before {
-    content: "";
-    position: absolute;
-    bottom: calc(100% + 2px);
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #191929;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.16s ease, visibility 0.16s ease;
-}
-.info-tip:hover::after,
-.info-tip:hover::before,
-.info-tip:focus-visible::after,
-.info-tip:focus-visible::before,
-.info-tip.info-tip-open::after,
-.info-tip.info-tip-open::before {
-    opacity: 1;
-    visibility: visible;
+    content: none;
+    display: none;
 }
 
 html[data-theme="dark"] .info-tip {
@@ -17739,12 +17702,54 @@ html[data-theme="dark"] .info-tip {
     border-color: var(--theme-border-strong);
     color: var(--theme-text-muted);
 }
-html[data-theme="dark"] .info-tip::after {
+
+/* =========================================================
+   Floating info tooltip — positioned by JS at document level
+   so it is never clipped by overflow:hidden ancestors.
+   ========================================================= */
+#info-float {
+    position: absolute;
+    z-index: 9999;
+    background: #191929;
+    color: #f4f6fb;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    font-weight: 500;
+    max-width: 280px;
+    pointer-events: none;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+    white-space: normal;
+    text-align: left;
+    opacity: 0;
+    transition: opacity 0.14s ease;
+    display: none;
+}
+#info-float.is-visible {
+    display: block;
+    opacity: 1;
+}
+#info-float-arrow {
+    position: absolute;
+    z-index: 9999;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+    border: 6px solid transparent;
+    display: none;
+}
+#info-float-arrow.arrow-above { border-top-color: #191929; }
+#info-float-arrow.arrow-below { border-bottom-color: #191929; }
+#info-float-arrow.is-visible { display: block; }
+
+html[data-theme="dark"] #info-float {
     background: #f4f6fb;
     color: #191929;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
 }
-html[data-theme="dark"] .info-tip::before { border-top-color: #f4f6fb; }
+html[data-theme="dark"] #info-float-arrow.arrow-above { border-top-color: #f4f6fb; }
+html[data-theme="dark"] #info-float-arrow.arrow-below { border-bottom-color: #f4f6fb; }
 
 /* =========================================================
    Dark-mode coverage gaps (added after the screenshot review)
