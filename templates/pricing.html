@@ -116,17 +116,17 @@
                 </div>
 
                 {% if plan.slug == 'free' %}
-                <a href="{{ url_for('signup') }}" class="btn btn-secondary full-width-btn">Get Started</a>
+                <a href="{{ url_for('signup') }}" class="btn btn-secondary btn-block">Get Started</a>
                 {% elif stripe_configured is defined and not stripe_configured %}
                 {# Stripe not configured — show a disabled button so the
                    user sees the plan exists but knows checkout is blocked. #}
-                <button type="button" class="btn btn-secondary full-width-btn" disabled
+                <button type="button" class="btn btn-secondary btn-block" disabled
                         aria-disabled="true"
                         title="Checkout temporarily unavailable — Stripe billing is not configured on this server.">
                     Checkout unavailable
                 </button>
                 {% else %}
-                <a href="{{ url_for('stripe_checkout_plan', plan_slug=plan.slug) }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} full-width-btn">
+                <a href="{{ url_for('stripe_checkout_plan', plan_slug=plan.slug) }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} btn-block">
                     {% if current_plan == plan.slug %}Current Plan{% else %}Choose {{ plan.label }}{% endif %}
                 </a>
                 {% endif %}
@@ -171,7 +171,7 @@
                     Agency is not a separate usage tier. You still need a main plan and credits.
                     This add-on only unlocks client-facing and white-label delivery.
                 </p>
-                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary full-width-btn">Add Agency Layer</a>
+                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary btn-block">Add Agency Layer</a>
             </div>
         </div>
     </section>
@@ -187,21 +187,21 @@
                 <span class="pricing-topup-name">Starter Pack</span>
                 <strong>10 Credits</strong>
                 <p>For occasional extra audits and content generation.</p>
-                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Buy Credits</a>
+                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary btn-block">Buy Credits</a>
             </article>
 
             <article class="surface-card surface-card--hover pricing-topup-card featured">
                 <span class="pricing-topup-name">Growth Pack</span>
                 <strong>25 Credits</strong>
                 <p>Good for regular extra usage beyond your monthly included credits.</p>
-                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-primary full-width-btn">Buy Credits</a>
+                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-primary btn-block">Buy Credits</a>
             </article>
 
             <article class="surface-card surface-card--hover pricing-topup-card">
                 <span class="pricing-topup-name">Agency Pack</span>
                 <strong>75 Credits</strong>
                 <p>Best for teams, client work, and higher output volume.</p>
-                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary full-width-btn">Buy Credits</a>
+                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary btn-block">Buy Credits</a>
             </article>
         </div>
     </section>
@@ -744,7 +744,7 @@ html[data-theme="dark"] .pricing-stripe-copy p {
     max-width: 760px;
 }
 
-.full-width-btn {
+.btn-block {
     width: 100%;
 }
 
@@ -792,7 +792,7 @@ html[data-theme="dark"] .pricing-stripe-copy p {
 
     .pricing-hero-actions .btn,
     .pricing-cta-actions .btn,
-    .full-width-btn {
+    .btn-block {
         width: 100%;
     }
 

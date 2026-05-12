@@ -99,7 +99,7 @@
                         {% if et.price and et.price > 0 %}· {{ et.currency }} {{ '%.2f' | format(et.price / 100.0) }}{% endif %}
                     </div>
                 </div>
-                {% if et.url %}<a href="{{ et.url }}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:0.82rem; padding:0.35rem 0.7rem; min-height:0;">Open ↗</a>{% endif %}
+                {% if et.url %}<a href="{{ et.url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Open ↗</a>{% endif %}
             </div>
             {% endfor %}
         </div>
