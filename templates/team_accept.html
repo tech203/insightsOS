@@ -2,35 +2,51 @@
 
 {% block title %}Join {{ owner.name }}'s team{% endblock %}
 
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Team Invitation</h1>
+        <p>You've been invited to join a workspace on DarInsights.</p>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 480px; margin: 4rem auto; padding: 2rem 1.5rem;">
-    <h1 style="margin: 0 0 0.5rem 0;">Join {{ owner.name }}'s team</h1>
-    <p style="color: #555; margin: 0 0 1.5rem 0;">
-        You've been invited to join {{ owner.name }}'s team on DarInsights as <strong>{{ invite.email }}</strong>.
-        Team members share workspaces, the credit wallet, and the team's plan.
-    </p>
-
-    {% if already_logged_in %}
-        <p style="color: #555; margin-bottom: 1rem;">You're signed in already. Click below to join the team.</p>
-        <form method="post" action="{{ url_for('team_accept', token=invite.token) }}">
-            <button type="submit" class="btn btn-primary">Join {{ owner.name }}'s team</button>
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="margin-left: 0.5rem;">Sign out and accept as a different user</a>
-        </form>
-    {% else %}
-        <form method="post" action="{{ url_for('team_accept', token=invite.token) }}" class="settings-v3-form">
-            <label for="ta-name">Your name</label>
-            <input id="ta-name" type="text" name="name" required>
-
-            <label for="ta-password">Choose a password (8+ chars)</label>
-            <input id="ta-password" type="password" name="password" required minlength="8" autocomplete="new-password">
-
-            <button type="submit" class="btn btn-primary" style="margin-top: 0.65rem;">Create account &amp; join team</button>
-        </form>
-
-        <p style="font-size: 0.85rem; color: #666; margin-top: 1.25rem;">
-            Already have an account with this email?
-            <a href="{{ url_for('login') }}">Sign in first</a>, then return to this invite link.
+<div class="visibility-page-shell">
+    <section class="module-card" style="max-width: 520px; margin: 0 auto;">
+        <span class="section-kicker">Invitation</span>
+        <h2 style="margin: 14px 0 6px;">Join {{ owner.name }}'s team</h2>
+        <p class="panel-subtitle">
+            You've been invited to join <strong>{{ owner.name }}</strong>'s team as <strong>{{ invite.email }}</strong>.
+            Team members share workspaces, the credit wallet, and the team's plan.
         </p>
-    {% endif %}
+
+        {% if already_logged_in %}
+            <p class="panel-subtitle" style="margin-top: 16px;">You're signed in. Click below to accept the invitation.</p>
+            <form method="post" action="{{ url_for('team_accept', token=invite.token) }}" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+                <button type="submit" class="btn btn-primary">Join {{ owner.name }}'s team</button>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">Sign out and accept as a different account</a>
+            </form>
+        {% else %}
+            <form method="post" action="{{ url_for('team_accept', token=invite.token) }}" class="settings-v3-form" style="margin-top: 20px;">
+                <div class="settings-v3-field">
+                    <label for="ta-name">Your name</label>
+                    <input id="ta-name" type="text" name="name" required placeholder="Full name">
+                </div>
+
+                <div class="settings-v3-field">
+                    <label for="ta-password">Choose a password <span class="panel-subtitle" style="display: inline;">(8+ characters)</span></label>
+                    <input id="ta-password" type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 8px;">Create account &amp; join team</button>
+            </form>
+
+            <p class="panel-subtitle" style="margin-top: 20px; font-size: 13px;">
+                Already have an account with this email?
+                <a href="{{ url_for('login') }}">Sign in first</a>, then return to this invite link.
+            </p>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

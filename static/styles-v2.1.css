@@ -12550,6 +12550,17 @@ input {
     transform: translateY(-1px);
 }
 
+.btn-soft-danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: var(--danger-border);
+}
+
+.btn-soft-danger:hover {
+    background: var(--danger-border);
+    color: var(--danger);
+}
+
 /* Size modifiers */
 .btn-sm {
     min-height: 34px;
@@ -17538,6 +17549,45 @@ html[data-theme="dark"] .shopify-rewrite-card {
     box-shadow: var(--theme-shadow-card);
 }
 
+/* Content / queue / modal cards — hardcoded #ffffff surfaces that need dark override. */
+html[data-theme="dark"] .app-modal-card,
+html[data-theme="dark"] .queue-section-card,
+html[data-theme="dark"] .brief-action-card,
+html[data-theme="dark"] .draft-action-card,
+html[data-theme="dark"] .report-action-card,
+html[data-theme="dark"] .audit-next-step-card,
+html[data-theme="dark"] .outline-item,
+html[data-theme="dark"] .tip-item {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+    box-shadow: var(--theme-shadow-card);
+}
+
+html[data-theme="dark"] .draft-editor {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-primary);
+    border-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .table-tab {
+    background: var(--theme-surface);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .table-tab.active {
+    background: rgba(109, 74, 255, 0.15);
+    color: var(--purple);
+    border-color: var(--purple);
+}
+
+html[data-theme="dark"] .comparison-banner.unchanged,
+html[data-theme="dark"] .comparison-banner.neutral {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-secondary);
+    border-color: var(--theme-border-subtle);
+}
+
 /* Settings page hero + tabs row. */
 html[data-theme="dark"] .settings-v3-hero,
 html[data-theme="dark"] .settings-v3-tabs {
@@ -17587,7 +17637,12 @@ html[data-theme="dark"] h4,
 html[data-theme="dark"] strong,
 html[data-theme="dark"] .summary-value,
 html[data-theme="dark"] .topup-bundle-credits,
-html[data-theme="dark"] .topup-bundle-price {
+html[data-theme="dark"] .topup-bundle-price,
+html[data-theme="dark"] .history-stat-value,
+html[data-theme="dark"] .pillar-value,
+html[data-theme="dark"] .score-main-value,
+html[data-theme="dark"] .stat-value,
+html[data-theme="dark"] .kpi-value {
     color: var(--theme-text-primary);
 }
 html[data-theme="dark"] p,

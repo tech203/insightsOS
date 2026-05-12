@@ -240,7 +240,7 @@
                 <h2>Sign out everywhere</h2>
                 <p>Ends your current session on this device.</p>
             </div>
-            <p style="font-size:0.9rem; color:#555; margin:0 0 0.85rem 0;">
+            <p class="panel-subtitle" style="margin:0 0 0.85rem 0;">
                 Signing out clears your session cookie. To revoke logins on other devices, change your password above —
                 that invalidates the password hash everywhere it's checked.
             </p>
@@ -343,7 +343,7 @@
                 </form>
                 {% endif %}
             </div>
-            <p style="font-size:0.82rem; color:#555; margin-top:0.85rem;">
+            <p class="panel-subtitle" style="margin-top:0.85rem;">
                 Each extra workspace bills as a recurring $9 / month addon on your subscription.
             </p>
             {% else %}
@@ -373,7 +373,7 @@
                 {% endif %}
             </div>
 
-            <p style="font-size:0.85rem; color:#555; margin-top:1rem;">
+            <p class="panel-subtitle" style="margin-top:1rem;">
                 <a href="{{ url_for('settings_white_label') }}">Open the White-label tab</a> to set your agency name, logo, tagline, and report footer.
             </p>
         </div>
@@ -649,7 +649,7 @@
                 <li>You earn <strong>25% of the dollar value</strong> they pay (subscription or credit bundle), as credits in your wallet.</li>
                 <li>The 30-day window starts at signup. Every paid purchase inside that window earns — outside it, the referral expires.</li>
             </ol>
-            <p style="font-size: 0.82rem; color: #666; margin-top: 0.85rem;">
+            <p class="panel-subtitle" style="margin-top: 0.85rem;">
                 Example: a referred user signs up free, then upgrades to Pro ($49/mo) on day 8 and buys a 20-credit bundle ($19) on day 22. You earn 25% × ($49 + $19) = <strong>17 credits</strong>.
             </p>
         </div>
@@ -731,7 +731,7 @@
                 <button type="button" class="dev-view-btn" id="prefRailExpand">Full sidebar</button>
                 <button type="button" class="dev-view-btn" id="prefRailCollapse">Icon rail</button>
             </div>
-            <p style="font-size:0.85rem; color:#555; margin-top:0.85rem;">
+            <p class="panel-subtitle" style="margin-top:0.85rem;">
                 The toggle in the sidebar header does the same thing — this is just a discoverable copy of the same control.
             </p>
         </div>
@@ -875,7 +875,7 @@
                      style="max-height:80px; max-width:100%; object-fit:contain;">
             </div>
             <form method="post" action="{{ url_for('settings_remove_agency_logo') }}" style="margin-bottom:1rem;" onsubmit="return confirm('Remove the agency logo?');">
-                <button type="submit" class="btn btn-secondary" style="background:#fdecea; color:#b22424; border:none;">Remove current logo</button>
+                <button type="submit" class="btn btn-soft-danger">Remove current logo</button>
             </form>
             {% endif %}
 
@@ -949,7 +949,7 @@
                 <input id="team-invite-email" type="email" name="email" placeholder="teammate@company.com" required>
                 <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Generate invite link</button>
             </form>
-            <p style="font-size:0.82rem; color:#555; margin-top:0.85rem;">
+            <p class="panel-subtitle" style="margin-top:0.85rem;">
                 If SMTP is configured on this server, the invite email is sent automatically. Otherwise the link is shown to you after submit, ready to copy.
             </p>
         </div>

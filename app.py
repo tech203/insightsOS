@@ -4600,7 +4600,7 @@ def spend_credits(user, amount, tx_type="usage", notes=""):
     # Team members spend from the owner's wallet — billing is a team
     # property, not a per-member one.
     if user and getattr(user, "team_owner_id", None):
-        owner = User.query.get(user.team_owner_id)
+        owner = db.session.get(User, user.team_owner_id)
         if owner:
             user = owner
     wallet = user.wallet
@@ -4654,7 +4654,7 @@ def effective_owner(user=None):
     if not target or not target.is_authenticated:
         return None
     if getattr(target, "team_owner_id", None):
-        return User.query.get(target.team_owner_id)
+        return db.session.get(User, target.team_owner_id)
     return target
 
 
@@ -4859,7 +4859,7 @@ def has_enough_credits(user, amount):
         return False
     # Check the owner's wallet for team members.
     if getattr(user, "team_owner_id", None):
-        owner = User.query.get(user.team_owner_id)
+        owner = db.session.get(User, user.team_owner_id)
         if not owner or not owner.wallet:
             return False
         return owner.wallet.balance >= amount
@@ -4905,7 +4905,7 @@ def award_referral_for_payment(
         if already:
             return False
 
-    referrer = User.query.get(referred_user.referred_by_user_id)
+    referrer = db.session.get(User, referred_user.referred_by_user_id)
     if not referrer:
         return False
     if not referrer.wallet:
@@ -6689,7 +6689,7 @@ def public_audit_report(token):
     if not workspace:
         abort(404)
 
-    owner = User.query.get(workspace.user_id)
+    owner = db.session.get(User, workspace.user_id)
     agency_payload = agency_branding(owner) if owner else agency_branding(None)
     client = serialize_client_row(workspace)
 
@@ -6781,7 +6781,7 @@ def public_audit_report_pdf(token):
     # data assembly. Then strip the surrounding "share frame" wrapper.
     with app.test_request_context(f"/report/{token}"):
         # re-fetch through the same code path
-        owner = User.query.get(workspace.user_id)
+        owner = db.session.get(User, workspace.user_id)
         agency_payload = agency_branding(owner) if owner else agency_branding(None)
         client = serialize_client_row(workspace)
         audits = get_saved_audits(user_id=workspace.user_id)
@@ -6845,7 +6845,7 @@ def get_workspace_limit(user):
 def get_workspace_count(user_id):
     """Count workspaces against the OWNING account so team members
     can't accidentally bypass the cap."""
-    user = User.query.get(user_id) if user_id else None
+    user = db.session.get(User, user_id) if user_id else None
     target = effective_owner(user) if user else None
     target_id = target.id if target else user_id
     return Client.query.filter_by(user_id=target_id).count()
@@ -7239,7 +7239,7 @@ def team_accept(token):
         flash("This invite is invalid or has already been used.", "error")
         return redirect(url_for("login"))
 
-    owner = User.query.get(invite.owner_user_id)
+    owner = db.session.get(User, invite.owner_user_id)
     if not owner:
         flash("This invite's owner account could not be found.", "error")
         return redirect(url_for("login"))
@@ -8983,7 +8983,7 @@ def client_visibility_page(client_id):
 @login_required
 def prompt_detail_page():
     prompt_text = request.args.get("prompt", "").strip()
-    project_domain = request.args.get("domain", "supportfast.ai").strip()
+    project_domain = request.args.get("domain", "").strip()
     selected_platform = request.args.get("platform", "ChatGPT").strip()
     selected_market = request.args.get(
         "market", "United States (English)"
@@ -9072,7 +9072,10 @@ def save_prompts():
         domain = normalize_website(selected_client.get("website", ""))
 
     if not domain:
-        domain = "supportfast.ai"
+        flash("Please enter a domain before saving prompts.", "warning")
+        if client_id:
+            return redirect(url_for("position_tracking_page", client_id=client_id))
+        return redirect(url_for("position_tracking_page"))
 
     prompt_list = [p.strip() for p in prompts.splitlines() if p.strip()]
 
@@ -9339,9 +9342,6 @@ def position_tracking_page():
 
     if selected_client and not domain:
         domain = normalize_website(selected_client.get("website", ""))
-
-    if not domain:
-        domain = "supportfast.ai"
 
     query = PromptTracking.query.filter_by(user_id=current_user.id)
 
