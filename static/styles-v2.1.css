@@ -5844,6 +5844,9 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
 .dashboard-priority-main-card {
     padding: 24px;
     background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .dashboard-ops-card {
@@ -9120,6 +9123,16 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
 
 .top-space {
     margin-top: 14px;
+}
+
+/* Tablet: 2-column stat grids so the 4 metric cards
+   don't collapse to a single-column stack at mid-widths */
+@media (min-width: 640px) and (max-width: 899px) {
+    .workspace-summary-grid,
+    .workspace-modules-grid,
+    .workspace-snapshot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (min-width: 900px) {
@@ -13992,9 +14005,15 @@ body.sidebar-open {
     gap: 18px;
 }
 
-.dashboard-priority-v3,
 .dashboard-main-grid,
 .dashboard-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.85fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.dashboard-priority-v3 {
     display: grid;
     grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.85fr);
     gap: 16px;
@@ -16105,8 +16124,9 @@ html[data-theme="dark"] .workspace-more-divider {
 }
 
 @media (max-width: 768px) {
-  .btn,
-  .btn-primary,
+  /* Context-scoped full-width — applies to top-level action buttons
+     inside recognised action containers only. .btn-sm and inline
+     buttons inside tables/cards remain auto-width. */
   .hero-actions .btn,
   .page-actions .btn,
   .workspace-hero-actions .btn {
@@ -16115,6 +16135,13 @@ html[data-theme="dark"] .workspace-more-divider {
     padding: 12px 16px;
     font-size: 0.98rem;
     border-radius: 14px;
+  }
+
+  /* Keep compact size modifiers from expanding to full-width */
+  .btn-sm,
+  .btn-inline {
+    width: auto !important;
+    min-height: 34px !important;
   }
 }
 
@@ -17902,7 +17929,12 @@ html[data-theme="dark"] .improvement-item,
 html[data-theme="dark"] .report-action-copy,
 html[data-theme="dark"] .draft-meta-card,
 html[data-theme="dark"] .brief-priority-card,
-html[data-theme="dark"] .workspace-more-btn,
+html[data-theme="dark"] .workspace-more-btn {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+
 html[data-theme="dark"] .insights-table {
     color: var(--theme-text-primary);
 }
