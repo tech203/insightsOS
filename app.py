@@ -4448,9 +4448,6 @@ def user_has_unlimited_credits(user):
     if not user:
         return False
 
-    if user.email == "pypteltd@gmail.com":
-        return True
-
     return user.role == "admin" or user.plan == "dev_unlimited"
 
 
@@ -4563,8 +4560,7 @@ def get_view_mode(user):
 @login_required
 def dev_set_view_mode(mode):
     is_internal_user = current_user.is_authenticated and (
-        current_user.email == "pypteltd@gmail.com"
-        or getattr(current_user, "role", "") == "admin"
+        getattr(current_user, "role", "") == "admin"
         or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
@@ -4589,7 +4585,6 @@ def require_internal_access():
     if (
         current_user.role == "admin"
         or current_user.plan == "dev_unlimited"
-        or current_user.email == "pypteltd@gmail.com"
     ):
         return
 
@@ -6268,10 +6263,7 @@ def index():
 @app.route("/dev/set-plan/<plan>")
 @login_required
 def dev_set_plan(plan):
-    if (
-        current_user.email != "pypteltd@gmail.com"
-        and current_user.role != "admin"
-    ):
+    if current_user.role != "admin":
         abort(403)
 
     allowed_plans = [
@@ -11288,8 +11280,7 @@ def aeo_agency_page():
 
 def render_settings_section(section, **extra_context):
     is_internal_user = current_user.is_authenticated and (
-        current_user.email == "pypteltd@gmail.com"
-        or getattr(current_user, "role", "") == "admin"
+        getattr(current_user, "role", "") == "admin"
         or getattr(current_user, "plan", "") == "dev_unlimited"
     )
 
