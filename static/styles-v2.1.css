@@ -11083,6 +11083,70 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     line-height: 1.55;
 }
 
+/* ── Module card visual hierarchy ───────────────────────────────────
+   Three-tier grouping: Core / Tools / Integrations.
+   Each tier has a labelled section header and its own grid variant.
+   ─────────────────────────────────────────────────────────────────── */
+.workspace-module-section {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.module-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.module-group-label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Core cards — slightly taller with a stronger visual weight */
+.workspace-module-card--primary {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-main);
+}
+
+.workspace-module-card--primary strong {
+    font-size: 17px;
+}
+
+/* Integration cards — compact, two-column, lighter feel */
+.workspace-modules-grid--compact {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.workspace-module-card--integration {
+    padding: 14px 16px;
+    background: var(--bg-soft);
+}
+
+.workspace-module-card--integration strong {
+    font-size: 14px;
+}
+
+.workspace-module-card--integration p {
+    font-size: 12.5px;
+}
+
+/* Secondary integration card (e.g. "More connectors") — subdued */
+.workspace-module-card--secondary {
+    border-style: dashed;
+    opacity: 0.75;
+}
+
+.workspace-module-card--secondary:hover {
+    opacity: 1;
+}
+
 .section-head.compact {
     margin-bottom: 14px;
 }
@@ -19653,6 +19717,15 @@ html[data-theme="dark"] .dashboard-ops-card,
 html[data-theme="dark"] .dashboard-welcome-card,
 html[data-theme="dark"] .summary-stat-card,
 html[data-theme="dark"] .workspace-section-card,
+html[data-theme="dark"] .workspace-module-card--primary,
+html[data-theme="dark"] .workspace-module-card--integration {
+    border-color: var(--theme-border-subtle);
+}
+
+html[data-theme="dark"] .workspace-module-card--integration {
+    background: var(--theme-surface-alt, rgba(255,255,255,0.04));
+}
+
 html[data-theme="dark"] .workspace-summary-grid > *,
 html[data-theme="dark"] .workspace-module-card,
 html[data-theme="dark"] .workspace-next-step-card,
