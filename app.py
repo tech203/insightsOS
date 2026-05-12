@@ -5975,7 +5975,7 @@ def growth_calendar_page():
             None,
         )
 
-    if not selected_client and view_mode == "single" and focused_client:
+    if not selected_client and focused_client:
         selected_client = focused_client
 
     if not selected_client and clients:
@@ -12753,7 +12753,7 @@ def answer_monitor_page():
             (c for c in clients if str(c.get("id")) == str(requested_client_id)),
             None,
         )
-    if not selected_client and view_mode == "single" and focused_client:
+    if not selected_client and focused_client:
         selected_client = focused_client
     if not selected_client and clients:
         selected_client = clients[0]
