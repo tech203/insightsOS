@@ -30,6 +30,7 @@
 
 <section class="admin-card admin-card--flush">
 {% if summaries %}
+<div class="admin-table-scroll">
 <table class="admin-table">
     <thead>
         <tr>
@@ -62,6 +63,7 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% else %}
 <p class="admin-empty-state">No users match this filter.</p>
 {% endif %}

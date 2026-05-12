@@ -112,6 +112,16 @@
     border-radius: 14px;
     padding: 16px 18px;
 }
+/* Flush variant: no padding so table reaches the card edges cleanly */
+.admin-card--flush {
+    padding: 0;
+    overflow: hidden; /* clips table to card border-radius */
+}
+/* Scroll wrapper: lets wide tables scroll horizontally on small screens */
+.admin-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 .admin-card-head {
     display: flex;
     align-items: center;

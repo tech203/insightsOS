@@ -85,8 +85,9 @@
 </div>
 
 {% if recipients %}
-<section class="admin-card" style="padding:0; overflow:hidden;">
+<section class="admin-card admin-card--flush">
     <div class="admin-card-head" style="padding:14px 18px 0;"><h2>Send log</h2></div>
+    <div class="admin-table-scroll">
     <table class="admin-table">
         <thead>
             <tr><th>Email</th><th>Source</th><th>Status</th><th>Sent at</th><th>Error</th></tr>
@@ -107,6 +108,7 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
 </section>
 {% endif %}
 

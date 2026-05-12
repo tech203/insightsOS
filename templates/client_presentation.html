@@ -671,5 +671,10 @@
         border-color: rgba(246, 215, 167, 0.25);
         color: #fed7a8;
     }
+    /* .presentation-hero-main h1 has its own color: #15233b rule which wins
+       over parent inheritance — override explicitly */
+    html[data-theme="dark"] .presentation-hero-main h1 {
+        color: var(--theme-text-primary);
+    }
 </style>
 {% endblock %}

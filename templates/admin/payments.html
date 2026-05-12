@@ -36,11 +36,12 @@
     </div>
 </section>
 
-<section class="admin-card" style="padding:0; overflow:hidden;">
+<section class="admin-card admin-card--flush">
     <div class="admin-card-head" style="padding:14px 18px 0;">
         <h2>Active Subscriptions</h2>
     </div>
     {% if subscriptions %}
+    <div class="admin-table-scroll">
     <table class="admin-table">
         <thead>
             <tr><th>Customer</th><th>Status</th><th>Amount</th><th>Started</th></tr>
@@ -71,16 +72,18 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p style="padding:20px; color:var(--text-muted); margin:0;">No active subscriptions.</p>
     {% endif %}
 </section>
 
-<section class="admin-card" style="padding:0; overflow:hidden;">
+<section class="admin-card admin-card--flush">
     <div class="admin-card-head" style="padding:14px 18px 0;">
         <h2>Recent Stripe Charges</h2>
     </div>
     {% if charges %}
+    <div class="admin-table-scroll">
     <table class="admin-table">
         <thead>
             <tr><th>Customer</th><th>Amount</th><th>Status</th><th>Description</th></tr>
@@ -100,16 +103,18 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p style="padding:20px; color:var(--text-muted); margin:0;">No Stripe charges (Stripe may not be configured, or there are no charges yet).</p>
     {% endif %}
 </section>
 
-<section class="admin-card" style="padding:0; overflow:hidden;">
+<section class="admin-card admin-card--flush">
     <div class="admin-card-head" style="padding:14px 18px 0;">
         <h2>Recent Credit Transactions (local)</h2>
     </div>
     {% if recent_tx %}
+    <div class="admin-table-scroll">
     <table class="admin-table">
         <thead>
             <tr><th>User</th><th>Type</th><th>Amount</th><th>Note</th><th>When</th></tr>
@@ -126,6 +131,7 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p style="padding:20px; color:var(--text-muted); margin:0;">No credit transactions yet.</p>
     {% endif %}

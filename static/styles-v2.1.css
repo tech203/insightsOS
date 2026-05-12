@@ -21278,3 +21278,57 @@ html[data-theme="dark"] .dashboard-priority-empty-note {
         width: 100%;
     }
 }
+
+/* ===================================================================
+   DARK MODE — remaining card / surface overrides
+   Audit: classes with hardcoded light bg that appear in app templates
+   =================================================================== */
+
+/* .empty-state — dashed placeholder with #fbfdff bg */
+html[data-theme="dark"] .empty-state {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-secondary);
+}
+
+/* .action-card — white bg card used in report, visibility, growth, queue */
+html[data-theme="dark"] .action-card {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+}
+html[data-theme="dark"] .action-card h3,
+html[data-theme="dark"] .action-card p {
+    color: var(--theme-text-primary);
+}
+
+/* .keypoint-item — brief detail card with hardcoded #f8fafc bg + #334155 text */
+html[data-theme="dark"] .keypoint-item {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+
+/* .prompt-preview-item — competitor research modal with #f8fafc bg */
+html[data-theme="dark"] .prompt-preview-item {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+
+/* .modal-close-btn — second CSS block has #ffffff bg + #e7ebf3 border */
+html[data-theme="dark"] .modal-close-btn {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .modal-close-btn:hover,
+html[data-theme="dark"] .modal-close-btn:focus-visible {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+}
+
+/* .workspace-logo-image — white bg placeholder behind logo images */
+html[data-theme="dark"] .workspace-logo-image {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+}
