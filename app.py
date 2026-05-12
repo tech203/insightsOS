@@ -156,6 +156,13 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
+# CSRF protection — exempt only server-to-server routes (webhooks, OAuth
+# callbacks, cron jobs) that have their own authentication and cannot carry
+# a browser session cookie with a CSRF token.
+from flask_wtf.csrf import CSRFProtect, CSRFError
+csrf = CSRFProtect(app)
+app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1-hour token validity
+
 OUTPUTS_FOLDER = "outputs"
 DATA_FOLDER = "data"
 CLIENTS_FILE = os.path.join(DATA_FOLDER, "clients.json")
@@ -5932,31 +5939,36 @@ def pricing_page():
 @app.route("/subscribe/<plan_slug>", methods=["GET"])
 @login_required
 def start_subscription(plan_slug):
-    """Begin a subscription change. Without Stripe wired up, this is a
-    dev-mode plan switch that records a CreditTransaction for audit
-    visibility. The Stripe checkout flow plugs in here later."""
-    plan = get_plan(plan_slug)
+    """Begin a subscription change.
+
+    When Stripe is configured this redirects to the proper Checkout flow
+    (/stripe/checkout/plan/<plan_slug>) so the user is actually charged.
+    Without Stripe wired up (dev / staging), the plan is set directly so
+    the rest of the app can be exercised without real payments.
+    """
+    from services.stripe_helper import is_stripe_configured
+
     if plan_slug not in PLAN_CATALOG or plan_slug == "free":
         flash("That plan isn't available.", "error")
         return redirect(url_for("pricing_page"))
 
-    # Stripe placeholder: when STRIPE_SECRET_KEY + price IDs are wired,
-    # redirect to a Stripe Checkout session here. For now we set the plan
-    # directly and grant the first month's allowance immediately.
-    if os.getenv("STRIPE_SECRET_KEY"):
-        # TODO: redirect to stripe.checkout.Session.create(...)
-        pass
+    # When Stripe is live, hand off to the proper Checkout session route.
+    # Direct plan assignment below is intentionally dev-only.
+    if is_stripe_configured():
+        return redirect(url_for("stripe_checkout_plan", plan_slug=plan_slug))
 
+    # Dev / staging fallback — no real payment taken.
+    plan = get_plan(plan_slug)
     current_user.plan = plan_slug
     db.session.commit()
     granted = grant_monthly_credits_if_due(current_user)
     if granted:
         flash(
-            f"Welcome to {plan['label']} — {granted} credits added to your wallet.",
+            f"[Dev] Welcome to {plan['label']} — {granted} credits added to your wallet.",
             "success",
         )
     else:
-        flash(f"You're now on the {plan['label']} plan.", "success")
+        flash(f"[Dev] You're now on the {plan['label']} plan.", "success")
     return redirect(url_for("settings_billing"))
 
 
@@ -7396,6 +7408,7 @@ def stripe_portal():
 
 
 @app.route("/stripe/webhook", methods=["POST"])
+@csrf.exempt  # Stripe signs requests with its own webhook secret — no browser session
 def stripe_webhook():
     """Receive checkout.session.completed events and credit the wallet
     or flip the plan accordingly. Always returns 200 once parsed so
@@ -8261,6 +8274,7 @@ def google_login():
 
 
 @app.route("/auth/google/callback")
+@csrf.exempt  # OAuth redirect from Google — no browser-originated POST body
 def google_callback():
     """Exchange the authorization code for user info and sign the user in.
 
@@ -12264,6 +12278,7 @@ def shopify_connect(client_id):
 
 
 @app.route("/integrations/shopify/callback")
+@csrf.exempt  # OAuth redirect from Shopify — no browser-originated POST body
 @login_required
 def shopify_oauth_callback():
     """Handle the Shopify OAuth callback.
@@ -13213,6 +13228,7 @@ def gsc_connect(client_id):
 
 
 @app.route("/integrations/gsc/callback")
+@csrf.exempt  # OAuth redirect from Google Search Console — no browser-originated POST body
 @login_required
 def gsc_oauth_callback():
     """Handle the OAuth callback — exchange code, persist tokens."""
@@ -14079,6 +14095,7 @@ def gsc_disconnect(client_id):
 
 
 @app.route("/cron/answer-monitor", methods=["POST", "GET"])
+@csrf.exempt  # Authenticated via CRON_SECRET header — not a browser session
 def cron_answer_monitor():
     """Scheduled sweep that re-runs the AI Answer Monitor for every
     paid user whose youngest snapshot is older than 6 days.
@@ -15008,6 +15025,17 @@ def squarespace_disconnect(client_id):
         db.session.commit()
         flash("Disconnected Squarespace site.", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.errorhandler(CSRFError)
+def csrf_error(error):
+    """Return a friendly 400 when a CSRF token is missing or invalid.
+    This should only happen if the session expired or a form was forged."""
+    flash(
+        "Your session expired or the form token was invalid. Please try again.",
+        "error",
+    )
+    return redirect(request.referrer or url_for("index")), 302
 
 
 @app.errorhandler(403)
