@@ -11,8 +11,8 @@
 {% endblock %}
 
 {% block content %}
-{% set prompt_text = prompt_text if prompt_text is defined else "best messaging platform for support" %}
-{% set project_domain = project_domain if project_domain is defined else "supportfast.ai" %}
+{% set prompt_text = prompt_text if prompt_text is defined else "" %}
+{% set project_domain = project_domain if project_domain is defined else "" %}
 {% set selected_platform = selected_platform if selected_platform is defined else "ChatGPT" %}
 {% set selected_market = selected_market if selected_market is defined else "United States (English)" %}
 {% set tracked_topic = tracked_topic if tracked_topic is defined else "Messaging Apps and Platforms" %}

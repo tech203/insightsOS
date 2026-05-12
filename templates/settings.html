@@ -240,7 +240,7 @@
                 <h2>Sign out everywhere</h2>
                 <p>Ends your current session on this device.</p>
             </div>
-            <p style="font-size:0.9rem; color:#555; margin:0 0 0.85rem 0;">
+            <p class="panel-subtitle" style="margin:0 0 0.85rem 0;">
                 Signing out clears your session cookie. To revoke logins on other devices, change your password above —
                 that invalidates the password hash everywhere it's checked.
             </p>
@@ -343,7 +343,7 @@
                 </form>
                 {% endif %}
             </div>
-            <p style="font-size:0.82rem; color:#555; margin-top:0.85rem;">
+            <p class="panel-subtitle" style="margin-top:0.85rem;">
                 Each extra workspace bills as a recurring $9 / month addon on your subscription.
             </p>
             {% else %}
@@ -373,7 +373,7 @@
                 {% endif %}
             </div>
 
-            <p style="font-size:0.85rem; color:#555; margin-top:1rem;">
+            <p class="panel-subtitle" style="margin-top:1rem;">
                 <a href="{{ url_for('settings_white_label') }}">Open the White-label tab</a> to set your agency name, logo, tagline, and report footer.
             </p>
         </div>
@@ -644,12 +644,12 @@
                 <p>Three rules so it stays simple.</p>
             </div>
 
-            <ol style="margin: 0; padding-left: 1.2rem; line-height: 1.65; font-size: 0.92rem; color: #444;">
+            <ol class="panel-subtitle" style="margin: 0; padding-left: 1.2rem; line-height: 1.65; font-size: 0.92rem;">
                 <li>Free signups don't pay out — the link only earns when the referred user actually pays.</li>
                 <li>You earn <strong>25% of the dollar value</strong> they pay (subscription or credit bundle), as credits in your wallet.</li>
                 <li>The 30-day window starts at signup. Every paid purchase inside that window earns — outside it, the referral expires.</li>
             </ol>
-            <p style="font-size: 0.82rem; color: #666; margin-top: 0.85rem;">
+            <p class="panel-subtitle" style="margin-top: 0.85rem;">
                 Example: a referred user signs up free, then upgrades to Pro ($49/mo) on day 8 and buys a 20-credit bundle ($19) on day 22. You earn 25% × ($49 + $19) = <strong>17 credits</strong>.
             </p>
         </div>
@@ -731,7 +731,7 @@
                 <button type="button" class="dev-view-btn" id="prefRailExpand">Full sidebar</button>
                 <button type="button" class="dev-view-btn" id="prefRailCollapse">Icon rail</button>
             </div>
-            <p style="font-size:0.85rem; color:#555; margin-top:0.85rem;">
+            <p class="panel-subtitle" style="margin-top:0.85rem;">
                 The toggle in the sidebar header does the same thing — this is just a discoverable copy of the same control.
             </p>
         </div>
@@ -839,7 +839,7 @@
             <form method="post" action="{{ url_for('settings_update_white_label') }}" class="settings-v3-form">
                 <label style="display:flex; gap:0.5rem; align-items:center; cursor:pointer; margin-top:0.4rem;">
                     <input type="checkbox" name="enable" {% if current_user.is_white_label_enabled %}checked{% endif %}>
-                    <span style="font-size:0.95rem; font-weight:600; color:var(--brand-text-strong, #191929);">Enable white-label branding</span>
+                    <span style="font-size:0.95rem; font-weight:600;">Enable white-label branding</span>
                 </label>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.65rem 0;">When on, the sidebar brand mark, mobile topbar, and PDF reports use your agency's name and logo instead of DarInsights.</p>
 
@@ -869,13 +869,13 @@
             </div>
 
             {% if agency_brand and agency_brand.logo_url %}
-            <div style="background:#fafafe; border:1px solid #ececf2; border-radius:10px; padding:1rem; text-align:center; margin-bottom:1rem;">
+            <div class="settings-v3-note-box" style="border-radius:10px; padding:1rem; text-align:center; margin-bottom:1rem;">
                 <img src="{{ agency_brand.logo_url }}"
                      alt="Agency logo"
                      style="max-height:80px; max-width:100%; object-fit:contain;">
             </div>
             <form method="post" action="{{ url_for('settings_remove_agency_logo') }}" style="margin-bottom:1rem;" onsubmit="return confirm('Remove the agency logo?');">
-                <button type="submit" class="btn btn-secondary" style="background:#fdecea; color:#b22424; border:none;">Remove current logo</button>
+                <button type="submit" class="btn btn-soft-danger">Remove current logo</button>
             </form>
             {% endif %}
 
@@ -949,7 +949,7 @@
                 <input id="team-invite-email" type="email" name="email" placeholder="teammate@company.com" required>
                 <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Generate invite link</button>
             </form>
-            <p style="font-size:0.82rem; color:#555; margin-top:0.85rem;">
+            <p class="panel-subtitle" style="margin-top:0.85rem;">
                 If SMTP is configured on this server, the invite email is sent automatically. Otherwise the link is shown to you after submit, ready to copy.
             </p>
         </div>

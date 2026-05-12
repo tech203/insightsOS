@@ -1189,6 +1189,25 @@
     display: inline-block;
 }
 
+/* === Dark-mode flips === */
+html[data-theme="dark"] .webflow-published-meta {
+    background: rgba(62, 223, 203, 0.12);
+    border-color: rgba(62, 223, 203, 0.22);
+    color: #5eead4;
+}
+html[data-theme="dark"] .ai-edit-msg-scope {
+    background: rgba(157, 124, 227, 0.20);
+    color: #c4b5fd;
+}
+html[data-theme="dark"] .ai-edit-error {
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(252, 202, 202, 0.20);
+    color: #fca5a5;
+}
+html[data-theme="dark"] .ai-edit-loading {
+    border-color: var(--theme-border-subtle);
+}
+
 </style>
 
 <div class="ai-edit-overlay" id="aiEditOverlay" aria-hidden="true">

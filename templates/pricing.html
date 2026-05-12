@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Pricing | DarInsights{% endblock %}
 
+{% block page_title %}Plans & Pricing{% endblock %}
+{% block page_subtitle %}Start free. Upgrade when you need more usage, content output, and workspace capacity.{% endblock %}
+
 {% block content %}
 <div class="pricing-shell">
 
@@ -825,6 +828,10 @@ html[data-theme="dark"] .pricing-plan-card.featured {
 html[data-theme="dark"] .pricing-topup-card.featured {
     background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
     border-color: rgba(255, 216, 198, 0.22);
+}
+/* .roi-inline uses hardcoded brand red — stay bright on dark backgrounds */
+html[data-theme="dark"] .roi-inline {
+    color: #ffb1bd;
 }
 
 </style>

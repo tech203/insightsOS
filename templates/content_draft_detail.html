@@ -7,15 +7,15 @@
 {% block content %}
 <div class="draft-shell">
 
-    {% set draft_title = draft.title if draft is defined and draft.title else "How Much Does Dental Treatment Cost? What Patients Should Know Before Booking" %}
+    {% set draft_title = draft.title if draft is defined and draft.title else "Untitled draft" %}
     {% set draft_description = draft.description if draft is defined and draft.description else "AI-generated first draft based on the approved content brief. Review, refine, and publish when ready." %}
-    {% set draft_client = draft.client_name if draft is defined and draft.client_name else "Acme Dental" %}
-    {% set draft_status = draft.status if draft is defined and draft.status else "Draft Ready" %}
-    {% set draft_type = draft.type if draft is defined and draft.type else "FAQ / Service Article" %}
-    {% set draft_goal = draft.goal if draft is defined and draft.goal else "Answer decision-stage questions and drive enquiries" %}
-    {% set draft_audience = draft.audience if draft is defined and draft.audience else "People comparing providers and trying to understand price, suitability, and next steps." %}
-    {% set draft_cta = draft.cta if draft is defined and draft.cta else "Encourage readers to book a consultation or contact the business for a quote." %}
-    {% set draft_tone = draft.tone if draft is defined and draft.tone else "Helpful, trustworthy, customer-friendly" %}
+    {% set draft_client = draft.client_name if draft is defined and draft.client_name else "" %}
+    {% set draft_status = draft.status if draft is defined and draft.status else "Draft" %}
+    {% set draft_type = draft.type if draft is defined and draft.type else "" %}
+    {% set draft_goal = draft.goal if draft is defined and draft.goal else "" %}
+    {% set draft_audience = draft.audience if draft is defined and draft.audience else "" %}
+    {% set draft_cta = draft.cta if draft is defined and draft.cta else "" %}
+    {% set draft_tone = draft.tone if draft is defined and draft.tone else "" %}
     {% set next_step_title = draft.next_step_title if draft is defined and draft.next_step_title else "Review the draft for accuracy, local details, and brand tone" %}
     {% set next_step_text = draft.next_step_text if draft is defined and draft.next_step_text else "This draft gives you a strong starting point, but it should still be refined with the client’s specific offer, proof points, service process, and call to action." %}
 
@@ -33,7 +33,7 @@
 
             <div class="draft-hero-actions">
                 <a href="{{ url_for('content_queue_page') if url_for else '#' }}" class="btn btn-secondary">Back to Queue</a>
-                <a href="{{ url_for('content_brief_detail', item_id=draft.id) if draft is defined and draft.id else '#' }}" class="btn btn-secondary">View Brief</a>
+                <a href="{{ url_for('view_queue_brief', item_id=draft.id) if draft is defined and draft.id else url_for('content_queue_page') }}" class="btn btn-secondary">View Brief</a>
                 <a href="{{ url_for('new_audit') if url_for else '#' }}" class="btn btn-secondary">Re-Audit Later</a>
             </div>
         </div>
@@ -80,21 +80,7 @@
             </div>
 
             <div class="draft-editor-shell">
-                <textarea class="draft-editor" spellcheck="true">{% if draft is defined and draft.body %}{{ draft.body }}{% else %}How Much Does Dental Treatment Cost? What Patients Should Know Before Booking
-
-Many people considering dental treatment want to know one thing early on: how much it costs. This is a reasonable question, but the answer often depends on the type of treatment, the condition of the teeth, the complexity of the case, and the goals of the patient.
-
-In general, pricing can vary depending on the service required, whether preliminary assessment is needed, and how personalised the treatment plan is. That is why a consultation is often the best first step. It helps the clinic understand the patient's needs and recommend the most suitable option.
-
-Patients also want to know whether the treatment is right for them. A good provider should explain who the treatment is suitable for, what results can reasonably be expected, and whether there are alternative options depending on budget or preference.
-
-Another important factor is what the process looks like from start to finish. When businesses explain this clearly, it reduces uncertainty and helps people feel more confident about reaching out. For example, a page can explain the consultation stage, treatment planning, the actual procedure, and aftercare.
-
-It is also helpful to address common concerns directly. These may include pain, downtime, recovery, number of visits, and whether there are hidden costs. When businesses answer these questions openly, they build trust and improve the decision-making experience for potential customers.
-
-If you are thinking about dental treatment, the best next step is usually to contact the clinic for a proper consultation. This allows the provider to give more accurate guidance based on your needs and goals.
-
-For businesses, content like this does more than educate readers. It also improves the chances of being surfaced in AI-assisted research and recommendation journeys, especially when the page answers real customer questions clearly and naturally.{% endif %}</textarea>
+                <textarea class="draft-editor" spellcheck="true">{% if draft is defined and draft.body %}{{ draft.body }}{% endif %}</textarea>
             </div>
 
             <div class="draft-editor-actions">

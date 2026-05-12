@@ -862,6 +862,15 @@ html[data-theme="dark"] .growth-score-card {
     background: linear-gradient(180deg, rgba(232, 50, 86, 0.10) 0%, var(--theme-surface) 100%);
     border-color: rgba(255, 216, 198, 0.22);
 }
+/* .hero-tag pill and score track — hardcoded light backgrounds */
+html[data-theme="dark"] .hero-tag {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-secondary);
+}
+html[data-theme="dark"] .growth-score-track {
+    background: var(--theme-surface-alt);
+}
 
 </style>
 {% endblock %}

@@ -168,6 +168,9 @@ document.addEventListener("click", function (event) {
     if (!isMenuButton && !isMenuPanel) {
         document.querySelectorAll(".workspace-more-dropdown").forEach(menu => {
             menu.classList.remove("show");
+            // Reset any in-progress delete confirmation so the next open is clean
+            menu.querySelectorAll("[data-delete-trigger]").forEach(t => { t.hidden = false; });
+            menu.querySelectorAll(".workspace-delete-confirm").forEach(c => { c.hidden = true; });
         });
     }
 });
