@@ -1,52 +1,451 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join {{ owner.name }}'s Team | DarInsights</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page-light">
+{% include "partials/toasts.html" %}
 
-{% block title %}Join {{ owner.name }}'s team{% endblock %}
+<div class="auth-page-shell">
 
-{% block page_header %}
-<div class="page-header-standard">
-    <div class="page-header-copy">
-        <h1>Team Invitation</h1>
-        <p>You've been invited to join a workspace on DarInsights.</p>
-    </div>
-</div>
-{% endblock %}
+    <section class="auth-brand-panel">
+        <a href="{{ url_for('aeo_agency_page') }}" class="auth-brand-lockup">
+            <div class="auth-brand-logo">A</div>
+            <div class="auth-brand-copy">
+                <div class="auth-brand-kicker">DarInsights</div>
+                <h1>You've been invited.</h1>
+                <p>
+                    <strong>{{ owner.name }}</strong> has invited you to join their workspace on DarInsights.
+                    Accept to share workspaces, visibility audits, and the team's credit wallet.
+                </p>
+            </div>
+        </a>
 
-{% block content %}
-<div class="visibility-page-shell">
-    <section class="module-card" style="max-width: 520px; margin: 0 auto;">
-        <span class="section-kicker">Invitation</span>
-        <h2 style="margin: 14px 0 6px;">Join {{ owner.name }}'s team</h2>
-        <p class="panel-subtitle">
-            You've been invited to join <strong>{{ owner.name }}</strong>'s team as <strong>{{ invite.email }}</strong>.
-            Team members share workspaces, the credit wallet, and the team's plan.
-        </p>
-
-        {% if already_logged_in %}
-            <p class="panel-subtitle" style="margin-top: 16px;">You're signed in. Click below to accept the invitation.</p>
-            <form method="post" action="{{ url_for('team_accept', token=invite.token) }}" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
-                <button type="submit" class="btn btn-primary">Join {{ owner.name }}'s team</button>
-                <a href="{{ url_for('logout') }}" class="btn btn-secondary">Sign out and accept as a different account</a>
-            </form>
-        {% else %}
-            <form method="post" action="{{ url_for('team_accept', token=invite.token) }}" class="settings-v3-form" style="margin-top: 20px;">
-                <div class="settings-v3-field">
-                    <label for="ta-name">Your name</label>
-                    <input id="ta-name" type="text" name="name" required placeholder="Full name">
+        <div class="auth-brand-points">
+            <div class="auth-point-card">
+                <div class="auth-point-title">Shared workspace access</div>
+                <div class="auth-point-text">
+                    Run audits, track prompts, and manage content alongside your team — all in one place.
                 </div>
+            </div>
 
-                <div class="settings-v3-field">
-                    <label for="ta-password">Choose a password <span class="panel-subtitle" style="display: inline;">(8+ characters)</span></label>
-                    <input id="ta-password" type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="••••••••">
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="margin-top: 8px;">Create account &amp; join team</button>
-            </form>
-
-            <p class="panel-subtitle" style="margin-top: 20px; font-size: 13px;">
-                Already have an account with this email?
-                <a href="{{ url_for('login') }}">Sign in first</a>, then return to this invite link.
-            </p>
-        {% endif %}
+            <div class="auth-pill-row">
+                <span>Team invite</span>
+                <span>Shared credits</span>
+                <span>No credit card</span>
+            </div>
+        </div>
     </section>
+
+    <section class="auth-form-panel">
+        <div class="auth-card-dark">
+            <div class="auth-header-dark">
+                <div class="auth-mini-kicker">Team invitation</div>
+                {% if already_logged_in %}
+                <h2>Accept invite</h2>
+                <p>You're signed in as <strong>{{ invite.email }}</strong>. Click below to join {{ owner.name }}'s team.</p>
+                {% else %}
+                <h2>Create account &amp; join</h2>
+                <p>Invited as <strong>{{ invite.email }}</strong>. Set a password to get started.</p>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="{{ url_for('team_accept', token=invite.token) }}" class="form-stack-dark" style="margin-top: 18px;">
+                {% if already_logged_in %}
+                    <div class="invite-confirm-row">
+                        <span class="invite-email-chip">{{ invite.email }}</span>
+                    </div>
+                    <button type="submit" class="auth-submit-btn">
+                        Join {{ owner.name }}'s team
+                    </button>
+                    <div style="text-align: center; margin-top: 8px;">
+                        <a href="{{ url_for('logout') }}" class="back-link-dark">Sign out and accept as a different account</a>
+                    </div>
+                {% else %}
+                    <div class="form-field-dark">
+                        <label for="ta-name">Your full name</label>
+                        <input type="text" id="ta-name" name="name" placeholder="Your name" required autocomplete="name">
+                    </div>
+
+                    <div class="form-field-dark">
+                        <label for="ta-email">Email address</label>
+                        <input type="email" id="ta-email" value="{{ invite.email }}" disabled
+                               style="opacity: 0.6; cursor: not-allowed;">
+                    </div>
+
+                    <div class="form-field-dark">
+                        <label for="ta-password">Password <span style="font-weight:400; color: var(--auth-text-muted);">(8+ characters)</span></label>
+                        <div class="password-input-wrapper-dark">
+                            <input type="password" id="ta-password" name="password" placeholder="Create a password"
+                                   required minlength="8" autocomplete="new-password">
+                            <button type="button" class="password-toggle-dark" onclick="togglePasswordVisibility('ta-password', this)">Show</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="auth-submit-btn" id="acceptBtn" onclick="this.disabled=true; this.innerText='Joining team…';">
+                        Create account &amp; join team
+                    </button>
+                {% endif %}
+            </form>
+
+            {% if not already_logged_in %}
+            <div class="auth-footer-dark">
+                <p>Already have an account with this email? <a href="{{ url_for('login') }}">Sign in first</a>, then return to this link.</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
 </div>
-{% endblock %}
+
+<style>
+:root {
+    --auth-bg-page: #f7f9fc;
+    --auth-bg-card: #ffffff;
+    --auth-bg-soft: #E4E4EC;
+    --auth-text-strong: #191929;
+    --auth-text-main: #435267;
+    --auth-text-muted: #6b7280;
+    --auth-border: #e7ebf3;
+    --auth-accent: #3EDFCB;
+    --auth-accent-strong: #2BCBB7;
+    --auth-accent-soft: rgba(62, 223, 203, 0.12);
+    --auth-secondary: #9D7CE3;
+    --auth-text-on-primary: #15161e;
+    --auth-danger-bg: #fef2f2;
+    --auth-danger-border: #fecaca;
+    --auth-danger-text: #991b1b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body.auth-page-light {
+    min-height: 100vh;
+    color: var(--auth-text-main);
+    background:
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.10), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.08), transparent 30%),
+        var(--auth-bg-page);
+}
+
+.auth-page-shell {
+    min-height: 100vh;
+    width: min(1220px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 20px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.02fr) minmax(340px, 430px);
+    gap: 28px;
+    align-items: center;
+}
+
+.auth-brand-panel { padding: 8px; }
+
+.auth-brand-lockup {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    max-width: 620px;
+}
+
+.auth-brand-logo {
+    width: 66px;
+    height: 66px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--auth-accent), var(--auth-secondary));
+    color: var(--auth-text-on-primary);
+    font-size: 32px;
+    font-weight: 800;
+    box-shadow: 0 14px 32px rgba(62, 223, 203, 0.28);
+}
+
+.auth-brand-copy { margin-top: 20px; }
+
+.auth-brand-kicker,
+.auth-mini-kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--auth-accent);
+}
+
+.auth-brand-copy h1 {
+    margin: 10px 0 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 48px;
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    color: var(--auth-text-strong);
+    max-width: 11ch;
+}
+
+.auth-brand-copy p {
+    margin: 14px 0 0;
+    max-width: 560px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--auth-text-main);
+}
+
+.auth-brand-points {
+    margin-top: 22px;
+    display: grid;
+    gap: 12px;
+    max-width: 560px;
+}
+
+.auth-point-card {
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: var(--auth-bg-card);
+    border: 1px solid var(--auth-border);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.auth-point-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--auth-text-strong);
+}
+
+.auth-point-text {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--auth-text-main);
+}
+
+.auth-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.auth-pill-row span {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--auth-border);
+    background: var(--auth-bg-card);
+    color: var(--auth-text-main);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.auth-form-panel {
+    display: flex;
+    justify-content: center;
+}
+
+.auth-card-dark {
+    width: 100%;
+    padding: 24px;
+    border-radius: 22px;
+    background: var(--auth-bg-card);
+    border: 1px solid var(--auth-border);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.07);
+}
+
+.auth-header-dark h2 {
+    margin: 8px 0 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 30px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--auth-text-strong);
+}
+
+.auth-header-dark p {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--auth-text-main);
+}
+
+.form-stack-dark {
+    display: grid;
+    gap: 14px;
+}
+
+.form-field-dark {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-field-dark label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--auth-text-strong);
+}
+
+.form-field-dark input {
+    width: 100%;
+    height: 50px;
+    padding: 0 16px;
+    border-radius: 14px;
+    background: var(--auth-bg-soft);
+    border: 1px solid var(--auth-border);
+    color: var(--auth-text-strong);
+    font-size: 16px;
+    transition: 0.2s ease;
+}
+
+.form-field-dark input::placeholder { color: var(--auth-text-muted); }
+
+.form-field-dark input:focus {
+    outline: none;
+    border-color: var(--auth-accent);
+    box-shadow: 0 0 0 3px var(--auth-accent-soft);
+    background: var(--auth-bg-card);
+}
+
+.password-input-wrapper-dark { position: relative; }
+
+.password-toggle-dark {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: var(--auth-text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.password-toggle-dark:hover { color: var(--auth-text-strong); }
+
+.invite-confirm-row {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 4px;
+}
+
+.invite-email-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: var(--auth-bg-soft);
+    border: 1px solid var(--auth-border);
+    color: var(--auth-text-strong);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.auth-submit-btn {
+    width: 100%;
+    height: 50px;
+    margin-top: 4px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--auth-accent);
+    color: var(--auth-text-on-primary);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 12px 26px rgba(62, 223, 203, 0.28);
+    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.auth-submit-btn:hover {
+    background: var(--auth-accent-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(62, 223, 203, 0.34);
+}
+
+.auth-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auth-footer-dark {
+    margin-top: 18px;
+    text-align: center;
+}
+
+.auth-footer-dark p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--auth-text-main);
+}
+
+.auth-footer-dark a {
+    color: var(--auth-accent-strong);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.back-link-dark {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--auth-text-muted) !important;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.back-link-dark:hover { color: var(--auth-text-strong) !important; }
+
+@media (max-width: 1023px) {
+    .auth-page-shell {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        width: min(760px, calc(100% - 24px));
+        padding: 18px 0;
+    }
+    .auth-brand-panel { padding: 4px 0 0; }
+    .auth-brand-copy h1 { max-width: none; font-size: 40px; }
+}
+
+@media (max-width: 640px) {
+    .auth-page-shell {
+        width: min(100%, calc(100% - 20px));
+        gap: 18px;
+        padding: 14px 0 18px;
+    }
+    .auth-card-dark { padding: 20px 16px; border-radius: 22px; }
+    .auth-brand-logo { width: 58px; height: 58px; font-size: 28px; border-radius: 16px; }
+    .auth-brand-copy h1 { font-size: 34px; line-height: 1.02; }
+    .auth-brand-copy p { font-size: 15px; line-height: 1.65; }
+    .auth-header-dark h2 { font-size: 28px; }
+    .auth-point-card { padding: 16px; border-radius: 18px; }
+    .auth-submit-btn { font-size: 15px; }
+}
+</style>
+
+<script>
+function togglePasswordVisibility(inputId, buttonEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        buttonEl.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        buttonEl.textContent = 'Show';
+    }
+}
+</script>
+
+</body>
+</html>
