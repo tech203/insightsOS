@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Search Console — {{ workspace.name }}{% endblock %}
+{% block title %}Search Console | {{ workspace.name }}{% endblock %}
 
 {% block head %}
 <style>
-    /* Page-specific layout only — surfaces, buttons, pills, tiles come from the design system. */
+    /* Page-specific layout only | surfaces, buttons, pills, tiles come from the design system. */
     .gsc-kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -75,8 +75,8 @@
             <div style="font-size:2.5rem; margin-bottom:0.5rem;">🔍</div>
             <h2 style="margin:0 0 0.5rem 0; font-size:1.3rem;">Connect Google Search Console</h2>
             <p>
-                Pull real Google search data into your visibility view — actual clicks, impressions,
-                queries, and pages — and let recommendations factor in what's already working.
+                Pull real Google search data into your visibility view | actual clicks, impressions,
+                queries, and pages | and let recommendations factor in what's already working.
                 Read-only access; we never write back to Google.
             </p>
             <a href="{{ url_for('gsc_connect', client_id=workspace.id) }}" class="btn btn-primary" style="margin-top: 1.25rem;">Connect with Google</a>

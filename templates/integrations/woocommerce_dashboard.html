@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}WooCommerce — {{ workspace.name }}{% endblock %}
+{% block title %}WooCommerce | {{ workspace.name }}{% endblock %}
 
 {% block head %}
 <style>
-    /* Page-specific layout only — surfaces, buttons, and pills come from the design system. */
+    /* Page-specific layout only | surfaces, buttons, and pills come from the design system. */
     .woo-finding {
         border-left: 4px solid var(--brand-secondary, #9D7CE3);
     }
@@ -24,7 +24,7 @@
 <div class="page-shell">
     <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
         <div>
-            <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">WooCommerce {{ info_tip("Audits your WooCommerce catalog for AI-visibility hygiene — thin descriptions, missing alt text, draft products, missing taxonomy. Read-only.") }}</h1>
+            <h1 style="margin:0 0 0.35rem 0; font-size:1.55rem; color:var(--text-strong);">WooCommerce {{ info_tip("Audits your WooCommerce catalog for AI-visibility hygiene | thin descriptions, missing alt text, draft products, missing taxonomy. Read-only.") }}</h1>
         </div>
         <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
             <a href="{{ url_for('client_detail', client_id=workspace.id) }}" class="btn btn-secondary">← Workspace</a>
