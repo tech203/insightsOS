@@ -212,31 +212,47 @@
             <p>Focus here first before expanding into more advanced work.</p>
         </div>
 
-        {# Single weak-tier threshold (≤ 40 / 100) applied consistently
-           across all three pillar scores. Backend stores 0–100 scores,
-           so the older 0–10-style thresholds (vis_score ≤ 5, etc.)
-           almost never triggered the blocker cards in practice. #}
-        {% set weak_threshold = 40 %}
+        {# Three-tier thresholds to avoid a hard binary cliff.
+           < 40  → hard blocker (orange card)
+           40-55 → soft warning (yellow card) — watch zone
+           > 55  → OK, no card for this pillar               #}
+        {% set hard_threshold = 40 %}
+        {% set warn_threshold = 55 %}
 
         <div class="blocker-grid">
-            {% if vis_score <= weak_threshold %}
+            {% if vis_score < hard_threshold %}
             <article class="blocker-card">
                 <strong>Low AI answer visibility</strong>
                 <p>Your brand is not appearing often enough in tracked AI responses.</p>
             </article>
+            {% elif vis_score <= warn_threshold %}
+            <article class="blocker-card blocker-card-warning">
+                <strong>AI visibility — watch zone</strong>
+                <p>Visibility score is borderline. Keep building citation coverage before it dips further.</p>
+            </article>
             {% endif %}
 
-            {% if content_score <= weak_threshold %}
+            {% if content_score < hard_threshold %}
             <article class="blocker-card">
                 <strong>Weak content coverage</strong>
                 <p>Your current content footprint is not broad or deep enough for target query coverage.</p>
             </article>
+            {% elif content_score <= warn_threshold %}
+            <article class="blocker-card blocker-card-warning">
+                <strong>Content coverage — watch zone</strong>
+                <p>Content score is borderline. Expanding topic coverage now will prevent a harder drop later.</p>
+            </article>
             {% endif %}
 
-            {% if schema_score <= weak_threshold %}
+            {% if schema_score < hard_threshold %}
             <article class="blocker-card">
                 <strong>Weak structured data</strong>
                 <p>Your site structure and schema signals need improvement to support better AI understanding.</p>
+            </article>
+            {% elif schema_score <= warn_threshold %}
+            <article class="blocker-card blocker-card-warning">
+                <strong>Structured data — watch zone</strong>
+                <p>Schema coverage is borderline. A few quick schema additions could push this into a healthy range.</p>
             </article>
             {% endif %}
 
@@ -247,7 +263,7 @@
             </article>
             {% endif %}
 
-            {% if vis_score > weak_threshold and content_score > weak_threshold and schema_score > weak_threshold and missed_brand_mentions == 0 %}
+            {% if vis_score > warn_threshold and content_score > warn_threshold and schema_score > warn_threshold and missed_brand_mentions == 0 %}
             <article class="blocker-card blocker-card-positive">
                 <strong>No major blockers surfaced</strong>
                 <p>No major weak point is standing out right now. Focus on maintaining and expanding coverage.</p>

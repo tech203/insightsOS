@@ -55,33 +55,37 @@
             id="competitorAnalysisForm"
             method="GET"
             action="{{ url_for('client_competitors_page', client_id=client_route_id) }}"
+            novalidate
         >
             <div class="competitor-form-grid">
-                <div class="form-field form-field-full">
+                <div class="form-field form-field-full" id="field-domain">
                     <label for="domain">Your domain</label>
-                    <input id="domain" name="domain" type="text" value="{{ project_domain }}" placeholder="yourdomain.com">
+                    <input id="domain" name="domain" type="text" value="{{ project_domain }}" placeholder="yourdomain.com" autocomplete="off">
+                    <span class="field-error" id="err-domain">Enter your domain (e.g. example.com)</span>
                 </div>
 
-                <div class="form-field">
+                <div class="form-field" id="field-competitors">
                     <label for="competitor_1">Competitor 1</label>
-                    <input id="competitor_1" name="competitor_1" type="text" value="{{ competitor_list[0] if competitor_list|length > 0 else '' }}" placeholder="competitor.com">
+                    <input id="competitor_1" name="competitor_1" type="text" value="{{ competitor_list[0] if competitor_list|length > 0 else '' }}" placeholder="competitor.com" autocomplete="off">
                 </div>
 
                 <div class="form-field">
                     <label for="competitor_2">Competitor 2</label>
-                    <input id="competitor_2" name="competitor_2" type="text" value="{{ competitor_list[1] if competitor_list|length > 1 else '' }}" placeholder="competitor.com">
+                    <input id="competitor_2" name="competitor_2" type="text" value="{{ competitor_list[1] if competitor_list|length > 1 else '' }}" placeholder="competitor.com" autocomplete="off">
                 </div>
 
                 <div class="form-field">
                     <label for="competitor_3">Competitor 3</label>
-                    <input id="competitor_3" name="competitor_3" type="text" value="{{ competitor_list[2] if competitor_list|length > 2 else '' }}" placeholder="competitor.com">
+                    <input id="competitor_3" name="competitor_3" type="text" value="{{ competitor_list[2] if competitor_list|length > 2 else '' }}" placeholder="competitor.com" autocomplete="off">
                 </div>
 
                 <div class="form-field">
                     <label for="competitor_4">Competitor 4</label>
-                    <input id="competitor_4" name="competitor_4" type="text" value="{{ competitor_list[3] if competitor_list|length > 3 else '' }}" placeholder="competitor.com">
+                    <input id="competitor_4" name="competitor_4" type="text" value="{{ competitor_list[3] if competitor_list|length > 3 else '' }}" placeholder="competitor.com" autocomplete="off">
                 </div>
             </div>
+
+            <span class="field-error" id="err-competitors">Add at least one competitor domain</span>
 
             <div class="competitor-form-actions">
                 <button type="submit" class="btn btn-primary">
@@ -690,6 +694,70 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     applyTableFilters();
+
+    // ── Competitor form validation ─────────────────────────────────────
+    var cForm = document.getElementById("competitorAnalysisForm");
+    if (cForm) {
+        cForm.addEventListener("submit", function (e) {
+            var ok = true;
+            var domainInput = document.getElementById("domain");
+            var errDomain = document.getElementById("err-domain");
+            var errComps = document.getElementById("err-competitors");
+
+            // Reset previous errors
+            if (errDomain) { errDomain.hidden = true; errDomain.classList.remove("is-visible"); }
+            if (errComps)  { errComps.hidden  = true; errComps.classList.remove("is-visible");  }
+            if (domainInput) domainInput.classList.remove("is-invalid");
+
+            // Domain required
+            if (!domainInput || !domainInput.value.trim()) {
+                if (errDomain) { errDomain.hidden = false; errDomain.classList.add("is-visible"); }
+                if (domainInput) domainInput.classList.add("is-invalid");
+                ok = false;
+            }
+
+            // At least one competitor required
+            var compInputs = ["competitor_1","competitor_2","competitor_3","competitor_4"];
+            var hasAny = compInputs.some(function (id) {
+                var el = document.getElementById(id);
+                return el && el.value.trim().length > 0;
+            });
+            if (!hasAny) {
+                if (errComps) { errComps.hidden = false; errComps.classList.add("is-visible"); }
+                var first = document.getElementById("competitor_1");
+                if (first) first.classList.add("is-invalid");
+                ok = false;
+            }
+
+            if (!ok) {
+                e.preventDefault();
+                var firstInvalid = cForm.querySelector(".is-invalid");
+                if (firstInvalid) firstInvalid.focus();
+            }
+        });
+
+        // Clear errors on input
+        cForm.addEventListener("input", function (e) {
+            if (e.target.classList.contains("is-invalid")) {
+                e.target.classList.remove("is-invalid");
+            }
+            // Clear domain error when domain field has a value
+            if (e.target.id === "domain" && e.target.value.trim()) {
+                var d = document.getElementById("err-domain");
+                if (d) { d.hidden = true; d.classList.remove("is-visible"); }
+            }
+            // Clear competitor error when any competitor field gets a value
+            var compIds = ["competitor_1","competitor_2","competitor_3","competitor_4"];
+            if (compIds.indexOf(e.target.id) !== -1 && e.target.value.trim()) {
+                var c = document.getElementById("err-competitors");
+                if (c) { c.hidden = true; c.classList.remove("is-visible"); }
+                compIds.forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.classList.remove("is-invalid");
+                });
+            }
+        });
+    }
 });
 </script>
 

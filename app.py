@@ -11161,24 +11161,33 @@ def inject_template_globals():
     onboarding_state = {"active": False, "current_step": 1, "steps": []}
 
     if current_user.is_authenticated:
-        has_unlimited_credits = user_has_unlimited_credits(current_user)
-        view_mode = get_view_mode(current_user)
-        can_use_presentation_mode = view_mode in ["multi", "admin"]
+        try:
+            has_unlimited_credits = user_has_unlimited_credits(current_user)
+            view_mode = get_view_mode(current_user)
+            can_use_presentation_mode = view_mode in ["multi", "admin"]
 
-        workspace_count = get_workspace_count(current_user.id)
-        workspace_limit = get_workspace_limit(current_user)
-        can_add_workspace = (
-            workspace_limit is None or workspace_count < workspace_limit
-        )
-        focused_client = get_focused_client_for_user(current_user)
-        onboarding_state = get_onboarding_state(current_user.id)
+            workspace_count = get_workspace_count(current_user.id)
+            workspace_limit = get_workspace_limit(current_user)
+            can_add_workspace = (
+                workspace_limit is None or workspace_count < workspace_limit
+            )
+            focused_client = get_focused_client_for_user(current_user)
+            onboarding_state = get_onboarding_state(current_user.id)
+        except Exception:
+            # DB session may be in a failed state (e.g. during 500 error
+            # rendering after a rollback). Fall back to safe defaults so
+            # base.html / error pages still render without a secondary error.
+            pass
 
-        if has_unlimited_credits:
-            wallet_balance = "Unlimited"
-            credit_balance_numeric = 999999
-        elif getattr(current_user, "wallet", None):
-            wallet_balance = current_user.wallet.balance
-            credit_balance_numeric = current_user.wallet.balance
+        try:
+            if has_unlimited_credits:
+                wallet_balance = "Unlimited"
+                credit_balance_numeric = 999999
+            elif getattr(current_user, "wallet", None):
+                wallet_balance = current_user.wallet.balance
+                credit_balance_numeric = current_user.wallet.balance
+        except Exception:
+            pass
 
     return {
         "HELP_GLOSSARY": HELP_GLOSSARY,

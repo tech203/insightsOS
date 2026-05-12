@@ -9459,6 +9459,12 @@ END COMMENTED OUT FOR CLEANUP TEST: duplicate first page header block */
     border-color: #bbf7d0;
 }
 
+/* Soft warning tier: score 40-55 — watch zone, not yet a hard blocker */
+.blocker-card-warning {
+    background: #fefce8;
+    border-color: #fde68a;
+}
+
 .blocker-card strong {
     display: block;
     color: #16243c;
@@ -20258,6 +20264,7 @@ html[data-theme="dark"] .module-card,
 html[data-theme="dark"] .summary-card,
 html[data-theme="dark"] .pillar-card,
 html[data-theme="dark"] .blocker-card,
+html[data-theme="dark"] .blocker-card-warning,
 html[data-theme="dark"] .query-summary-card,
 html[data-theme="dark"] .empty-state-card,
 html[data-theme="dark"] .next-action-card,
