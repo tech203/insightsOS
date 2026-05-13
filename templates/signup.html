@@ -54,8 +54,8 @@
         <div class="auth-card-dark">
             <div class="auth-header-dark">
                 <div class="auth-mini-kicker">Create account</div>
-                <h2>Start free</h2>
-                <p>Enter your details to create your workspace.</p>
+                <h2>Create your free workspace</h2>
+                <p>Run your first AI visibility audit in minutes. No credit card needed.</p>
             </div>
 
             {% if error %}
@@ -84,10 +84,10 @@
                 {% endif %}
 
                 <div class="form-field-dark">
-                    <label for="password">Password</label>
+                    <label for="password">Password <span class="field-hint">At least 8 characters</span></label>
                     <div class="password-input-wrapper-dark">
                         <input type="password" id="password" name="password" placeholder="Create a password" required minlength="8" autocomplete="new-password">
-                        <button type="button" class="password-toggle-dark" onclick="togglePasswordVisibility('password', this)">Show</button>
+                        <button type="button" class="password-toggle-dark" aria-label="Toggle password visibility" onclick="togglePasswordVisibility('password', this)">Show</button>
                     </div>
                 </div>
 
@@ -95,7 +95,7 @@
                     <label for="confirm_password">Confirm password</label>
                     <div class="password-input-wrapper-dark">
                         <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required minlength="8" autocomplete="new-password">
-                        <button type="button" class="password-toggle-dark" onclick="togglePasswordVisibility('confirm_password', this)">Show</button>
+                        <button type="button" class="password-toggle-dark" aria-label="Toggle password visibility" onclick="togglePasswordVisibility('confirm_password', this)">Show</button>
                     </div>
                 </div>
 
@@ -331,14 +331,23 @@ body.auth-page-light {
 }
 
 .form-field-dark label {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
     font-size: 14px;
     font-weight: 600;
     color: var(--auth-text-strong);
 }
 
+.field-hint {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--auth-text-muted);
+}
+
 .form-field-dark input {
     width: 100%;
-    height: 50px;
+    height: 54px;
     padding: 0 16px;
     border-radius: 14px;
     background: var(--auth-bg-soft);
@@ -384,7 +393,7 @@ body.auth-page-light {
 
 .auth-submit-btn {
     width: 100%;
-    height: 50px;
+    height: 54px;
     margin-top: 4px;
     border: 0;
     border-radius: 14px;
