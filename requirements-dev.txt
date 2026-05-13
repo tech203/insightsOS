@@ -7,3 +7,7 @@
 -r requirements.txt
 
 pytest==8.3.4
+
+# Linter — config lives in ruff.toml at the project root. Pinned
+# so CI and local always agree on what counts as a lint error.
+ruff==0.15.12

@@ -14,7 +14,6 @@ testable and avoids a circular import with app.py where the models live.
 
 from __future__ import annotations
 
-from datetime import datetime
 from dtutils import utcnow
 from typing import Any, Dict, List, Optional
 

@@ -1,7 +1,6 @@
 import os
 import json
 import uuid
-from datetime import datetime
 from dtutils import utcnow
 
 QUEUE_FILE = os.path.join("data", "content_queue.json")

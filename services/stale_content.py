@@ -14,7 +14,7 @@ them apart from generic content recs.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dtutils import utcnow
 from typing import Any, Dict, Iterable, List, Optional
 

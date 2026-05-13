@@ -228,7 +228,9 @@ login_manager.login_view = "login"
 # CSRF protection — exempt only server-to-server routes (webhooks, OAuth
 # callbacks, cron jobs) that have their own authentication and cannot carry
 # a browser session cookie with a CSRF token.
-from flask_wtf.csrf import CSRFProtect, CSRFError
+# noqa: E402 — import is intentionally late so it can reference the
+# already-initialized `app` object two lines down.
+from flask_wtf.csrf import CSRFProtect, CSRFError  # noqa: E402
 csrf = CSRFProtect(app)
 app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1-hour token validity
 
@@ -2656,13 +2658,13 @@ def build_generated_site_page(client, blueprint, page_config):
                 elif "professional" in trait.lower():
                     proof_items.append(f"Professional {business_type} expertise")
                 elif "friendly" in trait.lower():
-                    proof_items.append(f"Friendly, approachable service")
+                    proof_items.append("Friendly, approachable service")
                 elif "modern" in trait.lower():
-                    proof_items.append(f"Modern, up-to-date approach")
+                    proof_items.append("Modern, up-to-date approach")
                 elif "warm" in trait.lower():
-                    proof_items.append(f"Warm, welcoming experience")
+                    proof_items.append("Warm, welcoming experience")
                 elif "clear" in trait.lower():
-                    proof_items.append(f"Clear, straightforward communication")
+                    proof_items.append("Clear, straightforward communication")
                 else:
                     proof_items.append(f"{trait} approach to {business_type}")
 
@@ -2689,7 +2691,7 @@ def build_generated_site_page(client, blueprint, page_config):
                 if "best" in focus.lower():
                     proof_items.append(f"Recognized as {focus}")
                 elif "where" in focus.lower():
-                    proof_items.append(f"Easy to find and contact")
+                    proof_items.append("Easy to find and contact")
 
         # Fallback items if we don't have enough
         fallbacks = [
@@ -11143,7 +11145,6 @@ def position_tracking_page():
     market = request.args.get("market", "United States (English)").strip()
     topic = request.args.get("topic", "").strip()
 
-    view_mode = get_view_mode(current_user)
     focused_client = get_focused_client_for_user(current_user)
 
     selected_client = None
@@ -12856,9 +12857,6 @@ def client_growth_plan(client_id):
     if not row:
         return f"❌ Client not found or access denied: {client_id}", 404
 
-    # convert to dict (same format your templates expect)
-    client = serialize_client_row(row)
-
     # 🔥 rebuild full view manually
     all_clients = build_client_views()
     full_client = next((c for c in all_clients if c["id"] == client_id), None)
@@ -12940,7 +12938,6 @@ def new_audit():
         location = request.form.get("location", "").strip()
         topic = request.form.get("topic", "").strip()
         audit_type = request.form.get("audit_type", "quick").strip()
-        notes = request.form.get("notes", "").strip()
 
         if not client_id:
             if view_mode == "single" and focused_client:
@@ -13785,7 +13782,7 @@ def webflow_export_blog(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError
         
         blog_collection_id = os.getenv("WEBFLOW_BLOG_COLLECTION_ID")
         if not blog_collection_id or blog_collection_id.startswith("your_"):
@@ -13821,8 +13818,9 @@ def webflow_export_blog(item_id):
             ).first()
             
             if existing_export and existing_export.webflow_item_id:
-                # Update existing item
-                result = client.update_item(blog_collection_id, existing_export.webflow_item_id, field_data)
+                # Update existing item — return value unused but the
+                # call's side effect (Webflow CMS update) is what matters
+                client.update_item(blog_collection_id, existing_export.webflow_item_id, field_data)
                 webflow_item_id = existing_export.webflow_item_id
                 action = "updated"
             else:
@@ -13905,7 +13903,7 @@ def webflow_export_faq(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError
         
         faq_collection_id = os.getenv("WEBFLOW_FAQ_COLLECTION_ID")
         if not faq_collection_id or faq_collection_id.startswith("your_"):
@@ -13934,7 +13932,8 @@ def webflow_export_faq(item_id):
             ).first()
             
             if existing_export and existing_export.webflow_item_id:
-                result = client.update_item(faq_collection_id, existing_export.webflow_item_id, field_data)
+                # Return value unused; the CMS-update side effect is the point
+                client.update_item(faq_collection_id, existing_export.webflow_item_id, field_data)
                 webflow_item_id = existing_export.webflow_item_id
                 action = "updated"
             else:
@@ -14015,7 +14014,7 @@ def webflow_export_service(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError
         
         service_collection_id = os.getenv("WEBFLOW_SERVICE_COLLECTION_ID")
         if not service_collection_id or service_collection_id.startswith("your_"):
@@ -14045,7 +14044,8 @@ def webflow_export_service(item_id):
             ).first()
             
             if existing_export and existing_export.webflow_item_id:
-                result = client.update_item(service_collection_id, existing_export.webflow_item_id, field_data)
+                # Return value unused; the CMS-update side effect is the point
+                client.update_item(service_collection_id, existing_export.webflow_item_id, field_data)
                 webflow_item_id = existing_export.webflow_item_id
                 action = "updated"
             else:
@@ -14671,7 +14671,6 @@ def answer_monitor_page():
 
     requested_client_id = request.args.get("client_id", "").strip()
     clients = build_client_views()
-    view_mode = get_view_mode(current_user)
     focused_client = get_focused_client_for_user(current_user)
 
     selected_client = None
@@ -16196,7 +16195,7 @@ def shopify_descriptions_preview(client_id):
     body. Stores the proposals in shop_meta so the user can review and
     approve before any write. Charges nothing on preview (no Shopify
     write yet) — the apply step charges credits."""
-    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError, scope_has
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError
     from services.shopify_audit import _is_thin_description
 
     workspace = db.session.get(Client, client_id)

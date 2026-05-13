@@ -32,12 +32,10 @@ os.environ.setdefault("STRIPE_SECRET_KEY", "")
 os.environ.setdefault("RESEND_FROM", "test@example.com")
 
 import pytest  # noqa: E402
-from datetime import datetime  # noqa: E402
 from dtutils import utcnow
 
 # Import after env is primed. The app module wires the DB engine at
 # import time, so this can only be done once env is set.
-import app as app_module  # noqa: E402
 from app import app as flask_app, db  # noqa: E402
 from app import User, Wallet, CreditTransaction  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402

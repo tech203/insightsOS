@@ -14,7 +14,7 @@ for now the calendar is a derived view over existing state.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}

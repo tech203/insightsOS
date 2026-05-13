@@ -28,18 +28,12 @@ Coverage:
 
 from __future__ import annotations
 
-import os
-from datetime import datetime
 from dtutils import utcnow
-from unittest.mock import patch
 
 import pytest
 
-import app as app_module
 from app import (
     CreditTransaction,
-    User,
-    Wallet,
     WebhookEvent,
     _handle_checkout_completed,
     _handle_payment_failed,

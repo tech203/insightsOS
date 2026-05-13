@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 from dtutils import utcnow
 
 from app import app, db, Client, normalize_website, slugify
