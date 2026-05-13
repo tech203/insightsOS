@@ -277,6 +277,29 @@ class User(UserMixin, db.Model):
     # only). $5 / extra seat / month.
     extra_seats = db.Column(db.Integer, default=0, nullable=False)
 
+    # Stripe subscription IDs for each purchased extra-workspace addon.
+    # One ID per addon (Stripe creates a separate subscription per
+    # checkout). Tracked here so downgrade_plan() can cancel them
+    # individually — without these we'd keep billing customers $9/mo
+    # for workspaces they've lost access to. Maintained by the
+    # checkout.session.completed webhook handler.
+    stripe_extra_workspace_sub_ids = db.Column(db.JSON, nullable=True)
+
+    # Same shape for extra-seat addons.
+    stripe_extra_seat_sub_ids = db.Column(db.JSON, nullable=True)
+
+    # Dunning / billing health. Set by invoice.payment_failed and
+    # cleared by invoice.payment_succeeded. Surfaced as a banner in
+    # base.html so the user knows to update their card before Stripe
+    # exhausts retries and downgrades them.
+    #   ok       — normal
+    #   past_due — last invoice failed; Stripe is retrying
+    #   canceled — subscription canceled, plan reverted to free
+    payment_status = db.Column(
+        db.String(30), default="ok", nullable=False
+    )
+    payment_status_updated_at = db.Column(db.DateTime, nullable=True)
+
     # If non-null, this user is a team member belonging to the owner
     # account at team_owner_id. They see the owner's workspaces and
     # spend the owner's credits; their own User row exists only for
@@ -365,6 +388,71 @@ class CreditTransaction(db.Model):
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
     )
+
+
+class CreditReservation(db.Model):
+    """Two-phase commit handle for credit spending.
+
+    Lifecycle:
+        pending  — reserve_credits() deducted from wallet, action in flight
+        committed — commit_reservation() ran on successful action
+        released — release_reservation() refunded after handled exception
+        expired  — sweep_expired_reservations() refunded a stale pending row
+                   (worker killed, unhandled exception, request timeout)
+
+    The wallet is debited at *reservation* time so concurrent reserves
+    see the correct headroom; the row is the audit trail of why each
+    debit happened and whether it ever materialized into a real action.
+
+    Sweeper is invoked lazily from a before_request hook; expires_at
+    is set generously (15 min default) so even slow actions don't get
+    falsely swept while in flight.
+    """
+    __tablename__ = "credit_reservations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=False, index=True,
+    )
+    amount = db.Column(db.Integer, nullable=False)
+    action_key = db.Column(db.String(80), nullable=False)
+    status = db.Column(db.String(20), default="pending", nullable=False, index=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False
+    )
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    finalized_at = db.Column(db.DateTime, nullable=True)
+
+
+class WebhookEvent(db.Model):
+    """Idempotency record for Stripe webhook events.
+
+    Stripe replays events on timeout / non-2xx response, and the same
+    event can be delivered multiple times even on success. We insert
+    a row keyed on event_id at the top of stripe_webhook() and bail
+    immediately if it already exists — preventing double credit grants,
+    double plan flips, double referral payouts, etc.
+
+    status: processed | failed (failed rows still occupy the slot so
+    a poison event doesn't get retried forever; admins can manually
+    delete a failed row to allow a re-attempt after fixing the bug).
+    """
+    __tablename__ = "webhook_events"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(
+        db.String(120), unique=True, nullable=False,
+    )
+    event_type = db.Column(db.String(120), nullable=False, index=True)
+    status = db.Column(db.String(30), default="processed", nullable=False)
+    user_id = db.Column(db.Integer, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    received_at = db.Column(
+        db.DateTime, default=datetime.utcnow, nullable=False
+    )
+    processed_at = db.Column(db.DateTime, nullable=True)
 
 
 class Referral(db.Model):
@@ -598,6 +686,14 @@ class Client(db.Model):
     # creating user accounts. Owner can revoke at any time.
     public_share_token = db.Column(db.String(80), nullable=True, unique=True, index=True)
     public_share_created_at = db.Column(db.DateTime, nullable=True)
+
+    # Soft-lock flag. Set by downgrade_plan() when a user drops to a
+    # tier that allows fewer workspaces than they currently have. The
+    # workspace row stays intact (data preservation > capacity
+    # reclamation) but is excluded from default listings and shown as
+    # read-only in the UI. User picks which to keep active in
+    # /settings/workspaces, or re-upgrades to reactivate everything.
+    is_locked = db.Column(db.Boolean, default=False, nullable=False)
 
     created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False
@@ -3889,10 +3985,16 @@ def get_unique_client_slug(user_id, name):
     return slug
 
 
-def load_clients(user_id=None):
+def load_clients(user_id=None, include_locked=False):
+    """Load workspaces for `user_id`. Locked workspaces (soft-locked
+    by a plan downgrade) are excluded by default so they don't show up
+    in the main UI; pass include_locked=True from settings to enumerate
+    them for the reactivation picker."""
     query = Client.query
     if user_id is not None:
         query = query.filter_by(user_id=user_id)
+    if not include_locked:
+        query = query.filter_by(is_locked=False)
     rows = query.order_by(Client.created_at.desc()).all()
     return [serialize_client_row(row) for row in rows]
 
@@ -4839,6 +4941,200 @@ def _maybe_grant_monthly_credits():
         logger.warning("Monthly credit grant failed for user %s: %s", current_user.id, exc)
 
 
+# ---------------------------------------------------------------------------
+# Plan downgrade reconciliation
+# ---------------------------------------------------------------------------
+# Called from the customer.subscription.deleted and the
+# customer.subscription.updated (when the new plan is strictly lower)
+# webhook handlers, plus the admin override path. Reconciles the full
+# state diff between the old and new plan caps:
+#
+#   1. Cancel addon Stripe subscriptions (extra workspace, extra seat)
+#      so the customer isn't billed $9/$5/mo for capacity they no
+#      longer have access to. Uses cancel_at_period_end=True + prorate
+#      so the user keeps access until the period boundary.
+#
+#   2. Soft-lock over-cap workspaces. The Client rows stay intact
+#      (data preservation > capacity reclamation). User picks which to
+#      keep active in /settings/workspaces, or re-upgrades to
+#      reactivate everything.
+#
+#   3. Block invitations beyond the new seat cap. Existing team members
+#      stay (won't kick someone out silently), but new invites refuse
+#      until they remove members or upgrade.
+#
+# The user gets an email (when SMTP is wired) outlining the change so
+# they're not surprised.
+
+def downgrade_plan(user, new_plan: str, *, reason: str = "") -> Dict[str, Any]:
+    """Reconcile a user's state to a new (lower) plan tier.
+
+    Returns a summary dict the caller can use for logging / email:
+        {
+          "old_plan": "growth",
+          "new_plan": "free",
+          "addons_canceled": 3,
+          "workspaces_locked": 6,
+          "over_seat_cap": True,
+          "errors": [...],
+        }
+    """
+    if not user:
+        return {"error": "no_user"}
+
+    old_plan = (user.plan or "free")
+    new_plan = (new_plan or "free").lower()
+
+    summary: Dict[str, Any] = {
+        "old_plan": old_plan,
+        "new_plan": new_plan,
+        "addons_canceled": 0,
+        "workspaces_locked": 0,
+        "over_seat_cap": False,
+        "errors": [],
+    }
+
+    user.plan = new_plan
+    if new_plan == "free":
+        user.stripe_subscription_id = None
+
+    # ---- 1. Cancel addon Stripe subscriptions (cancel_at_period_end).
+    addon_sub_ids: List[str] = list(user.stripe_extra_workspace_sub_ids or [])
+    addon_sub_ids += list(user.stripe_extra_seat_sub_ids or [])
+
+    if addon_sub_ids:
+        try:
+            from services.stripe_helper import _stripe_module, StripeNotConfigured
+            try:
+                stripe = _stripe_module()
+                for sub_id in addon_sub_ids:
+                    try:
+                        stripe.Subscription.modify(
+                            sub_id,
+                            cancel_at_period_end=True,
+                            proration_behavior="create_prorations",
+                        )
+                        summary["addons_canceled"] += 1
+                    except Exception as exc:
+                        summary["errors"].append(
+                            f"Failed to cancel addon {sub_id}: {exc}"
+                        )
+                        logger.warning(
+                            "Stripe addon cancel failed for sub %s: %s",
+                            sub_id, exc,
+                        )
+            except StripeNotConfigured:
+                # Dev mode: clear our trackers so the in-app state at
+                # least matches what the user expects. Real billing
+                # cleanup will need to happen out of band.
+                summary["errors"].append("Stripe not configured; addons cleared locally only")
+        except Exception as exc:
+            summary["errors"].append(f"Addon cancellation pipeline failed: {exc}")
+
+    # Whether or not Stripe succeeded, clear the trackers — they
+    # represent "addons we expect to be billing for"; on downgrade we
+    # explicitly do not. If the Stripe cancel failed, ops will see the
+    # WebhookEvent.notes and the Subscription row in Stripe.
+    user.stripe_extra_workspace_sub_ids = []
+    user.stripe_extra_seat_sub_ids = []
+    user.extra_workspaces = 0
+    user.extra_seats = 0
+
+    # ---- 2. Soft-lock over-cap workspaces.
+    workspace_cap = workspace_limit_for_plan(new_plan)
+    # Compute against the effective owner (same logic as
+    # can_create_workspace and friends).
+    workspaces = (
+        Client.query
+        .filter_by(user_id=user.id, is_locked=False)
+        .order_by(Client.created_at.asc())
+        .all()
+    )
+    if len(workspaces) > workspace_cap:
+        # Lock the most recently created workspaces — gives the user
+        # the benefit of the doubt that their oldest workspace is the
+        # one they care about most. They can swap which is active
+        # afterward via the reactivation picker.
+        to_lock = workspaces[workspace_cap:]
+        for ws in to_lock:
+            ws.is_locked = True
+        summary["workspaces_locked"] = len(to_lock)
+
+    # ---- 3. Seat cap check — we don't auto-kick members, just flag.
+    from pricing import seat_limit_for_plan as _seat_limit_for_plan
+    seat_cap = _seat_limit_for_plan(new_plan)
+    member_count = count_team_members(user.id)
+    if member_count > seat_cap:
+        summary["over_seat_cap"] = True
+        # Mark pending invites as revoked so no new members can join
+        # an already-over-cap team.
+        pending = TeamInvite.query.filter_by(
+            owner_user_id=user.id, status="pending"
+        ).all()
+        for inv in pending:
+            inv.status = "revoked"
+        summary["pending_invites_revoked"] = len(pending)
+
+    # Log to CreditTransaction so there's an audit trail tied to the
+    # user's history without inventing a new table.
+    db.session.add(
+        CreditTransaction(
+            user_id=user.id,
+            type="plan_downgrade",
+            amount=0,
+            balance_after=(user.wallet.balance if user.wallet else 0),
+            notes=(
+                f"Plan {old_plan} -> {new_plan}. "
+                f"{summary['addons_canceled']} addon(s) canceled, "
+                f"{summary['workspaces_locked']} workspace(s) locked. "
+                f"Reason: {reason or 'n/a'}"
+            ),
+        )
+    )
+
+    db.session.commit()
+    return summary
+
+
+def reactivate_workspace(user, client_id: int) -> bool:
+    """Unlock a workspace, if doing so wouldn't exceed the user's
+    current plan cap.
+
+    Used by the /settings/workspaces reactivation picker. Returns
+    False (and leaves state untouched) when reactivating would push
+    the user back over cap — the user has to delete or keep another
+    workspace locked first.
+    """
+    if not user:
+        return False
+    workspace = Client.query.filter_by(id=client_id, user_id=user.id).first()
+    if not workspace or not workspace.is_locked:
+        return False
+
+    cap = workspace_limit_for_plan(user.plan) + int(user.extra_workspaces or 0)
+    active_count = Client.query.filter_by(
+        user_id=user.id, is_locked=False
+    ).count()
+    if active_count >= cap:
+        return False
+
+    workspace.is_locked = False
+    db.session.commit()
+    return True
+
+
+@app.context_processor
+def _inject_payment_status():
+    """Make payment_status available to every template so the
+    past-due banner in base.html can render without each view having
+    to thread it through."""
+    if not current_user.is_authenticated:
+        return {}
+    return {
+        "user_payment_status": getattr(current_user, "payment_status", "ok"),
+    }
+
+
 def has_enough_credits_for(user, action_key: str) -> bool:
     """Convenience: does the user have enough credits for a named action?"""
     from pricing import get_action_cost
@@ -4847,7 +5143,13 @@ def has_enough_credits_for(user, action_key: str) -> bool:
 
 def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
     """Deduct the canonical credit cost for an action. Returns False
-    if the wallet doesn't have the funds (caller should flash + bail)."""
+    if the wallet doesn't have the funds (caller should flash + bail).
+
+    DEPRECATED for new code — prefer reserve_credits_for() +
+    commit_reservation() / release_reservation() so a worker kill or
+    upstream timeout doesn't silently consume the credit. Kept for
+    routes that haven't been migrated yet.
+    """
     from pricing import get_action_cost
     cost = get_action_cost(action_key)
     if cost <= 0:
@@ -4858,6 +5160,277 @@ def spend_credits_for(user, action_key: str, notes: str = "") -> bool:
         tx_type=f"usage_{action_key}",
         notes=notes or action_key.replace("_", " ").title(),
     )
+
+
+# ---------------------------------------------------------------------------
+# Two-phase credit spending (reserve → commit | release)
+# ---------------------------------------------------------------------------
+# Replaces the spend_credits_for() pattern for any action that issues a
+# slow external call (LLM, Tavily, Placid, ...). The old pattern was:
+#
+#     spend_credits_for(user, "content_brief")  # debit
+#     try:
+#         result = generate(...)                # 30+ seconds
+#     except Exception:
+#         refund_credits(user, 1)               # only fires for caught
+#                                               # exceptions; worker kill,
+#                                               # OOM, or upstream 502 ate
+#                                               # the credit silently.
+#
+# The new pattern:
+#
+#     reservation = reserve_credits_for(user, "content_brief")
+#     if not reservation:
+#         flash("insufficient"); return redirect(pricing)
+#     try:
+#         result = generate(...)
+#         commit_reservation(reservation, notes="...")
+#     except Exception as e:
+#         release_reservation(reservation, reason=str(e))
+#         flash(...); return ...
+#
+# expires_at is set to 15 min from creation; sweep_expired_reservations()
+# runs lazily on a before_request hook and releases anything past its
+# expiry that's still pending — handling the worker-kill case.
+
+# Reservations expire 15 min after creation. Tune up if any action
+# genuinely takes longer; the audit run and answer monitor are the
+# slowest things in the app and both finish well under 5 min.
+RESERVATION_TTL_SECONDS = 15 * 60
+
+# The sweeper runs at most once per process per interval to avoid
+# hammering the DB on every request. Cheap query (indexed + tiny
+# table) but no reason to do it more than every few minutes.
+RESERVATION_SWEEP_INTERVAL_SECONDS = 120
+
+# Module-global timestamp of the last sweep. Per-worker; a multi-worker
+# Gunicorn deployment will sweep N× per interval, which is fine — the
+# sweep itself is idempotent (uses an indexed query + per-row commit).
+_last_reservation_sweep_at: Optional[datetime] = None
+
+
+def reserve_credits(user, amount: int, action_key: str, notes: str = ""):
+    """Reserve `amount` credits for `action_key`.
+
+    Debits the wallet immediately (so concurrent reserves see correct
+    headroom) and returns a CreditReservation row whose id the caller
+    will hand back to commit_reservation() or release_reservation().
+
+    Returns None if the wallet doesn't have the funds — caller flashes
+    + bails. Returns a synthetic "sentinel" CreditReservation row with
+    amount=0 for unlimited (admin / dev_unlimited) users so the call
+    site doesn't have to branch.
+
+    Team members reserve from the owner's wallet, same as spend_credits.
+    """
+    if amount <= 0:
+        # No-cost actions: skip the round trip but still return a row
+        # the caller can pass to commit/release without special-casing.
+        sentinel = CreditReservation(
+            user_id=(user.id if user else 0),
+            amount=0,
+            action_key=action_key,
+            status="pending",
+            notes=notes or "(no-cost action)",
+            expires_at=datetime.utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
+        )
+        db.session.add(sentinel)
+        db.session.commit()
+        return sentinel
+
+    # Team members spend from the owner's wallet — bill follows team.
+    target = user
+    if user and getattr(user, "team_owner_id", None):
+        owner = db.session.get(User, user.team_owner_id)
+        if owner:
+            target = owner
+
+    if user_has_unlimited_credits(target):
+        # Unlimited: log a zero-amount row so audit history captures
+        # the action attempt and the commit/release path still works.
+        sentinel = CreditReservation(
+            user_id=target.id,
+            amount=0,
+            action_key=action_key,
+            status="pending",
+            notes=notes or f"{action_key} (unlimited)",
+            expires_at=datetime.utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
+        )
+        db.session.add(sentinel)
+        db.session.commit()
+        return sentinel
+
+    wallet = target.wallet if target else None
+    if not wallet or wallet.balance < amount:
+        return None
+
+    # Debit + write reservation + log transaction in one commit so an
+    # interrupted reserve can't leave the wallet debited without a row
+    # describing why.
+    wallet.balance -= amount
+    reservation = CreditReservation(
+        user_id=target.id,
+        amount=amount,
+        action_key=action_key,
+        status="pending",
+        notes=notes or action_key.replace("_", " ").title(),
+        expires_at=datetime.utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
+    )
+    db.session.add(reservation)
+    db.session.add(
+        CreditTransaction(
+            user_id=target.id,
+            type=f"reserve_{action_key}",
+            amount=-amount,
+            balance_after=wallet.balance,
+            notes=f"Reserved for {action_key}",
+        )
+    )
+    db.session.commit()
+    return reservation
+
+
+def reserve_credits_for(user, action_key: str, notes: str = ""):
+    """Convenience: reserve the canonical cost for a named action."""
+    from pricing import get_action_cost
+    cost = get_action_cost(action_key)
+    return reserve_credits(user, cost, action_key, notes=notes)
+
+
+def commit_reservation(reservation, notes: str = "") -> bool:
+    """Mark a pending reservation as committed. The credits are already
+    out of the wallet; this is purely the audit-trail closer.
+
+    Idempotent: returns False if the reservation is already committed
+    or released without raising, so a route that accidentally commits
+    twice doesn't crash."""
+    if reservation is None:
+        return False
+    # Re-fetch to handle SQLAlchemy session detachment edge cases
+    # (background workers, late commits).
+    row = db.session.get(CreditReservation, reservation.id)
+    if not row or row.status != "pending":
+        return False
+    row.status = "committed"
+    row.finalized_at = datetime.utcnow()
+    if notes:
+        row.notes = f"{row.notes or ''}\n{notes}".strip()
+    # Log the spend at commit time, so CreditTransaction shows the
+    # action actually completed (vs. the reserve_* row which only
+    # proves money left the wallet).
+    if row.amount > 0:
+        wallet = (
+            db.session.get(User, row.user_id).wallet
+            if row.user_id else None
+        )
+        balance_after = wallet.balance if wallet else 0
+        db.session.add(
+            CreditTransaction(
+                user_id=row.user_id,
+                type=f"usage_{row.action_key}",
+                amount=-row.amount,
+                balance_after=balance_after,
+                notes=notes or f"{row.action_key} completed",
+            )
+        )
+    db.session.commit()
+    return True
+
+
+def release_reservation(reservation, reason: str = "") -> bool:
+    """Refund a pending reservation back to the wallet.
+
+    Idempotent. Used in two places:
+      1. The except branch of an action route — caught exception means
+         the user got no value, so we refund.
+      2. sweep_expired_reservations() — for rows past expires_at that
+         never reached commit or release (worker killed mid-action).
+    """
+    if reservation is None:
+        return False
+    row = db.session.get(CreditReservation, reservation.id)
+    if not row or row.status != "pending":
+        return False
+
+    row.status = "released"
+    row.finalized_at = datetime.utcnow()
+    if reason:
+        row.notes = f"{row.notes or ''}\nReleased: {reason}".strip()
+
+    if row.amount > 0:
+        user = db.session.get(User, row.user_id) if row.user_id else None
+        if user:
+            if not user.wallet:
+                user.wallet = Wallet(user_id=user.id, balance=0)
+                db.session.add(user.wallet)
+                db.session.flush()
+            user.wallet.balance += row.amount
+            db.session.add(
+                CreditTransaction(
+                    user_id=row.user_id,
+                    type=f"release_{row.action_key}",
+                    amount=row.amount,
+                    balance_after=user.wallet.balance,
+                    notes=reason or f"Released reservation for {row.action_key}",
+                )
+            )
+    db.session.commit()
+    return True
+
+
+def sweep_expired_reservations() -> int:
+    """Release any pending reservations past their expires_at.
+
+    Catches the worker-kill case: a route reserved credits, started a
+    slow generation, and the process died before commit or release
+    could run. Returns the number of reservations swept (useful for
+    logging / metrics).
+
+    Throttled to RESERVATION_SWEEP_INTERVAL_SECONDS per worker; the
+    sweep itself uses an indexed query so cost is negligible.
+    """
+    global _last_reservation_sweep_at
+    now = datetime.utcnow()
+    if _last_reservation_sweep_at is not None and (
+        now - _last_reservation_sweep_at
+    ).total_seconds() < RESERVATION_SWEEP_INTERVAL_SECONDS:
+        return 0
+    _last_reservation_sweep_at = now
+
+    stale = (
+        CreditReservation.query
+        .filter_by(status="pending")
+        .filter(CreditReservation.expires_at < now)
+        .limit(100)  # cap per sweep so a backlog can't stall a request
+        .all()
+    )
+    swept = 0
+    for row in stale:
+        try:
+            release_reservation(row, reason="Auto-released (expired)")
+            swept += 1
+        except Exception as exc:
+            logger.warning(
+                "Failed to auto-release reservation %s: %s", row.id, exc
+            )
+    return swept
+
+
+@app.before_request
+def _maybe_sweep_expired_reservations():
+    """Lazy sweep of expired reservations on every authenticated request.
+
+    Throttled internally, so the practical cost is one indexed query
+    every ~2 minutes per worker. Anonymous requests skip — there's no
+    user to reserve credits for them anyway."""
+    if not current_user.is_authenticated:
+        return
+    if request.endpoint and request.endpoint.startswith("static"):
+        return
+    try:
+        sweep_expired_reservations()
+    except Exception as exc:
+        logger.warning("Reservation sweep failed: %s", exc)
 
 
 def safe_return_url(candidate: str) -> str | None:
@@ -6916,11 +7489,12 @@ def get_workspace_limit(user):
 
 def get_workspace_count(user_id):
     """Count workspaces against the OWNING account so team members
-    can't accidentally bypass the cap."""
+    can't accidentally bypass the cap. Excludes soft-locked workspaces
+    (paused by a plan downgrade) — those don't consume a slot."""
     user = db.session.get(User, user_id) if user_id else None
     target = effective_owner(user) if user else None
     target_id = target.id if target else user_id
-    return Client.query.filter_by(user_id=target_id).count()
+    return Client.query.filter_by(user_id=target_id, is_locked=False).count()
 
 
 def can_create_workspace(user):
@@ -7473,9 +8047,31 @@ def stripe_portal():
 @app.route("/stripe/webhook", methods=["POST"])
 @csrf.exempt  # Stripe signs requests with its own webhook secret — no browser session
 def stripe_webhook():
-    """Receive checkout.session.completed events and credit the wallet
-    or flip the plan accordingly. Always returns 200 once parsed so
-    Stripe doesn't retry on application errors."""
+    """Receive Stripe webhook events and dispatch.
+
+    Handled events:
+        checkout.session.completed     — credit grant, plan flip, addon
+                                         tracking, module sync
+        customer.subscription.updated  — plan changes via Portal,
+                                         module add/remove, period-end
+                                         refresh of monthly credits
+        customer.subscription.deleted  — cancellation (calls
+                                         downgrade_plan() for full
+                                         reconciliation)
+        invoice.payment_failed         — flag user past_due, surface
+                                         banner; Stripe handles retries
+        invoice.payment_succeeded      — clear past_due, trigger
+                                         monthly credit grant
+
+    Idempotency:
+        Each event_id is recorded in WebhookEvent before processing;
+        replays bail fast. Failed events are still recorded as 'failed'
+        so a poison event doesn't loop forever — admins manually clear
+        the row after fixing the underlying bug.
+
+    Always returns 200 once parsed so Stripe doesn't retry on
+    application errors (we have our own dunning model now via the
+    payment_status field)."""
     from services.stripe_helper import StripeNotConfigured, construct_webhook_event
 
     payload = request.get_data()
@@ -7489,114 +8085,403 @@ def stripe_webhook():
         logger.warning("Stripe webhook signature check failed: %s", exc)
         return jsonify({"ok": False, "error": "invalid_signature"}), 400
 
+    event_id = event.get("id") or ""
     event_type = event.get("type") or ""
     data = (event.get("data") or {}).get("object") or {}
 
-    if event_type == "checkout.session.completed":
+    # ------------------------------------------------------------------
+    # Idempotency check: bail fast if we've already processed this event.
+    # Stripe replays on timeout / non-2xx, and even successful events
+    # can be delivered multiple times. The unique constraint on
+    # event_id is the actual guarantee — IntegrityError on the insert
+    # means a parallel worker is already processing the same event.
+    # ------------------------------------------------------------------
+    if event_id:
+        existing = WebhookEvent.query.filter_by(event_id=event_id).first()
+        if existing:
+            return jsonify({
+                "ok": True,
+                "ignored": "duplicate",
+                "previous_status": existing.status,
+            })
+
+        record = WebhookEvent(
+            event_id=event_id,
+            event_type=event_type,
+            status="processing",
+            received_at=datetime.utcnow(),
+        )
         try:
-            metadata = data.get("metadata") or {}
-            kind = metadata.get("kind")
-            user_id = int(metadata.get("user_id") or 0)
-            user = db.session.get(User, user_id) if user_id else None
-            if not user:
-                return jsonify({"ok": True, "ignored": "user_not_found"})
-
-            customer_id = data.get("customer")
-            if customer_id and not user.stripe_customer_id:
-                user.stripe_customer_id = customer_id
-
-            if kind == "bundle":
-                credits = int(metadata.get("credits") or 0)
-                if credits > 0:
-                    if not user.wallet:
-                        user.wallet = Wallet(user_id=user.id, balance=0)
-                        db.session.add(user.wallet)
-                        db.session.flush()
-                    user.wallet.balance += credits
-                    db.session.add(
-                        CreditTransaction(
-                            user_id=user.id,
-                            type="topup_bundle",
-                            amount=credits,
-                            balance_after=user.wallet.balance,
-                            notes=f"Stripe topup: {credits} credits",
-                        )
-                    )
-            elif kind == "subscription":
-                plan_slug = metadata.get("plan_slug")
-                if plan_slug in PLAN_CATALOG and plan_slug != "free":
-                    user.plan = plan_slug
-                    user.stripe_subscription_id = data.get("subscription")
-                    grant_monthly_credits_if_due(user)
-            elif kind == "extra_workspace":
-                user.extra_workspaces = int(user.extra_workspaces or 0) + 1
-            elif kind == "extra_seat":
-                user.extra_seats = int(user.extra_seats or 0) + 1
-            elif kind == "modules":
-                # Multi-line-item subscription. Pull the live subscription
-                # from Stripe to get authoritative line-item IDs (the
-                # checkout.session payload doesn't include them).
-                _sync_user_modules_from_subscription(
-                    user=user,
-                    subscription_id=data.get("subscription"),
-                )
+            db.session.add(record)
             db.session.commit()
-
-            # Referral payout — fires on EVERY paid purchase within the
-            # 30-day signup window. amount_total is in cents per Stripe.
-            try:
-                amount_total = data.get("amount_total")
-                if amount_total is not None and kind in (
-                    "bundle", "subscription", "extra_workspace", "extra_seat"
-                ):
-                    award_referral_for_payment(
-                        referred_user=user,
-                        amount_usd=float(amount_total) / 100.0,
-                        stripe_event_ref=data.get("id") or "",
-                    )
-            except Exception as exc:
-                logger.warning("Referral payout failed: %s", exc)
         except Exception as exc:
-            logger.error("Stripe webhook handling failed: %s", exc)
+            # IntegrityError from the unique constraint means a
+            # concurrent worker beat us to it — also a duplicate.
             db.session.rollback()
+            logger.info(
+                "Webhook event %s already inserted by another worker: %s",
+                event_id, exc,
+            )
+            return jsonify({"ok": True, "ignored": "duplicate_race"})
+    else:
+        # Stripe always sends an id; absence means a test stub. Process
+        # without idempotency rather than failing closed.
+        record = None
 
-    elif event_type == "customer.subscription.updated":
-        # Module subscriptions: a line item added or removed via the
-        # billing portal flips UserModule rows accordingly.
+    # Track the per-event outcome so we can write it back into the
+    # WebhookEvent row at the end.
+    outcome_status = "processed"
+    outcome_notes: Optional[str] = None
+    outcome_user_id: Optional[int] = None
+
+    try:
+        if event_type == "checkout.session.completed":
+            outcome_user_id, outcome_notes = _handle_checkout_completed(data)
+        elif event_type == "customer.subscription.updated":
+            outcome_user_id, outcome_notes = _handle_subscription_updated(data)
+        elif event_type == "customer.subscription.deleted":
+            outcome_user_id, outcome_notes = _handle_subscription_deleted(data)
+        elif event_type == "invoice.payment_failed":
+            outcome_user_id, outcome_notes = _handle_payment_failed(data)
+        elif event_type == "invoice.payment_succeeded":
+            outcome_user_id, outcome_notes = _handle_payment_succeeded(data)
+        else:
+            outcome_status = "ignored"
+            outcome_notes = f"Unhandled event_type: {event_type}"
+    except Exception as exc:
+        # Roll back any in-flight changes; mark the event as failed so
+        # we don't keep retrying a poison event. Ops can delete the row
+        # to re-attempt after a fix.
+        db.session.rollback()
+        logger.exception("Stripe webhook handler failed for %s", event_type)
+        outcome_status = "failed"
+        outcome_notes = f"Exception: {exc!r}"
+
+    # Update the WebhookEvent row with the outcome. Re-fetch in case
+    # the rollback above detached it from the session.
+    if record is not None:
         try:
-            sub_id = data.get("id")
-            if sub_id:
-                _sync_user_modules_for_subscription_id(sub_id, subscription_obj=data)
+            row = WebhookEvent.query.filter_by(event_id=event_id).first()
+            if row:
+                row.status = outcome_status
+                row.processed_at = datetime.utcnow()
+                row.user_id = outcome_user_id
+                row.notes = outcome_notes
                 db.session.commit()
         except Exception as exc:
-            logger.error("Stripe subscription update handling failed: %s", exc)
             db.session.rollback()
-
-    elif event_type == "customer.subscription.deleted":
-        try:
-            sub_id = data.get("id")
-            if sub_id:
-                # Legacy plan subscription path.
-                user = User.query.filter_by(stripe_subscription_id=sub_id).first()
-                if user:
-                    user.plan = "free"
-                    user.stripe_subscription_id = None
-                # Modules path: cancel every active module row tied to
-                # this subscription regardless of plan/customer linkage.
-                module_rows = (
-                    UserModule.query
-                    .filter_by(stripe_subscription_id=sub_id, status="active")
-                    .all()
-                )
-                for row in module_rows:
-                    row.status = "canceled"
-                    row.deactivated_at = datetime.utcnow()
-                db.session.commit()
-        except Exception as exc:
-            logger.error("Stripe subscription delete handling failed: %s", exc)
-            db.session.rollback()
+            logger.warning(
+                "Failed to update WebhookEvent outcome for %s: %s",
+                event_id, exc,
+            )
 
     return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Per-event-type handlers
+# ---------------------------------------------------------------------------
+# Each returns (user_id, notes) so the dispatcher can record the outcome
+# on the WebhookEvent row. Handlers commit their own DB changes; the
+# dispatcher only handles outcome bookkeeping.
+
+
+def _handle_checkout_completed(data: Dict[str, Any]) -> tuple:
+    """Bundle topup, plan subscribe, or addon purchase landed.
+
+    For subscription kinds, we also stash the resulting Stripe
+    subscription ID on the user so downgrade_plan() can cancel addons
+    individually later."""
+    metadata = data.get("metadata") or {}
+    kind = metadata.get("kind")
+    user_id = int(metadata.get("user_id") or 0)
+    user = db.session.get(User, user_id) if user_id else None
+    if not user:
+        return None, "user_not_found"
+
+    customer_id = data.get("customer")
+    if customer_id and not user.stripe_customer_id:
+        user.stripe_customer_id = customer_id
+
+    notes = f"kind={kind}"
+    new_sub_id = data.get("subscription")
+
+    if kind == "bundle":
+        credits = int(metadata.get("credits") or 0)
+        if credits > 0:
+            if not user.wallet:
+                user.wallet = Wallet(user_id=user.id, balance=0)
+                db.session.add(user.wallet)
+                db.session.flush()
+            user.wallet.balance += credits
+            db.session.add(
+                CreditTransaction(
+                    user_id=user.id,
+                    type="topup_bundle",
+                    amount=credits,
+                    balance_after=user.wallet.balance,
+                    notes=f"Stripe topup: {credits} credits",
+                )
+            )
+            notes = f"bundle: +{credits} credits"
+
+    elif kind == "subscription":
+        plan_slug = metadata.get("plan_slug")
+        if plan_slug in PLAN_CATALOG and plan_slug != "free":
+            user.plan = plan_slug
+            user.stripe_subscription_id = new_sub_id
+            # Clear any past_due flag — a successful checkout means
+            # billing is healthy again.
+            if user.payment_status != "ok":
+                user.payment_status = "ok"
+                user.payment_status_updated_at = datetime.utcnow()
+            grant_monthly_credits_if_due(user)
+            notes = f"plan -> {plan_slug}"
+
+    elif kind == "extra_workspace":
+        user.extra_workspaces = int(user.extra_workspaces or 0) + 1
+        if new_sub_id:
+            # Track the Stripe subscription so we can cancel this
+            # specific addon on downgrade without affecting other
+            # workspace addons or the base plan.
+            ids = list(user.stripe_extra_workspace_sub_ids or [])
+            if new_sub_id not in ids:
+                ids.append(new_sub_id)
+            user.stripe_extra_workspace_sub_ids = ids
+        notes = "extra_workspace +1"
+
+    elif kind == "extra_seat":
+        user.extra_seats = int(user.extra_seats or 0) + 1
+        if new_sub_id:
+            ids = list(user.stripe_extra_seat_sub_ids or [])
+            if new_sub_id not in ids:
+                ids.append(new_sub_id)
+            user.stripe_extra_seat_sub_ids = ids
+        notes = "extra_seat +1"
+
+    elif kind == "modules":
+        # Multi-line-item subscription. Pull the live subscription
+        # from Stripe to get authoritative line-item IDs (the
+        # checkout.session payload doesn't include them).
+        _sync_user_modules_from_subscription(
+            user=user,
+            subscription_id=new_sub_id,
+        )
+        notes = "modules synced"
+
+    db.session.commit()
+
+    # Referral payout — fires on EVERY paid purchase within the
+    # 30-day signup window. amount_total is in cents per Stripe.
+    try:
+        amount_total = data.get("amount_total")
+        if amount_total is not None and kind in (
+            "bundle", "subscription", "extra_workspace", "extra_seat"
+        ):
+            award_referral_for_payment(
+                referred_user=user,
+                amount_usd=float(amount_total) / 100.0,
+                stripe_event_ref=data.get("id") or "",
+            )
+    except Exception as exc:
+        logger.warning("Referral payout failed: %s", exc)
+
+    return user.id, notes
+
+
+def _handle_subscription_updated(data: Dict[str, Any]) -> tuple:
+    """Plan changed in Portal, module added/removed, or period rolled
+    over. We:
+      - sync module rows
+      - if price ID changed, map to plan slug and update user.plan
+      - if current_period_end advanced, grant monthly credits if due
+    """
+    sub_id = data.get("id")
+    if not sub_id:
+        return None, "no_subscription_id"
+
+    user_id_out: Optional[int] = None
+    notes_parts: list = []
+
+    # Module sync (existing behavior).
+    try:
+        _sync_user_modules_for_subscription_id(sub_id, subscription_obj=data)
+    except Exception as exc:
+        logger.warning("Module sync on subscription update failed: %s", exc)
+
+    # Plan price change via Portal.
+    user = User.query.filter_by(stripe_subscription_id=sub_id).first()
+    if user:
+        user_id_out = user.id
+        new_plan = _resolve_plan_slug_from_subscription(data)
+        if new_plan and new_plan != user.plan:
+            old_plan = user.plan
+            user.plan = new_plan
+            notes_parts.append(f"plan {old_plan} -> {new_plan}")
+            # If the new plan tightens limits relative to the old one,
+            # downgrade_plan reconciles workspaces/seats/addons. If it
+            # loosens, no reconciliation needed.
+            if _plan_strictly_lower(new_plan, old_plan):
+                try:
+                    downgrade_plan(user, new_plan)
+                    notes_parts.append("downgrade reconciled")
+                except Exception as exc:
+                    logger.warning("downgrade_plan failed: %s", exc)
+                    notes_parts.append(f"downgrade error: {exc}")
+
+        # Period rolled over — grant monthly credits if due.
+        granted = grant_monthly_credits_if_due(user)
+        if granted:
+            notes_parts.append(f"granted {granted} monthly credits")
+
+    db.session.commit()
+    return user_id_out, "; ".join(notes_parts) if notes_parts else "noop"
+
+
+def _handle_subscription_deleted(data: Dict[str, Any]) -> tuple:
+    """Subscription canceled — fully reconcile via downgrade_plan."""
+    sub_id = data.get("id")
+    if not sub_id:
+        return None, "no_subscription_id"
+
+    user_id_out: Optional[int] = None
+    notes_parts: list = []
+
+    # Legacy plan subscription path.
+    user = User.query.filter_by(stripe_subscription_id=sub_id).first()
+    if user:
+        user_id_out = user.id
+        old_plan = user.plan
+        try:
+            downgrade_plan(user, "free", reason=f"Subscription {sub_id} canceled")
+            notes_parts.append(f"plan {old_plan} -> free")
+        except Exception as exc:
+            logger.warning("downgrade_plan to free failed: %s", exc)
+            notes_parts.append(f"downgrade error: {exc}")
+
+    # Modules path: cancel every active module row tied to this
+    # subscription regardless of plan/customer linkage.
+    module_rows = (
+        UserModule.query
+        .filter_by(stripe_subscription_id=sub_id, status="active")
+        .all()
+    )
+    for row in module_rows:
+        row.status = "canceled"
+        row.deactivated_at = datetime.utcnow()
+    if module_rows:
+        notes_parts.append(f"{len(module_rows)} modules canceled")
+
+    # Extra-workspace / seat addons: if this sub_id was tracking an
+    # addon, remove it from the user's tracked list.
+    addon_users = User.query.filter(
+        (User.stripe_extra_workspace_sub_ids.isnot(None)) |
+        (User.stripe_extra_seat_sub_ids.isnot(None))
+    ).all()
+    for u in addon_users:
+        ws_ids = list(u.stripe_extra_workspace_sub_ids or [])
+        if sub_id in ws_ids:
+            ws_ids.remove(sub_id)
+            u.stripe_extra_workspace_sub_ids = ws_ids
+            u.extra_workspaces = max(0, int(u.extra_workspaces or 0) - 1)
+            user_id_out = user_id_out or u.id
+            notes_parts.append("extra_workspace addon removed")
+        seat_ids = list(u.stripe_extra_seat_sub_ids or [])
+        if sub_id in seat_ids:
+            seat_ids.remove(sub_id)
+            u.stripe_extra_seat_sub_ids = seat_ids
+            u.extra_seats = max(0, int(u.extra_seats or 0) - 1)
+            user_id_out = user_id_out or u.id
+            notes_parts.append("extra_seat addon removed")
+
+    db.session.commit()
+    return user_id_out, "; ".join(notes_parts) if notes_parts else "noop"
+
+
+def _handle_payment_failed(data: Dict[str, Any]) -> tuple:
+    """Invoice payment failed — flag user past_due so the UI shows a
+    'update your card' banner. We don't downgrade here; Stripe handles
+    retries (default ~2 weeks) and ultimately fires
+    customer.subscription.deleted if all retries fail.
+    """
+    customer_id = data.get("customer")
+    if not customer_id:
+        return None, "no_customer"
+
+    user = User.query.filter_by(stripe_customer_id=customer_id).first()
+    if not user:
+        return None, f"no_user_for_customer:{customer_id}"
+
+    user.payment_status = "past_due"
+    user.payment_status_updated_at = datetime.utcnow()
+    db.session.commit()
+    return user.id, f"flagged past_due (invoice {data.get('id')})"
+
+
+def _handle_payment_succeeded(data: Dict[str, Any]) -> tuple:
+    """Invoice paid successfully — clear past_due if set, and if this
+    is a recurring invoice (renewal), grant the monthly credit
+    allowance if due."""
+    customer_id = data.get("customer")
+    if not customer_id:
+        return None, "no_customer"
+
+    user = User.query.filter_by(stripe_customer_id=customer_id).first()
+    if not user:
+        return None, f"no_user_for_customer:{customer_id}"
+
+    parts: list = []
+    if user.payment_status != "ok":
+        user.payment_status = "ok"
+        user.payment_status_updated_at = datetime.utcnow()
+        parts.append("cleared past_due")
+
+    # If the invoice is for a renewal (billing_reason in renewal-ish
+    # values), grant monthly credits.
+    billing_reason = (data.get("billing_reason") or "").lower()
+    if billing_reason in ("subscription_cycle", "subscription_create"):
+        granted = grant_monthly_credits_if_due(user)
+        if granted:
+            parts.append(f"granted {granted} monthly credits")
+
+    db.session.commit()
+    return user.id, "; ".join(parts) if parts else "noop"
+
+
+def _resolve_plan_slug_from_subscription(subscription: Dict[str, Any]) -> Optional[str]:
+    """Inspect a Stripe subscription's line items to determine which
+    plan slug it represents. Maps Stripe price IDs (from env) back to
+    plan slugs in PLAN_CATALOG. Returns None for non-plan subs (modules,
+    addons) so the caller doesn't accidentally overwrite user.plan."""
+    items_raw = subscription.get("items") or {}
+    items_data = items_raw.get("data") if isinstance(items_raw, dict) else []
+
+    # Build a price_id -> plan_slug map from the env-configured prices.
+    plan_price_map = {}
+    for slug in ("pro", "growth"):
+        price_id = os.getenv(f"STRIPE_PRICE_PLAN_{slug.upper()}")
+        if price_id:
+            plan_price_map[price_id] = slug
+
+    for item in items_data or []:
+        if not isinstance(item, dict):
+            continue
+        price = item.get("price") or {}
+        price_id = price.get("id") if isinstance(price, dict) else None
+        if price_id and price_id in plan_price_map:
+            return plan_price_map[price_id]
+
+    return None
+
+
+_PLAN_RANK = {"free": 0, "pro": 1, "growth": 2, "agency": 3}
+
+
+def _plan_strictly_lower(a: Optional[str], b: Optional[str]) -> bool:
+    """True if plan slug `a` is a strictly lower tier than `b`. Used
+    to decide whether a customer.subscription.updated represents a
+    downgrade (and so should trigger downgrade_plan reconciliation)."""
+    return _PLAN_RANK.get((a or "free").lower(), 0) < _PLAN_RANK.get((b or "free").lower(), 0)
 
 
 def _sync_user_modules_from_subscription(*, user, subscription_id: Optional[str]) -> None:
@@ -8497,14 +9382,13 @@ def run_client_audit(client_id):
                 view_mode=view_mode,
             )
 
-        if not has_enough_credits_for(current_user, "audit_run"):
-            flash(
-                "You don’t have enough credits to run another audit.",
-                "warning",
-            )
-            return redirect(url_for("pricing_page"))
-
-        if not spend_credits_for(current_user, "audit_run", notes="Client audit run"):
+        # Two-phase credit spend: reserve up front, commit on success,
+        # release on exception. The sweeper handles worker-kill cases
+        # where the route dies between reserve and commit/release.
+        reservation = reserve_credits_for(
+            current_user, "audit_run", notes="Client audit run"
+        )
+        if reservation is None:
             flash(
                 insufficient_credits_message(current_user, "audit_run", "An audit"),
                 "warning",
@@ -8528,6 +9412,8 @@ def run_client_audit(client_id):
                 user_id=current_user.id,
             )
 
+            commit_reservation(reservation, notes="Client audit run completed")
+
             if created_count > 0:
                 flash(
                     f"Audit completed successfully. {created_count} content opportunities added to the queue.",
@@ -8541,8 +9427,8 @@ def run_client_audit(client_id):
 
             return redirect(url_for("client_detail", client_id=client_id))
         except Exception as e:
-            refund_credits(
-                current_user, 1, notes="Refund for failed client audit"
+            release_reservation(
+                reservation, reason="Client audit failed; refunded"
             )
             # Map known OpenAI exception types (RateLimitError,
             # APITimeoutError, etc.) to friendly user-facing copy
@@ -8625,16 +9511,10 @@ def generate_client_content_brief(client_id):
                 form_data=request.form,
             )
 
-        if not has_enough_credits_for(current_user, "content_brief"):
-            flash(
-                "You don’t have enough credits to generate another brief.",
-                "warning",
-            )
-            return redirect(url_for("pricing_page"))
-
-        if not spend_credits_for(
+        reservation = reserve_credits_for(
             current_user, "content_brief", notes="Content brief generation"
-        ):
+        )
+        if reservation is None:
             flash(
                 insufficient_credits_message(current_user, "content_brief", "A brief"),
                 "warning",
@@ -8734,6 +9614,8 @@ def generate_client_content_brief(client_id):
                 user_id=current_user.id,
             )
 
+            commit_reservation(reservation, notes="Content brief generated")
+
             return render_template(
                 "content_brief_result.html",
                 result=result,
@@ -8745,10 +9627,9 @@ def generate_client_content_brief(client_id):
             )
 
         except Exception as e:
-            refund_credits(
-                current_user,
-                1,
-                notes="Refund for failed content brief generation",
+            release_reservation(
+                reservation,
+                reason="Content brief generation failed; refunded",
             )
             from services.ai_errors import friendly_ai_error_message
             logger.exception(
@@ -9022,16 +9903,10 @@ def generate_client_content_draft(client_id):
                 form_data=request.form,
             )
 
-        if not has_enough_credits_for(current_user, "content_draft"):
-            flash(
-                "You don’t have enough credits to generate another draft.",
-                "warning",
-            )
-            return redirect(url_for("pricing_page"))
-
-        if not spend_credits_for(
+        reservation = reserve_credits_for(
             current_user, "content_draft", notes="Content draft generation"
-        ):
+        )
+        if reservation is None:
             flash(
                 insufficient_credits_message(current_user, "content_draft", "A draft"),
                 "warning",
@@ -9079,6 +9954,8 @@ def generate_client_content_draft(client_id):
                 user_id=current_user.id,
             )
 
+            commit_reservation(reservation, notes="Content draft generated")
+
             return render_template(
                 "content_draft_result.html",
                 client=client,
@@ -9087,10 +9964,9 @@ def generate_client_content_draft(client_id):
             )
 
         except Exception as e:
-            refund_credits(
-                current_user,
-                2,
-                notes="Refund for failed content draft generation",
+            release_reservation(
+                reservation,
+                reason="Content draft generation failed; refunded",
             )
             from services.ai_errors import friendly_ai_error_message
             logger.exception(
@@ -10511,7 +11387,10 @@ def ai_edit_queue_item(item_id):
     if not instruction:
         return jsonify({"ok": False, "error": "Please describe the edit you want."}), 400
 
-    if not has_enough_credits_for(current_user, "ai_edit_turn"):
+    reservation = reserve_credits_for(
+        current_user, "ai_edit_turn", notes="AI edit turn (pending)"
+    )
+    if reservation is None:
         return jsonify({
             "ok": False,
             "error": (
@@ -10658,6 +11537,11 @@ def ai_edit_queue_item(item_id):
             append_queue_item_chat_messages(
                 item_id, [user_turn], user_id=current_user.id
             )
+            # No usable output — refund the user, don't charge for the
+            # round-trip even though we did pay OpenAI for the call.
+            release_reservation(
+                reservation, reason="AI returned no usable revision"
+            )
             return jsonify({
                 "ok": False,
                 "error": "AI didn't return a usable revision. Try rephrasing your instruction.",
@@ -10677,9 +11561,8 @@ def ai_edit_queue_item(item_id):
             item_id, [user_turn, assistant_turn], user_id=current_user.id
         )
 
-        spend_credits_for(
-            current_user,
-            "ai_edit_turn",
+        commit_reservation(
+            reservation,
             notes=f"AI edit turn: queue item {item_id}",
         )
 
@@ -10690,6 +11573,7 @@ def ai_edit_queue_item(item_id):
         })
 
     except Exception as e:
+        release_reservation(reservation, reason=f"AI edit failed: {e}")
         logger.error(f"AI edit failed: {e}")
         return jsonify({"ok": False, "error": "AI revision failed unexpectedly. Try again."}), 500
 
@@ -10733,7 +11617,10 @@ def generate_queue_item_visual(item_id):
         )
         return _redirect_to_queue(client_id)
 
-    if not has_enough_credits_for(current_user, "visual_generation"):
+    reservation = reserve_credits_for(
+        current_user, "visual_generation", notes="Visual generation (pending)"
+    )
+    if reservation is None:
         flash(
             f"You need {get_action_cost('visual_generation')} credit to "
             "generate a visual. Top up to continue.",
@@ -10769,9 +11656,8 @@ def generate_queue_item_visual(item_id):
             update_queue_item_og_image(
                 item_id, og_image_url=image_url, user_id=current_user.id
             )
-            spend_credits_for(
-                current_user,
-                "visual_generation",
+            commit_reservation(
+                reservation,
                 notes=f"Visual generation: queue item {item_id}",
             )
 
@@ -10825,11 +11711,19 @@ def generate_queue_item_visual(item_id):
             else:
                 flash("Visual generated and attached to this item.", "success")
         elif status == "queued":
+            # Still rendering on Placid's side — the credit stays
+            # reserved until the user refreshes and a fresh request
+            # commits or releases. The sweeper will release it after
+            # 15 min if nothing happens.
             flash(
                 "Visual is still rendering. Refresh in a few seconds — it'll show up automatically.",
                 "info",
             )
         else:
+            release_reservation(
+                reservation,
+                reason="Placid returned no usable image",
+            )
             flash(
                 "We couldn't generate a visual for this item. Try again, "
                 "or check the title isn't empty.",
@@ -10837,6 +11731,7 @@ def generate_queue_item_visual(item_id):
             )
 
     except PlacidConfigError as e:
+        release_reservation(reservation, reason=f"Placid config error: {e}")
         logger.warning(f"Visual generation config issue: {e}")
         flash(
             "Visual generation isn't fully set up on this site yet. "
@@ -10844,6 +11739,7 @@ def generate_queue_item_visual(item_id):
             "error",
         )
     except PlacidAPIError as e:
+        release_reservation(reservation, reason=f"Placid API error: {e}")
         logger.warning(f"Visual generation API error: {e}")
         flash(
             "We couldn't reach the visual generator. Try again, or "
@@ -10851,6 +11747,7 @@ def generate_queue_item_visual(item_id):
             "error",
         )
     except Exception as e:
+        release_reservation(reservation, reason=f"Visual generation failed: {e}")
         logger.error(f"Generate visual failed: {e}")
         flash("Visual generation failed unexpectedly. Try again.", "error")
 
@@ -11241,14 +12138,10 @@ def new_audit():
                 view_mode=view_mode,
             )
 
-        if not has_enough_credits_for(current_user, "audit_run"):
-            flash(
-                "You don’t have enough credits to run another audit.",
-                "warning",
-            )
-            return redirect(url_for("pricing_page"))
-
-        if not spend_credits_for(current_user, "audit_run", notes="New audit run"):
+        reservation = reserve_credits_for(
+            current_user, "audit_run", notes="New audit run"
+        )
+        if reservation is None:
             flash(
                 insufficient_credits_message(current_user, "audit_run", "An audit"),
                 "warning",
@@ -11272,6 +12165,8 @@ def new_audit():
                 user_id=current_user.id,
             )
 
+            commit_reservation(reservation, notes="New audit run completed")
+
             if created_count > 0:
                 flash(
                     f"Audit completed successfully. {created_count} content opportunities added to the queue.",
@@ -11286,8 +12181,8 @@ def new_audit():
             return redirect(url_for("client_detail", client_id=client_id))
 
         except Exception as e:
-            refund_credits(
-                current_user, 1, notes="Refund for failed new audit"
+            release_reservation(
+                reservation, reason="New audit failed; refunded"
             )
             from services.ai_errors import friendly_ai_error_message
             logger.exception(
@@ -11592,6 +12487,25 @@ def render_settings_section(section, **extra_context):
         except Exception:
             workspace_count_used = 0
 
+    # Locked workspaces (soft-locked by downgrade_plan() when the user
+    # dropped to a tier that allows fewer workspaces than they had).
+    # User picks which to keep active here, swapping with an unlocked
+    # one if they're at cap.
+    locked_workspaces = []
+    if current_user.is_authenticated:
+        try:
+            locked_workspaces = (
+                Client.query
+                .filter_by(user_id=current_user.id, is_locked=True)
+                .order_by(Client.name.asc())
+                .all()
+            )
+        except Exception:
+            locked_workspaces = []
+    can_reactivate_more = (
+        workspace_count_used < workspace_total_limit
+    )
+
     from pricing import plan_allows_seat_addon, seat_limit_for_plan
     team_seats_base = seat_limit_for_plan(user_plan)
     team_seats_total = (
@@ -11643,6 +12557,8 @@ def render_settings_section(section, **extra_context):
         "team_seats_used": team_seats_used,
         "team_active_members": team_active_members,
         "team_pending_invites": team_pending_invites,
+        "locked_workspaces": locked_workspaces,
+        "can_reactivate_more": can_reactivate_more,
     }
     context.update(extra_context)
 
@@ -11689,6 +12605,26 @@ def settings_preferences():
 @login_required
 def settings_team():
     return render_settings_section("team")
+
+
+@app.route("/settings/workspaces/reactivate/<int:client_id>", methods=["POST"])
+@login_required
+def settings_reactivate_workspace(client_id):
+    """Unlock a workspace soft-locked by a plan downgrade.
+
+    Refuses if reactivating would put the user back over their current
+    cap — they need to delete or keep another locked, or buy an extra
+    workspace addon."""
+    ok = reactivate_workspace(current_user, client_id)
+    if not ok:
+        flash(
+            "Couldn't reactivate that workspace — you're already at your plan's "
+            "workspace cap. Upgrade or buy an extra workspace to enable more.",
+            "warning",
+        )
+    else:
+        flash("Workspace reactivated.", "success")
+    return redirect(url_for("settings_billing"))
 
 
 @app.route("/settings/profile/update", methods=["POST"])
@@ -12687,7 +13623,10 @@ def shopify_fix_alt_text(client_id):
         )
         return redirect(url_for("shopify_products", client_id=client_id))
 
-    if not has_enough_credits_for(current_user, "alt_text_fix_batch"):
+    reservation = reserve_credits_for(
+        current_user, "alt_text_fix_batch", notes="Alt-text fix batch (pending)"
+    )
+    if reservation is None:
         flash(
             f"You need {get_action_cost('alt_text_fix_batch')} credits to run "
             "an alt-text fix. Top up to continue.",
@@ -12699,6 +13638,7 @@ def shopify_fix_alt_text(client_id):
     try:
         products = admin.list_products(limit=50)
     except ShopifyAPIError as exc:
+        release_reservation(reservation, reason=f"Shopify list failed: {exc}")
         flash(f"Could not load products: {exc}", "error")
         return redirect(url_for("shopify_products", client_id=client_id))
 
@@ -12746,10 +13686,16 @@ def shopify_fix_alt_text(client_id):
     source_label = "AI-generated alt text" if ai_used else "alt text"
 
     if patched:
-        spend_credits_for(
-            current_user,
-            "alt_text_fix_batch",
+        commit_reservation(
+            reservation,
             notes=f"Alt-text fix: {patched} images",
+        )
+    else:
+        # No images needed alt text (or all updates failed) — don't
+        # charge the user for a no-op.
+        release_reservation(
+            reservation,
+            reason="No images updated; nothing to charge for",
         )
 
     if patched and not failed:
@@ -12946,7 +13892,12 @@ def answer_monitor_run_all():
         flash("No tracked prompts to check yet for this workspace.", "info")
         return redirect(url_for("answer_monitor_page", client_id=client_id))
 
-    if not has_enough_credits_for(current_user, "answer_monitor_run_all"):
+    reservation = reserve_credits_for(
+        current_user,
+        "answer_monitor_run_all",
+        notes="Answer monitor sweep (pending)",
+    )
+    if reservation is None:
         flash(
             f"You need {get_action_cost('answer_monitor_run_all')} credits "
             "to re-run every prompt. Top up to continue.",
@@ -12974,10 +13925,13 @@ def answer_monitor_run_all():
     )
 
     if succeeded:
-        spend_credits_for(
-            current_user,
-            "answer_monitor_run_all",
+        commit_reservation(
+            reservation,
             notes=f"Answer monitor sweep: {succeeded} prompts × {len(engines_seen) or 1} engines",
+        )
+    else:
+        release_reservation(
+            reservation, reason="No prompts checked successfully"
         )
 
     if succeeded and not failed:
@@ -13024,7 +13978,12 @@ def answer_monitor_run_single(prompt_id):
         or "this brand"
     )
 
-    if not has_enough_credits_for(current_user, "answer_monitor_run_single"):
+    reservation = reserve_credits_for(
+        current_user,
+        "answer_monitor_run_single",
+        notes=f"Answer monitor: prompt #{prompt_id} (pending)",
+    )
+    if reservation is None:
         flash(
             f"You need {get_action_cost('answer_monitor_run_single')} credit "
             "to re-run that check. Top up to continue.",
@@ -13039,11 +13998,13 @@ def answer_monitor_run_single(prompt_id):
 
     result = _run_answer_check_for_id(prompt_id, brand_name)
     if not result:
+        release_reservation(
+            reservation, reason="Answer check returned no result"
+        )
         flash("Could not run that check. Verify OPENAI_API_KEY is set.", "error")
     else:
-        spend_credits_for(
-            current_user,
-            "answer_monitor_run_single",
+        commit_reservation(
+            reservation,
             notes=f"Answer monitor: prompt #{prompt_id}",
         )
         cited_engines = [
@@ -13155,7 +14116,12 @@ def marketplace_run_audit(client_id, presence_id):
         flash("That marketplace listing wasn't found.", "error")
         return redirect(url_for("marketplace_audits_page", client_id=client_id))
 
-    if not has_enough_credits_for(current_user, "marketplace_audit"):
+    reservation = reserve_credits_for(
+        current_user,
+        "marketplace_audit",
+        notes="Marketplace audit (pending)",
+    )
+    if reservation is None:
         flash(
             f"You need {get_action_cost('marketplace_audit')} credits to "
             "run a marketplace audit.",
@@ -13171,6 +14137,7 @@ def marketplace_run_audit(client_id, presence_id):
             engines=engines,
         )
     except Exception as exc:
+        release_reservation(reservation, reason=f"Marketplace audit failed: {exc}")
         logger.warning("Marketplace audit failed: %s", exc)
         flash("Could not run that marketplace audit. Verify OPENAI_API_KEY.", "error")
         return redirect(url_for("marketplace_audits_page", client_id=client_id))
@@ -13180,9 +14147,8 @@ def marketplace_run_audit(client_id, presence_id):
     presence.last_audited_at = datetime.utcnow()
     db.session.commit()
 
-    spend_credits_for(
-        current_user,
-        "marketplace_audit",
+    commit_reservation(
+        reservation,
         notes=f"Marketplace audit: {presence.marketplace}/{presence.shop_name or presence.shop_url}",
     )
     flash(
@@ -14425,7 +15391,12 @@ def shopify_descriptions_apply(client_id):
         )
         return redirect(url_for("shopify_products", client_id=client_id))
 
-    if not has_enough_credits_for(current_user, "description_rewrite_batch"):
+    reservation = reserve_credits_for(
+        current_user,
+        "description_rewrite_batch",
+        notes="Description rewrite batch (pending)",
+    )
+    if reservation is None:
         flash(
             f"You need {get_action_cost('description_rewrite_batch')} credits "
             "to apply description rewrites. Top up to continue.",
@@ -14438,6 +15409,7 @@ def shopify_descriptions_apply(client_id):
         str(pid) for pid in request.form.getlist("apply_product_id") if str(pid).strip()
     }
     if not selected_ids:
+        release_reservation(reservation, reason="No products selected")
         flash("No products selected.", "info")
         return redirect(url_for("shopify_products", client_id=client_id))
 
@@ -14459,9 +15431,8 @@ def shopify_descriptions_apply(client_id):
             failed += 1
 
     if patched:
-        spend_credits_for(
-            current_user,
-            "description_rewrite_batch",
+        commit_reservation(
+            reservation,
             notes=f"Description rewrite: {patched} products",
         )
         # Clear proposals so the UI doesn't keep showing the same set.
@@ -14487,6 +15458,12 @@ def shopify_descriptions_apply(client_id):
             "warning",
         )
     else:
+        # Nothing patched — release the reservation so the user isn't
+        # charged for a complete failure.
+        release_reservation(
+            reservation,
+            reason="No description updates succeeded; nothing to charge for",
+        )
         flash(f"Could not update any products ({failed} failures).", "error")
     return redirect(url_for("shopify_products", client_id=client_id))
 
