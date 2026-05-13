@@ -1,0 +1,120 @@
+{#
+  Feature-gate macros.
+
+  Replaces the legacy pattern where every gated button looked live to
+  Free users (whole UI clickable), then redirected to /pricing on click.
+  Now we render disabled-with-Pro-badge so the user knows at a glance
+  what's available on their plan and can decide whether to upgrade
+  before they invest energy in a flow.
+
+  Usage in templates:
+
+      {% from "partials/feature_gates.html"
+         import pro_badge, locked_nav_item, locked_link, gated_button %}
+
+  All macros use `feature_gates` from the global template context
+  (set in inject_template_globals in app.py). Callers pass the gate
+  key as a string: "gsc", "competitors", "multi_engine",
+  "workspace_addon", "seat_addon", or "white_label".
+#}
+
+
+{# Small "Pro" pill rendered inline next to a feature name. Kept
+   visually small so it doesn't fight with the surrounding label. #}
+{% macro pro_badge(label="Pro") %}
+<span class="pro-badge" aria-label="Available on paid plans">{{ label }}</span>
+{% endmacro %}
+
+
+{# Sidebar nav item that becomes a non-clickable element with a Pro
+   pill + tooltip when the user's plan doesn't include the feature.
+
+   Args:
+     gate_key   — string key in feature_gates (e.g. "gsc")
+     url        — destination URL when unlocked
+     endpoint   — Flask endpoint name for active-state check
+     label      — visible link text
+     icon       — name of the sprite icon to render via {{ nav_icon(icon) }}
+     tooltip    — fallback tooltip text (defaults to label)
+#}
+{% macro locked_nav_item(gate_key, url, endpoint, label, icon, tooltip=None, current_endpoint=None) %}
+{% set tooltip = tooltip or label %}
+{% if feature_gates and feature_gates[gate_key] %}
+    <a href="{{ url }}"
+       class="nav-item {% if current_endpoint == endpoint %}active{% endif %}"
+       aria-label="{{ label }}"
+       data-label="{{ label }}">
+        {{ nav_icon(icon) }}
+        <span class="nav-text">{{ label }}</span>
+        <span class="nav-tooltip">{{ tooltip }}</span>
+    </a>
+{% else %}
+    {# Locked: render as a non-link with a Pro badge + "Upgrade to use"
+       tooltip + a click that opens the pricing page. Using <a> with
+       a click-through to /pricing keeps keyboard / screen-reader
+       access — disabled <button> would lose tab focus. #}
+    <a href="{{ url_for('pricing_page') }}"
+       class="nav-item nav-item--locked"
+       aria-label="{{ label }} (Pro feature)"
+       data-label="{{ label }}"
+       title="{{ tooltip }} — available on paid plans">
+        {{ nav_icon(icon) }}
+        <span class="nav-text">{{ label }}</span>
+        <span class="nav-text-badge">{{ pro_badge() }}</span>
+        <span class="nav-tooltip">{{ tooltip }} — Pro feature</span>
+    </a>
+{% endif %}
+{% endmacro %}
+
+
+{# Generic inline link that locks behind a plan gate. Used inside
+   pages (action cards, CTAs, etc.) — not sidebar nav.
+
+   Args:
+     gate_key   — feature_gates key
+     url        — destination when unlocked
+     label      — link text
+     classes    — optional extra CSS classes for the unlocked variant
+                  (locked variant uses .pro-locked-link)
+#}
+{% macro locked_link(gate_key, url, label, classes="") %}
+{% if feature_gates and feature_gates[gate_key] %}
+    <a href="{{ url }}" class="{{ classes }}">{{ label }}</a>
+{% else %}
+    <a href="{{ url_for('pricing_page') }}"
+       class="pro-locked-link {{ classes }}"
+       title="{{ label }} — available on paid plans">
+        {{ label }} {{ pro_badge() }}
+    </a>
+{% endif %}
+{% endmacro %}
+
+
+{# Gated submit button. Renders the form action only when the gate is
+   unlocked; otherwise renders a disabled button with a Pro badge that
+   links to pricing instead.
+
+   Use this for explicit action buttons (e.g. "Run multi-engine check"
+   in the answer monitor) — not for navigation, which should use
+   locked_nav_item or locked_link.
+
+   Args:
+     gate_key      — feature_gates key
+     button_label  — text on the button
+     button_classes — CSS classes for both states (caller controls
+                      .btn-primary etc.)
+     pricing_label — what the locked tooltip says (defaults to
+                     button_label)
+#}
+{% macro gated_button(gate_key, button_label, button_classes="btn btn-primary", pricing_label=None) %}
+{% if feature_gates and feature_gates[gate_key] %}
+    <button type="submit" class="{{ button_classes }}">{{ button_label }}</button>
+{% else %}
+    <a href="{{ url_for('pricing_page') }}"
+       class="{{ button_classes }} btn--locked"
+       title="{{ pricing_label or button_label }} — available on paid plans"
+       role="button">
+        {{ button_label }} {{ pro_badge() }}
+    </a>
+{% endif %}
+{% endmacro %}
