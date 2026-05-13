@@ -272,6 +272,13 @@
                             <span class="nav-tooltip">Visibility</span>
                         </a>
 
+                        {# Competitor analysis is a paid feature.
+                           Render as a normal nav item for paid plans,
+                           or a locked-with-Pro-badge link that takes
+                           Free users to /pricing instead of dead-
+                           ending them. Feature-gate keys live in
+                           feature_gates (set in inject_template_globals). #}
+                        {% if feature_gates.competitors %}
                         <a href="{{ url_for('client_competitors_page', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint in ['client_competitors_page', 'competitor_page'] %}active{% endif %}"
                            aria-label="Competitors"
@@ -280,6 +287,18 @@
                             <span class="nav-text">Competitors</span>
                             <span class="nav-tooltip">Competitors</span>
                         </a>
+                        {% else %}
+                        <a href="{{ url_for('pricing_page') }}"
+                           class="nav-item nav-item--locked"
+                           aria-label="Competitors (Pro feature)"
+                           data-label="Competitors"
+                           title="Competitor analysis is available on paid plans">
+                            {{ nav_icon('swords') }}
+                            <span class="nav-text">Competitors</span>
+                            <span class="nav-text-badge"><span class="pro-badge">Pro</span></span>
+                            <span class="nav-tooltip">Competitors — Pro feature</span>
+                        </a>
+                        {% endif %}
 
                         <a href="{{ url_for('client_history_page', client_id=sidebar_client.id) }}"
                            class="nav-item {% if current_endpoint == 'client_history_page' %}active{% endif %}"
@@ -426,6 +445,10 @@
                             <span class="nav-tooltip">Cal.com bookings</span>
                         </a>
 
+                        {# GSC is a paid-plan feature. Free users see
+                           a Pro-badged locked link instead of a phantom
+                           button. #}
+                        {% if feature_gates.gsc %}
                         <a href="{{ url_for('gsc_dashboard', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'gsc_dashboard' %}active{% endif %}"
                            aria-label="Google Search Console"
@@ -434,6 +457,18 @@
                             <span class="nav-text">Search Console</span>
                             <span class="nav-tooltip">Google Search Console</span>
                         </a>
+                        {% else %}
+                        <a href="{{ url_for('pricing_page') }}"
+                           class="nav-item nav-item--locked"
+                           aria-label="Search Console (Pro feature)"
+                           data-label="Search Console"
+                           title="Google Search Console is available on paid plans">
+                            {{ nav_icon('search') }}
+                            <span class="nav-text">Search Console</span>
+                            <span class="nav-text-badge"><span class="pro-badge">Pro</span></span>
+                            <span class="nav-tooltip">Search Console — Pro feature</span>
+                        </a>
+                        {% endif %}
 
                         <a href="{{ url_for('ga_dashboard', client_id=sidebar_client.db_id) }}"
                            class="nav-item {% if current_endpoint == 'ga_dashboard' %}active{% endif %}"

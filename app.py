@@ -3264,6 +3264,82 @@ def public_generated_page(page_id, slug):
     )
 
 
+def audit_queue_flash_messages(result):
+    """Translate a create_content_opportunities_from_latest_audit() result
+    dict into a list of (message, severity) tuples for flash().
+
+    Surfaces three states the silent-no-op pattern hid before:
+
+      1. Some added, none capacity-blocked       -> single success
+      2. Some added, some capacity-blocked       -> success + warning
+      3. None added, all capacity-blocked        -> warning (with
+         upgrade nudge)
+
+    Returns an empty list when nothing was generated at all (we don't
+    nag the user with a "we found nothing" toast on every audit).
+    """
+    if not isinstance(result, dict):
+        # Defensive: old call sites pass an int. Treat positive as
+        # "added", negative/zero as "nothing happened".
+        try:
+            n = int(result or 0)
+        except Exception:
+            n = 0
+        if n > 0:
+            return [(
+                f"Audit completed. {n} content opportunit"
+                f"{'y' if n == 1 else 'ies'} added to the queue.",
+                "success",
+            )]
+        return [(
+            "Audit completed successfully. No new content opportunities were added.",
+            "success",
+        )]
+
+    added = int(result.get("added") or 0)
+    skipped_cap = int(result.get("skipped_due_to_cap") or 0)
+    total_opps = int(result.get("total_opportunities") or 0)
+    queue_limit = int(result.get("active_queue_limit") or 0)
+
+    messages = []
+
+    if added > 0:
+        messages.append((
+            f"Audit completed. {added} content opportunit"
+            f"{'y' if added == 1 else 'ies'} added to the queue.",
+            "success",
+        ))
+    elif total_opps == 0:
+        # Audit ran but found nothing actionable. Don't surface the
+        # cap message (irrelevant).
+        messages.append((
+            "Audit completed successfully. No new content opportunities were added.",
+            "success",
+        ))
+
+    if skipped_cap > 0:
+        # The user just hit a real cap they can do something about
+        # (clear queue items, upgrade). This is the message the old
+        # silent-truncation flow was hiding.
+        is_free = (
+            current_user.is_authenticated
+            and getattr(current_user, "plan", "free") == "free"
+        )
+        upgrade_hint = (
+            " Upgrade to a paid plan to expand your queue."
+            if is_free else
+            " Archive items in the queue or upgrade for a larger queue."
+        )
+        messages.append((
+            f"We also found {skipped_cap} more opportunit"
+            f"{'y' if skipped_cap == 1 else 'ies'} that didn't fit in your "
+            f"active queue ({queue_limit} items max on your plan).{upgrade_hint}",
+            "warning",
+        ))
+
+    return messages
+
+
 def create_content_opportunities_from_latest_audit(client_id, user_id):
     """
     Creates content queue items from the latest saved audit.
@@ -3276,6 +3352,25 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
     -> add clean opportunities to content queue
 
     Falls back safely if the audit does not contain research_pack yet.
+
+    Returns a dict so the audit route can surface what was capacity-
+    blocked vs. successfully added:
+
+        {
+          "added": int,                   # rows actually inserted
+          "skipped_existing": int,        # already had a queue item
+                                          # for the same target query
+          "skipped_due_to_cap": int,      # opportunities that didn't
+                                          # fit in the plan's active
+                                          # queue limit — this is what
+                                          # the user can clear by
+                                          # upgrading or archiving
+          "total_opportunities": int,
+          "active_queue_limit": int,
+        }
+
+    Earlier callers that read the return value as an int still work —
+    the route layer reads the keys directly via .get().
     """
 
     audits = get_saved_audits(user_id=user_id)
@@ -3289,16 +3384,26 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
     matched = sort_audits(matched, sort_by="saved_at", order="desc")
     latest = matched[0] if matched else None
 
+    # Empty result shape, used for every early-return branch.
+    empty_result = {
+        "added": 0,
+        "skipped_existing": 0,
+        "skipped_due_to_cap": 0,
+        "total_opportunities": 0,
+        "active_queue_limit": get_active_queue_limit(current_user)
+            if current_user and current_user.is_authenticated else 3,
+    }
+
     if not latest:
-        return 0
+        return empty_result
 
     full_data = read_full_audit_data(latest.get("filename"))
     if not full_data:
-        return 0
+        return empty_result
 
     client = get_client_by_id(client_id)
     if not client:
-        return 0
+        return empty_result
 
     research_pack = full_data.get("research_pack") or latest.get(
         "research_pack"
@@ -3345,7 +3450,7 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
     opportunities = build_content_opportunities(actions)
 
     if not opportunities:
-        return 0
+        return empty_result
 
     existing_items = get_queue_items(client_id=client_id, user_id=user_id)
 
@@ -3358,18 +3463,34 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
     active_count = get_active_queue_count(client_id, user_id)
     available_slots = max(0, active_limit - active_count)
 
+    # Count opportunities that pass the dedup check — that's the
+    # "actually addable" total. Anything beyond available_slots is
+    # capacity-blocked and worth surfacing to the user.
+    addable_opps = [
+        opp for opp in opportunities
+        if safe_str(opp.get("target_query"))
+        and safe_str(opp.get("target_query")).lower() not in existing_queries
+    ]
+    skipped_existing = len(opportunities) - len(addable_opps)
+
     if available_slots <= 0:
-        return 0
+        # User is at queue cap — none of the opportunities can be
+        # added. Tell them how many were generated so they know to
+        # clear the queue or upgrade.
+        return {
+            "added": 0,
+            "skipped_existing": skipped_existing,
+            "skipped_due_to_cap": len(addable_opps),
+            "total_opportunities": len(opportunities),
+            "active_queue_limit": active_limit,
+        }
+
+    to_create = addable_opps[:available_slots]
+    skipped_due_to_cap = max(0, len(addable_opps) - available_slots)
 
     created_count = 0
-
-    for opp in opportunities[:available_slots]:
+    for opp in to_create:
         target_query = safe_str(opp.get("target_query"))
-        if not target_query:
-            continue
-
-        if target_query.lower() in existing_queries:
-            continue
 
         add_queue_item(
             client_id=client_id,
@@ -3393,7 +3514,13 @@ def create_content_opportunities_from_latest_audit(client_id, user_id):
         existing_queries.add(target_query.lower())
         created_count += 1
 
-    return created_count
+    return {
+        "added": created_count,
+        "skipped_existing": skipped_existing,
+        "skipped_due_to_cap": skipped_due_to_cap,
+        "total_opportunities": len(opportunities),
+        "active_queue_limit": active_limit,
+    }
 
 
 def score_to_opportunity_label(score: float) -> str:
@@ -9407,23 +9534,15 @@ def run_client_audit(client_id):
                 user_id=current_user.id,
             )
 
-            created_count = create_content_opportunities_from_latest_audit(
+            queue_result = create_content_opportunities_from_latest_audit(
                 client_id=client_id,
                 user_id=current_user.id,
             )
 
             commit_reservation(reservation, notes="Client audit run completed")
 
-            if created_count > 0:
-                flash(
-                    f"Audit completed successfully. {created_count} content opportunities added to the queue.",
-                    "success",
-                )
-            else:
-                flash(
-                    "Audit completed successfully. No new content opportunities were added.",
-                    "success",
-                )
+            for msg, level in audit_queue_flash_messages(queue_result):
+                flash(msg, level)
 
             return redirect(url_for("client_detail", client_id=client_id))
         except Exception as e:
@@ -12160,23 +12279,15 @@ def new_audit():
                 user_id=current_user.id,
             )
 
-            created_count = create_content_opportunities_from_latest_audit(
+            queue_result = create_content_opportunities_from_latest_audit(
                 client_id=client_id,
                 user_id=current_user.id,
             )
 
             commit_reservation(reservation, notes="New audit run completed")
 
-            if created_count > 0:
-                flash(
-                    f"Audit completed successfully. {created_count} content opportunities added to the queue.",
-                    "success",
-                )
-            else:
-                flash(
-                    "Audit completed successfully. No new content opportunities were added.",
-                    "success",
-                )
+            for msg, level in audit_queue_flash_messages(queue_result):
+                flash(msg, level)
 
             return redirect(url_for("client_detail", client_id=client_id))
 
@@ -12292,6 +12403,19 @@ def inject_template_globals():
     can_add_workspace = False
     focused_client = None
     onboarding_state = {"active": False, "current_step": 1, "steps": []}
+    # Feature gates: per-feature booleans every template can read
+    # without re-doing the plan-check logic each time. Templates use
+    # these to render disabled-with-Pro-badge instead of phantom
+    # buttons that look live but redirect to /pricing on click.
+    # Default to closed so anonymous pages render safely.
+    feature_gates = {
+        "gsc": False,
+        "competitors": False,
+        "multi_engine": False,
+        "workspace_addon": False,
+        "seat_addon": False,
+        "white_label": False,
+    }
 
     if current_user.is_authenticated:
         try:
@@ -12306,6 +12430,37 @@ def inject_template_globals():
             )
             focused_client = get_focused_client_for_user(current_user)
             onboarding_state = get_onboarding_state(current_user.id)
+
+            # Compute feature gates once, surface to every template.
+            # Admin / dev_unlimited get everything.
+            plan = (getattr(current_user, "plan", "free") or "free").lower()
+            if has_unlimited_credits:
+                feature_gates = {
+                    "gsc": True,
+                    "competitors": True,
+                    "multi_engine": True,
+                    "workspace_addon": True,
+                    "seat_addon": True,
+                    "white_label": True,
+                }
+            else:
+                from pricing import (
+                    plan_allows_google_search_console,
+                    plan_allows_workspace_addon,
+                    plan_allows_seat_addon,
+                )
+                feature_gates = {
+                    "gsc": plan_allows_google_search_console(plan),
+                    # Competitor analysis is locked to non-Free tiers
+                    # (matches the gate at the route level).
+                    "competitors": plan != "free",
+                    # Multi-engine answer monitor is a paid feature.
+                    "multi_engine": plan != "free",
+                    "workspace_addon": plan_allows_workspace_addon(plan),
+                    "seat_addon": plan_allows_seat_addon(plan),
+                    # White-label is an explicit per-user flag, not plan-tier.
+                    "white_label": bool(getattr(current_user, "is_white_label_enabled", False)),
+                }
         except Exception:
             # DB session may be in a failed state (e.g. during 500 error
             # rendering after a rollback). Fall back to safe defaults so
@@ -12334,6 +12489,7 @@ def inject_template_globals():
         "can_add_workspace": can_add_workspace,
         "focused_client": focused_client,
         "onboarding_state": onboarding_state,
+        "feature_gates": feature_gates,
         "can_run_audit": (
             current_user.is_authenticated
             and (

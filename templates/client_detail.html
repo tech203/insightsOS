@@ -369,10 +369,20 @@
                 <p>Booking volume, event types, and public link.</p>
             </a>
 
+            {% if feature_gates.gsc %}
             <a href="{{ url_for('gsc_dashboard', client_id=workspace_row.id) }}" class="workspace-module-card workspace-module-card--integration">
                 <strong>Google Search Console</strong>
                 <p>Organic performance from Google. Pro &amp; Growth.</p>
             </a>
+            {% else %}
+            {# Locked on Free — point at /pricing instead of dead-ending. #}
+            <a href="{{ url_for('pricing_page') }}"
+               class="workspace-module-card workspace-module-card--integration workspace-module-card--locked"
+               title="Available on Pro and Growth plans">
+                <strong>Google Search Console <span class="pro-badge">Pro</span></strong>
+                <p>Organic performance from Google. Upgrade to connect.</p>
+            </a>
+            {% endif %}
 
             <a href="{{ url_for('ga_dashboard', client_id=workspace_row.id) }}" class="workspace-module-card workspace-module-card--integration">
                 <strong>Google Analytics</strong>
