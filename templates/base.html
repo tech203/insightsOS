@@ -604,6 +604,29 @@
                     </div>
                 {% endif %}
 
+                {# Email-verification banner. Shown until the user clicks
+                   the verification link in their welcome email. Not a
+                   hard gate — the user can still use the free tier and
+                   navigate the app. The gate fires when they try to
+                   start a Stripe checkout, with a redirect back here so
+                   the resend button is one click away. Inline form
+                   posts to /verify-email/resend; rate-limited server-
+                   side to 60s between resends. #}
+                {% if user_email_unverified %}
+                    <div class="alert-banner alert-banner--info" role="status">
+                        <div class="alert-banner__icon" aria-hidden="true">✉</div>
+                        <div class="alert-banner__body">
+                            <strong>Verify your email to enable billing.</strong>
+                            We sent a link to <code>{{ current_user.email }}</code> when you signed up.
+                            Free-tier features still work without verifying.
+                            <form method="POST" action="{{ url_for('resend_verification_email') }}" style="display:inline; margin-left:8px;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="alert-banner__inline-btn">Resend email</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+
                 {# Onboarding stepper — renders only while
                    onboarding_state.active is true (set by the global
                    context processor based on user's workspace + audit
