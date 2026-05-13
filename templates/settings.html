@@ -354,6 +354,46 @@
             {% endif %}
         </div>
 
+        {# Locked workspaces — soft-locked by a plan downgrade. User
+           picks which to keep active here. Hidden when nothing is
+           locked so the panel doesn't clutter the happy-path view. #}
+        {% if locked_workspaces %}
+        <div class="settings-v3-panel surface-card">
+            <div class="settings-v3-panel-head">
+                <h2>Locked workspaces</h2>
+                <p>
+                    These workspaces were paused when your plan changed.
+                    Your data is preserved — reactivate the ones you want to keep working on,
+                    or upgrade to bring them all back.
+                </p>
+            </div>
+
+            <ul class="settings-v3-info-list">
+                {% for ws in locked_workspaces %}
+                <li class="settings-v3-info-row surface-card" style="align-items:center;">
+                    <div>
+                        <strong>{{ ws.name }}</strong>
+                        {% if ws.website %}
+                        <div style="opacity:0.7; font-size:0.85em;">{{ ws.website }}</div>
+                        {% endif %}
+                    </div>
+                    {% if can_reactivate_more %}
+                    <form method="post"
+                          action="{{ url_for('settings_reactivate_workspace', client_id=ws.id) }}"
+                          style="margin:0;">
+                        <button type="submit" class="btn btn-secondary">Reactivate</button>
+                    </form>
+                    {% else %}
+                    <span class="badge-warning" title="At plan workspace cap">
+                        Plan full — upgrade or add a workspace slot
+                    </span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
         <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>White-label add-on</h2>

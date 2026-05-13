@@ -552,6 +552,22 @@
             {% endif %}
 
             <main class="app-content" id="main-content" tabindex="-1">
+                {# Billing health banner. Surfaces dunning state to the
+                   user before Stripe exhausts retries and downgrades
+                   them. user_payment_status is injected by the
+                   _inject_payment_status context processor; set by
+                   invoice.payment_failed / payment_succeeded webhooks. #}
+                {% if user_payment_status == "past_due" %}
+                    <div class="alert-banner alert-banner--warning" role="alert">
+                        <div class="alert-banner__icon" aria-hidden="true">!</div>
+                        <div class="alert-banner__body">
+                            <strong>Your last payment didn't go through.</strong>
+                            We're retrying automatically, but you'll lose access if it keeps failing.
+                            <a href="{{ url_for('settings_billing') }}">Update your card →</a>
+                        </div>
+                    </div>
+                {% endif %}
+
                 {# Onboarding stepper — renders only while
                    onboarding_state.active is true (set by the global
                    context processor based on user's workspace + audit

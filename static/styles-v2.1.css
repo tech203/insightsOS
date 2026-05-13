@@ -1182,6 +1182,57 @@ textarea {
 }
 
 /* =========================
+   ALERT BANNERS (in-page)
+   =========================
+   Used for billing / dunning notices that should sit above page
+   content (past_due, plan over-cap warnings, etc.). Distinct from
+   the floating flash toasts since these are not auto-dismissed —
+   the user has to act. */
+
+.alert-banner {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    margin: 0 0 20px;
+}
+
+.alert-banner__icon {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.alert-banner__body {
+    flex: 1 1 auto;
+    line-height: 1.4;
+}
+
+.alert-banner__body a {
+    margin-left: 6px;
+    font-weight: 600;
+}
+
+.alert-banner--warning {
+    border-color: var(--warning-border);
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+
+.alert-banner--warning .alert-banner__icon {
+    background: var(--warning);
+    color: #ffffff;
+}
+
+/* =========================
    ACTIONS / WORKSPACE NAV
    ========================= */
 
