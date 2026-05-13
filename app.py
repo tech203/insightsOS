@@ -5571,10 +5571,12 @@ def commit_reservation(reservation, notes: str = "") -> bool:
     # action actually completed (vs. the reserve_* row which only
     # proves money left the wallet).
     if row.amount > 0:
-        wallet = (
-            db.session.get(User, row.user_id).wallet
-            if row.user_id else None
-        )
+        # Guard the User lookup itself — if the user has been deleted
+        # while this reservation was pending, .wallet on None would
+        # AttributeError. balance_after = 0 is the right fallback for
+        # an orphan-user spend log.
+        owner = db.session.get(User, row.user_id) if row.user_id else None
+        wallet = owner.wallet if owner else None
         balance_after = wallet.balance if wallet else 0
         db.session.add(
             CreditTransaction(
@@ -13385,8 +13387,11 @@ def render_settings_section(section, **extra_context):
             )
         except Exception:
             locked_workspaces = []
+    # workspace_total_limit is None for admins / dev_unlimited (no cap),
+    # so treat that as "always room to reactivate"; otherwise compare.
     can_reactivate_more = (
-        workspace_count_used < workspace_total_limit
+        workspace_total_limit is None
+        or workspace_count_used < workspace_total_limit
     )
 
     from pricing import plan_allows_seat_addon, seat_limit_for_plan
