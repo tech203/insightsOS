@@ -1232,6 +1232,20 @@ textarea {
     color: #ffffff;
 }
 
+/* Informational variant — uses brand color tones. For "this is a
+   paid feature" / "your data is preserved" / educational notices
+   that aren't blocking and aren't billing-critical. */
+.alert-banner--info {
+    border-color: var(--brand-border, rgba(124, 92, 255, 0.25));
+    background: var(--brand-soft, rgba(124, 92, 255, 0.08));
+    color: var(--brand, #7c5cff);
+}
+
+.alert-banner--info .alert-banner__icon {
+    background: var(--brand, #7c5cff);
+    color: #ffffff;
+}
+
 /* =========================
    FEATURE-GATE / PRO STATES
    =========================
@@ -1302,6 +1316,132 @@ textarea {
 
 .workspace-module-card--locked:hover {
     opacity: 1;
+}
+
+/* =========================
+   BULK WORKSPACE ACTIONS
+   =========================
+   Multi-select on /clients lets Pro/Growth users kick off audits
+   across many workspaces from a single page. The checkbox sits to
+   the left of each card; the toolbar with the "run on selected"
+   button lives in the section head. Progress UI appears below the
+   head once a batch kicks off. */
+
+.workspace-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.workspace-list-bulk-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.workspace-bulk-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    cursor: pointer;
+}
+
+.workspace-bulk-checkbox {
+    align-self: flex-start;
+    margin-right: 4px;
+    padding-top: 12px;
+    cursor: pointer;
+}
+
+.workspace-row-card[data-workspace-id] {
+    /* Make space for the checkbox column without disturbing existing
+       padding values. The row already uses flex; the checkbox is a
+       sibling of .workspace-row-main. */
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0);
+    white-space: nowrap; border: 0;
+}
+
+/* Bulk progress panel — rendered below the section head once the
+   user starts a batch. One row per selected workspace; each row's
+   status text updates as the audit completes. */
+.workspace-bulk-progress {
+    padding: 14px 16px;
+    margin: 12px 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.workspace-bulk-progress-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.workspace-bulk-progress-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.workspace-bulk-progress-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--surface-soft, #f8fafc);
+    font-size: 0.88rem;
+}
+
+.workspace-bulk-progress-row[data-status="running"] {
+    background: var(--brand-soft, rgba(124, 92, 255, 0.08));
+    color: var(--brand, #7c5cff);
+}
+
+.workspace-bulk-progress-row[data-status="done"] {
+    background: var(--success-soft, #ecfdf5);
+    color: var(--success, #059669);
+}
+
+.workspace-bulk-progress-row[data-status="error"] {
+    background: var(--warning-soft, #fff7ed);
+    color: var(--warning, #f59e0b);
+}
+
+.workspace-bulk-progress-row[data-status="skipped"] {
+    color: var(--text-muted, #6b7280);
+}
+
+.workspace-bulk-progress-status {
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .workspace-list-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .workspace-list-bulk-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
 
 /* =========================

@@ -876,10 +876,31 @@
                 <p>Replace the DarInsights brand with your own — across the dashboard sidebar, the audit PDFs, and any client-facing surfaces invited team members see.</p>
             </div>
 
+            {# Plan gate for the white-label toggle. Server-side enforces
+               this too (Free users' enable=on requests are rejected),
+               but surfacing the gate in the UI makes the upgrade nudge
+               honest instead of letting Free users tick a box that
+               silently does nothing. #}
+            {% set wl_unlocked = feature_gates.white_label or is_subscriber %}
+
+            {% if not wl_unlocked %}
+            <div class="alert-banner alert-banner--info" role="status" style="margin-bottom:1rem;">
+                <strong>White-label is a paid feature.</strong>
+                You can fill in your agency fields now and they'll be saved,
+                but the toggle only takes effect on Pro or Growth.
+                <a href="{{ url_for('pricing_page') }}">See plans →</a>
+            </div>
+            {% endif %}
+
             <form method="post" action="{{ url_for('settings_update_white_label') }}" class="settings-v3-form">
-                <label style="display:flex; gap:0.5rem; align-items:center; cursor:pointer; margin-top:0.4rem;">
-                    <input type="checkbox" name="enable" {% if current_user.is_white_label_enabled %}checked{% endif %}>
-                    <span style="font-size:0.95rem; font-weight:600;">Enable white-label branding</span>
+                <label style="display:flex; gap:0.5rem; align-items:center; cursor:{% if wl_unlocked %}pointer{% else %}not-allowed{% endif %}; margin-top:0.4rem;">
+                    <input type="checkbox" name="enable"
+                           {% if current_user.is_white_label_enabled %}checked{% endif %}
+                           {% if not wl_unlocked %}disabled{% endif %}>
+                    <span style="font-size:0.95rem; font-weight:600;">
+                        Enable white-label branding
+                        {% if not wl_unlocked %}<span class="pro-badge">Pro</span>{% endif %}
+                    </span>
                 </label>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.65rem 0;">When on, the sidebar brand mark, mobile topbar, and PDF reports use your agency's name and logo instead of DarInsights.</p>
 
