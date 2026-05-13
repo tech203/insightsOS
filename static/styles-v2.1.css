@@ -18236,6 +18236,47 @@ html[data-theme="dark"] select {
 }
 
 /* =========================================================
+   Normalise page_title / page_subtitle block renders.
+   =========================================================
+   Some pages (Help Center, Pricing, Settings, Answer Monitor, etc.)
+   use the base.html {% block page_title %} / {% block page_subtitle %}
+   blocks, which place <h1> and <p> directly inside .topbar-heading with
+   no .page-header-copy wrapper.  The general .topbar-heading h1 rule
+   (defined earlier in this file) still uses a large clamp() value;
+   this block pins it to the same 26-28 px used by .page-header-copy h1
+   so the topbar looks consistent across all pages. */
+
+.topbar-heading > h1 {
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.topbar-heading > p {
+    margin: 4px 0 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 720px;
+}
+
+@media (min-width: 1280px) {
+    .topbar-heading > h1 {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 600px) {
+    .topbar-heading > h1 {
+        font-size: 22px;
+    }
+    .topbar-heading > p {
+        font-size: 13px;
+    }
+}
+
+/* =========================================================
    Dark-mode application shell — sidebar + topbar
    =========================================================
    .app-topbar (rgba(255,255,255,0.94)) and .app-sidebar (#ffffff)
