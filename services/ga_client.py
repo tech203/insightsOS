@@ -20,6 +20,10 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+# Drop-in replacement for the deprecated datetime.utcnow() — see
+# dtutils.py for the migration rationale.
+from dtutils import utcnow
+
 
 ADMIN_API = "https://analyticsadmin.googleapis.com/v1beta"
 DATA_API = "https://analyticsdata.googleapis.com/v1beta"
@@ -108,7 +112,7 @@ def summarize_property(client: GA4Client, *, property_id: str) -> Dict[str, Any]
     connection so the dashboard renders HTTP-free between syncs."""
     from datetime import datetime, timedelta
 
-    end = datetime.utcnow().date()
+    end = utcnow().date()
     start = end - timedelta(days=28)
     start_s = start.isoformat()
     end_s = end.isoformat()
@@ -144,7 +148,7 @@ def summarize_property(client: GA4Client, *, property_id: str) -> Dict[str, Any]
         "totals": _flatten_single_row(totals),
         "top_pages": _flatten_rows(top_pages),
         "top_sources": _flatten_rows(top_sources),
-        "fetched_at": datetime.utcnow().isoformat(),
+        "fetched_at": utcnow().isoformat(),
     }
 
 

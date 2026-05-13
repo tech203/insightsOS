@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime
+from dtutils import utcnow
 from typing import Any, Dict, List, Optional
 
 
@@ -177,5 +178,5 @@ def run_marketplace_audit(
         "citation_rate": citation_rate,
         "avg_score": avg_score,
         "visibility_score": visibility_score,
-        "audited_at": datetime.utcnow().isoformat(),
+        "audited_at": utcnow().isoformat(),
     }

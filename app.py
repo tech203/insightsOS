@@ -70,6 +70,12 @@ from flask import (
     make_response,
 )
 from datetime import datetime, timedelta
+
+# Drop-in replacement for the deprecated utcnow() — returns
+# a tz-naive UTC datetime via the modern API. Single helper so a
+# future migration to tz-aware values is a one-place edit.
+from dtutils import utcnow
+
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
 from urllib.parse import urlparse, urlencode
@@ -247,7 +253,7 @@ class User(UserMixin, db.Model):
     referred_by_user_id = db.Column(
         db.Integer, db.ForeignKey("users.id"), nullable=True
     )
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     role = db.Column(db.String(50), default="user")
     plan = db.Column(db.String(50), default="free")
@@ -343,7 +349,7 @@ class PasswordResetToken(db.Model):
     token = db.Column(db.String(80), unique=True, nullable=False, index=True)
     expires_at = db.Column(db.DateTime, nullable=False)
     used_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 
 class EmailVerificationToken(db.Model):
@@ -368,7 +374,7 @@ class EmailVerificationToken(db.Model):
     token = db.Column(db.String(80), unique=True, nullable=False, index=True)
     expires_at = db.Column(db.DateTime, nullable=False)
     used_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 
 class TeamInvite(db.Model):
@@ -388,7 +394,7 @@ class TeamInvite(db.Model):
     email = db.Column(db.String(255), nullable=False)
     token = db.Column(db.String(80), unique=True, nullable=False, index=True)
     status = db.Column(db.String(40), default="pending", nullable=False)
-    invited_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    invited_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     accepted_at = db.Column(db.DateTime, nullable=True)
     accepted_user_id = db.Column(
         db.Integer, db.ForeignKey("users.id"), nullable=True
@@ -404,7 +410,7 @@ class Wallet(db.Model):
     )
     balance = db.Column(db.Integer, default=0, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime, default=utcnow, onupdate=utcnow
     )
 
 
@@ -418,7 +424,7 @@ class CreditTransaction(db.Model):
     balance_after = db.Column(db.Integer, nullable=False)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, nullable=False
     )
 
 
@@ -452,7 +458,7 @@ class CreditReservation(db.Model):
     status = db.Column(db.String(20), default="pending", nullable=False, index=True)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, nullable=False
     )
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
     finalized_at = db.Column(db.DateTime, nullable=True)
@@ -482,7 +488,7 @@ class WebhookEvent(db.Model):
     user_id = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     received_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, nullable=False
     )
     processed_at = db.Column(db.DateTime, nullable=True)
 
@@ -522,7 +528,7 @@ class Referral(db.Model):
     qualified_at = db.Column(db.DateTime, nullable=True)
     rewarded_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, nullable=False
     )
 
 
@@ -558,13 +564,13 @@ class UserModule(db.Model):
     # Mirror of Stripe values: active | canceled | past_due | incomplete
     status = db.Column(db.String(30), nullable=False, default="active", index=True)
     current_period_end = db.Column(db.DateTime, nullable=True)
-    activated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    activated_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     deactivated_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -600,9 +606,9 @@ class InterestSignup(db.Model):
     user_agent = db.Column(db.String(500), nullable=True)
     last_contacted_at = db.Column(db.DateTime, nullable=True)
     converted_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False, index=True)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
 
@@ -634,9 +640,9 @@ class EmailCampaign(db.Model):
     sent_at = db.Column(db.DateTime, nullable=True)
     sent_count = db.Column(db.Integer, default=0, nullable=False)
     failed_count = db.Column(db.Integer, default=0, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False, index=True)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
 
@@ -658,7 +664,7 @@ class EmailCampaignRecipient(db.Model):
     message_id = db.Column(db.String(255), nullable=True)
     error = db.Column(db.String(500), nullable=True)
     sent_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 
 class Client(db.Model):
@@ -728,12 +734,12 @@ class Client(db.Model):
     is_locked = db.Column(db.Boolean, default=False, nullable=False)
 
     created_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, nullable=False
     )
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -780,7 +786,7 @@ class PromptTracking(db.Model):
     source_support = db.Column(db.String(100), default="Low", nullable=True)
 
     created_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, nullable=False
     )
 
 
@@ -806,9 +812,9 @@ class CalComConnection(db.Model):
     last_payload = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
     __table_args__ = (
@@ -841,9 +847,9 @@ class WooCommerceConnection(db.Model):
     last_audit_payload = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
     __table_args__ = (
@@ -887,9 +893,9 @@ class GoogleSearchConsoleConnection(db.Model):
     ga_payload = db.Column(db.JSON, nullable=True)
     ga_synced_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
     __table_args__ = (
@@ -927,7 +933,7 @@ class MarketplacePresence(db.Model):
     last_audit_payload = db.Column(db.JSON, nullable=True)
     last_audited_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 
 class PromptCheckSnapshot(db.Model):
@@ -960,7 +966,7 @@ class PromptCheckSnapshot(db.Model):
     answer_excerpt = db.Column(db.Text, nullable=True)
 
     checked_at = db.Column(
-        db.DateTime, default=datetime.utcnow, nullable=False, index=True
+        db.DateTime, default=utcnow, nullable=False, index=True
     )
 
 
@@ -978,9 +984,9 @@ class GeneratedWebsiteProject(db.Model):
     status = db.Column(db.String(40), default="draft")
 
     blueprint_json = db.Column(db.JSON, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime, default=utcnow, onupdate=utcnow
     )
 
 
@@ -1005,9 +1011,9 @@ class GeneratedWebsitePage(db.Model):
     status = db.Column(db.String(40), default="draft")
 
     page_json = db.Column(db.JSON, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime, default=utcnow, onupdate=utcnow
     )
 
 
@@ -1082,9 +1088,9 @@ class WebflowExport(db.Model):
         comment="Last response from Webflow API"
     )
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime, default=utcnow, onupdate=utcnow
     )
 
 
@@ -1121,9 +1127,9 @@ class ShopifyConnection(db.Model):
     # Last time we successfully synced products.
     last_synced_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
     __table_args__ = (
@@ -1151,9 +1157,9 @@ class BigCommerceConnection(db.Model):
     access_token = db.Column(db.Text, nullable=False)
     store_meta = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
     __table_args__ = (
         db.UniqueConstraint(
@@ -1182,9 +1188,9 @@ class ShoplineConnection(db.Model):
     access_token = db.Column(db.Text, nullable=False)
     shop_meta = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
     __table_args__ = (
         db.UniqueConstraint("user_id", "client_id", name="uq_shopline_user_client"),
@@ -1213,9 +1219,9 @@ class WixConnection(db.Model):
     # every page render. Refreshed on demand from a settings button.
     collections_cache = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
     __table_args__ = (
         db.UniqueConstraint("user_id", "client_id", name="uq_wix_user_client"),
@@ -1242,9 +1248,9 @@ class FramerConnection(db.Model):
     project_meta = db.Column(db.JSON, nullable=True)
     collections_cache = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
     __table_args__ = (
         db.UniqueConstraint("user_id", "client_id", name="uq_framer_user_client"),
@@ -1270,9 +1276,9 @@ class SquarespaceConnection(db.Model):
     api_key = db.Column(db.Text, nullable=False)
     site_meta = db.Column(db.JSON, nullable=True)
     last_synced_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
     __table_args__ = (
         db.UniqueConstraint(
@@ -2020,7 +2026,7 @@ def verify_website_project_webflow(project_id):
 
     blueprint = project.blueprint_json or {}
     blueprint["webflow_connection"] = {
-        "verified_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "verified_at": utcnow().isoformat(timespec="seconds") + "Z",
         "collection_name": result["collection_name"],
         "site_id": result["site_id"],
         "collection_id": result["collection_id"],
@@ -2284,7 +2290,7 @@ def start_website_project_tracking(project_id):
     blueprint = project.blueprint_json or {}
     blueprint["post_publish_tracking"] = {
         "status": "waiting_for_reaudit",
-        "started_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "started_at": utcnow().isoformat(timespec="seconds") + "Z",
         "exported_at": tracking.get("exported_at"),
     }
     project.blueprint_json = blueprint
@@ -5145,7 +5151,7 @@ def grant_monthly_credits_if_due(user) -> int:
         .order_by(CreditTransaction.created_at.desc())
         .first()
     )
-    now = datetime.utcnow()
+    now = utcnow()
     if last_grant and (now - last_grant.created_at).days < 28:
         return 0
 
@@ -5478,7 +5484,7 @@ def reserve_credits(user, amount: int, action_key: str, notes: str = ""):
             action_key=action_key,
             status="pending",
             notes=notes or "(no-cost action)",
-            expires_at=datetime.utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
+            expires_at=utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
         )
         db.session.add(sentinel)
         db.session.commit()
@@ -5500,7 +5506,7 @@ def reserve_credits(user, amount: int, action_key: str, notes: str = ""):
             action_key=action_key,
             status="pending",
             notes=notes or f"{action_key} (unlimited)",
-            expires_at=datetime.utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
+            expires_at=utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
         )
         db.session.add(sentinel)
         db.session.commit()
@@ -5520,7 +5526,7 @@ def reserve_credits(user, amount: int, action_key: str, notes: str = ""):
         action_key=action_key,
         status="pending",
         notes=notes or action_key.replace("_", " ").title(),
-        expires_at=datetime.utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
+        expires_at=utcnow() + timedelta(seconds=RESERVATION_TTL_SECONDS),
     )
     db.session.add(reservation)
     db.session.add(
@@ -5558,7 +5564,7 @@ def commit_reservation(reservation, notes: str = "") -> bool:
     if not row or row.status != "pending":
         return False
     row.status = "committed"
-    row.finalized_at = datetime.utcnow()
+    row.finalized_at = utcnow()
     if notes:
         row.notes = f"{row.notes or ''}\n{notes}".strip()
     # Log the spend at commit time, so CreditTransaction shows the
@@ -5599,7 +5605,7 @@ def release_reservation(reservation, reason: str = "") -> bool:
         return False
 
     row.status = "released"
-    row.finalized_at = datetime.utcnow()
+    row.finalized_at = utcnow()
     if reason:
         row.notes = f"{row.notes or ''}\nReleased: {reason}".strip()
 
@@ -5636,7 +5642,7 @@ def sweep_expired_reservations() -> int:
     sweep itself uses an indexed query so cost is negligible.
     """
     global _last_reservation_sweep_at
-    now = datetime.utcnow()
+    now = utcnow()
     if _last_reservation_sweep_at is not None and (
         now - _last_reservation_sweep_at
     ).total_seconds() < RESERVATION_SWEEP_INTERVAL_SECONDS:
@@ -5779,7 +5785,7 @@ def award_referral_for_payment(
 
     # Window check — measured from the referred user's signup.
     signed_up_at = getattr(referred_user, "created_at", None)
-    if signed_up_at and (datetime.utcnow() - signed_up_at).days >= REFERRAL_WINDOW_DAYS:
+    if signed_up_at and (utcnow() - signed_up_at).days >= REFERRAL_WINDOW_DAYS:
         return False
 
     # Idempotency — never reward the same Stripe session twice.
@@ -5826,8 +5832,8 @@ def award_referral_for_payment(
             referred_payment_usd=round(amount_usd, 2),
             reward_credits_referrer=reward_credits,
             stripe_event_ref=stripe_event_ref or None,
-            qualified_at=datetime.utcnow(),
-            rewarded_at=datetime.utcnow(),
+            qualified_at=utcnow(),
+            rewarded_at=utcnow(),
         )
     )
     db.session.commit()
@@ -5991,14 +5997,14 @@ def _migrate_csv_interest_to_db():
                 try:
                     created_at = datetime.fromisoformat(row.get("created_at") or "")
                 except Exception:
-                    created_at = datetime.utcnow()
+                    created_at = utcnow()
                 signup = InterestSignup(
                     email=email,
                     company=(row.get("company") or "").strip() or None,
                     use_case=(row.get("use_case") or "").strip() or None,
                     status="new",
                     source="landing-csv-import",
-                    created_at=created_at or datetime.utcnow(),
+                    created_at=created_at or utcnow(),
                 )
                 db.session.add(signup)
                 existing_emails.add(email)
@@ -6132,7 +6138,7 @@ def admin_interest_list():
     for s in all_signups:
         if s.status in by_status:
             by_status[s.status] += 1
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = utcnow() - timedelta(days=7)
     new_this_week = sum(1 for s in all_signups if s.created_at and s.created_at >= week_ago)
     use_case_counts: Dict[str, int] = {}
     for s in all_signups:
@@ -6167,9 +6173,9 @@ def admin_interest_update_status(signup_id):
         return redirect(url_for("admin_interest_list"))
     signup.status = new_status
     if new_status == "contacted" and not signup.last_contacted_at:
-        signup.last_contacted_at = datetime.utcnow()
+        signup.last_contacted_at = utcnow()
     if new_status == "converted" and not signup.converted_at:
-        signup.converted_at = datetime.utcnow()
+        signup.converted_at = utcnow()
     db.session.commit()
     flash(f"Status updated to {new_status}.", "success")
     return redirect(url_for("admin_interest_list", **request.args.to_dict()))
@@ -6217,7 +6223,7 @@ def admin_overview():
     if guard is not None:
         return guard[0]
 
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = utcnow() - timedelta(days=7)
 
     # Headline counts.
     total_users = User.query.count()
@@ -6824,7 +6830,7 @@ def admin_campaign_send(campaign_id):
             recipient.error = str(exc)[:500]
 
         recipient.status = "sent" if ok else "failed"
-        recipient.sent_at = datetime.utcnow() if ok else None
+        recipient.sent_at = utcnow() if ok else None
         if ok:
             sent += 1
         else:
@@ -6832,7 +6838,7 @@ def admin_campaign_send(campaign_id):
 
     campaign.sent_count = sent
     campaign.failed_count = failed
-    campaign.sent_at = datetime.utcnow()
+    campaign.sent_at = utcnow()
     campaign.status = "sent" if failed == 0 else ("sent" if sent > 0 else "failed")
     db.session.commit()
 
@@ -6900,7 +6906,7 @@ def admin_interest_export():
     response = make_response(buf.getvalue())
     response.headers["Content-Type"] = "text/csv; charset=utf-8"
     response.headers["Content-Disposition"] = (
-        f'attachment; filename="interest-signups-{datetime.utcnow().strftime("%Y%m%d")}.csv"'
+        f'attachment; filename="interest-signups-{utcnow().strftime("%Y%m%d")}.csv"'
     )
     return response
 
@@ -7364,7 +7370,7 @@ def _resolve_business_profile_for_pdf(workspace_row, client_dict):
                     workspace_row.business_summary = data["executive_summary"]
                 if data.get("core_services") and not workspace_row.brand_services:
                     workspace_row.brand_services = data["core_services"]
-                workspace_row.business_profile_updated_at = datetime.utcnow()
+                workspace_row.business_profile_updated_at = utcnow()
                 db.session.commit()
         except Exception as exc:
             logger.warning("Business profile research failed: %s", exc)
@@ -7654,7 +7660,7 @@ def _build_audit_pdf(workspace_row, client, *, agency_override=None):
         "active": agency_payload.get("active", False),
     }
 
-    report_date = datetime.utcnow().strftime("%d %b %Y")
+    report_date = utcnow().strftime("%d %b %Y")
     html = render_template(
         "client_audit_pdf.html",
         client=client,
@@ -7720,7 +7726,7 @@ def toggle_public_share(client_id):
         flash("Public report link revoked.", "success")
     else:
         workspace.public_share_token = secrets.token_urlsafe(24)
-        workspace.public_share_created_at = datetime.utcnow()
+        workspace.public_share_created_at = utcnow()
         flash("Public report link is live. Copy it to share.", "success")
     db.session.commit()
     return redirect(url_for("client_detail", client_id=client_id))
@@ -7795,7 +7801,7 @@ def public_audit_report(token):
         top_action=None,
         question_rows=client["question_rows"],
         missing_rows=[],
-        report_date=datetime.utcnow().strftime("%d %b %Y"),
+        report_date=utcnow().strftime("%d %b %Y"),
         agency={
             "name": agency_payload.get("name") or "Your Agency",
             "logo_url": agency_payload.get("logo_url"),
@@ -8339,7 +8345,7 @@ def team_accept(token):
                 return redirect(url_for("index"))
             current_user.team_owner_id = owner.id
             invite.status = "accepted"
-            invite.accepted_at = datetime.utcnow()
+            invite.accepted_at = utcnow()
             invite.accepted_user_id = current_user.id
             db.session.commit()
             flash(f"Joined {owner.name}'s team.", "success")
@@ -8369,7 +8375,7 @@ def team_accept(token):
         # Ensure they have a (zero-balance) wallet so wallet checks don't crash.
         db.session.add(Wallet(user_id=new_user.id, balance=0))
         invite.status = "accepted"
-        invite.accepted_at = datetime.utcnow()
+        invite.accepted_at = utcnow()
         invite.accepted_user_id = new_user.id
         db.session.commit()
         login_user(new_user)
@@ -8544,7 +8550,7 @@ def stripe_webhook():
             event_id=event_id,
             event_type=event_type,
             status="processing",
-            received_at=datetime.utcnow(),
+            received_at=utcnow(),
         )
         try:
             db.session.add(record)
@@ -8599,7 +8605,7 @@ def stripe_webhook():
             row = WebhookEvent.query.filter_by(event_id=event_id).first()
             if row:
                 row.status = outcome_status
-                row.processed_at = datetime.utcnow()
+                row.processed_at = utcnow()
                 row.user_id = outcome_user_id
                 row.notes = outcome_notes
                 db.session.commit()
@@ -8669,7 +8675,7 @@ def _handle_checkout_completed(data: Dict[str, Any]) -> tuple:
             # billing is healthy again.
             if user.payment_status != "ok":
                 user.payment_status = "ok"
-                user.payment_status_updated_at = datetime.utcnow()
+                user.payment_status_updated_at = utcnow()
             grant_monthly_credits_if_due(user)
             notes = f"plan -> {plan_slug}"
 
@@ -8803,7 +8809,7 @@ def _handle_subscription_deleted(data: Dict[str, Any]) -> tuple:
     )
     for row in module_rows:
         row.status = "canceled"
-        row.deactivated_at = datetime.utcnow()
+        row.deactivated_at = utcnow()
     if module_rows:
         notes_parts.append(f"{len(module_rows)} modules canceled")
 
@@ -8848,7 +8854,7 @@ def _handle_payment_failed(data: Dict[str, Any]) -> tuple:
         return None, f"no_user_for_customer:{customer_id}"
 
     user.payment_status = "past_due"
-    user.payment_status_updated_at = datetime.utcnow()
+    user.payment_status_updated_at = utcnow()
     db.session.commit()
     return user.id, f"flagged past_due (invoice {data.get('id')})"
 
@@ -8868,7 +8874,7 @@ def _handle_payment_succeeded(data: Dict[str, Any]) -> tuple:
     parts: list = []
     if user.payment_status != "ok":
         user.payment_status = "ok"
-        user.payment_status_updated_at = datetime.utcnow()
+        user.payment_status_updated_at = utcnow()
         parts.append("cleared past_due")
 
     # If the invoice is for a renewal (billing_reason in renewal-ish
@@ -9015,7 +9021,7 @@ def _apply_subscription_to_user_modules(*, user_id: int, subscription: Any) -> N
                 stripe_subscription_item_id=item_id,
                 status="active",
                 current_period_end=period_end,
-                activated_at=datetime.utcnow(),
+                activated_at=utcnow(),
             )
             db.session.add(row)
         else:
@@ -9032,7 +9038,7 @@ def _apply_subscription_to_user_modules(*, user_id: int, subscription: Any) -> N
     for row in stale:
         if row.stripe_subscription_item_id and row.stripe_subscription_item_id not in seen_item_ids:
             row.status = "canceled"
-            row.deactivated_at = datetime.utcnow()
+            row.deactivated_at = utcnow()
 
 
 @app.route("/clients/new", methods=["GET", "POST"])
@@ -9594,7 +9600,7 @@ def forgot_password():
                 PasswordResetToken(
                     user_id=user.id,
                     token=token,
-                    expires_at=datetime.utcnow() + timedelta(minutes=60),
+                    expires_at=utcnow() + timedelta(minutes=60),
                 )
             )
             db.session.commit()
@@ -9661,7 +9667,7 @@ def issue_email_verification_token(user) -> "EmailVerificationToken":
     row = EmailVerificationToken(
         user_id=user.id,
         token=token,
-        expires_at=datetime.utcnow() + timedelta(hours=EMAIL_VERIFICATION_TOKEN_TTL_HOURS),
+        expires_at=utcnow() + timedelta(hours=EMAIL_VERIFICATION_TOKEN_TTL_HOURS),
     )
     db.session.add(row)
     db.session.commit()
@@ -9704,7 +9710,7 @@ def _user_recent_verification_token(user) -> "Optional[EmailVerificationToken]":
     return (
         EmailVerificationToken.query
         .filter_by(user_id=user.id, used_at=None)
-        .filter(EmailVerificationToken.expires_at > datetime.utcnow())
+        .filter(EmailVerificationToken.expires_at > utcnow())
         .order_by(EmailVerificationToken.created_at.desc())
         .first()
     )
@@ -9722,7 +9728,7 @@ def verify_email(token):
     record = (
         EmailVerificationToken.query
         .filter_by(token=token, used_at=None)
-        .filter(EmailVerificationToken.expires_at > datetime.utcnow())
+        .filter(EmailVerificationToken.expires_at > utcnow())
         .first()
     )
     if not record:
@@ -9740,9 +9746,9 @@ def verify_email(token):
         flash("Account no longer exists.", "error")
         return redirect(url_for("login"))
 
-    record.used_at = datetime.utcnow()
+    record.used_at = utcnow()
     if user.email_verified_at is None:
-        user.email_verified_at = datetime.utcnow()
+        user.email_verified_at = utcnow()
     db.session.commit()
 
     if current_user.is_authenticated and current_user.id == user.id:
@@ -9778,7 +9784,7 @@ def resend_verification_email():
         .first()
     )
     if last is not None:
-        age = (datetime.utcnow() - last.created_at).total_seconds()
+        age = (utcnow() - last.created_at).total_seconds()
         if age < EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS:
             wait = int(EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS - age)
             flash(
@@ -9820,7 +9826,7 @@ def reset_password(token):
     record = (
         PasswordResetToken.query
         .filter_by(token=token, used_at=None)
-        .filter(PasswordResetToken.expires_at > datetime.utcnow())
+        .filter(PasswordResetToken.expires_at > utcnow())
         .first()
     )
     if not record:
@@ -9846,7 +9852,7 @@ def reset_password(token):
             return redirect(url_for("login"))
 
         user.password_hash = generate_password_hash(new)
-        record.used_at = datetime.utcnow()
+        record.used_at = utcnow()
         db.session.commit()
         flash("Password updated. You can now sign in with your new password.", "success")
         return redirect(url_for("login"))
@@ -10724,7 +10730,7 @@ def audit_summary_pdf(summary_filename):
     summary_filename = get_matching_summary_filename(summary_filename)
     summary_data = load_json_file(summary_path)
     full_filename = get_matching_full_filename(summary_filename)
-    report_date = datetime.utcnow().strftime("%d %b %Y")
+    report_date = utcnow().strftime("%d %b %Y")
 
     # Pull the workspace context so the PDF can display the workspace
     # logo and industry alongside the audit data.
@@ -11564,7 +11570,7 @@ def _export_website_project_per_collection(project, pages):
             "collection_id": collection_id,
             "live_url": live_url,
             "last_action": action,
-            "exported_at": datetime.utcnow().isoformat(timespec="seconds"),
+            "exported_at": utcnow().isoformat(timespec="seconds"),
         }
         flag_modified(page, "page_json")
 
@@ -11600,7 +11606,7 @@ def _export_website_project_per_collection(project, pages):
 
     return {
         "site_id": site_id,
-        "exported_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "exported_at": utcnow().isoformat(timespec="seconds") + "Z",
         "pages": exported_pages,
         "skipped": skipped_pages,
         "errors": errors,
@@ -12133,7 +12139,7 @@ def ai_edit_queue_item(item_id):
         "content": instruction,
         "target_section_idx": target_section_idx,
         "target_section_title": (target_section or {}).get("title"),
-        "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "ts": utcnow().isoformat(timespec="seconds") + "Z",
     }
 
     try:
@@ -12248,7 +12254,7 @@ def ai_edit_queue_item(item_id):
             "revised_content": revised,
             "target_section_idx": target_section_idx,
             "target_section_title": (target_section or {}).get("title"),
-            "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "ts": utcnow().isoformat(timespec="seconds") + "Z",
         }
 
         updated = append_queue_item_chat_messages(
@@ -14242,7 +14248,7 @@ def shopify_oauth_callback():
         existing.access_token = access_token
         existing.scope = token_payload.get("scope")
         existing.shop_meta = shop_meta or existing.shop_meta
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = utcnow()
     else:
         db.session.add(
             ShopifyConnection(
@@ -14272,7 +14278,7 @@ def _refresh_shopify_findings(connection: "ShopifyConnection", products: List[Di
     meta = dict(connection.shop_meta or {})
     meta["cached_findings"] = findings
     meta["cached_summary"] = summary
-    meta["cached_findings_at"] = datetime.utcnow().isoformat()
+    meta["cached_findings_at"] = utcnow().isoformat()
     connection.shop_meta = meta
     flag_modified(connection, "shop_meta")
     return findings
@@ -14327,7 +14333,7 @@ def shopify_sync_products(client_id):
         return jsonify({"success": False, "message": str(exc)}), 502
 
     findings = _refresh_shopify_findings(connection, products)
-    connection.last_synced_at = datetime.utcnow()
+    connection.last_synced_at = utcnow()
     db.session.commit()
 
     return jsonify(
@@ -14371,7 +14377,7 @@ def shopify_products(client_id):
             products = admin.list_products(limit=50)
             findings = _refresh_shopify_findings(connection, products)
             summary = (connection.shop_meta or {}).get("cached_summary", {}) if isinstance(connection.shop_meta, dict) else {}
-            connection.last_synced_at = datetime.utcnow()
+            connection.last_synced_at = utcnow()
             db.session.commit()
         except ShopifyAPIError as exc:
             error = str(exc)
@@ -14574,7 +14580,7 @@ def shopify_fix_alt_text(client_id):
         try:
             refreshed = admin.list_products(limit=50)
             _refresh_shopify_findings(connection, refreshed)
-            connection.last_synced_at = datetime.utcnow()
+            connection.last_synced_at = utcnow()
             db.session.commit()
         except ShopifyAPIError as exc:
             logger.warning("Refresh after alt-text fix failed: %s", exc)
@@ -15041,7 +15047,7 @@ def marketplace_run_audit(client_id, presence_id):
 
     presence.last_audit_payload = payload
     presence.last_visibility_score = payload.get("visibility_score")
-    presence.last_audited_at = datetime.utcnow()
+    presence.last_audited_at = utcnow()
     db.session.commit()
 
     commit_reservation(
@@ -15091,7 +15097,7 @@ def _ensure_gsc_access_token(connection) -> str:
     silently if the cached one is expired or about to expire."""
     from services.gsc_client import GSCAPIError, refresh_access_token
 
-    now = datetime.utcnow()
+    now = utcnow()
     expires_at = connection.token_expires_at
     if expires_at and expires_at - now > timedelta(seconds=60):
         return connection.access_token
@@ -15103,7 +15109,7 @@ def _ensure_gsc_access_token(connection) -> str:
     payload = refresh_access_token(connection.refresh_token)
     connection.access_token = payload.get("access_token") or connection.access_token
     expires_in = int(payload.get("expires_in") or 3600)
-    connection.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+    connection.token_expires_at = utcnow() + timedelta(seconds=expires_in)
     db.session.commit()
     return connection.access_token
 
@@ -15212,8 +15218,8 @@ def gsc_oauth_callback():
         if refresh:
             existing.refresh_token = refresh
         existing.scope = scope
-        existing.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
-        existing.updated_at = datetime.utcnow()
+        existing.token_expires_at = utcnow() + timedelta(seconds=expires_in)
+        existing.updated_at = utcnow()
     else:
         db.session.add(
             GoogleSearchConsoleConnection(
@@ -15222,7 +15228,7 @@ def gsc_oauth_callback():
                 access_token=access,
                 refresh_token=refresh,
                 scope=scope,
-                token_expires_at=datetime.utcnow() + timedelta(seconds=expires_in),
+                token_expires_at=utcnow() + timedelta(seconds=expires_in),
             )
         )
     db.session.commit()
@@ -15243,7 +15249,7 @@ def _refresh_gsc_payload(connection) -> Dict[str, Any]:
     access = _ensure_gsc_access_token(connection)
     client = GSCClient(access)
 
-    end = datetime.utcnow().date()
+    end = utcnow().date()
     start = end - timedelta(days=28)
     start_s = start.isoformat()
     end_s = end.isoformat()
@@ -15277,10 +15283,10 @@ def _refresh_gsc_payload(connection) -> Dict[str, Any]:
         "totals": totals[0] if totals else {},
         "top_queries": top_queries,
         "top_pages": top_pages,
-        "fetched_at": datetime.utcnow().isoformat(),
+        "fetched_at": utcnow().isoformat(),
     }
     connection.last_sync_payload = summary
-    connection.last_synced_at = datetime.utcnow()
+    connection.last_synced_at = utcnow()
     flag_modified(connection, "last_sync_payload")
     db.session.commit()
     return summary
@@ -15493,7 +15499,7 @@ def refresh_business_profile(client_id):
             workspace.business_summary = data["executive_summary"]
         if data.get("core_services") and not workspace.brand_services:
             workspace.brand_services = data["core_services"]
-        workspace.business_profile_updated_at = datetime.utcnow()
+        workspace.business_profile_updated_at = utcnow()
         db.session.commit()
         flash("Business profile refreshed from web research.", "success")
     except Exception as exc:
@@ -15535,7 +15541,7 @@ def client_brand_kit(client_id):
         workspace.brand_accent_color = (request.form.get("brand_accent_color") or "").strip()[:20] or None
         workspace.brand_typography = (request.form.get("brand_typography") or "").strip()[:120] or None
         workspace.brand_imagery_direction = (request.form.get("brand_imagery_direction") or "").strip() or None
-        workspace.brand_kit_updated_at = datetime.utcnow()
+        workspace.brand_kit_updated_at = utcnow()
         # Any save invalidates the prior approval so generators don't
         # lean on stale direction. The user re-approves once they're
         # happy with the new state.
@@ -15558,7 +15564,7 @@ def client_brand_kit_approve(client_id):
     )
     if not workspace:
         abort(404)
-    workspace.brand_kit_approved_at = datetime.utcnow()
+    workspace.brand_kit_approved_at = utcnow()
     db.session.commit()
     flash("Brand Kit approved — generators will now lift these values into output.", "success")
     return redirect(url_for("client_brand_kit", client_id=client_id))
@@ -15636,8 +15642,8 @@ def calcom_connect(client_id):
         existing.api_key = api_key
         existing.username = username
         existing.last_payload = payload
-        existing.last_synced_at = datetime.utcnow()
-        existing.updated_at = datetime.utcnow()
+        existing.last_synced_at = utcnow()
+        existing.updated_at = utcnow()
     else:
         db.session.add(
             CalComConnection(
@@ -15646,7 +15652,7 @@ def calcom_connect(client_id):
                 api_key=api_key,
                 username=username,
                 last_payload=payload,
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=utcnow(),
             )
         )
     db.session.commit()
@@ -15671,7 +15677,7 @@ def calcom_sync(client_id):
         client = CalComClient(connection.api_key, connection.username)
         payload = summarize(client)
         connection.last_payload = payload
-        connection.last_synced_at = datetime.utcnow()
+        connection.last_synced_at = utcnow()
         flag_modified(connection, "last_payload")
         db.session.commit()
         flash("Cal.com data refreshed.", "success")
@@ -15715,10 +15721,10 @@ def _refresh_woocommerce_findings(connection, products):
         "store_url": connection.store_url,
         "summary": summary,
         "findings": findings,
-        "fetched_at": datetime.utcnow().isoformat(),
+        "fetched_at": utcnow().isoformat(),
     }
     connection.last_audit_payload = payload
-    connection.last_synced_at = datetime.utcnow()
+    connection.last_synced_at = utcnow()
     flag_modified(connection, "last_audit_payload")
     return payload
 
@@ -15785,7 +15791,7 @@ def woocommerce_connect(client_id):
         existing.store_url = store_url
         existing.consumer_key = ck
         existing.consumer_secret = cs
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = utcnow()
         connection = existing
     else:
         connection = WooCommerceConnection(
@@ -15927,7 +15933,7 @@ def ga_select_property(client_id):
         access = _ensure_gsc_access_token(connection)
         payload = summarize_property(GA4Client(access), property_id=property_id)
         connection.ga_payload = payload
-        connection.ga_synced_at = datetime.utcnow()
+        connection.ga_synced_at = utcnow()
         flag_modified(connection, "ga_payload")
         db.session.commit()
         flash(
@@ -15965,7 +15971,7 @@ def ga_sync(client_id):
             GA4Client(access), property_id=connection.ga_property_id
         )
         connection.ga_payload = payload
-        connection.ga_synced_at = datetime.utcnow()
+        connection.ga_synced_at = utcnow()
         flag_modified(connection, "ga_payload")
         db.session.commit()
         flash("Google Analytics metrics refreshed.", "success")
@@ -16061,7 +16067,7 @@ def cron_answer_monitor():
     workspaces_skipped = 0
     snapshots_total = 0
     failures = 0
-    cutoff = datetime.utcnow() - timedelta(days=6)
+    cutoff = utcnow() - timedelta(days=6)
 
     for user in users:
         clients = Client.query.filter_by(user_id=user.id).all()
@@ -16241,7 +16247,7 @@ def shopify_descriptions_preview(client_id):
 
     meta = dict(connection.shop_meta or {})
     meta["cached_description_proposals"] = proposals
-    meta["cached_description_proposals_at"] = datetime.utcnow().isoformat()
+    meta["cached_description_proposals_at"] = utcnow().isoformat()
     connection.shop_meta = meta
     flag_modified(connection, "shop_meta")
     db.session.commit()
@@ -16338,7 +16344,7 @@ def shopify_descriptions_apply(client_id):
         meta.pop("cached_description_proposals_at", None)
         connection.shop_meta = meta
         flag_modified(connection, "shop_meta")
-        connection.last_synced_at = datetime.utcnow()
+        connection.last_synced_at = utcnow()
         # Refresh findings after the rewrite (descriptions just got fatter).
         try:
             refreshed = admin.list_products(limit=50)
@@ -16478,7 +16484,7 @@ def bigcommerce_connect(client_id):
         existing.store_hash = store_hash
         existing.access_token = access_token
         existing.store_meta = meta
-        existing.last_synced_at = datetime.utcnow()
+        existing.last_synced_at = utcnow()
     else:
         db.session.add(
             BigCommerceConnection(
@@ -16487,7 +16493,7 @@ def bigcommerce_connect(client_id):
                 store_hash=store_hash,
                 access_token=access_token,
                 store_meta=meta,
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=utcnow(),
             )
         )
     db.session.commit()
@@ -16535,7 +16541,7 @@ def bigcommerce_sync(client_id):
     meta["audit_summary"] = summary
     meta["last_sync_count"] = len(normalized)
     conn.store_meta = meta
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = utcnow()
     db.session.commit()
     flash(f"Synced {len(normalized)} BigCommerce product(s).", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
@@ -16588,7 +16594,7 @@ def shopline_connect(client_id):
         existing.store_handle = store_handle
         existing.access_token = access_token
         existing.shop_meta = meta
-        existing.last_synced_at = datetime.utcnow()
+        existing.last_synced_at = utcnow()
     else:
         db.session.add(
             ShoplineConnection(
@@ -16597,7 +16603,7 @@ def shopline_connect(client_id):
                 store_handle=store_handle,
                 access_token=access_token,
                 shop_meta=meta,
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=utcnow(),
             )
         )
     db.session.commit()
@@ -16639,7 +16645,7 @@ def shopline_sync(client_id):
     meta["audit_summary"] = summary
     meta["last_sync_count"] = len(normalized)
     conn.shop_meta = meta
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = utcnow()
     db.session.commit()
     flash(f"Synced {len(normalized)} SHOPLINE product(s).", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
@@ -16689,7 +16695,7 @@ def wix_connect(client_id):
         existing.api_key = api_key
         existing.site_meta = meta
         existing.collections_cache = meta.get("collections") or []
-        existing.last_synced_at = datetime.utcnow()
+        existing.last_synced_at = utcnow()
     else:
         db.session.add(
             WixConnection(
@@ -16699,7 +16705,7 @@ def wix_connect(client_id):
                 api_key=api_key,
                 site_meta=meta,
                 collections_cache=meta.get("collections") or [],
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=utcnow(),
             )
         )
     db.session.commit()
@@ -16734,7 +16740,7 @@ def wix_refresh_collections(client_id):
         return redirect(url_for("module_connectors", client_id=client_id))
 
     conn.collections_cache = collections
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = utcnow()
     db.session.commit()
     flash(f"Found {len(collections)} Wix collection(s).", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
@@ -16787,7 +16793,7 @@ def framer_connect(client_id):
         existing.project_id = project_id
         existing.access_token = access_token
         existing.project_meta = meta
-        existing.last_synced_at = datetime.utcnow()
+        existing.last_synced_at = utcnow()
     else:
         db.session.add(
             FramerConnection(
@@ -16796,7 +16802,7 @@ def framer_connect(client_id):
                 project_id=project_id,
                 access_token=access_token,
                 project_meta=meta,
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=utcnow(),
             )
         )
     db.session.commit()
@@ -16830,7 +16836,7 @@ def framer_refresh_collections(client_id):
         return redirect(url_for("module_connectors", client_id=client_id))
 
     conn.collections_cache = collections
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = utcnow()
     db.session.commit()
     flash(f"Found {len(collections)} Framer collection(s).", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
@@ -16881,7 +16887,7 @@ def squarespace_connect(client_id):
     if existing:
         existing.api_key = api_key
         existing.site_meta = meta
-        existing.last_synced_at = datetime.utcnow()
+        existing.last_synced_at = utcnow()
     else:
         db.session.add(
             SquarespaceConnection(
@@ -16889,7 +16895,7 @@ def squarespace_connect(client_id):
                 client_id=client_id,
                 api_key=api_key,
                 site_meta=meta,
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=utcnow(),
             )
         )
     db.session.commit()
@@ -16935,7 +16941,7 @@ def squarespace_sync(client_id):
     meta["audit_summary"] = summary
     meta["last_sync_count"] = len(normalized)
     conn.site_meta = meta
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = utcnow()
     db.session.commit()
     if normalized:
         flash(f"Synced {len(normalized)} Squarespace product(s).", "success")

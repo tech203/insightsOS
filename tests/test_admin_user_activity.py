@@ -15,6 +15,7 @@ Behavior under test:
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from dtutils import utcnow
 
 import pytest
 
@@ -198,12 +199,12 @@ class TestFilters:
             CreditReservation(
                 user_id=u.id, amount=1, action_key="audit_run",
                 status="committed",
-                expires_at=datetime.utcnow() + timedelta(minutes=15),
+                expires_at=utcnow() + timedelta(minutes=15),
             ),
             CreditReservation(
                 user_id=u.id, amount=1, action_key="audit_run",
                 status="released",
-                expires_at=datetime.utcnow() + timedelta(minutes=15),
+                expires_at=utcnow() + timedelta(minutes=15),
             ),
         ])
         db.session.commit()
@@ -288,13 +289,17 @@ class TestEmptyState:
         return c
 
     def test_no_transactions_shows_empty_message(self, admin_client, make_user):
-        u = make_user(email="empty@x.com")
+        # plan="free" so make_user doesn't insert a placeholder
+        # monthly_allowance row (only paid plans get the fixture
+        # backfill in #96) and the before_request hook doesn't grant
+        # a fresh one (free plan has 0 monthly credits).
+        u = make_user(email="empty@x.com", plan="free")
         r = admin_client.get(f"/admin/users/{u.id}/activity")
         assert r.status_code == 200
         assert b"No credit transactions yet" in r.data
 
     def test_no_webhooks_shows_empty_message(self, admin_client, make_user):
-        u = make_user(email="empty2@x.com")
+        u = make_user(email="empty2@x.com", plan="free")
         r = admin_client.get(
             f"/admin/users/{u.id}/activity?tab=webhooks"
         )

@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
+from dtutils import utcnow
 
 
 class JobTracker:
@@ -27,8 +28,8 @@ class JobTracker:
             "workspace_id": workspace_id,
             "action": action,
             "status": "pending",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "created_at": utcnow().isoformat(),
+            "updated_at": utcnow().isoformat(),
             "result": None,
             "error": None,
         })
@@ -40,7 +41,7 @@ class JobTracker:
         for job in data["jobs"]:
             if job["id"] == job_id:
                 job["status"] = status
-                job["updated_at"] = datetime.utcnow().isoformat()
+                job["updated_at"] = utcnow().isoformat()
                 if result is not None:
                     job["result"] = result
                 if error is not None:

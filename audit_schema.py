@@ -4,6 +4,7 @@ import json
 import os
 from collections import Counter
 from datetime import datetime
+from dtutils import utcnow
 from typing import Any, Dict, List, Optional
 
 from action_engine import build_content_opportunities, build_recommended_actions
@@ -31,7 +32,7 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _now_iso() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds")
+    return utcnow().isoformat(timespec="seconds")
 
 
 def slugify(text: str) -> str:
@@ -428,7 +429,7 @@ def save_audit_payload(payload: Dict[str, Any], outputs_folder: str = OUTPUTS_FO
 
     website = payload.get("meta", {}).get("website") or payload.get("website", "site")
     audit_type = payload.get("meta", {}).get("audit_type") or payload.get("audit_type", "audit")
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = utcnow().strftime("%Y%m%d_%H%M%S")
     website_slug = slugify(normalize_website(website))
     base_name = f"{website_slug}_{audit_type}_{timestamp}"
 

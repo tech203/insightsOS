@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from dtutils import utcnow
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -92,7 +93,7 @@ def normalize_tavily_results(response, query, category="general"):
             "snippet": item.get("content", ""),
             "score": item.get("score", 0),
             "published_date": item.get("published_date"),
-            "retrieved_at": datetime.utcnow().isoformat()
+            "retrieved_at": utcnow().isoformat()
         })
 
     return results
@@ -389,7 +390,7 @@ def run_research_pack(
         "industry": industry,
         "location": location,
         "services": services,
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utcnow().isoformat(),
         "results": {
             "brand_identity": [],
             "website_signals": [],

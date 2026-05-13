@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
+from dtutils import utcnow
 from unittest.mock import patch
 
 import pytest
@@ -151,7 +152,7 @@ class TestCheckoutCompleted:
     def test_subscription_clears_past_due(self, make_user):
         u = make_user(plan="free")
         u.payment_status = "past_due"
-        u.payment_status_updated_at = datetime.utcnow()
+        u.payment_status_updated_at = utcnow()
         db.session.commit()
 
         _handle_checkout_completed(_subscription_checkout_event(u.id, plan_slug="pro"))
@@ -238,7 +239,7 @@ class TestSubscriptionUpdated:
             balance_after=75,
             notes="Previous month",
         )
-        old_tx.created_at = datetime.utcnow() - timedelta(days=30)
+        old_tx.created_at = utcnow() - timedelta(days=30)
         db.session.add(old_tx)
         db.session.commit()
 
@@ -331,7 +332,7 @@ class TestPaymentSucceeded:
         u = make_user()
         u.stripe_customer_id = "cus_pay_ok"
         u.payment_status = "past_due"
-        u.payment_status_updated_at = datetime.utcnow()
+        u.payment_status_updated_at = utcnow()
         db.session.commit()
 
         _handle_payment_succeeded({"id": "in_test_ok_1", "customer": "cus_pay_ok"})
@@ -351,7 +352,7 @@ class TestPaymentSucceeded:
             balance_after=75,
             notes="prior month",
         )
-        old_tx.created_at = datetime.utcnow() - timedelta(days=30)
+        old_tx.created_at = utcnow() - timedelta(days=30)
         db.session.add(old_tx)
         db.session.commit()
 

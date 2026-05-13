@@ -33,6 +33,7 @@ os.environ.setdefault("RESEND_FROM", "test@example.com")
 
 import pytest  # noqa: E402
 from datetime import datetime  # noqa: E402
+from dtutils import utcnow
 
 # Import after env is primed. The app module wires the DB engine at
 # import time, so this can only be done once env is set.
@@ -92,7 +93,7 @@ def user(app_ctx):
         password_hash=generate_password_hash("xxxxxxxx"),
         name="Default Test User",
         plan="pro",
-        email_verified_at=datetime.utcnow(),
+        email_verified_at=utcnow(),
     )
     db.session.add(u)
     db.session.flush()
@@ -141,7 +142,7 @@ def make_user(app_ctx):
             name=name or f"User {counter['i']}",
             plan=plan,
             role=role,
-            email_verified_at=datetime.utcnow() if email_verified else None,
+            email_verified_at=utcnow() if email_verified else None,
         )
         db.session.add(u)
         db.session.flush()

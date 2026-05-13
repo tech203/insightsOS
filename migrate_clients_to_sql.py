@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from dtutils import utcnow
 
 from app import app, db, Client, normalize_website, slugify
 
@@ -70,8 +71,8 @@ def main():
                 location=(item.get("location") or "").strip() or None,
                 owner_type=(item.get("owner_type") or "company").strip(),
                 notes=(item.get("notes") or "").strip() or None,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=utcnow(),
+                updated_at=utcnow(),
             )
 
             db.session.add(row)

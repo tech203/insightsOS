@@ -23,6 +23,7 @@ import json
 import os
 import re
 from datetime import datetime
+from dtutils import utcnow
 from typing import Any, Dict, List, Optional
 
 
@@ -198,4 +199,4 @@ def is_profile_stale(client_row, *, max_age_days: int = 30) -> bool:
     last = getattr(client_row, "business_profile_updated_at", None)
     if not last:
         return True
-    return (datetime.utcnow() - last).days >= max_age_days
+    return (utcnow() - last).days >= max_age_days

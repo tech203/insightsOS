@@ -15,6 +15,7 @@ them apart from generic content recs.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from dtutils import utcnow
 from typing import Any, Dict, Iterable, List, Optional
 
 from action_engine import _make_action
@@ -28,7 +29,7 @@ MAX_RECOMMENDATIONS = 5
 def _days_since(when: Optional[datetime]) -> Optional[int]:
     if not when:
         return None
-    return (datetime.utcnow() - when).days
+    return (utcnow() - when).days
 
 
 def _tag(action: Dict[str, Any]) -> Dict[str, Any]:
