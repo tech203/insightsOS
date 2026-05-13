@@ -562,6 +562,80 @@ class Audit(db.Model):
     full_payload = db.Column(db.JSON, nullable=True)
 
 
+class QueueItem(db.Model):
+    """A row in the content queue.
+
+    Previously persisted as a JSON-list-of-dicts in
+    data/content_queue.json. Migrated to SQL so:
+      - tests stop polluting the on-disk fixture
+      - queries can be indexed (user_id, client_id, status)
+      - admin tools (PR #95) can join queue items with the rest of
+        the user's activity log
+      - multi-tenant isolation is enforced by the DB, not a Python
+        filter on every read
+
+    The `id` column is a UUID string — preserves the URLs already
+    minted under the JSON-file scheme (e.g. /content-queue/<uuid>),
+    so existing browser bookmarks keep working through the migration.
+
+    `chat_history` and the legacy timestamp strings are stored as
+    JSON and ISO strings respectively to match the dict shape that
+    content_queue.py returns; templates were written against that
+    shape and a richer type would force a touch on every consumer.
+    """
+    __tablename__ = "queue_items"
+
+    # UUID string primary key — matches the IDs minted by the legacy
+    # JSON-file scheme so existing URLs keep working post-migration.
+    id = db.Column(db.String(40), primary_key=True)
+
+    # Ownership / scoping
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=True, index=True,
+    )
+    # client_id is the workspace slug (string) in the legacy data;
+    # we keep it as a string to avoid a destructive migration mapping
+    # slugs back to int FKs. New consumers can join on Client.slug.
+    client_id = db.Column(db.String(255), nullable=True, index=True)
+    client_name = db.Column(db.String(255), nullable=True)
+
+    # Content
+    target_query = db.Column(db.Text, nullable=True)
+    content_type = db.Column(db.String(80), nullable=True)
+    item_type = db.Column(db.String(20), default="brief", nullable=False)
+    title = db.Column(db.String(500), default="Untitled Item", nullable=False)
+    content = db.Column(db.Text, nullable=True)
+
+    # Lifecycle
+    status = db.Column(db.String(40), default="pending", nullable=False, index=True)
+    priority = db.Column(db.String(20), default="medium", nullable=False)
+    source = db.Column(db.String(40), default="manual", nullable=False)
+
+    # Execution metadata — used by the action engine to decide what
+    # button to render and how much it costs.
+    credits_required = db.Column(db.Integer, default=0, nullable=False)
+    execution_type = db.Column(db.String(40), default="ai_executable", nullable=False)
+    source_action_title = db.Column(db.String(500), nullable=True)
+
+    # Calendar / publication
+    scheduled_for = db.Column(db.String(10), nullable=True)  # "YYYY-MM-DD"
+    webflow_item_id = db.Column(db.String(120), nullable=True)
+    webflow_collection = db.Column(db.String(120), nullable=True)
+    webflow_live_url = db.Column(db.String(500), nullable=True)
+    og_image_url = db.Column(db.String(500), nullable=True)
+
+    # AI-edit conversation log — list of {role, content, summary,
+    # revised_content, ts} dicts.
+    chat_history = db.Column(db.JSON, nullable=True)
+
+    # Timestamps stored as ISO strings to match the legacy dict shape
+    # the templates were written against. Sortable lexicographically
+    # since ISO-8601 sort order == temporal order.
+    created_at = db.Column(db.String(40), nullable=False)
+    updated_at = db.Column(db.String(40), nullable=False)
+
+
 class Referral(db.Model):
     """Referral payout record.
 
