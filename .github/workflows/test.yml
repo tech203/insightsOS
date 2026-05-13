@@ -1,0 +1,54 @@
+name: tests
+
+# Triggers: any push to main, any pull request targeting main. Keep
+# the matrix small for now — single Python version, single OS — so CI
+# stays fast (~1 min including install). Expand when we have a real
+# need (multi-Python support, Windows / Linux compat checks, etc.).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs when a new commit lands on the same PR — saves
+# Actions minutes when someone pushes a fixup commit while CI is still
+# crunching on the previous one.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          # Cache pip downloads keyed on requirements hashes so the
+          # install step is ~10s on cache hit vs ~45s cold.
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        # Test config and discovery are in pytest.ini. We export a
+        # SECRET_KEY here so the Flask app's import-time config check
+        # doesn't shout into the logs (it's a no-op for the test
+        # database, but matches what conftest.py would set anyway).
+        env:
+          SECRET_KEY: ci-test-secret
+          DATABASE_URL: sqlite:///test.db
+        run: pytest -v
