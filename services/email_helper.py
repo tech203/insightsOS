@@ -186,6 +186,48 @@ def render_password_reset_email(*, user_name: str, reset_url: str) -> tuple[str,
     return subject, text, html
 
 
+def render_email_verification_email(
+    *,
+    user_name: str,
+    verify_url: str,
+) -> tuple[str, str, str]:
+    """Subject + plain-text + HTML body for an email-verification link.
+
+    Mirrors render_password_reset_email styling so the visual identity
+    stays consistent across transactional mail. Expiration matches
+    the 24h token TTL set in the issue helper."""
+    subject = "Verify your email — DarInsights"
+    text = (
+        f"Hi {user_name or 'there'},\n\n"
+        "Welcome to DarInsights! Click the link below to confirm your email "
+        "address. The link expires in 24 hours.\n\n"
+        f"{verify_url}\n\n"
+        "Verifying isn't required to use the free tier — but it's needed "
+        "before you can buy credits or upgrade your plan.\n\n"
+        "If you didn't sign up for DarInsights, you can safely ignore this email."
+    )
+    html = f"""\
+<!DOCTYPE html>
+<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
+  <h1 style="font-size: 22px; margin: 0 0 16px;">Confirm your email</h1>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {user_name or 'there'},</p>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
+    Welcome to DarInsights! Click below to confirm your email address.
+    <strong>The link expires in 24 hours.</strong>
+  </p>
+  <p style="margin: 0 0 24px;">
+    <a href="{verify_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify email →</a>
+  </p>
+  <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{verify_url}</p>
+  <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0 0 6px;">
+    Verifying isn't required to use the free tier — but it's needed before you can buy credits or upgrade your plan.
+  </p>
+  <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you didn't sign up for DarInsights, you can safely ignore this email.</p>
+</body></html>"""
+    return subject, text, html
+
+
 def render_team_invite_email(
     *,
     owner_name: str,

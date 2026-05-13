@@ -251,6 +251,13 @@ class User(UserMixin, db.Model):
 
     role = db.Column(db.String(50), default="user")
     plan = db.Column(db.String(50), default="free")
+
+    # Email verification state. NULL = unverified; timestamp = when
+    # the user clicked their verification link. Existing users were
+    # backfilled to their created_at by the b2c3d4e5f6a7 migration
+    # so the rollout doesn't lock anyone out. New signups land with
+    # NULL and are gated out of Stripe checkout until they verify.
+    email_verified_at = db.Column(db.DateTime, nullable=True)
     is_white_label_enabled = db.Column(db.Boolean, default=False)
     agency_name = db.Column(db.String(255), nullable=True)
     # Agency white-label fields. When is_white_label_enabled=True these
@@ -328,6 +335,31 @@ class PasswordResetToken(db.Model):
     when consumed so the same email link can't be replayed. Tokens
     expire 60 min after issue."""
     __tablename__ = "password_reset_tokens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    token = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class EmailVerificationToken(db.Model):
+    """One-shot email-verification token.
+
+    Issued at signup (and on resend); consumed at /verify-email/<token>
+    by setting used_at + the user's email_verified_at. Tokens expire
+    24h after issue — long enough that a user who signs up late at
+    night can verify the next morning, short enough that a stale link
+    found in an old email folder can't be replayed.
+
+    The unique constraint is on token (not user_id), so a user can
+    have multiple outstanding tokens at once — handy when they hit
+    "Resend" before the first email arrives.
+    """
+    __tablename__ = "email_verification_tokens"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(
@@ -5336,11 +5368,16 @@ def reactivate_workspace(user, client_id: int) -> bool:
 def _inject_payment_status():
     """Make payment_status available to every template so the
     past-due banner in base.html can render without each view having
-    to thread it through."""
+    to thread it through. Also exposes the email-verification state
+    for the verify-your-email banner."""
     if not current_user.is_authenticated:
         return {}
     return {
         "user_payment_status": getattr(current_user, "payment_status", "ok"),
+        # True when this user's email is unverified — banner in base.html
+        # uses this to render the inline "verify your email" notice with
+        # a resend button.
+        "user_email_unverified": email_verification_required_for_user(current_user),
     }
 
 
@@ -7735,6 +7772,21 @@ def stripe_checkout_bundle(credits):
         is_stripe_configured,
     )
 
+    # Gate paid actions on email verification. Buying credits with an
+    # unverifiable email creates a recovery problem if the user ever
+    # forgets their password or needs receipt re-sends — better to
+    # block at the door. Admin / dev_unlimited users skip the gate.
+    if (
+        email_verification_required_for_user(current_user)
+        and not user_has_unlimited_credits(current_user)
+    ):
+        flash(
+            "Verify your email before buying credits. We sent a link when you "
+            "signed up — check your inbox, or resend below.",
+            "warning",
+        )
+        return redirect(url_for("settings_page"))
+
     if not is_stripe_configured():
         flash(
             "Stripe isn't configured on this server yet. Reach out to support to top up credits.",
@@ -7784,6 +7836,20 @@ def stripe_checkout_plan(plan_slug):
     if plan_slug not in PLAN_CATALOG or plan_slug == "free":
         flash("That plan isn't available.", "error")
         return redirect(url_for("pricing_page"))
+
+    # Same verification gate as the bundle route. Subscriptions create
+    # the same recovery problem (receipt mailing, dunning notices) so
+    # the email needs to work before the user can sign up.
+    if (
+        email_verification_required_for_user(current_user)
+        and not user_has_unlimited_credits(current_user)
+    ):
+        flash(
+            "Verify your email before upgrading. We sent a link when you "
+            "signed up — check your inbox, or resend below.",
+            "warning",
+        )
+        return redirect(url_for("settings_page"))
 
     if not is_stripe_configured():
         # Dev fallback: flip the plan immediately so the demo flow works
@@ -9279,11 +9345,59 @@ def signup():
         db.session.commit()
 
         login_user(user)
-        flash(
-            "Welcome! You have 3 starter credits — enough for your first audit. "
-            "Set up your workspace to begin.",
-            "success",
-        )
+
+        # Best-effort verification email. Don't block signup on this —
+        # if email isn't configured, the user can still use the free
+        # tier; we only gate paid actions on verified state. The
+        # banner in base.html surfaces an inline resend button so
+        # users who never received the email can recover.
+        try:
+            _, delivered = issue_and_send_email_verification(user)
+            if delivered:
+                flash(
+                    f"Welcome! Check {user.email} for a verification link — "
+                    "you'll need to verify before upgrading. You can use "
+                    "the free tier right now with your 3 starter credits.",
+                    "success",
+                )
+            else:
+                # Dev fallback when email isn't configured: surface the URL
+                # so the flow can still be walked end-to-end.
+                from services.email_helper import is_email_configured
+                if not is_email_configured():
+                    record = _user_recent_verification_token(user)
+                    if record:
+                        verify_url = url_for(
+                            "verify_email", token=record.token, _external=True
+                        )
+                        flash(
+                            f"Welcome! Email isn't configured here, "
+                            f"so use this verify link directly: {verify_url}",
+                            "info",
+                        )
+                    else:
+                        flash(
+                            "Welcome! You have 3 starter credits — enough for your "
+                            "first audit. Set up your workspace to begin.",
+                            "success",
+                        )
+                else:
+                    flash(
+                        "Welcome! We tried to send a verification email but it "
+                        "didn't go through — you can resend it from settings later. "
+                        "You have 3 starter credits to get started.",
+                        "warning",
+                    )
+        except Exception as exc:
+            logger.warning(
+                "Verification email step failed for new user %s: %s", user.id, exc,
+            )
+            flash(
+                "Welcome! You have 3 starter credits — enough for your first audit. "
+                "Set up your workspace to begin.",
+                "success",
+            )
+
         return redirect(url_for("create_client"))
 
     return render_template(
@@ -9352,6 +9466,188 @@ def forgot_password():
         return redirect(url_for("login"))
 
     return render_template("forgot_password.html")
+
+
+# ---------------------------------------------------------------------------
+# Email verification
+# ---------------------------------------------------------------------------
+# Policy: new signups can use the app immediately but Stripe checkout
+# (both topup bundles and plan subscriptions) is gated on
+# email_verified_at being set. Existing users were backfilled to
+# their created_at by the migration so the rollout doesn't lock
+# anyone out.
+#
+# Token TTL is 24h. Resend is rate-limited per-user (60s between
+# requests) to prevent an inbox-flooding attack.
+
+EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24
+EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
+
+
+def email_verification_required_for_user(user) -> bool:
+    """True when the user exists, isn't verified, and we should gate
+    paid actions on verification. Anonymous users hit a different
+    auth gate first so they never reach this check."""
+    if not user:
+        return True
+    return getattr(user, "email_verified_at", None) is None
+
+
+def issue_email_verification_token(user) -> "EmailVerificationToken":
+    """Mint a fresh token + persist it. Multiple outstanding tokens
+    per user are fine (Resend → first link still works) since the
+    unique constraint is on token, not user_id."""
+    token = secrets.token_urlsafe(32)
+    row = EmailVerificationToken(
+        user_id=user.id,
+        token=token,
+        expires_at=datetime.utcnow() + timedelta(hours=EMAIL_VERIFICATION_TOKEN_TTL_HOURS),
+    )
+    db.session.add(row)
+    db.session.commit()
+    return row
+
+
+def send_email_verification(user, *, verify_url: str) -> bool:
+    """Send the verification email. Returns True if delivered, False
+    when email isn't configured (callers can surface the URL inline
+    for dev). Never raises."""
+    from services.email_helper import (
+        is_email_configured, render_email_verification_email, send_email,
+    )
+    if not is_email_configured():
+        return False
+    subject, text, html = render_email_verification_email(
+        user_name=user.name or "", verify_url=verify_url,
+    )
+    try:
+        return send_email(
+            to=user.email, subject=subject, body_text=text, body_html=html,
+        )
+    except Exception as exc:
+        logger.warning("Verification email send failed for user %s: %s", user.id, exc)
+        return False
+
+
+def issue_and_send_email_verification(user) -> tuple["EmailVerificationToken", bool]:
+    """Convenience: mint token + send email in one call. Returns
+    (token_row, delivered_bool)."""
+    record = issue_email_verification_token(user)
+    verify_url = url_for("verify_email", token=record.token, _external=True)
+    delivered = send_email_verification(user, verify_url=verify_url)
+    return record, delivered
+
+
+def _user_recent_verification_token(user) -> "Optional[EmailVerificationToken]":
+    """Return the most recent unused, unexpired token for `user`, or
+    None. Used by the resend rate-limit check."""
+    return (
+        EmailVerificationToken.query
+        .filter_by(user_id=user.id, used_at=None)
+        .filter(EmailVerificationToken.expires_at > datetime.utcnow())
+        .order_by(EmailVerificationToken.created_at.desc())
+        .first()
+    )
+
+
+@app.route("/verify-email/<token>")
+def verify_email(token):
+    """Consume a verification token: mark the matching user's email
+    as verified and the token as used.
+
+    Idempotent for valid tokens — if the user is already verified, we
+    just mark this token used and show success. Bad/expired tokens
+    bounce to /verify-email/resend (if logged in) or /login otherwise.
+    """
+    record = (
+        EmailVerificationToken.query
+        .filter_by(token=token, used_at=None)
+        .filter(EmailVerificationToken.expires_at > datetime.utcnow())
+        .first()
+    )
+    if not record:
+        flash(
+            "This verification link is invalid or has expired. "
+            "Sign in and request a new one from settings.",
+            "warning",
+        )
+        if current_user.is_authenticated:
+            return redirect(url_for("settings_page"))
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, record.user_id)
+    if not user:
+        flash("Account no longer exists.", "error")
+        return redirect(url_for("login"))
+
+    record.used_at = datetime.utcnow()
+    if user.email_verified_at is None:
+        user.email_verified_at = datetime.utcnow()
+    db.session.commit()
+
+    if current_user.is_authenticated and current_user.id == user.id:
+        flash(
+            "Email verified! You can now buy credits and upgrade your plan.",
+            "success",
+        )
+        return redirect(url_for("settings_page"))
+    # User clicked the link without being logged in — bounce to login
+    # with the success flash; they re-auth and land on /index verified.
+    flash("Email verified — sign in to continue.", "success")
+    return redirect(url_for("login"))
+
+
+@app.route("/verify-email/resend", methods=["POST"])
+@login_required
+def resend_verification_email():
+    """Resend the verification email to the current user.
+
+    Rate-limited: refuses to resend if the most recent token was
+    issued less than EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS ago.
+    Prevents an inbox-flooding attack via a stuck "Resend" button."""
+    if current_user.email_verified_at is not None:
+        flash("Your email is already verified — nothing to resend.", "info")
+        return redirect(url_for("settings_page"))
+
+    # Cooldown check: look at the most recent token issued to this
+    # user, regardless of used/expired state.
+    last = (
+        EmailVerificationToken.query
+        .filter_by(user_id=current_user.id)
+        .order_by(EmailVerificationToken.created_at.desc())
+        .first()
+    )
+    if last is not None:
+        age = (datetime.utcnow() - last.created_at).total_seconds()
+        if age < EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS:
+            wait = int(EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS - age)
+            flash(
+                f"We just sent a link — give it {wait}s before resending. "
+                "Don't forget to check your spam folder.",
+                "warning",
+            )
+            return redirect(url_for("settings_page"))
+
+    _, delivered = issue_and_send_email_verification(current_user)
+    if delivered:
+        flash(
+            f"Verification email sent to {current_user.email}. "
+            "Check your inbox (and spam folder).",
+            "success",
+        )
+    else:
+        # Email not configured — show the URL inline so dev / staging
+        # environments can still walk the flow.
+        record = _user_recent_verification_token(current_user)
+        if record:
+            verify_url = url_for("verify_email", token=record.token, _external=True)
+            flash(
+                f"Email isn't configured on this server. Copy this verify link: {verify_url}",
+                "info",
+            )
+        else:
+            flash("Could not generate a verification link — try again in a moment.", "error")
+    return redirect(url_for("settings_page"))
 
 
 @app.route("/reset-password/<token>", methods=["GET", "POST"])

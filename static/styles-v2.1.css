@@ -1232,9 +1232,9 @@ textarea {
     color: #ffffff;
 }
 
-/* Informational variant — uses brand color tones. For "this is a
-   paid feature" / "your data is preserved" / educational notices
-   that aren't blocking and aren't billing-critical. */
+/* Informational variant — brand-toned for educational notices that
+   aren't blocking and aren't billing-critical: "verify your email",
+   "this is a paid feature", "your data is preserved on downgrade". */
 .alert-banner--info {
     border-color: var(--brand-border, rgba(124, 92, 255, 0.25));
     background: var(--brand-soft, rgba(124, 92, 255, 0.08));
@@ -1245,6 +1245,28 @@ textarea {
     background: var(--brand, #7c5cff);
     color: #ffffff;
 }
+
+/* Inline-form button inside an alert-banner. Used by the email
+   verification banner's "Resend email" form. Looks like a text link
+   that happens to be a button — preserves the banner's flow without
+   stacking a heavy CTA button next to the icon. */
+.alert-banner__inline-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0 0 0 4px;
+    font: inherit;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.alert-banner__inline-btn:hover {
+    text-decoration: none;
+}
+
 
 /* =========================
    FEATURE-GATE / PRO STATES

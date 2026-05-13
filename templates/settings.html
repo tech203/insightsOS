@@ -194,6 +194,26 @@
                     <strong>{{ current_user.email }}</strong>
                 </div>
 
+                {# Email verification row. Verified shows the date; unverified
+                   shows an inline "Resend" form. Rate-limited server-side to
+                   60s between resends. #}
+                <div class="settings-v3-info-row surface-card">
+                    <span>Email verified</span>
+                    {% if current_user.email_verified_at %}
+                    <strong>
+                        ✓ {{ current_user.email_verified_at.strftime('%d %b %Y') }}
+                    </strong>
+                    {% else %}
+                    <span style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <strong style="color:var(--warning, #f59e0b);">Not verified</strong>
+                        <form method="POST" action="{{ url_for('resend_verification_email') }}" style="margin:0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-secondary btn-sm">Resend verification</button>
+                        </form>
+                    </span>
+                    {% endif %}
+                </div>
+
                 <div class="settings-v3-info-row surface-card">
                     <span>Plan</span>
                     <strong>{{ current_user.plan|default("free")|replace('_', ' ')|title }}</strong>
