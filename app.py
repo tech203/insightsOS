@@ -12102,6 +12102,119 @@ def api_client_detail(client_id):
     return jsonify(client)
 
 
+@app.route("/api/client/<client_id>/run-audit", methods=["POST"])
+@login_required
+def api_client_run_audit(client_id):
+    """JSON variant of /client/<id>/run-audit for bulk operations.
+
+    Same credit-reservation / commit / release dance as the HTML
+    flow, but returns JSON instead of redirecting. Used by the JS
+    on the Clients page that runs audits sequentially across many
+    workspaces — kicking off ten audits via the HTML form would
+    require ten tab refreshes; this lets the browser drive a single
+    progress UI.
+
+    Response shape:
+        success → {"ok": True, "client_id": "...", "client_name": "...",
+                   "summary_filename": "..." (when available),
+                   "queue_added": int, "queue_skipped_due_to_cap": int}
+        failure → {"ok": False, "client_id": "...", "error": "..."}
+                  with appropriate 4xx/5xx status
+
+    Auth: same login_required as the HTML route; the workspace is
+    further checked against the user's owned workspaces below.
+    """
+    client = get_client_by_id(client_id)
+    if not client:
+        return jsonify({"ok": False, "client_id": client_id, "error": "Workspace not found"}), 404
+
+    # Defensive scope check — get_client_by_id already filters but
+    # being explicit makes the access-control rule easy to audit.
+    owner_id = effective_owner_id() or current_user.id
+    if str(client.get("user_id") or "") and int(client.get("user_id")) != int(owner_id):
+        # Some serializers don't carry user_id; fall back to a query.
+        row = Client.query.filter_by(slug=str(client_id)).first()
+        if row and row.user_id != owner_id:
+            return jsonify({"ok": False, "client_id": client_id, "error": "Forbidden"}), 403
+
+    # Accept JSON body or form-encoded; fall back to workspace defaults
+    # so the JS caller can fire-and-forget with no body. The workspace's
+    # stored website/industry/location are what the HTML form pre-fills
+    # anyway.
+    body = request.get_json(silent=True) or {}
+    website = (body.get("website") or request.form.get("website") or client.get("website", "")).strip()
+    industry = (body.get("industry") or request.form.get("industry") or client.get("industry", "")).strip()
+    location = (body.get("location") or request.form.get("location") or client.get("location", "")).strip()
+    topic = (body.get("topic") or request.form.get("topic") or industry).strip()
+    audit_type = (body.get("audit_type") or request.form.get("audit_type") or "quick").strip()
+
+    if not website or not industry or not location:
+        return jsonify({
+            "ok": False,
+            "client_id": client_id,
+            "client_name": client.get("name"),
+            "error": "Workspace is missing website / industry / location.",
+        }), 400
+
+    # Reserve credits up front — same two-phase pattern as the HTML
+    # route. Bulk caller can check this response and short-circuit
+    # the remaining batch if the wallet runs dry.
+    reservation = reserve_credits_for(
+        current_user, "audit_run", notes=f"Bulk audit: {client.get('name')}"
+    )
+    if reservation is None:
+        return jsonify({
+            "ok": False,
+            "client_id": client_id,
+            "client_name": client.get("name"),
+            "error": insufficient_credits_message(current_user, "audit_run", "An audit"),
+            "reason": "insufficient_credits",
+        }), 402
+
+    try:
+        run_audit_for_input(
+            website=website,
+            industry=industry,
+            location=location,
+            topic=topic or industry or None,
+            audit_type=audit_type,
+            client_id=client_id,
+            client_name=client.get("name"),
+            user_id=current_user.id,
+        )
+
+        queue_result = create_content_opportunities_from_latest_audit(
+            client_id=client_id,
+            user_id=current_user.id,
+        )
+
+        commit_reservation(reservation, notes="Bulk audit completed")
+
+        return jsonify({
+            "ok": True,
+            "client_id": client_id,
+            "client_name": client.get("name"),
+            "queue_added": queue_result.get("added", 0) if isinstance(queue_result, dict) else queue_result or 0,
+            "queue_skipped_due_to_cap": (
+                queue_result.get("skipped_due_to_cap", 0)
+                if isinstance(queue_result, dict) else 0
+            ),
+        })
+    except Exception as e:
+        release_reservation(reservation, reason="Bulk audit failed; refunded")
+        from services.ai_errors import friendly_ai_error_message
+        logger.exception(
+            "Bulk audit failed for user_id=%s client_id=%s",
+            current_user.id, client_id,
+        )
+        return jsonify({
+            "ok": False,
+            "client_id": client_id,
+            "client_name": client.get("name"),
+            "error": friendly_ai_error_message(e),
+        }), 500
+
+
 @app.route("/client/<client_id>/presentation")
 @login_required
 def client_presentation_page(client_id):
@@ -12490,6 +12603,14 @@ def inject_template_globals():
         "focused_client": focused_client,
         "onboarding_state": onboarding_state,
         "feature_gates": feature_gates,
+        # True when the current user is on a paid subscriber plan
+        # (Pro, Growth, agency, etc.). Used by templates that want to
+        # gate UI on "paying customer" without reaching back into the
+        # plan slug.
+        "is_subscriber_user": (
+            current_user.is_authenticated
+            and is_subscriber(getattr(current_user, "plan", "free"))
+        ),
         "can_run_audit": (
             current_user.is_authenticated
             and (
@@ -12805,11 +12926,18 @@ def settings_update_profile():
 @app.route("/settings/white-label/update", methods=["POST"])
 @login_required
 def settings_update_white_label():
-    """Save the agency white-label fields and toggle. Logo upload is
-    a separate route so users can save text-only changes without
-    reuploading. Free users can edit fields but the toggle stays
-    off until they're on a paid plan — keeps the upgrade nudge clean."""
-    enable = request.form.get("enable") == "on"
+    """Save the agency white-label fields and toggle.
+
+    Plan gate: the marketing copy on /pricing positions white-label
+    as a paid feature, but the toggle was previously unconditional
+    here. Free users now save their fields (so they can prep before
+    upgrading) but the toggle is force-disabled — the actual
+    branding swap only happens on Pro/Growth/agency tiers. Matches
+    the gate behavior in inject_template_globals.
+
+    Logo upload is a separate route so users can save text-only
+    changes without reuploading."""
+    enable_requested = request.form.get("enable") == "on"
     name = (request.form.get("agency_name") or "").strip()[:255]
     tagline = (request.form.get("agency_tagline") or "").strip()[:255]
     website = (request.form.get("agency_website") or "").strip()[:500]
@@ -12821,7 +12949,20 @@ def settings_update_white_label():
     current_user.agency_website = website or None
     current_user.agency_footer = footer or None
     current_user.agency_disclaimer = disclaimer or None
-    current_user.is_white_label_enabled = bool(enable)
+
+    # White-label enable is gated to subscribers. Free users can save
+    # fields (prepping for an upgrade) but the toggle stays off.
+    if enable_requested and not is_subscriber(getattr(current_user, "plan", "free")):
+        current_user.is_white_label_enabled = False
+        db.session.commit()
+        flash(
+            "Saved your agency branding fields. White-label delivery "
+            "is available on Pro and Growth — upgrade to enable it.",
+            "warning",
+        )
+        return redirect(url_for("settings_white_label"))
+
+    current_user.is_white_label_enabled = bool(enable_requested)
     db.session.commit()
     flash("White-label branding saved.", "success")
     return redirect(url_for("settings_white_label"))

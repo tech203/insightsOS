@@ -19,13 +19,50 @@
 <div class="workspaces-page-shell workspaces-page-shell-tight">
 
     {% if clients %}
-    <section class="workspace-list-section">
+    {# Bulk operations are only useful for users with multiple
+       workspaces — gated by plan instead of just "has > 1 workspace"
+       so an admin downgrading a customer still sees the right state.
+       Pro and Growth allow multi-workspace, Free is 1-only. #}
+    {% set show_bulk = clients|length > 1 and (is_subscriber_user or has_unlimited_credits) %}
+
+    <section class="workspace-list-section" data-bulk-enabled="{{ 'true' if show_bulk else 'false' }}">
         <div class="workspace-list-head">
             <div>
                 <h2>Your Workspaces</h2>
                 <p>{{ clients|length }} workspace{{ "" if clients|length == 1 else "s" }}</p>
             </div>
+            {% if show_bulk %}
+            <div class="workspace-list-bulk-controls">
+                <label class="workspace-bulk-select-all">
+                    <input type="checkbox" id="bulkSelectAll" aria-label="Select all workspaces">
+                    <span>Select all</span>
+                </label>
+                <button type="button" class="btn btn-primary btn-sm" id="bulkRunAuditBtn" disabled>
+                    Run audits on selected (<span id="bulkSelectedCount">0</span>)
+                </button>
+            </div>
+            {% endif %}
         </div>
+
+        {# Bulk progress panel — hidden until a bulk run kicks off,
+           then renders one row per selected workspace so the user
+           can watch each finish. Built from a template node by JS. #}
+        {% if show_bulk %}
+        <div class="workspace-bulk-progress surface-card" id="bulkProgressPanel" hidden>
+            <div class="workspace-bulk-progress-head">
+                <strong>Running audits</strong>
+                <span id="bulkProgressSummary"></span>
+            </div>
+            <ul class="workspace-bulk-progress-list" id="bulkProgressList"></ul>
+        </div>
+
+        <template id="bulkProgressRowTemplate">
+            <li class="workspace-bulk-progress-row" data-status="pending">
+                <span class="workspace-bulk-progress-name"></span>
+                <span class="workspace-bulk-progress-status">Queued</span>
+            </li>
+        </template>
+        {% endif %}
 
         <div class="workspace-list">
             {% for client in clients %}
@@ -35,7 +72,13 @@
             {% set score = latest.normalized_score if latest and latest.normalized_score is not none else none %}
             {% set last_audit_time = latest.saved_at if latest and latest.saved_at else None %}
 
-            <article class="workspace-row-card workspace-row-card-tight">
+            <article class="workspace-row-card workspace-row-card-tight" data-workspace-id="{{ client.id }}">
+                {% if show_bulk %}
+                <label class="workspace-bulk-checkbox" title="Include in bulk actions">
+                    <input type="checkbox" class="js-bulk-workspace" value="{{ client.id }}" data-workspace-name="{{ client.name }}">
+                    <span class="sr-only">Select {{ client.name }} for bulk actions</span>
+                </label>
+                {% endif %}
                 <div class="workspace-row-main">
                     <div class="workspace-logo-block">
                         {% if client.logo_url %}
@@ -194,5 +237,182 @@ document.addEventListener("click", function (e) {
         return;
     }
 });
+
+// =========================================================================
+// Bulk audit runner
+// =========================================================================
+// JS-driven sequential bulk: a Growth agency owner with 8 workspaces
+// clicked through 8 audits one at a time before. Now they tick the
+// boxes, hit "Run audits on selected", and we fire the audits one
+// after the other via /api/client/<id>/run-audit while showing
+// per-workspace progress.
+//
+// Sequential (not parallel) for three reasons:
+//   1. Each audit hits OpenAI + Tavily and we don't want to trip
+//      their rate limits with 10 parallel requests.
+//   2. Reservations are per-audit; if the wallet drains mid-batch,
+//      sequential lets us short-circuit cleanly without leaving
+//      orphaned reservations.
+//   3. Server-side runs in the request thread anyway, so parallel
+//      from the browser would queue at the worker.
+//
+// The browser tab needs to stay open while the batch runs. Backgrounding
+// the work in a Celery-style queue is a future improvement; for now
+// the explicit progress UI makes it clear what's happening.
+(function () {
+    const panel = document.getElementById("bulkProgressPanel");
+    if (!panel) return; // bulk-disabled view, nothing to do
+
+    const checkboxes = document.querySelectorAll(".js-bulk-workspace");
+    const selectAll = document.getElementById("bulkSelectAll");
+    const runBtn = document.getElementById("bulkRunAuditBtn");
+    const countEl = document.getElementById("bulkSelectedCount");
+    const listEl = document.getElementById("bulkProgressList");
+    const summaryEl = document.getElementById("bulkProgressSummary");
+    const rowTpl = document.getElementById("bulkProgressRowTemplate");
+
+    function getSelected() {
+        return Array.from(checkboxes).filter(cb => cb.checked);
+    }
+
+    function refreshCount() {
+        const selected = getSelected();
+        countEl.textContent = selected.length;
+        runBtn.disabled = selected.length === 0;
+        // Tri-state header checkbox: checked when all are, indeterminate
+        // when partial, unchecked when none.
+        if (selectAll) {
+            const all = checkboxes.length;
+            if (selected.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (selected.length === all) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+        }
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener("change", refreshCount));
+
+    if (selectAll) {
+        selectAll.addEventListener("change", function () {
+            checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+            refreshCount();
+        });
+    }
+    refreshCount();
+
+    // Resolve the CSRF token from the <meta> tag added by the security
+    // PR — Flask-WTF requires it on POST and the API endpoint is no
+    // exception.
+    function csrfToken() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        return m ? m.getAttribute("content") : "";
+    }
+
+    function setRowStatus(row, status, text) {
+        row.dataset.status = status;
+        row.querySelector(".workspace-bulk-progress-status").textContent = text;
+    }
+
+    runBtn.addEventListener("click", async function () {
+        const selected = getSelected();
+        if (selected.length === 0) return;
+
+        // Disable selection + button so the user can't fire twice or
+        // change the batch mid-run.
+        runBtn.disabled = true;
+        runBtn.textContent = "Running…";
+        checkboxes.forEach(cb => { cb.disabled = true; });
+        if (selectAll) selectAll.disabled = true;
+
+        panel.hidden = false;
+        listEl.innerHTML = "";
+
+        // Build one progress row per workspace up front so the user
+        // sees the full plan, not just the one currently running.
+        const rows = selected.map(cb => {
+            const node = rowTpl.content.firstElementChild.cloneNode(true);
+            node.dataset.workspaceId = cb.value;
+            node.querySelector(".workspace-bulk-progress-name").textContent =
+                cb.dataset.workspaceName || ("Workspace #" + cb.value);
+            listEl.appendChild(node);
+            return { row: node, id: cb.value, name: cb.dataset.workspaceName || cb.value };
+        });
+
+        summaryEl.textContent = "0 of " + rows.length + " complete";
+
+        let done = 0;
+        let succeeded = 0;
+        let outOfCredits = false;
+
+        for (const item of rows) {
+            // Skip remaining when credits ran out; mark them as
+            // "skipped" rather than letting them sit pending forever.
+            if (outOfCredits) {
+                setRowStatus(item.row, "skipped", "Skipped — out of credits");
+                done++;
+                summaryEl.textContent = done + " of " + rows.length + " complete";
+                continue;
+            }
+
+            setRowStatus(item.row, "running", "Running…");
+            try {
+                const resp = await fetch("/api/client/" + item.id + "/run-audit", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken(),
+                    },
+                    body: JSON.stringify({}),
+                });
+                const data = await resp.json().catch(() => null);
+
+                if (resp.status === 402 && data && data.reason === "insufficient_credits") {
+                    setRowStatus(item.row, "error", "Out of credits — upgrade or top up.");
+                    outOfCredits = true;
+                } else if (!resp.ok || !data || !data.ok) {
+                    const errMsg = (data && data.error) || ("Request failed (" + resp.status + ")");
+                    setRowStatus(item.row, "error", errMsg);
+                } else {
+                    const added = data.queue_added || 0;
+                    const skipped = data.queue_skipped_due_to_cap || 0;
+                    let txt = "Done — " + added + " queue item" + (added === 1 ? "" : "s") + " added";
+                    if (skipped > 0) {
+                        txt += " (" + skipped + " skipped — queue full)";
+                    }
+                    setRowStatus(item.row, "done", txt);
+                    succeeded++;
+                }
+            } catch (err) {
+                setRowStatus(item.row, "error", "Network error — try again later.");
+            }
+            done++;
+            summaryEl.textContent = done + " of " + rows.length + " complete";
+        }
+
+        // Final state: re-enable controls and update the button.
+        // Don't auto-redirect — the user wants to see what happened
+        // across the batch.
+        checkboxes.forEach(cb => { cb.disabled = false; cb.checked = false; });
+        if (selectAll) {
+            selectAll.disabled = false;
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        refreshCount();
+        if (succeeded === rows.length) {
+            runBtn.textContent = "Run audits on selected (0)";
+        } else {
+            runBtn.textContent = "Retry remaining (" + (rows.length - succeeded) + ")";
+        }
+        runBtn.disabled = true;
+    });
+})();
 </script>
 {% endblock %}
