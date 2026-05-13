@@ -129,6 +129,69 @@ def _check_env_health():
 _check_env_health()
 
 
+def _check_launch_config() -> None:
+    """Warn about env-var values that are technically set but wrong for
+    production — test Stripe keys, Resend sandbox sender, localhost OAuth
+    redirect URIs, and S3 placeholder endpoints.  Never raises; the app
+    starts regardless so dev stays frictionless."""
+    warns: list[str] = []
+
+    # --- Stripe: test keys present in a production-looking context ---
+    stripe_key = (os.getenv("STRIPE_SECRET_KEY") or "").strip()
+    if stripe_key.startswith("sk_test_") or stripe_key.startswith("rk_test_"):
+        warns.append(
+            "STRIPE_SECRET_KEY is a Stripe TEST key (sk_test_… / rk_test_…). "
+            "Swap for the live key (sk_live_…) before accepting real payments. "
+            "Get your live key at: https://dashboard.stripe.com/apikeys"
+        )
+
+    # --- Resend: sandbox @resend.dev sender ---
+    resend_from = (os.getenv("RESEND_FROM") or "").strip()
+    if "@resend.dev" in resend_from:
+        warns.append(
+            f"RESEND_FROM uses the @resend.dev sandbox domain ({resend_from!r}). "
+            "Resend only delivers sandbox mail to the account owner's verified email; "
+            "real users will never receive invites or password-reset emails. "
+            "Verify a custom sender domain at https://resend.com/domains and update "
+            "RESEND_FROM to e.g. 'YourApp <noreply@yourdomain.com>'."
+        )
+
+    # --- Shopify: redirect URI still pointing at localhost ---
+    shopify_uri = (os.getenv("SHOPIFY_REDIRECT_URI") or "").strip()
+    if shopify_uri and ("localhost" in shopify_uri or "127.0.0.1" in shopify_uri):
+        warns.append(
+            f"SHOPIFY_REDIRECT_URI points at localhost ({shopify_uri!r}). "
+            "Either remove this variable (the app derives the correct URI "
+            "from the live request host automatically) or set it to your "
+            "production URL: https://your-host/integrations/shopify/callback"
+        )
+
+    # --- S3: endpoint URL still contains placeholder text ---
+    s3_endpoint = (os.getenv("S3_ENDPOINT_URL") or "").strip()
+    s3_bucket = (os.getenv("S3_BUCKET") or "").strip()
+    if s3_endpoint and any(tok in s3_endpoint for tok in ("xxxxx", "your_", "<account")):
+        warns.append(
+            f"S3_ENDPOINT_URL looks like a placeholder ({s3_endpoint!r}). "
+            "Logo uploads will fail at runtime. Replace it with your real "
+            "R2 / B2 / MinIO endpoint, e.g. "
+            "https://<account-id>.r2.cloudflarestorage.com — or unset it "
+            "to use standard AWS S3."
+        )
+    elif s3_bucket and not s3_bucket.startswith("your_") and not s3_endpoint:
+        # S3_BUCKET set, no custom endpoint — fine for AWS S3 but note it.
+        pass  # normal AWS S3 setup; nothing to warn
+
+    if warns:
+        print("=" * 70)
+        print("LAUNCH CONFIG WARNINGS — fix before going live:")
+        for i, msg in enumerate(warns, 1):
+            print(f"\n  [{i}] {msg}")
+        print("\n" + "=" * 70)
+
+
+_check_launch_config()
+
+
 app = Flask(__name__)
 print("Flask app initialized")
 
@@ -155,6 +218,13 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+
+# CSRF protection — exempt only server-to-server routes (webhooks, OAuth
+# callbacks, cron jobs) that have their own authentication and cannot carry
+# a browser session cookie with a CSRF token.
+from flask_wtf.csrf import CSRFProtect, CSRFError
+csrf = CSRFProtect(app)
+app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1-hour token validity
 
 OUTPUTS_FOLDER = "outputs"
 DATA_FOLDER = "data"
@@ -5932,31 +6002,36 @@ def pricing_page():
 @app.route("/subscribe/<plan_slug>", methods=["GET"])
 @login_required
 def start_subscription(plan_slug):
-    """Begin a subscription change. Without Stripe wired up, this is a
-    dev-mode plan switch that records a CreditTransaction for audit
-    visibility. The Stripe checkout flow plugs in here later."""
-    plan = get_plan(plan_slug)
+    """Begin a subscription change.
+
+    When Stripe is configured this redirects to the proper Checkout flow
+    (/stripe/checkout/plan/<plan_slug>) so the user is actually charged.
+    Without Stripe wired up (dev / staging), the plan is set directly so
+    the rest of the app can be exercised without real payments.
+    """
+    from services.stripe_helper import is_stripe_configured
+
     if plan_slug not in PLAN_CATALOG or plan_slug == "free":
         flash("That plan isn't available.", "error")
         return redirect(url_for("pricing_page"))
 
-    # Stripe placeholder: when STRIPE_SECRET_KEY + price IDs are wired,
-    # redirect to a Stripe Checkout session here. For now we set the plan
-    # directly and grant the first month's allowance immediately.
-    if os.getenv("STRIPE_SECRET_KEY"):
-        # TODO: redirect to stripe.checkout.Session.create(...)
-        pass
+    # When Stripe is live, hand off to the proper Checkout session route.
+    # Direct plan assignment below is intentionally dev-only.
+    if is_stripe_configured():
+        return redirect(url_for("stripe_checkout_plan", plan_slug=plan_slug))
 
+    # Dev / staging fallback — no real payment taken.
+    plan = get_plan(plan_slug)
     current_user.plan = plan_slug
     db.session.commit()
     granted = grant_monthly_credits_if_due(current_user)
     if granted:
         flash(
-            f"Welcome to {plan['label']} — {granted} credits added to your wallet.",
+            f"[Dev] Welcome to {plan['label']} — {granted} credits added to your wallet.",
             "success",
         )
     else:
-        flash(f"You're now on the {plan['label']} plan.", "success")
+        flash(f"[Dev] You're now on the {plan['label']} plan.", "success")
     return redirect(url_for("settings_billing"))
 
 
@@ -5975,7 +6050,7 @@ def growth_calendar_page():
             None,
         )
 
-    if not selected_client and view_mode == "single" and focused_client:
+    if not selected_client and focused_client:
         selected_client = focused_client
 
     if not selected_client and clients:
@@ -7396,6 +7471,7 @@ def stripe_portal():
 
 
 @app.route("/stripe/webhook", methods=["POST"])
+@csrf.exempt  # Stripe signs requests with its own webhook secret — no browser session
 def stripe_webhook():
     """Receive checkout.session.completed events and credit the wallet
     or flip the plan accordingly. Always returns 200 once parsed so
@@ -8261,6 +8337,7 @@ def google_login():
 
 
 @app.route("/auth/google/callback")
+@csrf.exempt  # OAuth redirect from Google — no browser-originated POST body
 def google_callback():
     """Exchange the authorization code for user info and sign the user in.
 
@@ -12264,6 +12341,7 @@ def shopify_connect(client_id):
 
 
 @app.route("/integrations/shopify/callback")
+@csrf.exempt  # OAuth redirect from Shopify — no browser-originated POST body
 @login_required
 def shopify_oauth_callback():
     """Handle the Shopify OAuth callback.
@@ -12753,7 +12831,7 @@ def answer_monitor_page():
             (c for c in clients if str(c.get("id")) == str(requested_client_id)),
             None,
         )
-    if not selected_client and view_mode == "single" and focused_client:
+    if not selected_client and focused_client:
         selected_client = focused_client
     if not selected_client and clients:
         selected_client = clients[0]
@@ -13213,6 +13291,7 @@ def gsc_connect(client_id):
 
 
 @app.route("/integrations/gsc/callback")
+@csrf.exempt  # OAuth redirect from Google Search Console — no browser-originated POST body
 @login_required
 def gsc_oauth_callback():
     """Handle the OAuth callback — exchange code, persist tokens."""
@@ -14079,6 +14158,7 @@ def gsc_disconnect(client_id):
 
 
 @app.route("/cron/answer-monitor", methods=["POST", "GET"])
+@csrf.exempt  # Authenticated via CRON_SECRET header — not a browser session
 def cron_answer_monitor():
     """Scheduled sweep that re-runs the AI Answer Monitor for every
     paid user whose youngest snapshot is older than 6 days.
@@ -15008,6 +15088,17 @@ def squarespace_disconnect(client_id):
         db.session.commit()
         flash("Disconnected Squarespace site.", "success")
     return redirect(url_for("module_connectors", client_id=client_id))
+
+
+@app.errorhandler(CSRFError)
+def csrf_error(error):
+    """Return a friendly 400 when a CSRF token is missing or invalid.
+    This should only happen if the session expired or a form was forged."""
+    flash(
+        "Your session expired or the form token was invalid. Please try again.",
+        "error",
+    )
+    return redirect(request.referrer or url_for("index")), 302
 
 
 @app.errorhandler(403)
