@@ -1,6 +1,11 @@
 .env
 venv/
+.venv/
 __pycache__/
 *.pyc
 instance/
 outputs/
+
+# Test artifacts
+.pytest_cache/
+test.db
