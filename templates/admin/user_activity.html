@@ -1,0 +1,303 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "users" %}
+{% block title %}{{ u.email }} activity | Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>{{ u.email }} — activity</h1>
+        <p>Full audit log across credits, webhooks, reservations, and team invites.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+<a href="{{ url_for('admin_user_detail', user_id=u.id) }}" class="btn btn-secondary" style="width:fit-content;">← Back to user</a>
+
+{# Tab strip. Each link preserves its own per-tab filters so flipping
+   tabs doesn't lose your filter state in the unrelated dimension. #}
+{% macro tab_link(name, label, count=None) %}
+    {% if tab == name %}
+        <span class="admin-tab admin-tab--active">
+            {{ label }}{% if count is not none %} <span class="admin-tab-count">{{ count }}</span>{% endif %}
+        </span>
+    {% else %}
+        <a href="{{ url_for('admin_user_activity', user_id=u.id, tab=name) }}" class="admin-tab">
+            {{ label }}{% if count is not none %} <span class="admin-tab-count">{{ count }}</span>{% endif %}
+        </a>
+    {% endif %}
+{% endmacro %}
+
+<div class="admin-tabs" style="margin: 18px 0 6px;">
+    {{ tab_link("credits", "Credits") }}
+    {{ tab_link("webhooks", "Webhook events") }}
+    {{ tab_link("reservations", "Reservations") }}
+    {{ tab_link("invites", "Team invites") }}
+</div>
+
+{# Reusable bits for the filter + paginator strips below each table. #}
+{% macro pager(total) %}
+    {% set last_page = ((total - 1) // per_page) + 1 if total else 1 %}
+    <div class="admin-pager">
+        <span class="admin-pager-status">
+            Page {{ page }} of {{ last_page }} · {{ total }} row{% if total != 1 %}s{% endif %}
+        </span>
+        {% if page > 1 %}
+            <a href="{{ url_for('admin_user_activity', user_id=u.id, tab=tab, type=type_filter, status=status_filter, page=page-1, per_page=per_page) }}" class="btn btn-secondary btn-sm">← Prev</a>
+        {% endif %}
+        {% if page < last_page %}
+            <a href="{{ url_for('admin_user_activity', user_id=u.id, tab=tab, type=type_filter, status=status_filter, page=page+1, per_page=per_page) }}" class="btn btn-secondary btn-sm">Next →</a>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+
+{# =============================================================
+   Credits tab
+============================================================= #}
+{% if tab == "credits" %}
+<section class="admin-card" style="padding:0; overflow:hidden; margin-top:14px;">
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center;">
+        <h2>Credit transactions</h2>
+        {# Type filter — drop into a <form get> so the URL captures
+           the choice and back-button works as expected. #}
+        <form method="GET" action="{{ url_for('admin_user_activity', user_id=u.id) }}" style="display:flex; gap:6px; align-items:center;">
+            <input type="hidden" name="tab" value="credits">
+            <select name="type" onchange="this.form.submit()" style="font-size:13px;">
+                <option value="">All types</option>
+                {% for t in credit_types %}
+                <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if credit_rows %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance after</th>
+                <th>Note</th>
+                <th>When</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in credit_rows %}
+            <tr>
+                <td><span class="admin-pill">{{ t.type }}</span></td>
+                <td style="font-weight:700; color:{% if t.amount > 0 %}#047857{% elif t.amount < 0 %}#b91c1c{% else %}var(--text-muted){% endif %};">
+                    {{ '%+d' % t.amount }}
+                </td>
+                <td>{{ t.balance_after }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ t.notes or '—' }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ t.created_at.strftime('%d %b %Y %H:%M:%S') if t.created_at else '—' }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {{ pager(credit_total) }}
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        {% if type_filter %}No credit transactions of type "{{ type_filter }}".{% else %}No credit transactions yet.{% endif %}
+    </p>
+    {% endif %}
+</section>
+{% endif %}
+
+
+{# =============================================================
+   Webhook events tab
+============================================================= #}
+{% if tab == "webhooks" %}
+<section class="admin-card" style="padding:0; overflow:hidden; margin-top:14px;">
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h2>Webhook events</h2>
+        <form method="GET" action="{{ url_for('admin_user_activity', user_id=u.id) }}" style="display:flex; gap:6px; align-items:center;">
+            <input type="hidden" name="tab" value="webhooks">
+            <select name="type" onchange="this.form.submit()" style="font-size:13px;">
+                <option value="">All event types</option>
+                {% for t in webhook_types %}
+                <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+            <select name="status" onchange="this.form.submit()" style="font-size:13px;">
+                <option value="">All statuses</option>
+                <option value="processed" {% if status_filter == "processed" %}selected{% endif %}>processed</option>
+                <option value="failed" {% if status_filter == "failed" %}selected{% endif %}>failed</option>
+                <option value="ignored" {% if status_filter == "ignored" %}selected{% endif %}>ignored</option>
+            </select>
+        </form>
+    </div>
+
+    {% if webhook_rows %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Event type</th>
+                <th>Status</th>
+                <th>Stripe event ID</th>
+                <th>Notes</th>
+                <th>Received</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for w in webhook_rows %}
+            <tr>
+                <td><span class="admin-pill">{{ w.event_type }}</span></td>
+                <td>
+                    <span class="admin-pill"
+                          style="background:{% if w.status == 'processed' %}#d1fae5; color:#065f46{% elif w.status == 'failed' %}#fee2e2; color:#991b1b{% else %}#e5e7eb; color:#374151{% endif %};">
+                        {{ w.status }}
+                    </span>
+                </td>
+                <td style="font-family:monospace; font-size:11.5px; color:var(--text-muted); word-break:break-all;">{{ w.event_id }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ w.notes or '—' }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ w.received_at.strftime('%d %b %Y %H:%M:%S') if w.received_at else '—' }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {{ pager(webhook_total) }}
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        No webhook events recorded for this user
+        {% if type_filter or status_filter %} matching the current filters{% endif %}.
+    </p>
+    {% endif %}
+</section>
+{% endif %}
+
+
+{# =============================================================
+   Credit reservations tab
+============================================================= #}
+{% if tab == "reservations" %}
+<section class="admin-card" style="padding:0; overflow:hidden; margin-top:14px;">
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center;">
+        <h2>Credit reservations</h2>
+        <form method="GET" action="{{ url_for('admin_user_activity', user_id=u.id) }}" style="display:flex; gap:6px; align-items:center;">
+            <input type="hidden" name="tab" value="reservations">
+            <select name="status" onchange="this.form.submit()" style="font-size:13px;">
+                <option value="">All statuses</option>
+                {% for s in reservation_statuses %}
+                <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if reservation_rows %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Reserved</th>
+                <th>Expires / Finalized</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in reservation_rows %}
+            <tr>
+                <td><span class="admin-pill">{{ r.action_key }}</span></td>
+                <td style="font-weight:700;">{{ r.amount }}</td>
+                <td>
+                    <span class="admin-pill"
+                          style="background:{% if r.status == 'committed' %}#d1fae5; color:#065f46{% elif r.status == 'released' %}#e5e7eb; color:#374151{% elif r.status == 'pending' %}#dbeafe; color:#1e40af{% else %}#fef3c7; color:#92400e{% endif %};">
+                        {{ r.status }}
+                    </span>
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px;">{{ r.notes or '—' }}</td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ r.created_at.strftime('%d %b %Y %H:%M:%S') if r.created_at else '—' }}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {% if r.finalized_at %}
+                        finalized {{ r.finalized_at.strftime('%d %b %Y %H:%M:%S') }}
+                    {% elif r.expires_at %}
+                        expires {{ r.expires_at.strftime('%d %b %Y %H:%M:%S') }}
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {{ pager(reservation_total) }}
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        No credit reservations
+        {% if status_filter %} with status "{{ status_filter }}"{% endif %}.
+    </p>
+    {% endif %}
+</section>
+{% endif %}
+
+
+{# =============================================================
+   Team invites tab
+============================================================= #}
+{% if tab == "invites" %}
+<section class="admin-card" style="padding:0; overflow:hidden; margin-top:14px;">
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center;">
+        <h2>Team invites sent</h2>
+        <form method="GET" action="{{ url_for('admin_user_activity', user_id=u.id) }}" style="display:flex; gap:6px; align-items:center;">
+            <input type="hidden" name="tab" value="invites">
+            <select name="status" onchange="this.form.submit()" style="font-size:13px;">
+                <option value="">All statuses</option>
+                <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>pending</option>
+                <option value="accepted" {% if status_filter == "accepted" %}selected{% endif %}>accepted</option>
+                <option value="revoked" {% if status_filter == "revoked" %}selected{% endif %}>revoked</option>
+            </select>
+        </form>
+    </div>
+
+    {% if invite_rows %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Invited</th>
+                <th>Accepted</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for i in invite_rows %}
+            <tr>
+                <td>{{ i.email }}</td>
+                <td>
+                    <span class="admin-pill"
+                          style="background:{% if i.status == 'accepted' %}#d1fae5; color:#065f46{% elif i.status == 'pending' %}#dbeafe; color:#1e40af{% else %}#e5e7eb; color:#374151{% endif %};">
+                        {{ i.status }}
+                    </span>
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ i.invited_at.strftime('%d %b %Y %H:%M:%S') if i.invited_at else '—' }}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ i.accepted_at.strftime('%d %b %Y %H:%M:%S') if i.accepted_at else '—' }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {{ pager(invite_total) }}
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        No team invites sent
+        {% if status_filter %} with status "{{ status_filter }}"{% endif %}.
+    </p>
+    {% endif %}
+</section>
+{% endif %}
+
+{% endblock %}

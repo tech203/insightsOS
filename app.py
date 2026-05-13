@@ -6341,6 +6341,166 @@ def admin_user_detail(user_id):
     )
 
 
+@app.route("/admin/users/<int:user_id>/activity", methods=["GET"])
+@login_required
+def admin_user_activity(user_id):
+    """Full activity audit log for a single user.
+
+    Goes deeper than the existing /admin/users/<id> detail page, which
+    shows only the last 50 CreditTransaction rows. This view aggregates
+    every persisted side-effect we have on the user — credits, webhook
+    events, reservations, team invites — so support can answer "where
+    did my credits go" / "did my Stripe webhook fire" without a shell.
+
+    Filters: per-tab type filter via ?type=... query params. Cheap
+    indexed queries; pagination via ?page=&per_page= with sane defaults.
+    """
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+
+    # Tab selector. Anything outside the known set falls back to
+    # "credits" so a broken bookmark doesn't 500.
+    tab = (request.args.get("tab") or "credits").lower()
+    if tab not in {"credits", "webhooks", "reservations", "invites"}:
+        tab = "credits"
+
+    # Filter values per tab. Empty string = no filter.
+    type_filter = (request.args.get("type") or "").strip()
+    status_filter = (request.args.get("status") or "").strip()
+
+    # Pagination — keep page size modest so a noisy user doesn't blow
+    # up the page render. Bounded so an attacker can't DoS by passing
+    # per_page=999999.
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = max(10, min(200, int(request.args.get("per_page", 50))))
+    except (TypeError, ValueError):
+        per_page = 50
+
+    # Build the result set lazily — each tab pulls only its own table.
+    credit_rows = []
+    credit_total = 0
+    credit_types = []
+    webhook_rows = []
+    webhook_total = 0
+    webhook_types = []
+    reservation_rows = []
+    reservation_total = 0
+    reservation_statuses = []
+    invite_rows = []
+    invite_total = 0
+
+    if tab == "credits":
+        q = CreditTransaction.query.filter_by(user_id=user_id)
+        if type_filter:
+            q = q.filter_by(type=type_filter)
+        credit_total = q.count()
+        credit_rows = (
+            q.order_by(CreditTransaction.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        # Distinct values for the type-filter dropdown. Cheap on a
+        # small table; if this ever gets slow we can cache it.
+        credit_types = [
+            r[0] for r in
+            db.session.query(CreditTransaction.type)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(CreditTransaction.type.asc())
+            .all()
+        ]
+
+    elif tab == "webhooks":
+        # Webhook events touching this user — we don't have a FK from
+        # WebhookEvent → users (the table is keyed on Stripe event_id
+        # and may not always resolve to a known user), so we use the
+        # user_id column set by the dispatcher.
+        q = WebhookEvent.query.filter_by(user_id=user_id)
+        if type_filter:
+            q = q.filter_by(event_type=type_filter)
+        if status_filter:
+            q = q.filter_by(status=status_filter)
+        webhook_total = q.count()
+        webhook_rows = (
+            q.order_by(WebhookEvent.received_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        webhook_types = [
+            r[0] for r in
+            db.session.query(WebhookEvent.event_type)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(WebhookEvent.event_type.asc())
+            .all()
+        ]
+
+    elif tab == "reservations":
+        q = CreditReservation.query.filter_by(user_id=user_id)
+        if status_filter:
+            q = q.filter_by(status=status_filter)
+        reservation_total = q.count()
+        reservation_rows = (
+            q.order_by(CreditReservation.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        reservation_statuses = [
+            r[0] for r in
+            db.session.query(CreditReservation.status)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(CreditReservation.status.asc())
+            .all()
+        ]
+
+    elif tab == "invites":
+        q = TeamInvite.query.filter_by(owner_user_id=user_id)
+        if status_filter:
+            q = q.filter_by(status=status_filter)
+        invite_total = q.count()
+        invite_rows = (
+            q.order_by(TeamInvite.invited_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+
+    return render_template(
+        "admin/user_activity.html",
+        u=user,
+        tab=tab,
+        type_filter=type_filter,
+        status_filter=status_filter,
+        page=page,
+        per_page=per_page,
+        # Per-tab data
+        credit_rows=credit_rows,
+        credit_total=credit_total,
+        credit_types=credit_types,
+        webhook_rows=webhook_rows,
+        webhook_total=webhook_total,
+        webhook_types=webhook_types,
+        reservation_rows=reservation_rows,
+        reservation_total=reservation_total,
+        reservation_statuses=reservation_statuses,
+        invite_rows=invite_rows,
+        invite_total=invite_total,
+    )
+
+
 @app.route("/admin/users/<int:user_id>/role", methods=["POST"])
 @login_required
 def admin_user_set_role(user_id):
