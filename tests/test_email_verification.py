@@ -22,6 +22,7 @@ Helpers tested directly (no HTTP layer):
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from dtutils import utcnow
 from unittest.mock import patch
 
 import pytest
@@ -70,8 +71,8 @@ class TestIssueToken:
         assert row.id is not None
         assert row.user_id == u.id
         assert row.used_at is None
-        assert row.expires_at > datetime.utcnow() + timedelta(hours=23)
-        assert row.expires_at < datetime.utcnow() + timedelta(hours=25)
+        assert row.expires_at > utcnow() + timedelta(hours=23)
+        assert row.expires_at < utcnow() + timedelta(hours=25)
 
     def test_token_is_url_safe_string(self, make_user):
         u = make_user(email_verified=False)
@@ -164,7 +165,7 @@ class TestVerifyEmailRoute:
         row = EmailVerificationToken(
             user_id=u.id,
             token="expired-token-123",
-            expires_at=datetime.utcnow() - timedelta(hours=1),
+            expires_at=utcnow() - timedelta(hours=1),
         )
         db.session.add(row)
         db.session.commit()
@@ -180,7 +181,7 @@ class TestVerifyEmailRoute:
         u = make_user(email_verified=False)
         row = issue_email_verification_token(u)
         # Mark used + commit
-        row.used_at = datetime.utcnow()
+        row.used_at = utcnow()
         db.session.commit()
 
         c = flask_app.test_client()
@@ -261,7 +262,7 @@ class TestResendRoute:
         window should let a fresh resend through."""
         u = make_user(email_verified=False)
         first_row = issue_email_verification_token(u)
-        first_row.created_at = datetime.utcnow() - timedelta(seconds=120)
+        first_row.created_at = utcnow() - timedelta(seconds=120)
         db.session.commit()
 
         c = flask_app.test_client()

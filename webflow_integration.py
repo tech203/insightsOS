@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from dtutils import utcnow
 from urllib.parse import urlencode
 
 import requests
@@ -178,7 +179,7 @@ def export_project_to_webflow(project, pages, publish=None):
         "site_base_url": site_base_url,
         "collection_slug": collection_slug,
         "published": bool(should_publish),
-        "exported_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "exported_at": utcnow().isoformat(timespec="seconds") + "Z",
         "schema": schema_result,
         "pages": exported_pages,
         "publish_result": publish_result,

@@ -13,6 +13,7 @@ on api.cal.com/v1 but v2 is the recommended path).
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from dtutils import utcnow
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -126,5 +127,5 @@ def summarize(client: CalComClient) -> Dict[str, Any]:
             for et in (event_types or [])[:20]
         ],
         "bookings_30d": len(bookings or []),
-        "fetched_at": datetime.utcnow().isoformat(),
+        "fetched_at": utcnow().isoformat(),
     }

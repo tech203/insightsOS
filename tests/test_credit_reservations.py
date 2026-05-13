@@ -19,6 +19,7 @@ The contract being tested:
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from dtutils import utcnow
 
 import pytest
 
@@ -61,8 +62,8 @@ class TestReserveCredits:
         assert row.action_key == "content_brief"
         assert row.notes == "my note"
         # 15-minute TTL by default
-        assert row.expires_at > datetime.utcnow() + timedelta(minutes=14)
-        assert row.expires_at < datetime.utcnow() + timedelta(minutes=16)
+        assert row.expires_at > utcnow() + timedelta(minutes=14)
+        assert row.expires_at < utcnow() + timedelta(minutes=16)
 
     def test_reserve_returns_none_when_insufficient_funds(self, make_user):
         broke = make_user(balance=0)
@@ -229,7 +230,7 @@ class TestSweepExpiredReservations:
             amount=1,
             action_key=action,
             status="pending",
-            expires_at=datetime.utcnow() - timedelta(minutes=minutes_ago),
+            expires_at=utcnow() - timedelta(minutes=minutes_ago),
         )
         db.session.add(row)
         db.session.commit()
@@ -258,7 +259,7 @@ class TestSweepExpiredReservations:
         row = reserve_credits_for(user, "audit_run")
         commit_reservation(row)
         # Manually expire it
-        row.expires_at = datetime.utcnow() - timedelta(minutes=20)
+        row.expires_at = utcnow() - timedelta(minutes=20)
         db.session.commit()
 
         balance_before = user.wallet.balance
@@ -273,7 +274,7 @@ class TestSweepExpiredReservations:
         monkeypatch.setattr(app_module, "_last_reservation_sweep_at", None)
         row = reserve_credits_for(user, "audit_run")
         release_reservation(row)
-        row.expires_at = datetime.utcnow() - timedelta(minutes=20)
+        row.expires_at = utcnow() - timedelta(minutes=20)
         db.session.commit()
 
         balance_before = user.wallet.balance

@@ -15,6 +15,7 @@ testable and avoids a circular import with app.py where the models live.
 from __future__ import annotations
 
 from datetime import datetime
+from dtutils import utcnow
 from typing import Any, Dict, List, Optional
 
 
@@ -112,7 +113,7 @@ def run_answer_check(
             answer_type=result.get("answer_type"),
             competitors_mentioned=competitors,
             answer_excerpt=answer_excerpt,
-            checked_at=datetime.utcnow(),
+            checked_at=utcnow(),
         )
         db.session.add(snapshot)
         db.session.flush()
@@ -162,7 +163,7 @@ def run_answer_check(
         prompt_row.top_competitor = (
             all_competitors[0] if all_competitors else prompt_row.top_competitor
         )
-        prompt_row.last_checked = datetime.utcnow().strftime("%d %b %Y, %H:%M UTC")
+        prompt_row.last_checked = utcnow().strftime("%d %b %Y, %H:%M UTC")
         prompt_row.change = rolled_change
 
     db.session.commit()

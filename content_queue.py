@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 from datetime import datetime
+from dtutils import utcnow
 
 QUEUE_FILE = os.path.join("data", "content_queue.json")
 
@@ -56,7 +57,7 @@ def _save_json_file(filepath, payload):
 
 
 def _now_iso():
-    return datetime.utcnow().replace(microsecond=0).isoformat()
+    return utcnow().replace(microsecond=0).isoformat()
 
 
 def _normalize_text(value, default=""):

@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
+from dtutils import utcnow
 
 
 class WorkspaceManager:
@@ -26,7 +27,7 @@ class WorkspaceManager:
             "user_id": user_id,
             "domain": domain,
             "input_text": input_text,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": utcnow().isoformat(),
             "milestone": "baseline",
             "outputs": {},
         }
