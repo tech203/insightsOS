@@ -4663,23 +4663,72 @@ def get_active_queue_count(client_id, user_id):
     )
 
 
+def has_brand_context(client_row) -> bool:
+    """True when a workspace has *meaningful* brand context set.
+
+    Brand context is the single biggest input to content brief / draft
+    quality — generators lift voice, audience, differentiators directly
+    from this blob. Until it's filled in, every generated output runs
+    on the brand name and website domain alone.
+
+    A workspace counts as "having brand context" when at least one of
+    the structured Brand Kit fields is set, OR the legacy `notes`
+    field has been replaced with the brand-context block (which has
+    a recognizable header). We accept either since the brand-context
+    form writes `notes` and the Brand Kit Studio writes the structured
+    columns.
+
+    Returns False for missing-row inputs so callers can treat
+    "workspace doesn't exist" the same as "no context yet."
+    """
+    if client_row is None:
+        return False
+    if isinstance(client_row, dict):
+        get = client_row.get
+    else:
+        get = lambda k, default=None: getattr(client_row, k, default)  # noqa: E731
+
+    # Structured Brand Kit fields — any non-empty value counts.
+    for k in (
+        "brand_audience", "brand_services", "brand_differentiators",
+        "brand_voice", "brand_personality",
+    ):
+        v = (get(k) or "")
+        if isinstance(v, str) and v.strip():
+            return True
+
+    # Legacy `notes` blob written by the brand-context form. The form
+    # writes a structured block starting with "Target audience:" so
+    # we use that as a signal — an empty workspace's notes field is
+    # usually None or a free-form description, not that structured
+    # header.
+    notes = (get("notes") or "")
+    if isinstance(notes, str) and "Target audience:" in notes:
+        return True
+
+    return False
+
+
 def get_onboarding_state(user_id):
-    """Three-step first-run flow state for the onboarding stepper.
+    """First-run flow state for the onboarding stepper.
 
     Steps:
-      1. signup        — implicit, completed once user_id exists
-      2. workspace     — has at least 1 workspace
-      3. audit         — has at least 1 saved audit
+      1. signup         — implicit, completed once user_id exists
+      2. workspace      — has at least 1 workspace
+      3. brand_context  — first workspace has brand context filled
+      4. audit          — has at least 1 saved audit
+
+    The brand_context step is a soft step: the user can skip it (via
+    the "Skip for now" link on the brand context form) and still
+    progress to audit. The stepper keeps it visible-but-not-done so
+    they can finish it later — content quality compounds with it, so
+    nudging without blocking is the right tradeoff.
 
     Returns a dict the templates render directly:
       {
-        "active": bool,            # True until all 3 steps done
-        "current_step": 1|2|3,     # the step the user is on now
-        "steps": [
-          {"key": "signup", "label": "Account", "done": True},
-          {"key": "workspace", "label": "Workspace", "done": bool},
-          {"key": "audit", "label": "First audit", "done": bool},
-        ],
+        "active": bool,            # True until all required steps done
+        "current_step": 1|2|3|4,   # the step the user is on now
+        "steps": [...]             # ordered with key/label/done/skippable
       }
 
     Cheap: workspace and audit lookups are already done elsewhere on
@@ -4694,21 +4743,54 @@ def get_onboarding_state(user_id):
     has_workspace = bool(workspaces)
     has_audit = bool(audits)
 
+    # Brand-context state — check the first workspace (the one the
+    # user just created during onboarding). We don't require every
+    # workspace to have brand context, just the seed one.
+    first_workspace_row = None
+    has_first_brand_context = False
+    if has_workspace:
+        try:
+            first_workspace_row = (
+                Client.query
+                .filter_by(user_id=user_id)
+                .order_by(Client.created_at.asc())
+                .first()
+            )
+            has_first_brand_context = has_brand_context(first_workspace_row)
+        except Exception:
+            pass
+
     if not has_workspace:
         current_step = 2
-    elif not has_audit:
+    elif not has_first_brand_context:
         current_step = 3
+    elif not has_audit:
+        current_step = 4
     else:
-        current_step = 3  # done — stepper inactive
+        current_step = 4  # done — stepper inactive
 
+    # `active` controls whether the stepper renders at all. We treat
+    # the stepper as "done" once the user has run their first audit
+    # (the unambiguous activation moment), even if brand_context is
+    # still empty. They can still finish brand_context later — we
+    # surface a separate banner on the workspace detail page for that.
     return {
         "active": not (has_workspace and has_audit),
         "current_step": current_step,
         "steps": [
             {"key": "signup", "label": "Account", "done": True},
             {"key": "workspace", "label": "Workspace", "done": has_workspace},
+            {
+                "key": "brand_context",
+                "label": "Brand context",
+                "done": has_first_brand_context,
+                "skippable": True,
+            },
             {"key": "audit", "label": "First audit", "done": has_audit},
         ],
+        "first_workspace_id": (
+            first_workspace_row.slug if first_workspace_row else None
+        ),
     }
 
 
@@ -8654,17 +8736,24 @@ def create_client():
             user_id=current_user.id,
         )
 
-        # First-workspace users skip the workspace overview (which is
-        # mostly empty placeholders pre-audit) and go straight to the
-        # audit form — that's the next step on the onboarding stepper
-        # and the only non-trivial thing they can do now.
+        # First-workspace users get the soft brand-context step
+        # before the audit. Filling it in dramatically improves every
+        # downstream content brief / draft, and most users never
+        # discover the form on their own (it's buried in the workspace
+        # detail page). The form has a "Skip for now" link → audit.
+        #
+        # We still redirect non-first workspaces straight to the
+        # workspace detail page — they already know the product, so
+        # the upfront brand-context nudge would feel paternalistic.
         if is_first_workspace:
             flash(
-                "Workspace created. Now run your first audit — uses 1 of your starter credits.",
+                "Workspace created. Add a quick brand context next so your "
+                "first audit and content briefs reflect your business — or "
+                "skip and run the audit now.",
                 "success",
             )
             return redirect(
-                url_for("new_audit", client_id=client["id"])
+                url_for("client_brand_context", client_id=client["slug"])
             )
 
         flash("Client workspace created successfully.", "success")
@@ -8755,6 +8844,16 @@ def client_brand_context(client_id):
     if not row:
         abort(404)
 
+    # `next` controls where Save / Skip send the user. When the form
+    # is reached from the first-workspace flow, we want to drop them
+    # at the audit form so the onboarding stepper keeps moving. From
+    # the workspace detail page (returning user) we send them back
+    # to the workspace overview. Allowed targets are validated below
+    # — an attacker can't redirect to /external.
+    next_target = (request.args.get("next") or "").strip()
+    if request.method == "POST":
+        next_target = (request.form.get("next") or next_target).strip()
+
     if request.method == "POST":
         audience = safe_str(request.form.get("audience"))
         services = safe_str(request.form.get("services"))
@@ -8798,14 +8897,33 @@ Additional notes:
             "Brand context saved. Future briefs and drafts will use this workspace context.",
             "success",
         )
+        # Route the save destination based on `next`:
+        #   "audit"   → onboarding flow, send to the audit form
+        #   "queue"   → returning user editing context, back to queue
+        #   default   → existing behavior (query ideas) for compat
+        if next_target == "audit":
+            return redirect(url_for("new_audit", client_id=row.id))
+        if next_target == "workspace":
+            return redirect(url_for("client_detail", client_id=row.id))
         return redirect(url_for("client_query_ideas", client_id=row.slug))
 
     client = serialize_client_row(row)
+
+    # Onboarding heuristic: if the user has no audits yet, this is
+    # almost certainly the first-workspace flow. Default `next` to
+    # the audit form and adjust the page copy / Skip link.
+    audit_count = len(get_saved_audits(user_id=current_user.id))
+    is_onboarding = audit_count == 0
+    if is_onboarding and not next_target:
+        next_target = "audit"
 
     return render_template(
         "brand_context_form.html",
         client=client,
         existing_context=row.notes or "",
+        is_onboarding=is_onboarding,
+        next_target=next_target,
+        client_route_id=client_id,
     )
 
 
@@ -8936,6 +9054,7 @@ def client_detail(client_id):
         client=client,
         workspace_row=workspace_row,
         next_best_action=next_best_action,
+        client_has_brand_context=has_brand_context(workspace_row),
     )
 
 
@@ -11966,6 +12085,31 @@ def api_audits():
 def api_clients():
     clients = build_client_views()
     return jsonify({"count": len(clients), "items": clients})
+
+
+@app.route("/api/wallet")
+@login_required
+def api_wallet():
+    """Live wallet + plan snapshot.
+
+    Used by the stripe_success page to poll for webhook-driven state
+    changes (credits landed, plan flipped) and update the UI in place
+    instead of asking the user to refresh. Cheap query: one wallet
+    lookup keyed by user id.
+    """
+    if user_has_unlimited_credits(current_user):
+        balance: Any = "Unlimited"
+    elif getattr(current_user, "wallet", None):
+        balance = int(current_user.wallet.balance or 0)
+    else:
+        balance = 0
+
+    return jsonify({
+        "balance": balance,
+        "plan": getattr(current_user, "plan", "free"),
+        "is_subscriber": is_subscriber(getattr(current_user, "plan", None)),
+        "payment_status": getattr(current_user, "payment_status", "ok"),
+    })
 
 
 @app.route("/content/brief/new")

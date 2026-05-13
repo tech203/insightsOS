@@ -8,16 +8,32 @@
 {% block page_header %}
 <div class="page-header-standard">
     <div class="page-header-copy">
+        {% if is_onboarding %}
+        <h1>One quick step — what should we know about {{ client_name }}?</h1>
+        <p>
+            Filling this in once makes every audit, brief, and draft
+            sound like you. You can use ✨ <strong>Suggest with AI</strong>
+            to get a draft from your website, edit, then save —
+            usually takes about 30 seconds. Or skip and run the audit
+            without it.
+        </p>
+        {% else %}
         <h1>{{ client_name }} | Brand Context</h1>
         <p>Answer these once so DarInsights can create better query ideas, briefs, and drafts for this workspace.</p>
+        {% endif %}
     </div>
     <div class="page-header-actions">
         <button type="button" id="suggestWithAi" class="btn btn-secondary">
             ✨ Suggest with AI
         </button>
+        {% if is_onboarding %}
+        {# In onboarding, the back link feels wrong — they came from
+           workspace creation, not from the queue. Hide it. #}
+        {% else %}
         <a href="{{ url_for('content_queue_page', client_id=client_route_id) }}" class="btn btn-secondary">
             Back to Queue
         </a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -30,6 +46,11 @@
 
         <main class="brand-context-card">
             <form method="POST" class="brand-context-form">
+                {# Carries the redirect target through to the POST so
+                   onboarding users land on the audit form after Save
+                   and returning users go back to wherever they came
+                   from. Validated server-side against an allowlist. #}
+                <input type="hidden" name="next" value="{{ next_target or '' }}">
 
                 <div class="form-section">
                     <label>
@@ -87,12 +108,22 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        Save Brand Context
+                        {% if is_onboarding %}Save &amp; run audit{% else %}Save brand context{% endif %}
                     </button>
 
+                    {# Skip destination: during onboarding, jump
+                       straight to the audit form (don't lose the
+                       activation momentum). Otherwise, back to query
+                       ideas — the legacy behavior. #}
+                    {% if is_onboarding %}
+                    <a href="{{ url_for('new_audit', client_id=client_route_id) }}" class="btn btn-secondary">
+                        Skip — run audit now
+                    </a>
+                    {% else %}
                     <a href="{{ url_for('client_query_ideas', client_id=client_route_id) }}" class="btn btn-secondary">
                         Skip for Now
                     </a>
+                    {% endif %}
 
                     <span id="aiSuggestStatus" class="ai-suggest-status" aria-live="polite"></span>
                 </div>

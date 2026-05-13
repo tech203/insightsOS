@@ -8616,6 +8616,59 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     gap: 16px;
 }
 
+/* Brand-context nudge banner — sits above the workspace top strip
+   when brand context hasn't been filled in. Soft, three-column
+   (icon / body / CTA) so it doesn't shout but is hard to miss. */
+.brand-context-nudge {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--brand-primary-soft, rgba(124, 92, 255, 0.08)) 0%, transparent 100%);
+}
+
+.brand-context-nudge-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--brand-primary-soft, rgba(124, 92, 255, 0.18));
+    color: var(--brand-primary, #7c5cff);
+    font-size: 20px;
+}
+
+.brand-context-nudge-body {
+    flex: 1 1 auto;
+    line-height: 1.45;
+}
+
+.brand-context-nudge-body strong {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text-strong, #111);
+}
+
+.brand-context-nudge-body p {
+    margin: 0;
+    color: var(--text-soft, #4b5563);
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .brand-context-nudge {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: left;
+    }
+    .brand-context-nudge .btn {
+        align-self: flex-start;
+    }
+}
+
 .workspace-top-strip,
 .workspace-next-step-card,
 .workspace-section-card,

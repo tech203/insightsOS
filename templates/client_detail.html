@@ -101,6 +101,27 @@
 
 <div class="workspace-detail-shell workspace-detail-shell-clean">
 
+    {# Brand-context completion nudge. Renders only when the workspace
+       has no brand context yet — biggest input to brief / draft
+       quality, and most users never find the form on their own.
+       Soft (dismissible-via-going-and-completing-it), not blocking. #}
+    {% if client_has_brand_context is defined and not client_has_brand_context %}
+    <section class="brand-context-nudge surface-card">
+        <div class="brand-context-nudge-icon" aria-hidden="true">✦</div>
+        <div class="brand-context-nudge-body">
+            <strong>Add a quick brand context</strong>
+            <p>
+                Audits and content briefs get noticeably better when we know
+                your audience, voice, and what makes you different. Takes
+                about 30 seconds — or use ✨ Suggest with AI.
+            </p>
+        </div>
+        <a href="{{ url_for('client_brand_context', client_id=client.id, next='workspace') }}" class="btn btn-secondary btn-sm">
+            Add now
+        </a>
+    </section>
+    {% endif %}
+
     <section class="workspace-top-strip">
         <div class="workspace-top-main">
             <div class="workspace-top-brand">
