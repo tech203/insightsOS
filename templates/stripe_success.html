@@ -21,9 +21,10 @@
         {% elif purchase.kind == "bundle" %}
         <h1>{{ purchase.credits }} credit{% if purchase.credits != 1 %}s{% endif %} on the way</h1>
         <p class="checkout-success-tagline">
-            Credits land in your wallet within a few seconds. The webhook
-            from Stripe is what does the actual deposit, so you might see
-            this page slightly before the balance updates.
+            Credits land in your wallet within a few seconds — Stripe
+            sends a webhook that does the actual deposit. We're
+            checking in the background and will update the badge
+            below the moment they arrive.
         </p>
         {% else %}
         <h1>Thanks for your purchase</h1>
@@ -31,6 +32,31 @@
             Your account will reflect the change within a few seconds.
         </p>
         {% endif %}
+
+        {# Live balance / plan badge. Polled from /api/wallet by the
+           script at the bottom of this page so the user sees the
+           webhook landing in real time instead of being told to
+           refresh. data-* attributes carry the expected values so
+           the script knows what to wait for. #}
+        <div class="checkout-success-live-state"
+             data-purchase-kind="{{ purchase.kind }}"
+             data-expected-plan="{% if purchase.kind == 'plan' %}{{ purchase.slug }}{% endif %}"
+             data-expected-credits-delta="{% if purchase.kind == 'bundle' %}{{ purchase.credits }}{% else %}0{% endif %}"
+             data-baseline-balance="{{ credit_balance_numeric or 0 }}"
+             id="checkoutLiveState"
+             role="status"
+             aria-live="polite">
+            <span class="checkout-live-dot" aria-hidden="true"></span>
+            <span class="checkout-live-text" id="checkoutLiveText">
+                {% if purchase.kind == "bundle" %}
+                    Watching for credits — currently {{ credit_balance_numeric or 0 }} in your wallet.
+                {% elif purchase.kind == "plan" %}
+                    Confirming your {{ purchase.label }} plan…
+                {% else %}
+                    Updating your account…
+                {% endif %}
+            </span>
+        </div>
     </section>
 
     {% if purchase.kind == "plan" and purchase.features %}
@@ -261,5 +287,163 @@
 .checkout-success-meta a:hover {
     color: var(--brand-primary);
 }
+
+/* Live-state pill — polls /api/wallet until the expected change
+   lands. Three visual states: pending (pulsing dot), confirmed
+   (solid checkmark), timed-out (neutral). */
+.checkout-success-live-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px auto 0 auto;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--brand-primary-soft);
+    color: var(--brand-primary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.checkout-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: checkout-live-pulse 1.4s ease-in-out infinite;
+}
+
+.checkout-success-live-state[data-state="confirmed"] {
+    background: var(--success-soft, #ecfdf5);
+    color: var(--success, #059669);
+}
+
+.checkout-success-live-state[data-state="confirmed"] .checkout-live-dot {
+    animation: none;
+}
+
+.checkout-success-live-state[data-state="timeout"] {
+    background: var(--line-soft, #f3f4f6);
+    color: var(--text-muted, #6b7280);
+}
+
+.checkout-success-live-state[data-state="timeout"] .checkout-live-dot {
+    animation: none;
+}
+
+@keyframes checkout-live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.7); }
+}
 </style>
+
+<script>
+// Live polling of /api/wallet until the webhook lands.
+//
+// The stripe_success page used to tell users "credits will arrive in
+// a few seconds, you might see this page before the balance updates"
+// and leave them refreshing. Now we poll once per second for up to
+// 30 seconds and replace the message in place when the expected
+// delta lands.
+//
+// Three terminal states:
+//   - confirmed: API returned an update matching the purchase
+//                (balance increased for bundles, plan flipped for
+//                subscriptions). Stop polling.
+//   - timeout:   30 seconds of polling without a match. Fall back
+//                to a "refresh to check" message — webhook may be
+//                slow, our window is conservative.
+//   - error:     fetch failed. Drop polling silently so the page
+//                still feels responsive.
+(function () {
+    var root = document.getElementById("checkoutLiveState");
+    if (!root) return;
+
+    var textEl = document.getElementById("checkoutLiveText");
+    var kind = root.dataset.purchaseKind || "";
+    var expectedPlan = (root.dataset.expectedPlan || "").toLowerCase();
+    var expectedDelta = parseInt(root.dataset.expectedCreditsDelta || "0", 10) || 0;
+    var baseline = parseInt(root.dataset.baselineBalance || "0", 10) || 0;
+
+    var attempts = 0;
+    var MAX_ATTEMPTS = 30; // 30 × 1s ≈ 30s budget
+    var INTERVAL_MS = 1000;
+    var timer = null;
+
+    function setConfirmed(msg) {
+        root.setAttribute("data-state", "confirmed");
+        if (textEl) textEl.textContent = msg;
+        if (timer) clearInterval(timer);
+    }
+
+    function setTimeout_(msg) {
+        root.setAttribute("data-state", "timeout");
+        if (textEl) textEl.textContent = msg;
+        if (timer) clearInterval(timer);
+    }
+
+    function tick() {
+        attempts++;
+        fetch("{{ url_for('api_wallet') }}", { credentials: "same-origin" })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data) return;
+                // Bundle: wait for balance to rise by ≥ expectedDelta.
+                if (kind === "bundle" && expectedDelta > 0) {
+                    var bal = typeof data.balance === "number" ? data.balance : 0;
+                    if (typeof data.balance === "string") {
+                        // "Unlimited" — confirmed immediately.
+                        setConfirmed("Credits added — your wallet is unlimited.");
+                        return;
+                    }
+                    if (bal >= baseline + expectedDelta) {
+                        setConfirmed(
+                            "Credits landed — " + bal +
+                            " now in your wallet."
+                        );
+                        return;
+                    }
+                    if (textEl) {
+                        textEl.textContent =
+                            "Watching for credits — currently " + bal +
+                            " in your wallet.";
+                    }
+                }
+                // Plan: wait for user.plan to match the slug from
+                // the success URL.
+                if (kind === "plan" && expectedPlan) {
+                    var plan = (data.plan || "").toLowerCase();
+                    if (plan === expectedPlan) {
+                        setConfirmed(
+                            "Plan confirmed — you're on " +
+                            expectedPlan.charAt(0).toUpperCase() +
+                            expectedPlan.slice(1) + "."
+                        );
+                        return;
+                    }
+                }
+                if (attempts >= MAX_ATTEMPTS) {
+                    setTimeout_(
+                        "Still finalizing — Stripe sometimes takes a " +
+                        "minute. Refresh to recheck if you don't see " +
+                        "your update soon."
+                    );
+                }
+            })
+            .catch(function () {
+                // Drop polling silently; keep the original message.
+                if (timer) clearInterval(timer);
+            });
+    }
+
+    // Kick off immediately, then poll every second.
+    if (kind === "bundle" || kind === "plan") {
+        tick();
+        timer = setInterval(tick, INTERVAL_MS);
+    } else {
+        // Unknown purchase kind — hide the pill rather than spin
+        // forever on something we can't confirm.
+        root.style.display = "none";
+    }
+})();
+</script>
 {% endblock %}
