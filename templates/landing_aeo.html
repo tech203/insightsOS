@@ -27,6 +27,11 @@
             </nav>
 
             <div class="aeo-topbar-actions">
+                <button type="button" class="aeo-hamburger" id="aeoHamburger" aria-label="Open navigation menu" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <button type="button" class="aeo-theme-toggle" id="aeoThemeToggle" aria-label="Toggle light / dark mode">
                     <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true">
                         <circle cx="12" cy="12" r="4.5"></circle>
@@ -72,14 +77,9 @@
                     content or visibility actions to prioritise next.
                 </p>
 
-                <div class="aeo-note">
-                    We are currently refining the backend, audit workflow, reporting experience,
-                    and content action tools before opening self-serve signup and payment.
-                </div>
-
                 <div class="aeo-hero-actions">
-                    <a href="#early-access" class="aeo-btn aeo-btn-light">Join Interest List</a>
-                    <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-primary">Book Strategy Call</a>
+                    <a href="#early-access" class="aeo-btn aeo-btn-primary">Join Interest List</a>
+                    <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer" class="aeo-btn aeo-btn-outline">Book Strategy Call</a>
                     <a href="#planned-pricing" class="aeo-btn aeo-btn-outline">View Planned Pricing</a>
                 </div>
 
@@ -462,7 +462,7 @@
                             <label>
                                 What are you interested in?
                                 <select name="use_case">
-                                    <option value="">Select one</option>
+                                    <option value="" disabled selected>Select one</option>
                                     <option value="Own business visibility">Own business visibility</option>
                                     <option value="Agency client reporting">Agency client reporting</option>
                                     <option value="SEO or content workflow">SEO or content workflow</option>
@@ -1647,9 +1647,78 @@ html[data-theme="light"] {
 
 /* Responsive */
 
+/* Hamburger button — hidden on wide screens, shown at ≤1100px */
+.aeo-hamburger {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--btn-outline-border);
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: border-color 0.18s, background 0.18s;
+}
+.aeo-hamburger:hover {
+    background: var(--btn-outline-hover-bg);
+    border-color: var(--accent);
+}
+.aeo-hamburger span {
+    display: block;
+    width: 16px;
+    height: 1.5px;
+    background: currentColor;
+    border-radius: 2px;
+    transition: transform 0.22s ease, opacity 0.18s ease;
+}
+.aeo-hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.aeo-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.aeo-hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
 @media (max-width: 1100px) {
+    .aeo-hamburger {
+        display: flex;
+    }
+
+    /* Nav becomes a full-width dropdown anchored below the sticky topbar */
     .aeo-nav {
-        display: none;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        background: var(--topbar-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+        padding: 8px 24px 16px;
+        z-index: 29;
+        /* Hidden state */
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .aeo-nav.open {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+    .aeo-nav a {
+        font-size: 16px;
+        width: 100%;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .aeo-nav a:last-child {
+        border-bottom: 0;
     }
 
     .aeo-feature-grid,
@@ -2186,6 +2255,38 @@ document.addEventListener("DOMContentLoaded", function () {
         var next = current === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", next);
         try { localStorage.setItem("darInsightsTheme", next); } catch (_) {}
+    });
+});
+
+// Mobile hamburger menu toggle
+document.addEventListener("DOMContentLoaded", function () {
+    var hamburger = document.getElementById("aeoHamburger");
+    var nav = document.querySelector(".aeo-nav");
+    if (!hamburger || !nav) return;
+
+    function closeNav() {
+        nav.classList.remove("open");
+        hamburger.classList.remove("open");
+        hamburger.setAttribute("aria-expanded", "false");
+    }
+
+    hamburger.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var isOpen = nav.classList.toggle("open");
+        hamburger.classList.toggle("open", isOpen);
+        hamburger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    // Close when a nav link is tapped (smooth-scroll to section)
+    nav.querySelectorAll("a").forEach(function (link) {
+        link.addEventListener("click", closeNav);
+    });
+
+    // Close when clicking/tapping outside nav + hamburger
+    document.addEventListener("click", function (e) {
+        if (!nav.contains(e.target) && !hamburger.contains(e.target)) {
+            closeNav();
+        }
     });
 });
 </script>
