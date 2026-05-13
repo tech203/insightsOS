@@ -104,7 +104,16 @@
 </section>
 
 <section class="admin-card" style="padding:0; overflow:hidden;">
-    <div class="admin-card-head" style="padding:14px 18px 0;"><h2>Recent Credit Transactions</h2></div>
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center;">
+        <h2>Recent Credit Transactions</h2>
+        {# Link to the deeper activity audit log — webhook events,
+           reservations, invites — that this 50-row summary doesn't
+           cover. Support uses this to answer "where did my credits
+           go" / "did my Stripe webhook fire" without a shell. #}
+        <a href="{{ url_for('admin_user_activity', user_id=u.id) }}" class="btn btn-secondary btn-sm" style="margin-right:18px;">
+            Full activity log →
+        </a>
+    </div>
     {% if transactions %}
     <table class="admin-table">
         <thead>
