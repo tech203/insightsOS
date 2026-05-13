@@ -81,6 +81,11 @@ def user(app_ctx):
     Most tests want a user that can do things — the Pro plan + verified
     email + funded wallet is the default. Tests that care about Free /
     unverified / broke variants build their own user.
+
+    Backfills a recent monthly_allowance CreditTransaction so the
+    @app.before_request grant hook doesn't fire mid-test and silently
+    top up the wallet by 75 credits — which would break any test
+    asserting on a precise balance.
     """
     u = User(
         email="default@test.com",
@@ -93,6 +98,17 @@ def user(app_ctx):
     db.session.flush()
     u.wallet = Wallet(user_id=u.id, balance=10)
     db.session.add(u.wallet)
+    # Mark the monthly allowance as already granted in this 28-day
+    # window. Without this, the before_request hook tops paid users
+    # up by 75 credits on every request, which makes wallet-balance
+    # assertions flaky.
+    db.session.add(CreditTransaction(
+        user_id=u.id,
+        type="monthly_allowance",
+        amount=75,
+        balance_after=10,
+        notes="Test fixture: pre-granted to suppress before_request top-up",
+    ))
     db.session.commit()
     return u
 
@@ -116,6 +132,7 @@ def make_user(app_ctx):
         balance=10,
         email_verified=True,
         role="user",
+        suppress_monthly_grant=True,
     ):
         counter["i"] += 1
         u = User(
@@ -130,6 +147,20 @@ def make_user(app_ctx):
         db.session.flush()
         u.wallet = Wallet(user_id=u.id, balance=balance)
         db.session.add(u.wallet)
+        # Suppress the before_request monthly-credit top-up for paid
+        # plans by default (see the `user` fixture above for the
+        # rationale). Tests that specifically exercise the
+        # grant_monthly_credits_if_due path (e.g. period rollover)
+        # pass suppress_monthly_grant=False so the grant fires when
+        # they expect it to.
+        if suppress_monthly_grant and plan in ("pro", "growth", "agency", "starter"):
+            db.session.add(CreditTransaction(
+                user_id=u.id,
+                type="monthly_allowance",
+                amount=0,
+                balance_after=balance,
+                notes="Test fixture: pre-granted to suppress before_request top-up",
+            ))
         db.session.commit()
         return u
 

@@ -226,7 +226,9 @@ class TestSubscriptionUpdated:
         """A subscription.updated event after the 28-day window should
         trigger another monthly credit grant."""
         from datetime import timedelta
-        u = make_user(plan="pro", balance=0)
+        # suppress_monthly_grant=False so the fixture doesn't insert
+        # a current monthly_allowance row — we want the grant to fire.
+        u = make_user(plan="pro", balance=0, suppress_monthly_grant=False)
         u.stripe_subscription_id = "sub_test_1"
         # Backdate the last monthly_allowance grant to 30 days ago
         old_tx = CreditTransaction(
@@ -340,7 +342,7 @@ class TestPaymentSucceeded:
         """billing_reason=subscription_cycle is a renewal — should
         trigger the monthly grant if the 28-day window has elapsed."""
         from datetime import timedelta
-        u = make_user(plan="pro", balance=0)
+        u = make_user(plan="pro", balance=0, suppress_monthly_grant=False)
         u.stripe_customer_id = "cus_renew"
         old_tx = CreditTransaction(
             user_id=u.id,
