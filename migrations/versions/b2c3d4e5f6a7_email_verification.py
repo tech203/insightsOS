@@ -17,6 +17,7 @@ Create Date: 2026-05-13 10:30:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect as sa_inspect
 
 
 # revision identifiers, used by Alembic.
@@ -26,16 +27,32 @@ branch_labels = None
 depends_on = None
 
 
+def _table_exists(name):
+    return name in sa_inspect(op.get_bind()).get_table_names()
+
+
+def _column_exists(table, column):
+    cols = [c['name'] for c in sa_inspect(op.get_bind()).get_columns(table)]
+    return column in cols
+
+
+def _index_exists(table, index_name):
+    idxs = [i['name'] for i in sa_inspect(op.get_bind()).get_indexes(table)]
+    return index_name in idxs
+
+
 def upgrade():
     # ------------------------------------------------------------------
     # users.email_verified_at — NULL = not verified, timestamp = when.
     # Added as nullable so the column add itself doesn't fail; we
     # backfill existing rows below to grandfather them in.
+    # Guard: column may already exist if db.create_all() ran first.
     # ------------------------------------------------------------------
-    with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.add_column(sa.Column(
-            'email_verified_at', sa.DateTime(), nullable=True,
-        ))
+    if not _column_exists('users', 'email_verified_at'):
+        with op.batch_alter_table('users', schema=None) as batch_op:
+            batch_op.add_column(sa.Column(
+                'email_verified_at', sa.DateTime(), nullable=True,
+            ))
 
     # Backfill existing users so the launch doesn't suddenly lock them
     # out of Stripe checkout. Anyone who's been using the product
@@ -56,22 +73,25 @@ def upgrade():
     # rejected by the route, swept lazily — there's no harm in leaving
     # them in the table since the unique constraint is on token, not
     # user_id.
+    # Guard: table may already exist if db.create_all() ran first.
     # ------------------------------------------------------------------
-    op.create_table(
-        'email_verification_tokens',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('token', sa.String(length=80), nullable=False),
-        sa.Column('expires_at', sa.DateTime(), nullable=False),
-        sa.Column('used_at', sa.DateTime(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.current_timestamp()),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('token', name='uq_email_verification_tokens_token'),
-    )
-    with op.batch_alter_table('email_verification_tokens', schema=None) as batch_op:
-        batch_op.create_index('ix_email_verification_tokens_user_id', ['user_id'])
-        batch_op.create_index('ix_email_verification_tokens_token', ['token'])
+    if not _table_exists('email_verification_tokens'):
+        op.create_table(
+            'email_verification_tokens',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('user_id', sa.Integer(), nullable=False),
+            sa.Column('token', sa.String(length=80), nullable=False),
+            sa.Column('expires_at', sa.DateTime(), nullable=False),
+            sa.Column('used_at', sa.DateTime(), nullable=True),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.current_timestamp()),
+            sa.ForeignKeyConstraint(['user_id'], ['users.id']),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('token', name='uq_email_verification_tokens_token'),
+        )
+    if not _index_exists('email_verification_tokens', 'ix_email_verification_tokens_user_id'):
+        with op.batch_alter_table('email_verification_tokens', schema=None) as batch_op:
+            batch_op.create_index('ix_email_verification_tokens_user_id', ['user_id'])
+            batch_op.create_index('ix_email_verification_tokens_token', ['token'])
 
 
 def downgrade():
