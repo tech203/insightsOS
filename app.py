@@ -493,6 +493,73 @@ class WebhookEvent(db.Model):
     processed_at = db.Column(db.DateTime, nullable=True)
 
 
+class Audit(db.Model):
+    """A saved audit run.
+
+    Previously persisted as two on-disk JSON files in `outputs/`:
+    `<site>_<type>_<timestamp>_summary.json` (small, listed on the
+    audit-history page) and `..._full.json` (the heavy payload,
+    lazy-loaded when one specific audit is opened).
+
+    Migrated to SQL so:
+      - tests stop polluting `outputs/` every run
+      - user-scoped queries (the audit-history page filter) become
+        indexed `WHERE user_id = ?` instead of a Python scan over
+        every file in the directory
+      - audits can be joined with the rest of the activity log
+        surfaced by `/admin/users/<id>/activity` (PR #95)
+      - "delete this audit" becomes feasible (deleting a file by
+        URL was never wired up, partly because it was awkward to
+        do safely)
+
+    URL stability: `filename` is the primary key and matches the
+    legacy filename scheme exactly (`<site>_<type>_<ts>_summary.json`).
+    Every URL like `/audit/<filename>` keeps working through the
+    migration.
+
+    Two JSON columns (`summary_payload`, `full_payload`) mirror the
+    two-file split — list pages read only `summary_payload` (cheap),
+    the detail page hits `full_payload` (large blob, only when
+    opening a specific audit). The denormalized score columns let
+    the list page sort without unpacking the JSON.
+    """
+    __tablename__ = "audits"
+
+    # Filename-style identifier: matches the URL scheme already in
+    # use (e.g. `enfactum-com_full_20260506_145038_summary.json`),
+    # so existing browser bookmarks keep working post-migration.
+    filename = db.Column(db.String(255), primary_key=True)
+
+    # Scoping — indexed for the audit-history list query.
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=True, index=True,
+    )
+    # Stored as a string to match the legacy JSON shape (client_id
+    # was sometimes a slug, sometimes a numeric workspace id).
+    client_id = db.Column(db.String(255), nullable=True, index=True)
+    client_name = db.Column(db.String(255), nullable=True)
+
+    # Indexable summary fields.
+    website = db.Column(db.String(500), nullable=True, index=True)
+    audit_type = db.Column(db.String(40), nullable=True)
+    saved_at = db.Column(db.String(40), nullable=False, index=True)
+
+    # Denormalized scores so the list page can sort without unpacking
+    # `summary_payload`. Mirror what get_saved_audits() returned.
+    normalized_score = db.Column(db.Float, default=0, nullable=False)
+    visibility_score = db.Column(db.Float, default=0, nullable=False)
+    content_score = db.Column(db.Float, default=0, nullable=False)
+    schema_score = db.Column(db.Float, default=0, nullable=False)
+
+    # The two payloads, mirroring the legacy `_summary.json` and
+    # `_full.json` split. `summary_payload` is what get_saved_audits
+    # returned per row; `full_payload` is what read_full_audit_data
+    # returned for the detail / PDF export view.
+    summary_payload = db.Column(db.JSON, nullable=True)
+    full_payload = db.Column(db.JSON, nullable=True)
+
+
 class Referral(db.Model):
     """Referral payout record.
 
@@ -4285,96 +4352,71 @@ def get_full_path(summary_filename):
 
 
 def read_full_audit_data(summary_filename):
-    full_path = get_full_path(summary_filename)
-    if not full_path:
+    """Return the full audit payload for a given filename identifier.
+
+    Migrated from `outputs/<filename>` lookup to a SQL row fetch on
+    the audits table. Returns None for unknown filenames (matches the
+    legacy "file not found" return shape).
+    """
+    if not summary_filename:
         return None
-    return safe_load_json(full_path, None)
+    row = db.session.get(Audit, summary_filename)
+    if row is None:
+        return None
+    return row.full_payload
 
 
 def get_saved_audits(user_id=None):
-    if not os.path.exists(OUTPUTS_FOLDER):
-        return []
+    """Return the audit history as a list of dicts, newest first.
 
-    files = os.listdir(OUTPUTS_FOLDER)
-    summary_files = sorted(
-        [f for f in files if f.endswith("_summary.json")], reverse=True
-    )
+    Migrated from a `for filename in os.listdir(outputs/)` scan to a
+    SQL query against the `audits` table. The returned dict shape
+    matches what the JSON-file scheme produced — same keys, same
+    types — so templates and downstream filter / sort helpers don't
+    need to change.
 
-    audits = []
-    for filename in summary_files:
-        filepath = os.path.join(OUTPUTS_FOLDER, filename)
+    user_id filter is now an indexed WHERE clause instead of a
+    Python skip-on-mismatch comprehension.
+    """
+    q = Audit.query
+    if user_id is not None:
+        q = q.filter_by(user_id=int(user_id))
+    rows = q.order_by(Audit.saved_at.desc()).all()
+    return [_serialize_audit_row(r) for r in rows]
 
-        try:
-            data = load_json_file(filepath)
 
-            saved_user_id = data.get("user_id")
-            if user_id is not None and str(saved_user_id) != str(user_id):
-                continue
-
-            website = data.get("website", "N/A")
-            audits.append(
-                {
-                    "filename": filename,
-                    "website": website,
-                    "website_normalized": normalize_website(website),
-                    "client_id": (
-                        str(data.get("client_id"))
-                        if data.get("client_id") is not None
-                        else None
-                    ),
-                    "client_name": data.get("client_name"),
-                    "audit_type": data.get("audit_type", "N/A"),
-                    "saved_at": data.get("saved_at", ""),
-                    "verdict": data.get("summary", {}).get("verdict", "N/A"),
-                    "opportunity_level": data.get("summary", {}).get(
-                        "opportunity_level", "N/A"
-                    ),
-                    "normalized_score": data.get("scores", {}).get(
-                        "normalized_score", 0
-                    ),
-                    "visibility_score": data.get("scores", {}).get(
-                        "visibility_score", 0
-                    ),
-                    "content_score": data.get("scores", {}).get(
-                        "content_score", 0
-                    ),
-                    "schema_score": data.get("scores", {}).get(
-                        "schema_score", 0
-                    ),
-                    "scores": data.get("scores", {}),
-                    "summary": data.get("summary", {}),
-                    "visibility_snapshot": data.get("visibility_snapshot", {}),
-                    "top_competitors": data.get("top_competitors", []),
-                    "top_content_gaps": data.get("top_content_gaps", []),
-                    "top_recommendations": data.get("top_recommendations", []),
-                }
-            )
-        except Exception as e:
-            audits.append(
-                {
-                    "filename": filename,
-                    "website": "Error reading file",
-                    "website_normalized": "",
-                    "client_id": None,
-                    "client_name": None,
-                    "audit_type": "N/A",
-                    "saved_at": "",
-                    "verdict": str(e),
-                    "opportunity_level": "N/A",
-                    "normalized_score": 0,
-                    "visibility_score": 0,
-                    "content_score": 0,
-                    "schema_score": 0,
-                    "scores": {},
-                    "summary": {},
-                    "visibility_snapshot": {},
-                    "top_competitors": [],
-                    "top_content_gaps": [],
-                    "top_recommendations": [],
-                }
-            )
-
-    return audits
+def _serialize_audit_row(row):
+    """Shape an Audit ORM row into the dict that the JSON-file era
+    returned. Kept tight so templates / filter helpers don't need
+    to be touched."""
+    summary = row.summary_payload or {}
+    website = row.website or summary.get("website") or "N/A"
+    return {
+        "filename": row.filename,
+        "website": website,
+        "website_normalized": normalize_website(website),
+        "client_id": row.client_id,
+        "client_name": row.client_name,
+        "audit_type": row.audit_type or "N/A",
+        "saved_at": row.saved_at or "",
+        "verdict": (summary.get("summary") or {}).get("verdict", "N/A"),
+        "opportunity_level": (summary.get("summary") or {}).get(
+            "opportunity_level", "N/A"
+        ),
+        # Denormalized columns are the source of truth for sortable
+        # numeric fields; fall back to summary_payload values only if
+        # the columns are missing (older rows).
+        "normalized_score": row.normalized_score or summary.get("scores", {}).get("normalized_score", 0),
+        "visibility_score": row.visibility_score or summary.get("scores", {}).get("visibility_score", 0),
+        "content_score": row.content_score or summary.get("scores", {}).get("content_score", 0),
+        "schema_score": row.schema_score or summary.get("scores", {}).get("schema_score", 0),
+        "scores": summary.get("scores", {}),
+        "summary": summary.get("summary", {}),
+        "visibility_snapshot": summary.get("visibility_snapshot", {}),
+        "top_competitors": summary.get("top_competitors", []),
+        "top_content_gaps": summary.get("top_content_gaps", []),
+        "top_recommendations": summary.get("top_recommendations", []),
+    }
 
 
 def filter_audits(audits, search_term="", audit_type="all"):

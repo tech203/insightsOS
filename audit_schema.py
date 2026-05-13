@@ -425,19 +425,32 @@ def build_audit_payload(
 
 
 def save_audit_payload(payload: Dict[str, Any], outputs_folder: str = OUTPUTS_FOLDER) -> Dict[str, str]:
-    os.makedirs(outputs_folder, exist_ok=True)
+    """Persist a build_audit_payload() result as an Audit row.
+
+    Migrated from the two-file outputs/*.json scheme to SQL. The
+    return shape is preserved (callers expect summary_filename /
+    full_filename) so audit_runner.py and main.py don't need to
+    change. `summary_path` and `full_path` are kept in the return
+    dict as URL-style identifiers (no actual file exists at those
+    paths anymore); callers used them as opaque strings.
+
+    The `outputs_folder` kwarg is retained for back-compat but
+    ignored — the filename-identifier prefix it would have produced
+    isn't relevant once the data lives in SQL.
+    """
+    from app import Audit, db
 
     website = payload.get("meta", {}).get("website") or payload.get("website", "site")
     audit_type = payload.get("meta", {}).get("audit_type") or payload.get("audit_type", "audit")
-    timestamp = utcnow().strftime("%Y%m%d_%H%M%S")
+    # Microsecond resolution so back-to-back saves don't collide on
+    # the `filename` primary key (same fix as build_base_filename
+    # in save_results.py).
+    timestamp = utcnow().strftime("%Y%m%d_%H%M%S_%f")
     website_slug = slugify(normalize_website(website))
     base_name = f"{website_slug}_{audit_type}_{timestamp}"
 
     summary_filename = f"{base_name}_summary.json"
     full_filename = f"{base_name}_full.json"
-
-    summary_path = os.path.join(outputs_folder, summary_filename)
-    full_path = os.path.join(outputs_folder, full_filename)
 
     summary_payload = {
         "website": payload.get("website"),
@@ -454,11 +467,33 @@ def save_audit_payload(payload: Dict[str, Any], outputs_folder: str = OUTPUTS_FO
         "schema_version": payload.get("meta", {}).get("schema_version", "2.0"),
     }
 
-    with open(summary_path, "w", encoding="utf-8") as f:
-        json.dump(summary_payload, f, indent=2, ensure_ascii=False)
+    scores = payload.get("scores", {}) or {}
 
-    with open(full_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
+    audit = Audit(
+        filename=summary_filename,
+        user_id=payload.get("user_id"),
+        client_id=(
+            str(payload.get("client_id"))
+            if payload.get("client_id") is not None else None
+        ),
+        client_name=payload.get("client_name"),
+        website=payload.get("website"),
+        audit_type=payload.get("audit_type"),
+        saved_at=payload.get("saved_at") or utcnow().isoformat(),
+        normalized_score=_safe_score(scores.get("normalized_score")),
+        visibility_score=_safe_score(scores.get("visibility_score")),
+        content_score=_safe_score(scores.get("content_score")),
+        schema_score=_safe_score(scores.get("schema_score")),
+        summary_payload=summary_payload,
+        full_payload=payload,
+    )
+    db.session.add(audit)
+    db.session.commit()
+
+    # Preserve the legacy return shape. The "path" fields are
+    # opaque-string identifiers in the new world, not on-disk paths.
+    summary_path = os.path.join(outputs_folder, summary_filename)
+    full_path = os.path.join(outputs_folder, full_filename)
 
     return {
         "summary_filename": summary_filename,
@@ -466,3 +501,12 @@ def save_audit_payload(payload: Dict[str, Any], outputs_folder: str = OUTPUTS_FO
         "summary_path": summary_path,
         "full_path": full_path,
     }
+
+
+def _safe_score(v) -> float:
+    try:
+        if v is None or v == "":
+            return 0.0
+        return float(v)
+    except Exception:
+        return 0.0
