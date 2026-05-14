@@ -88,10 +88,14 @@ def test_clients_query_count_is_constant_regardless_of_workspace_count(
     reset, value = query_counter
 
     c1 = user_with_n_workspaces(1)
-    reset(); c1.get("/clients"); baseline = value()
+    reset()
+    c1.get("/clients")
+    baseline = value()
 
     c20 = user_with_n_workspaces(20)
-    reset(); c20.get("/clients"); at_20 = value()
+    reset()
+    c20.get("/clients")
+    at_20 = value()
 
     # If at_20 is more than 2× baseline, build_client_views() has
     # an N+1 again — likely a Model.query.filter_by(client_id=...)
@@ -113,10 +117,14 @@ def test_dashboard_query_count_is_constant_regardless_of_workspace_count(
     reset, value = query_counter
 
     c1 = user_with_n_workspaces(1)
-    reset(); c1.get("/dashboard"); baseline = value()
+    reset()
+    c1.get("/dashboard")
+    baseline = value()
 
     c20 = user_with_n_workspaces(20)
-    reset(); c20.get("/dashboard"); at_20 = value()
+    reset()
+    c20.get("/dashboard")
+    at_20 = value()
 
     assert at_20 <= baseline * 2, (
         f"N+1 regression on /dashboard: {baseline} queries with 1 workspace, "
