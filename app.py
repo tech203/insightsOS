@@ -3895,7 +3895,20 @@ def agency_branding(user) -> Dict[str, Any]:
     """Resolve the agency-branding dict that PDFs and the in-app
     sidebar use. Always returns the same shape so templates don't
     need to special-case missing fields. Falls back to DarInsights
-    branding when white-label is off."""
+    branding when white-label is off.
+
+    Plan gate: even if `is_white_label_enabled` is True on the row
+    (e.g. user enabled it on Pro, then downgraded to Free), the
+    branding is only applied when the user currently has access to
+    the `white_label` feature. Without this re-check, a downgraded
+    user would keep delivering branded reports indefinitely without
+    paying — a billing leak.
+
+    The feature check routes through PLAN_IMPLICIT_MODULES so
+    today's Pro/Growth users continue to qualify exactly as before;
+    once the modules system is surfaced for self-serve, an explicit
+    `UserModule(slug='agency')` row would qualify too.
+    """
     from services.storage import logo_storage
 
     # Resolve the uploaded logo URL regardless of whether white-label
@@ -3905,7 +3918,9 @@ def agency_branding(user) -> Dict[str, Any]:
         "agency_logos", getattr(user, "agency_logo_filename", None)
     ) if user else None
 
-    if not user or not getattr(user, "is_white_label_enabled", False):
+    toggle_on = bool(getattr(user, "is_white_label_enabled", False)) if user else False
+    plan_qualifies = bool(user) and user_has_feature(user, "white_label")
+    if not toggle_on or not plan_qualifies:
         return {
             "active": False,
             "name": "DarInsights",
@@ -14358,9 +14373,15 @@ def settings_update_white_label():
     current_user.agency_footer = footer or None
     current_user.agency_disclaimer = disclaimer or None
 
-    # White-label enable is gated to subscribers. Free users can save
-    # fields (prepping for an upgrade) but the toggle stays off.
-    if enable_requested and not is_subscriber(getattr(current_user, "plan", "free")):
+    # White-label enable is gated to users with access to the
+    # `white_label` feature. Routes through PLAN_IMPLICIT_MODULES so
+    # Pro/Growth users qualify implicitly today; an explicit
+    # UserModule(slug='agency') row also qualifies once modules become
+    # self-serve. Free users can save fields (prepping for an upgrade)
+    # but the toggle stays off. agency_branding() also re-checks this
+    # at read time so a downgrade auto-disables branding even if the
+    # toggle stays True on the row.
+    if enable_requested and not user_has_feature(current_user, "white_label"):
         current_user.is_white_label_enabled = False
         db.session.commit()
         flash(
