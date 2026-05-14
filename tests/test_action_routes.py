@@ -42,6 +42,7 @@ from app import (
     CreditReservation,
     MarketplacePresence,
     PromptTracking,
+    ShopifyConnection,
     db,
 )
 from app import app as flask_app
@@ -1062,3 +1063,581 @@ class TestAiEditQueueItem:
         # Wallet untouched.
         db.session.refresh(thin.wallet)
         assert thin.wallet.balance == 0
+
+
+# ---------------------------------------------------------------------------
+# /content-queue/<id>/generate-visual (visual_generation cost = 1)
+# ---------------------------------------------------------------------------
+# Placid integration. Unlike the OpenAI routes above, this depends
+# on PLACID_API_TOKEN + PLACID_TEMPLATE_UUID_OG env vars — when those
+# are missing the route bails before reserving credits.
+
+class TestGenerateQueueItemVisual:
+    """Placid-backed visual generation for a queue item. Commits on a
+    finished render, releases on Placid errors or empty payload."""
+
+    @pytest.fixture
+    def queue_item(self, user, workspace, monkeypatch):
+        from content_queue import add_queue_item
+        item = add_queue_item(
+            client_id=workspace.slug,
+            client_name=workspace.name,
+            target_query="best AEO tool",
+            content_type="article",
+            item_type="brief",
+            title="The case for AEO",
+            user_id=user.id,
+        )
+        # Both env vars set so the route gets past the config gate.
+        monkeypatch.setenv("PLACID_API_TOKEN", "test-token-not-used")
+        monkeypatch.setenv("PLACID_TEMPLATE_UUID_OG", "tpl-fake-uuid")
+        return item
+
+    def test_success_commits_after_finished_render(
+        self, logged_in_client, queue_item, user,
+    ):
+        balance_before = user.wallet.balance
+
+        # Mock the PlacidClient instance the route imports lazily.
+        with patch("services.placid_client.PlacidClient") as MockPlacid:
+            instance = MockPlacid.return_value
+            instance.generate_image.return_value = {
+                "status": "finished",
+                "image_url": "https://placid.cdn/og-image-123.png",
+            }
+            r = logged_in_client.post(
+                f"/content-queue/{queue_item['id']}/generate-visual",
+                follow_redirects=False,
+            )
+
+        # Redirect back to the content queue.
+        assert r.status_code == 302
+        assert "/content-queue" in (r.headers.get("Location") or "")
+
+        # 1-credit cost debited.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 1
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="visual_generation")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "committed"
+
+    def test_unexpected_status_releases_reservation(
+        self, logged_in_client, queue_item, user,
+    ):
+        """Placid returns something other than 'finished' with no
+        image_url (e.g. 'failed' or an empty payload): release the
+        reservation so the user isn't charged for a no-op."""
+        balance_before = user.wallet.balance
+
+        with patch("services.placid_client.PlacidClient") as MockPlacid:
+            instance = MockPlacid.return_value
+            instance.generate_image.return_value = {
+                "status": "failed",
+                "image_url": None,
+            }
+            logged_in_client.post(
+                f"/content-queue/{queue_item['id']}/generate-visual",
+            )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="visual_generation")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_placid_api_error_releases_reservation(
+        self, logged_in_client, queue_item, user,
+    ):
+        """A PlacidAPIError (network blip, 5xx from Placid) should
+        release the reservation and surface a friendly flash."""
+        from services.placid_client import PlacidAPIError
+        balance_before = user.wallet.balance
+
+        with patch("services.placid_client.PlacidClient") as MockPlacid:
+            MockPlacid.return_value.generate_image.side_effect = (
+                PlacidAPIError("simulated 503")
+            )
+            logged_in_client.post(
+                f"/content-queue/{queue_item['id']}/generate-visual",
+            )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="visual_generation")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_queued_status_keeps_reservation_pending(
+        self, logged_in_client, queue_item, user,
+    ):
+        """Placid 'queued' means the render is still running on
+        their side — the route leaves the reservation pending
+        rather than charging now or releasing. The sweeper auto-
+        releases at 15 min if the user never comes back to refresh."""
+        with patch("services.placid_client.PlacidClient") as MockPlacid:
+            instance = MockPlacid.return_value
+            instance.generate_image.return_value = {
+                "status": "queued",
+                "image_url": None,
+            }
+            logged_in_client.post(
+                f"/content-queue/{queue_item['id']}/generate-visual",
+            )
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="visual_generation")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "pending"
+
+    def test_placid_not_configured_bails_without_reserving(
+        self, logged_in_client, queue_item, user, monkeypatch,
+    ):
+        """If PLACID_API_TOKEN is missing the route flashes an error
+        and redirects — no reservation made."""
+        monkeypatch.delenv("PLACID_API_TOKEN", raising=False)
+        balance_before = user.wallet.balance
+
+        r = logged_in_client.post(
+            f"/content-queue/{queue_item['id']}/generate-visual",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="visual_generation",
+        ).first() is None
+
+    def test_insufficient_credits_redirects(
+        self, app_ctx, make_user, monkeypatch,
+    ):
+        from content_queue import add_queue_item
+        thin = make_user(plan="pro", balance=0, email="thin-vis@x.com")
+        ws = Client(
+            slug="thin-vis-ws", user_id=thin.id, name="Thin Vis",
+            website="https://x.com", website_normalized="x.com",
+            industry="A", location="B",
+        )
+        db.session.add(ws)
+        db.session.commit()
+        item = add_queue_item(
+            client_id=ws.slug, client_name=ws.name,
+            target_query="q", content_type="article", item_type="brief",
+            title="t", user_id=thin.id,
+        )
+        monkeypatch.setenv("PLACID_API_TOKEN", "test-token-not-used")
+        monkeypatch.setenv("PLACID_TEMPLATE_UUID_OG", "tpl-fake-uuid")
+
+        c = flask_app.test_client()
+        with c.session_transaction() as s:
+            s["_user_id"] = str(thin.id)
+            s["_fresh"] = True
+        r = c.post(
+            f"/content-queue/{item['id']}/generate-visual",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(thin.wallet)
+        assert thin.wallet.balance == 0
+        # No reservation row.
+        assert CreditReservation.query.filter_by(
+            user_id=thin.id, action_key="visual_generation",
+        ).first() is None
+
+
+# ---------------------------------------------------------------------------
+# /integrations/shopify/fix/alt-text/<client_id> (alt_text_fix_batch)
+# ---------------------------------------------------------------------------
+# Shopify integration. Bulk-fills missing alt text on every product
+# image. Requires write_products scope on the connection. Charge
+# semantics: commit only if at least one image was actually patched.
+
+class TestShopifyAltTextFix:
+    """The alt-text auto-fill route. Reservation is committed only
+    when patched > 0 — otherwise released so a user with no missing
+    alts (or a total Shopify outage) doesn't get billed for a no-op."""
+
+    @pytest.fixture
+    def connected_workspace(self, user, workspace):
+        conn = ShopifyConnection(
+            user_id=user.id,
+            client_id=workspace.id,
+            shop_domain="test-store.myshopify.com",
+            access_token="shpat_test_token_not_real",
+            scope="read_products,write_products",
+            shop_meta={},
+        )
+        db.session.add(conn)
+        db.session.commit()
+        return workspace, conn
+
+    def test_success_commits_when_at_least_one_image_patched(
+        self, logged_in_client, connected_workspace, user,
+    ):
+        workspace, _ = connected_workspace
+        balance_before = user.wallet.balance
+
+        # One product with one image missing alt text. The route
+        # should generate alt text and PATCH it back.
+        products = [{
+            "id": 101,
+            "title": "Vintage Mug",
+            "product_type": "Drinkware",
+            "vendor": "Action Co",
+            "tags": "vintage,ceramic",
+            "images": [{
+                "id": 9001,
+                "alt": "",  # empty → eligible for fill
+                "src": "https://cdn.shopify.com/products/mug.png",
+            }],
+        }]
+
+        with patch("services.shopify_client.ShopifyAdminClient") as MockShopify, \
+             patch(
+                 "app._generate_alt_text_ai",
+                 return_value="Vintage ceramic mug product image.",
+             ):
+            instance = MockShopify.return_value
+            instance.list_products.return_value = products
+            instance.update_product_image_alt.return_value = None
+
+            r = logged_in_client.post(
+                f"/integrations/shopify/fix/alt-text/{workspace.id}",
+                follow_redirects=False,
+            )
+
+        # Redirects back to the Shopify products view.
+        assert r.status_code == 302
+        assert "/shopify" in (r.headers.get("Location") or "") or \
+               "/integrations" in (r.headers.get("Location") or "")
+
+        # Reservation committed; alt_text_fix_batch costs 2 credits.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 2
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="alt_text_fix_batch")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "committed"
+
+    def test_no_images_to_patch_releases_reservation(
+        self, logged_in_client, connected_workspace, user,
+    ):
+        """Every product already has alt text → nothing to patch →
+        release the reservation (no charge)."""
+        workspace, _ = connected_workspace
+        balance_before = user.wallet.balance
+
+        products = [{
+            "id": 102,
+            "title": "Pre-tagged",
+            "images": [{
+                "id": 9002,
+                "alt": "Already has alt text",
+                "src": "https://cdn.shopify.com/p.png",
+            }],
+        }]
+
+        with patch("services.shopify_client.ShopifyAdminClient") as MockShopify:
+            MockShopify.return_value.list_products.return_value = products
+            logged_in_client.post(
+                f"/integrations/shopify/fix/alt-text/{workspace.id}",
+            )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="alt_text_fix_batch")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_shopify_list_failure_releases_reservation(
+        self, logged_in_client, connected_workspace, user,
+    ):
+        """If the initial list_products call blows up (rate limit,
+        revoked token), release the reservation before anything is
+        attempted — no point charging."""
+        from services.shopify_client import ShopifyAPIError
+        workspace, _ = connected_workspace
+        balance_before = user.wallet.balance
+
+        with patch("services.shopify_client.ShopifyAdminClient") as MockShopify:
+            MockShopify.return_value.list_products.side_effect = (
+                ShopifyAPIError("rate limit")
+            )
+            logged_in_client.post(
+                f"/integrations/shopify/fix/alt-text/{workspace.id}",
+            )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="alt_text_fix_batch")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_no_shopify_connection_bails_without_reserving(
+        self, logged_in_client, workspace, user,
+    ):
+        """No ShopifyConnection row for this workspace → flash + redirect
+        without reserving credits."""
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            f"/integrations/shopify/fix/alt-text/{workspace.id}",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="alt_text_fix_batch",
+        ).first() is None
+
+    def test_missing_write_scope_bails_without_reserving(
+        self, logged_in_client, workspace, user,
+    ):
+        """Connection exists but scope is read-only → flash + redirect.
+        Defends against tokens issued before write_products was added
+        to the app's scope list."""
+        conn = ShopifyConnection(
+            user_id=user.id,
+            client_id=workspace.id,
+            shop_domain="readonly.myshopify.com",
+            access_token="shpat_readonly",
+            scope="read_products",  # no write_products
+            shop_meta={},
+        )
+        db.session.add(conn)
+        db.session.commit()
+
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            f"/integrations/shopify/fix/alt-text/{workspace.id}",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="alt_text_fix_batch",
+        ).first() is None
+
+
+# ---------------------------------------------------------------------------
+# /integrations/shopify/descriptions/apply/<client_id> (description_rewrite_batch)
+# ---------------------------------------------------------------------------
+# Bulk-apply user-approved description rewrites. Charge semantics:
+# commit only when patched > 0. Selected products come from form
+# data (apply_product_id, repeated); proposals are pre-cached on the
+# ShopifyConnection's shop_meta.
+
+class TestShopifyDescriptionRewrite:
+    """The description rewrite apply route. Behavior mirrors the
+    alt-text route — only charge for successful patches, but the
+    user must explicitly select which proposals to apply."""
+
+    @pytest.fixture
+    def connected_with_proposals(self, user, workspace):
+        conn = ShopifyConnection(
+            user_id=user.id,
+            client_id=workspace.id,
+            shop_domain="descstore.myshopify.com",
+            access_token="shpat_desc_test",
+            scope="read_products,write_products",
+            shop_meta={
+                "cached_description_proposals": [
+                    {
+                        "product_id": "201",
+                        "title": "Vintage Mug",
+                        "proposed_html": "<p>A rewritten description.</p>",
+                    },
+                    {
+                        "product_id": "202",
+                        "title": "Modern Mug",
+                        "proposed_html": "<p>Another rewrite.</p>",
+                    },
+                ],
+            },
+        )
+        db.session.add(conn)
+        db.session.commit()
+        return workspace, conn
+
+    def test_success_commits_after_at_least_one_patch(
+        self, logged_in_client, connected_with_proposals, user,
+    ):
+        workspace, _ = connected_with_proposals
+        balance_before = user.wallet.balance
+
+        with patch("services.shopify_client.ShopifyAdminClient") as MockShopify:
+            instance = MockShopify.return_value
+            instance.update_product_description.return_value = None
+            instance.list_products.return_value = []  # refresh call
+
+            r = logged_in_client.post(
+                f"/integrations/shopify/descriptions/apply/{workspace.id}",
+                data={"apply_product_id": ["201", "202"]},
+                follow_redirects=False,
+            )
+
+        assert r.status_code == 302
+        # description_rewrite_batch costs 3 credits.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 3
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="description_rewrite_batch")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "committed"
+
+    def test_no_products_selected_releases_reservation(
+        self, logged_in_client, connected_with_proposals, user,
+    ):
+        """User submitted the form without ticking any product →
+        release the reservation immediately (the route catches this
+        before calling Shopify at all)."""
+        workspace, _ = connected_with_proposals
+        balance_before = user.wallet.balance
+
+        logged_in_client.post(
+            f"/integrations/shopify/descriptions/apply/{workspace.id}",
+            data={},  # no apply_product_id at all
+        )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="description_rewrite_batch")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_all_patches_fail_releases_reservation(
+        self, logged_in_client, connected_with_proposals, user,
+    ):
+        """Every Shopify PATCH fails → release the reservation so the
+        user isn't billed for zero successful updates."""
+        from services.shopify_client import ShopifyAPIError
+        workspace, _ = connected_with_proposals
+        balance_before = user.wallet.balance
+
+        with patch("services.shopify_client.ShopifyAdminClient") as MockShopify:
+            MockShopify.return_value.update_product_description.side_effect = (
+                ShopifyAPIError("422 unprocessable")
+            )
+            logged_in_client.post(
+                f"/integrations/shopify/descriptions/apply/{workspace.id}",
+                data={"apply_product_id": ["201"]},
+            )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="description_rewrite_batch")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_no_connection_bails_without_reserving(
+        self, logged_in_client, workspace, user,
+    ):
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            f"/integrations/shopify/descriptions/apply/{workspace.id}",
+            data={"apply_product_id": ["999"]},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="description_rewrite_batch",
+        ).first() is None
+
+    def test_insufficient_credits_redirects(
+        self, app_ctx, make_user,
+    ):
+        thin = make_user(plan="pro", balance=0, email="thin-desc@x.com")
+        ws = Client(
+            slug="thin-desc", user_id=thin.id, name="Thin Desc",
+            website="https://x.com", website_normalized="x.com",
+            industry="A", location="B",
+        )
+        db.session.add(ws)
+        db.session.flush()
+        conn = ShopifyConnection(
+            user_id=thin.id, client_id=ws.id,
+            shop_domain="thin.myshopify.com",
+            access_token="shpat_thin",
+            scope="read_products,write_products",
+            shop_meta={
+                "cached_description_proposals": [
+                    {"product_id": "p1", "proposed_html": "<p>x</p>"},
+                ],
+            },
+        )
+        db.session.add(conn)
+        db.session.commit()
+
+        c = flask_app.test_client()
+        with c.session_transaction() as s:
+            s["_user_id"] = str(thin.id)
+            s["_fresh"] = True
+        r = c.post(
+            f"/integrations/shopify/descriptions/apply/{ws.id}",
+            data={"apply_product_id": ["p1"]},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(thin.wallet)
+        assert thin.wallet.balance == 0
+        # No reservation at all.
+        assert CreditReservation.query.filter_by(
+            user_id=thin.id, action_key="description_rewrite_batch",
+        ).first() is None
