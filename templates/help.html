@@ -130,6 +130,7 @@
                         aria-label="Search the help page"
                         autocomplete="off"
                     >
+                    <kbd class="help-toc-search-kbd" aria-hidden="true">/</kbd>
                 </div>
                 <div class="help-toc-results" role="listbox" hidden></div>
 
@@ -1099,8 +1100,87 @@
             if (e.key === 'Escape') {
                 input.value = '';
                 render('');
+                input.blur();
             }
         });
+
+        // Keyboard shortcuts to focus the search:
+        //   - "/" (GitHub-style) when not already typing
+        //   - Cmd/Ctrl + K (modern-app standard)
+        document.addEventListener('keydown', e => {
+            const inField = /^(input|textarea|select)$/i.test(e.target.tagName)
+                || e.target.isContentEditable;
+            const slash = e.key === '/' && !inField;
+            const cmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+            if (slash || cmdK) {
+                e.preventDefault();
+                input.focus();
+                input.select();
+            }
+        });
+    })();
+
+    (function () {
+        // TOC scrollspy. Tracks which section is currently nearest the
+        // top of the viewport and highlights the matching TOC link with
+        // `.is-active` + aria-current.
+        //
+        // Uses scroll events rather than IntersectionObserver because
+        // some environments (notably the bundled preview harness) load
+        // the page with document.hidden=true, which throttles IO
+        // callbacks to near-zero. Scroll events fire regardless.
+        const links = Array.from(document.querySelectorAll('.help-toc-nav a'));
+        if (!links.length) return;
+
+        const sections = links
+            .map(a => {
+                const sec = document.querySelector(a.getAttribute('href'));
+                return sec ? { sec, link: a } : null;
+            })
+            .filter(Boolean);
+        if (!sections.length) return;
+
+        const setActive = (id) => {
+            links.forEach(l => {
+                const match = l.getAttribute('href') === '#' + id;
+                l.classList.toggle('is-active', match);
+                if (match) l.setAttribute('aria-current', 'true');
+                else l.removeAttribute('aria-current');
+            });
+        };
+
+        // Anchor line ~120px below the viewport top — gives the
+        // active state a small buffer so it switches mid-section
+        // rather than the instant a heading crosses the top.
+        const ANCHOR = 120;
+        let lastActive = null;
+
+        const update = () => {
+            let activeId = sections[0].sec.id;
+            for (const { sec } of sections) {
+                const top = sec.getBoundingClientRect().top;
+                if (top - ANCHOR <= 0) activeId = sec.id;
+                else break;
+            }
+            // When the user is near the bottom of the page, force the
+            // last section active so the TOC doesn't get stuck on a
+            // section the reader has already scrolled past.
+            const nearBottom =
+                window.innerHeight + window.scrollY >=
+                document.documentElement.scrollHeight - 60;
+            if (nearBottom) activeId = sections[sections.length - 1].sec.id;
+            if (activeId !== lastActive) {
+                lastActive = activeId;
+                setActive(activeId);
+            }
+        };
+
+        // Read scroll position synchronously on each event. We avoid
+        // rAF throttling because rAF is paused for hidden pages — in
+        // the preview harness that meant the active link never updated.
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
     })();
 </script>
 
@@ -1193,6 +1273,22 @@
     border-color: rgba(157, 124, 227, 0.45);
 }
 .help-toc-search::-webkit-search-cancel-button { cursor: pointer; }
+.help-toc-search-kbd {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #e8edf5;
+    color: #56657a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    pointer-events: none;
+}
+.help-toc-search:focus + .help-toc-search-kbd { opacity: 0; }
 
 /* Search results panel (replaces the nav while a query is active). */
 .help-toc-results {
@@ -1339,6 +1435,11 @@
     background: rgba(157, 124, 227, 0.08);
     color: #6745f5;
     outline: none;
+}
+.help-toc a.is-active {
+    background: rgba(157, 124, 227, 0.12);
+    color: #6745f5;
+    font-weight: 700;
 }
 
 /* Floating "back to top" button. Hidden by `hidden` attribute via JS. */
@@ -1535,6 +1636,14 @@ html[data-theme="dark"] .help-toc-search {
     background: var(--theme-surface-alt);
     border-color: var(--theme-border-subtle);
     color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-toc-search-kbd {
+    background: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-toc a.is-active {
+    background: rgba(157, 124, 227, 0.22);
+    color: #c3b0ff;
 }
 html[data-theme="dark"] .help-toc-result { color: var(--theme-text-primary); }
 html[data-theme="dark"] .help-toc-result:hover { background: rgba(157, 124, 227, 0.18); }
