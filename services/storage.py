@@ -106,12 +106,32 @@ class LogoStorage:
                     file_obj.seek(0)
                 except (AttributeError, OSError):
                     pass
-                client.upload_fileobj(
-                    file_obj,
-                    bucket,
-                    key,
-                    ExtraArgs={"ContentType": content_type, "ACL": "public-read"},
-                )
+                # Try with the legacy public-read ACL first (works on
+                # buckets created before April 2023 with default ACL
+                # settings). Modern buckets default to "Bucket owner
+                # enforced" which DISABLES ACLs entirely and rejects
+                # PutObject with `AccessControlListNotSupported`. In
+                # that case, retry without the ACL — the bucket needs
+                # a bucket-policy-based public-read for the public URL
+                # to actually work, but that's a deploy-time config,
+                # not something we can fix here.
+                try:
+                    client.upload_fileobj(
+                        file_obj, bucket, key,
+                        ExtraArgs={"ContentType": content_type, "ACL": "public-read"},
+                    )
+                except Exception as exc:
+                    if "AccessControlListNotSupported" not in str(exc):
+                        raise
+                    # Rewind again and retry — the first upload aborted.
+                    try:
+                        file_obj.seek(0)
+                    except (AttributeError, OSError):
+                        pass
+                    client.upload_fileobj(
+                        file_obj, bucket, key,
+                        ExtraArgs={"ContentType": content_type},
+                    )
                 return
 
         # Local fallback.
@@ -165,12 +185,16 @@ class LogoStorage:
 
     @staticmethod
     def _guess_content_type(filename: str) -> str:
+        # SVG is intentionally absent — the upload routes don't accept
+        # SVG (XSS via embedded <script>), so a .svg filename here can
+        # only be a legacy artefact from before that allowlist tightened.
+        # Fall through to application/octet-stream so the browser
+        # downloads it instead of rendering and executing scripts.
         ext = (filename.rsplit(".", 1)[-1] or "").lower()
         return {
             "png": "image/png",
             "jpg": "image/jpeg",
             "jpeg": "image/jpeg",
-            "svg": "image/svg+xml",
             "webp": "image/webp",
             "gif": "image/gif",
         }.get(ext, "application/octet-stream")

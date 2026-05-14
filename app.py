@@ -14160,9 +14160,14 @@ def settings_upload_agency_logo():
         flash("No file selected.", "error")
         return redirect(url_for("settings_white_label"))
 
+    # SVG is intentionally NOT accepted — it can carry <script>, event
+    # handlers, and <foreignObject>, which would execute in the app's
+    # origin when the logo is served back. PNG/JPG/WEBP at 2× cover
+    # retina perfectly without that risk. (See workspace logo upload
+    # below for the matching change.)
     ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
-    if ext not in {"png", "jpg", "jpeg", "svg", "webp"}:
-        flash("Use PNG, JPG, SVG, or WEBP.", "error")
+    if ext not in {"png", "jpg", "jpeg", "webp"}:
+        flash("Use PNG, JPG, or WEBP.", "error")
         return redirect(url_for("settings_white_label"))
 
     new_name = f"agency-{current_user.id}-{secrets.token_hex(4)}.{ext}"
@@ -16004,9 +16009,11 @@ def upload_workspace_logo(client_id):
         flash("No file selected.", "error")
         return redirect(url_for("client_detail", client_id=client_id))
 
+    # SVG is intentionally NOT accepted — see settings_upload_agency_logo
+    # above for the rationale (XSS via embedded <script> / event handlers).
     ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
-    if ext not in {"png", "jpg", "jpeg", "svg", "webp"}:
-        flash("Use PNG, JPG, SVG, or WEBP.", "error")
+    if ext not in {"png", "jpg", "jpeg", "webp"}:
+        flash("Use PNG, JPG, or WEBP.", "error")
         return redirect(url_for("client_detail", client_id=client_id))
 
     new_name = f"workspace-{workspace.id}-{secrets.token_hex(4)}.{ext}"
