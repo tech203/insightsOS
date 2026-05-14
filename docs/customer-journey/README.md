@@ -102,7 +102,7 @@ The moment that delivers (or doesn't deliver) the "aha."
 
 ### 10. Workspace overview (post-audit)
 
-> ⚠ **Capture skipped** — this page hit a `RuntimeError: The current Flask app is not registered with this SQLAlchemy instance` in the local dev environment when its handler calls `get_queue_items()`. The page renders fine in production. Reviewers can see the populated state on the help center: [Workspace overview screenshot in the help center](../../static/images/help/workspace-overview.webp).
+![Workspace overview](images/10-workspace.webp)
 
 **The hub.** Score, "Next Best Step," priorities, content opportunities, integrations.
 
@@ -154,7 +154,7 @@ Where the team actually ships content and the user comes back.
 
 ### 15. Content queue
 
-> ⚠ **Capture skipped** — same dev-env error as step 10. Production renders correctly; see the help center's [content queue screenshot](../../static/images/help/content-queue.webp).
+![Content queue](images/15-content-queue.webp)
 
 **Briefs and drafts in flight.** Approve, AI-edit, generate visual, publish from here.
 
@@ -162,7 +162,7 @@ Where the team actually ships content and the user comes back.
 
 ### 16. Growth calendar
 
-> ⚠ **Capture skipped** — same dev-env error.
+![Growth calendar](images/16-growth-cal.webp)
 
 **4-week schedule** built from the latest audit. Each recommendation card schedules into a target week.
 
@@ -247,13 +247,6 @@ When the user is stuck and looking for help.
 ---
 
 ## Summary of gaps for the team
-
-**Capture-blocked (dev-env only — production renders fine):**
-- Step 10: Workspace overview
-- Step 15: Content queue
-- Step 16: Growth calendar
-
-All three crash with the same `RuntimeError: The current Flask app is not registered with this SQLAlchemy instance` when their request handlers call `get_queue_items()`. The function works in isolation (verified via `app_context()`), so this looks like a Flask debug-reloader artifact rather than a real bug — but worth flagging in case anyone else can reproduce it consistently.
 
 **UX observations worth a follow-up discussion** (rolled up from the per-step notes):
 

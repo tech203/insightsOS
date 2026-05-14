@@ -86,7 +86,7 @@
     "url": "/client/acme-bakery",
     "notes": "The hub. Score, priorities, recommended actions, integrations.",
     "auth": true,
-    "status": "crash",
+    "status": "ok",
     "file": "10-workspace.webp"
   },
   {
@@ -131,7 +131,7 @@
     "url": "/content-queue",
     "notes": "Briefs and drafts in flight. Approve / AI-edit / publish from here.",
     "auth": true,
-    "status": "crash",
+    "status": "ok",
     "file": "15-content-queue.webp"
   },
   {
@@ -140,7 +140,7 @@
     "url": "/growth-calendar",
     "notes": "4-week schedule built from the latest audit.",
     "auth": true,
-    "status": "crash",
+    "status": "ok",
     "file": "16-growth-cal.webp"
   },
   {
