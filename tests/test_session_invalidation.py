@@ -29,7 +29,7 @@ Tests:
 """
 import pytest
 from datetime import datetime, timezone
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 from app import app as flask_app, db, User, Wallet, load_user
 
