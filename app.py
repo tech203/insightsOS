@@ -16148,12 +16148,34 @@ def gsc_connect(client_id):
 @csrf.exempt  # OAuth redirect from Google Search Console — no browser-originated POST body
 @login_required
 def gsc_oauth_callback():
-    """Handle the OAuth callback — exchange code, persist tokens."""
+    """Handle the OAuth callback — exchange code, persist tokens.
+
+    Re-checks the plan gate even though /connect already did — the
+    user could have downgraded between starting OAuth and returning
+    from Google (a flow that takes long enough to fit a Stripe
+    cancellation). Without the re-check, a downgraded user would
+    persist a fresh GSC connection that the dashboard then refuses
+    to show.
+    """
+    from pricing import plan_allows_google_search_console
     from services.gsc_client import (
         GSCAPIError,
         GSCConfigError,
         exchange_code_for_token,
     )
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        # Wipe the session state we set in /connect — no point keeping
+        # them around once we've decided the connection won't proceed.
+        session.pop("gsc_oauth_state", None)
+        session.pop("gsc_oauth_client_id", None)
+        flash(
+            "Your plan no longer includes the Google Search Console "
+            "connector. Upgrade to Pro or Growth to connect.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     expected_state = session.pop("gsc_oauth_state", None)
     pending_client_id = session.pop("gsc_oauth_client_id", None)
@@ -16328,11 +16350,27 @@ def gsc_dashboard(client_id):
 @app.route("/integrations/gsc/<int:client_id>/select-site", methods=["POST"])
 @login_required
 def gsc_select_site(client_id):
-    """Save the picked GSC property and pull a first sync."""
+    """Save the picked GSC property and pull a first sync.
+
+    Plan-gated: matches the dashboard gate so a downgraded user
+    can't bypass the UI hide by POSTing directly. Without this,
+    Free users who already have a connection row from when they
+    were on Pro could keep refreshing it indefinitely.
+    """
+    from pricing import plan_allows_google_search_console
+
     workspace = db.session.get(Client, client_id)
     if not workspace or workspace.user_id != effective_owner_id():
         flash("Workspace not found.", "error")
         return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "The Google Search Console connector is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     connection = (
         GoogleSearchConsoleConnection.query.filter_by(
@@ -16364,12 +16402,26 @@ def gsc_select_site(client_id):
 @app.route("/integrations/gsc/<int:client_id>/sync", methods=["POST"])
 @login_required
 def gsc_sync(client_id):
-    """Re-pull the last 28 days of data."""
+    """Re-pull the last 28 days of data.
+
+    Plan-gated for the same reason as /select-site: prevent
+    direct-POST bypass after a downgrade. Disconnect (below) stays
+    ungated so users can always sever the link.
+    """
+    from pricing import plan_allows_google_search_console
     from services.gsc_client import GSCAPIError
 
     workspace = db.session.get(Client, client_id)
     if not workspace or workspace.user_id != effective_owner_id():
         return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "The Google Search Console connector is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     connection = (
         GoogleSearchConsoleConnection.query.filter_by(
@@ -16891,13 +16943,28 @@ def ga_dashboard(client_id):
 @app.route("/integrations/ga/<int:client_id>/select-property", methods=["POST"])
 @login_required
 def ga_select_property(client_id):
-    """Pick a GA4 property and pull a first 28-day summary."""
+    """Pick a GA4 property and pull a first 28-day summary.
+
+    Plan-gated for the same reason as the GSC mutating routes —
+    GA4 reuses the GSC OAuth grant and ships under the same
+    paid-plan gate. Without this, a downgraded user could keep
+    refreshing GA data by hitting this route directly.
+    """
+    from pricing import plan_allows_google_search_console
     from services.ga_client import GA4Client, GAAPIError, summarize_property
 
     workspace = db.session.get(Client, client_id)
     if not workspace or workspace.user_id != effective_owner_id():
         flash("Workspace not found.", "error")
         return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "Google Analytics is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     connection = (
         GoogleSearchConsoleConnection.query.filter_by(
@@ -16936,12 +17003,25 @@ def ga_select_property(client_id):
 @app.route("/integrations/ga/<int:client_id>/sync", methods=["POST"])
 @login_required
 def ga_sync(client_id):
-    """Re-pull the 28-day GA summary."""
+    """Re-pull the 28-day GA summary.
+
+    Plan-gated. Fires before any GA API call so a Free bypass can't
+    burn Google quota the customer was supposed to be paying for.
+    """
+    from pricing import plan_allows_google_search_console
     from services.ga_client import GA4Client, GAAPIError, summarize_property
 
     workspace = db.session.get(Client, client_id)
     if not workspace or workspace.user_id != effective_owner_id():
         return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "Google Analytics is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     connection = (
         GoogleSearchConsoleConnection.query.filter_by(
