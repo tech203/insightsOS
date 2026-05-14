@@ -6795,9 +6795,52 @@ def admin_user_set_role(user_id):
     return redirect(url_for("admin_user_detail", user_id=user_id))
 
 
+#  Rank table for admin plan-change direction detection. A change
+#  from a higher rank to a lower one triggers downgrade_plan() so the
+#  state-reconciliation (workspace soft-lock, addon cancellation,
+#  audit trail) runs the same way a Stripe-triggered downgrade does.
+#  Internal/comp tiers (starter, agency, dev_unlimited) sit above the
+#  public tiers so swapping someone into one doesn't trip the
+#  "downgrade" path; moving out of one toward a public tier does.
+_PLAN_RANK: Dict[str, int] = {
+    "free": 0,
+    "pro": 1,
+    "growth": 2,
+    "starter": 3,
+    "agency": 4,
+    "dev_unlimited": 5,
+}
+
+
+def _plan_rank(slug: str | None) -> int:
+    return _PLAN_RANK.get((slug or "free").lower(), 0)
+
+
 @app.route("/admin/users/<int:user_id>/plan", methods=["POST"])
 @login_required
 def admin_user_set_plan(user_id):
+    """Set a user's plan from the admin UI.
+
+    The naive implementation was `user.plan = new_plan; commit`. That
+    works for upgrades but silently leaks on downgrades — workspaces
+    over the new cap stay unlocked, addon subscriptions stay billing
+    in Stripe, the extra_workspaces / extra_seats counters stay
+    inflated. Customers downgraded manually through admin ended up
+    keeping all their Growth-tier perks while the audit log showed
+    them on Pro.
+
+    Fix: when stepping down in plan rank, route through
+    downgrade_plan() — the same helper Stripe webhooks call on
+    subscription cancellation. That helper:
+      - Cancels addon Stripe subscriptions (cancel_at_period_end)
+      - Clears extra_workspaces / extra_seats counters
+      - Soft-locks workspaces over the new cap (oldest kept)
+      - Revokes pending team invites if over seat cap
+      - Writes a `plan_downgrade` CreditTransaction audit row
+
+    Upgrades just flip the plan directly — no special state cleanup
+    is needed when moving up.
+    """
     guard = _require_admin()
     if guard is not None:
         return guard[0]
@@ -6805,12 +6848,37 @@ def admin_user_set_plan(user_id):
     if not user:
         abort(404)
     new_plan = (request.form.get("plan") or "").strip().lower()
-    if new_plan not in PLAN_CATALOG:
+    # Allow internal tiers (starter, agency, dev_unlimited) even though
+    # they aren't in PLAN_CATALOG — admins flip users into them as
+    # comp/enterprise arrangements.
+    if new_plan not in PLAN_CATALOG and new_plan not in _PLAN_RANK:
         flash(f"Unknown plan: {new_plan}", "error")
         return redirect(url_for("admin_user_detail", user_id=user_id))
-    user.plan = new_plan
-    db.session.commit()
-    flash(f"Plan updated to {new_plan}.", "success")
+
+    old_plan = (user.plan or "free").lower()
+    if new_plan == old_plan:
+        flash(f"Plan is already {new_plan}.", "info")
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+
+    if _plan_rank(new_plan) < _plan_rank(old_plan):
+        # Downgrade: reconcile state the same way a Stripe-driven
+        # cancellation does. `downgrade_plan()` commits internally.
+        summary = downgrade_plan(
+            user, new_plan, reason=f"Admin change by user #{current_user.id}",
+        )
+        msg = f"Plan downgraded to {new_plan}."
+        if summary.get("workspaces_locked"):
+            msg += f" {summary['workspaces_locked']} workspace(s) soft-locked."
+        if summary.get("addons_canceled"):
+            msg += f" {summary['addons_canceled']} Stripe addon(s) canceled."
+        flash(msg, "success")
+    else:
+        # Upgrade or same-rank lateral move (e.g. free → starter):
+        # no state cleanup needed. Just persist the plan.
+        user.plan = new_plan
+        db.session.commit()
+        flash(f"Plan updated to {new_plan}.", "success")
+
     return redirect(url_for("admin_user_detail", user_id=user_id))
 
 
