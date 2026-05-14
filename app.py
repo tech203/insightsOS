@@ -5261,6 +5261,103 @@ def resolve_upsell_lto(user) -> Optional[Dict[str, Any]]:
     }
 
 
+def compute_upsell_funnel_stats(days: int = 30) -> Dict[str, Any]:
+    """Aggregate the LTO funnel for the admin stats view.
+
+    Returns a dict shaped for direct template consumption:
+
+        {
+          "status_counts": {"none": 0, "shown": 0, ...},
+          "qualified_count": int,      # everyone who hit threshold
+          "decision_count":  int,      # shown + terminal decisions
+          "accepted_count":  int,
+          "conversion_rate": float,    # accepted / decisions
+          "window_days":     int,
+          "recent_offers":   [...],    # users qualified within window
+          "still_live":      [...],    # currently in "shown" with hours_left
+        }
+
+    `days` filters the recent-activity slices but counts are global —
+    we want absolute numbers in the funnel even if they were
+    generated weeks ago.
+    """
+    # Status group-counts — one SELECT, no Python iteration.
+    rows = (
+        db.session.query(User.upsell_lto_status, db.func.count(User.id))
+        .group_by(User.upsell_lto_status)
+        .all()
+    )
+    status_counts: Dict[str, int] = {
+        "none": 0, "shown": 0, "dismissed": 0, "accepted": 0, "expired": 0,
+    }
+    for status, count in rows:
+        key = (status or "none").lower()
+        if key in status_counts:
+            status_counts[key] = int(count)
+
+    qualified_count = sum(
+        status_counts[k] for k in ("shown", "dismissed", "accepted", "expired")
+    )
+    decision_count = sum(
+        status_counts[k] for k in ("dismissed", "accepted", "expired")
+    )
+    accepted_count = status_counts["accepted"]
+    conversion_rate = (
+        round(100.0 * accepted_count / decision_count, 1)
+        if decision_count > 0 else 0.0
+    )
+
+    cutoff = utcnow() - timedelta(days=days)
+    recent_offers = (
+        User.query
+        .filter(
+            User.upsell_lto_offered_at.isnot(None),
+            User.upsell_lto_offered_at >= cutoff,
+        )
+        .order_by(User.upsell_lto_offered_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    # Still-live offers — users currently in 'shown' with hours
+    # remaining. Useful for ops to spot anyone we should follow up
+    # with manually before TTL.
+    now = utcnow()
+    still_live_rows = (
+        User.query
+        .filter(
+            User.upsell_lto_status == "shown",
+            User.upsell_lto_expires_at.isnot(None),
+            User.upsell_lto_expires_at > now,
+        )
+        .order_by(User.upsell_lto_expires_at.asc())  # closest to expiry first
+        .limit(50)
+        .all()
+    )
+    still_live = []
+    for u in still_live_rows:
+        remaining = u.upsell_lto_expires_at - now
+        still_live.append({
+            "id": u.id,
+            "email": u.email,
+            "hours_left": max(0, int(remaining.total_seconds() // 3600)),
+            "minutes_left": max(0, int((remaining.total_seconds() % 3600) // 60)),
+            "offered_at": u.upsell_lto_offered_at,
+            "prompt_count": int(u.upsell_prompt_count or 0),
+        })
+
+    return {
+        "status_counts": status_counts,
+        "qualified_count": qualified_count,
+        "decision_count": decision_count,
+        "accepted_count": accepted_count,
+        "conversion_rate": conversion_rate,
+        "window_days": int(days),
+        "recent_offers": recent_offers,
+        "still_live": still_live,
+    }
+
+
 def get_active_queue_limit(user):
     """
     Controls how many active content queue items each plan can have.
@@ -6844,6 +6941,41 @@ def admin_users_list():
         active_query=request.args.get("q") or "",
         active_plan=plan_filter,
         plans=["free", "pro", "growth", "starter", "agency", "dev_unlimited"],
+    )
+
+
+@app.route("/admin/upsell-stats", methods=["GET"])
+@login_required
+def admin_upsell_stats():
+    """Aggregate view over the LTO upsell funnel.
+
+    Shows the lifetime status counts, conversion rate, and recent
+    activity inside a configurable lookback window. Used by product
+    to tune UPSELL_PROMPT_THRESHOLD / UPSELL_LTO_TTL_HOURS without
+    shelling into the DB.
+
+    Query params:
+        ?days=N  — recent-activity window (default 30, capped 1..365)
+    """
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    # Window param — clamp aggressively so a bad URL can't trigger a
+    # 6-month full-table scan or get cute with negative numbers.
+    try:
+        days = int(request.args.get("days", 30))
+    except (TypeError, ValueError):
+        days = 30
+    days = max(1, min(365, days))
+
+    stats = compute_upsell_funnel_stats(days=days)
+
+    return render_template(
+        "admin/upsell_stats.html",
+        stats=stats,
+        upsell_threshold=UPSELL_PROMPT_THRESHOLD,
+        upsell_ttl_hours=UPSELL_LTO_TTL_HOURS,
     )
 
 
