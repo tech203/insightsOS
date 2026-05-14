@@ -325,6 +325,34 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(255), nullable=False)
+
+    def get_id(self):
+        """Composite session identifier — user.id pinned to a token
+        derived from the current password hash.
+
+        Why composite: Flask-Login's default get_id() returns just
+        str(self.id). That means a session cookie issued before a
+        password reset stays valid AFTER the reset — useful for the
+        legitimate user (no surprise logout), catastrophic for an
+        attacker who has stolen a session cookie via XSS / malware /
+        a leaked log. The legitimate user resets their password but
+        the attacker's hijacked session keeps working.
+
+        With this composite, load_user() compares the hash slice in
+        the session against the live user's hash. Any change (password
+        reset, password change in /settings, admin force-rotate)
+        invalidates every existing session for that user — the
+        attacker is logged out immediately.
+
+        Format: "<id>|<32-char hash slice>". The slice is enough to
+        detect any hash change without putting the full hash in the
+        session cookie. Backwards compat is handled in load_user(): a
+        legacy bare-int user_id (no pipe) loads the user but the
+        session is then refreshed with the new format on next save."""
+        # password_hash is non-nullable on the column but might be
+        # missing transiently during signup flow — guard with empty.
+        token = (self.password_hash or "")[:32]
+        return f"{self.id}|{token}"
     referral_code = db.Column(db.String(50), unique=True, nullable=True)
     referred_by_user_id = db.Column(
         db.Integer, db.ForeignKey("users.id"), nullable=True
@@ -1580,7 +1608,35 @@ class SquarespaceConnection(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    """Load the user matching the session-stored composite id.
+
+    Composite id format (see User.get_id): "<id>|<password_hash[:32]>".
+
+    - Modern session: split on '|' and require the hash slice to match
+      the live user's password hash. Mismatch → return None (treated
+      as anonymous; user has to log in again). This is what blocks
+      a hijacked session from outliving the legitimate user's
+      password reset.
+    - Legacy session (bare int, no pipe): cookies issued before this
+      change. Accept once — the next request that mutates the session
+      will rewrite it with the composite format. Old hijacked sessions
+      from before this code shipped are out of luck either way.
+    """
+    if not user_id:
+        return None
+    raw_id, sep, hash_slice = str(user_id).partition("|")
+    try:
+        user = db.session.get(User, int(raw_id))
+    except (ValueError, TypeError):
+        return None
+    if user is None:
+        return None
+    # Modern session — verify the hash slice matches.
+    if sep:
+        if (user.password_hash or "")[:32] != hash_slice:
+            # Password changed since this cookie was issued.
+            return None
+    return user
 
 
 # =========================
@@ -5631,6 +5687,57 @@ def _apply_security_headers(response):
         response.headers.setdefault(
             "Strict-Transport-Security",
             "max-age=31536000; includeSubDomains",
+        )
+
+    # Content-Security-Policy in REPORT-ONLY mode. The browser
+    # enforces nothing, but reports any violations to the report-uri
+    # (or just to its own console). The plan is:
+    #
+    #   1. Ship in report-only — browsers send violation reports for
+    #      every inline <script>, every inline style="...", every
+    #      cross-origin asset that doesn't match the policy. Telemetry
+    #      shows us what the audit-summary HTML rendering, the in-app
+    #      JS, and the email-template iframes actually need.
+    #   2. Once the violation-report stream is quiet (we've added
+    #      'unsafe-inline' / 'unsafe-eval' / hashes / nonces where the
+    #      app legitimately needs them), flip the header name from
+    #      Content-Security-Policy-Report-Only to Content-Security-
+    #      Policy and the browser starts BLOCKING violations.
+    #
+    # Skip on the audit PDF render route — the templating there builds
+    # inline styles dynamically and a CSP violation report on every
+    # PDF export is noise. The PDF is rendered server-side anyway, so
+    # CSP inside the rendered HTML doesn't actually protect anything.
+    if not (request.path or "").startswith("/audit/") and not (request.path or "").endswith("/pdf"):
+        response.headers.setdefault(
+            "Content-Security-Policy-Report-Only",
+            (
+                # default-src 'self' covers iframes, fetches, etc.
+                "default-src 'self'; "
+                # Allow inline scripts during the report-only phase —
+                # the dashboard has many <script> blocks. We'll narrow
+                # this once telemetry shows what's used.
+                "script-src 'self' 'unsafe-inline' https://js.stripe.com; "
+                # Same for styles — Tailwind / inline style attributes.
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                # Logos / Stripe Elements / fonts.
+                "img-src 'self' data: https:; "
+                "font-src 'self' https://fonts.gstatic.com data:; "
+                # Stripe iframe + our own iframes only.
+                "frame-src https://js.stripe.com https://hooks.stripe.com; "
+                # Connect-src for /api/wallet polling, Stripe API, etc.
+                "connect-src 'self' https://api.stripe.com; "
+                # Block legacy plugins outright.
+                "object-src 'none'; "
+                # Form submissions to our own origin only.
+                "form-action 'self' https://checkout.stripe.com; "
+                # Reject any base href injection.
+                "base-uri 'self'; "
+                # Frame-ancestors mirrors X-Frame-Options=SAMEORIGIN
+                # but applies to descendants, not just the immediate
+                # parent — defends against nested iframe clickjacking.
+                "frame-ancestors 'self'"
+            ),
         )
     return response
 
@@ -14840,6 +14947,17 @@ def settings_change_password():
 
     current_user.password_hash = generate_password_hash(new)
     db.session.commit()
+    # Re-login so the session cookie is reissued with the new
+    # composite id (User.get_id includes a slice of the password
+    # hash). Without this, load_user would log the user out on
+    # their very next request — the same defence that locks
+    # attackers out would also lock the legitimate user out unless
+    # we refresh here. Fetch a concrete User row instead of
+    # passing the LocalProxy directly (Flask-Login's login_user
+    # has been shown to recurse on a proxy in some setups).
+    fresh_user = db.session.get(User, current_user.id)
+    if fresh_user is not None:
+        login_user(fresh_user)
     flash("Password updated.", "success")
     return redirect(url_for("settings_account"))
 
