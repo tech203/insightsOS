@@ -12,7 +12,6 @@ What's covered:
   - SESSION_COOKIE_SECURE is enabled when FLASK_ENV signals production.
   - The launch warning catches a missing or default SECRET_KEY.
 """
-import importlib
 import io
 import os
 import sys
