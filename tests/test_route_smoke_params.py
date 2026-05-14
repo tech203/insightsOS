@@ -165,6 +165,12 @@ CLIENT_HAPPY_PATHS = [
     "/client/{slug}/query-ideas",
     "/client/{slug}/website-builder",
     "/client/{slug}/website-builder/brand-kit",
+    "/client/{slug}/content-brief",
+    "/client/{slug}/content-draft",
+    "/client/{slug}/presentation",
+    "/client/{slug}/report",
+    "/client/{slug}/run-audit",
+    "/client/{slug}/export-pdf",
     "/api/client/{slug}",
 ]
 
@@ -264,6 +270,21 @@ def fresh_user_client(app_ctx):
         s["_user_id"] = str(u.id)
         s["_fresh"] = True
     return c
+
+
+def test_export_pdf_no_audit_redirects_without_500(client_with_workspace):
+    """Regression: GET /client/<slug>/export-pdf used to 500 on a
+    workspace with no audits because client_audit_pdf_lines() called
+    .get() on a None `latest`. Should now redirect with a flash."""
+    c, slug = client_with_workspace
+    resp = c.get(f"/client/{slug}/export-pdf", follow_redirects=False)
+    assert resp.status_code < 500, (
+        f"export-pdf returned {resp.status_code}\n"
+        f"Body: {resp.data[:500]!r}"
+    )
+    # Should redirect to run-audit with a flash, not 500
+    assert resp.status_code == 302
+    assert "run-audit" in resp.headers.get("Location", "")
 
 
 def test_first_workspace_create_redirects_without_500(fresh_user_client):
