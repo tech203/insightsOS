@@ -1,0 +1,191 @@
+{% extends "admin/_shell.html" %}
+{% set active_admin_section = "upsell" %}
+{% block title %}Upsell Funnel | Admin{% endblock %}
+
+{% block page_header %}
+<div class="page-header-standard">
+    <div class="page-header-copy">
+        <h1>Upsell Funnel</h1>
+        <p>
+            Limited-time-offer popup analytics for Free users who hit paywalls.
+            Triggers at {{ upsell_threshold }} paywall encounter{{ "s" if upsell_threshold != 1 else "" }};
+            stays live for {{ upsell_ttl_hours }} hour{{ "s" if upsell_ttl_hours != 1 else "" }}.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_content %}
+
+{# Top-line funnel metrics. Lifetime counts (qualified / decided /
+   accepted / conversion rate) sit above so the headline isn't
+   diluted by recent-window slices. #}
+<section class="admin-stats" style="margin-bottom:18px;">
+    <div class="admin-stat">
+        <span class="label">Total qualified</span>
+        <span class="value">{{ stats.qualified_count }}</span>
+        <span class="delta">hit threshold, saw the popup</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Decided</span>
+        <span class="value">{{ stats.decision_count }}</span>
+        <span class="delta">dismissed + accepted + expired</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Accepted</span>
+        <span class="value">{{ stats.accepted_count }}</span>
+        <span class="delta">upgraded via the modal</span>
+    </div>
+    <div class="admin-stat">
+        <span class="label">Conversion rate</span>
+        <span class="value">{{ stats.conversion_rate }}%</span>
+        <span class="delta">accepted / decided</span>
+    </div>
+</section>
+
+{# Status breakdown — every state, including "none" so we can sanity-
+   check the funnel total against the user count. #}
+<section class="admin-card" style="margin-bottom:16px;">
+    <div class="admin-card-head" style="padding:14px 18px 0;">
+        <h2 style="margin:0;">Status breakdown</h2>
+    </div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th style="text-align:right;">Users</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, label, hint in [
+                ("none",      "none",      "haven't hit threshold yet"),
+                ("shown",     "shown",     "popup currently active"),
+                ("dismissed", "dismissed", "closed without converting"),
+                ("accepted",  "accepted",  "converted via the popup"),
+                ("expired",   "expired",   "let the offer lapse"),
+            ] %}
+            <tr>
+                <td>
+                    <span class="admin-pill"
+                          style="background:{% if key == 'accepted' %}#d1fae5; color:#065f46{% elif key == 'shown' %}#fef3c7; color:#92400e{% elif key == 'dismissed' %}#e5e7eb; color:#374151{% elif key == 'expired' %}#fee2e2; color:#991b1b{% else %}#f1f5f9; color:#475569{% endif %};">
+                        {{ label }}
+                    </span>
+                    <span style="color:var(--text-muted); font-size:11.5px; margin-left:6px;">{{ hint }}</span>
+                </td>
+                <td style="text-align:right; font-weight:700; font-variant-numeric: tabular-nums;">
+                    {{ stats.status_counts[key] }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+{# Recent activity — qualifications inside the lookback window. Both
+   live and decided rows so product can see fresh data without
+   scrolling past lifetime numbers. #}
+<section class="admin-card" style="margin-bottom:16px;">
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <h2 style="margin:0;">Recent qualifications · last {{ stats.window_days }}d</h2>
+        <form method="GET" style="display:flex; gap:6px; align-items:center;">
+            <select name="days" onchange="this.form.submit()" style="font-size:13px;">
+                {% for n in [7, 14, 30, 60, 90, 180, 365] %}
+                <option value="{{ n }}" {% if stats.window_days == n %}selected{% endif %}>last {{ n }}d</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    {% if stats.recent_offers %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Prompts</th>
+                <th>Status</th>
+                <th>Offered</th>
+                <th>Expires</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for u in stats.recent_offers %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('admin_user_detail', user_id=u.id) }}"
+                       style="color:var(--brand-deep, #16a99a); text-decoration:none;">
+                        {{ u.email }}
+                    </a>
+                </td>
+                <td><span class="admin-pill">{{ u.plan }}</span></td>
+                <td style="text-align:center; font-variant-numeric: tabular-nums;">
+                    {{ u.upsell_prompt_count }}
+                </td>
+                <td>
+                    <span class="admin-pill"
+                          style="background:{% if u.upsell_lto_status == 'accepted' %}#d1fae5; color:#065f46{% elif u.upsell_lto_status == 'shown' %}#fef3c7; color:#92400e{% elif u.upsell_lto_status == 'dismissed' %}#e5e7eb; color:#374151{% elif u.upsell_lto_status == 'expired' %}#fee2e2; color:#991b1b{% else %}#f1f5f9; color:#475569{% endif %};">
+                        {{ u.upsell_lto_status }}
+                    </span>
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ u.upsell_lto_offered_at.strftime('%d %b %Y %H:%M') if u.upsell_lto_offered_at else '—' }}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ u.upsell_lto_expires_at.strftime('%d %b %Y %H:%M') if u.upsell_lto_expires_at else '—' }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        No qualifications in the last {{ stats.window_days }} days.
+    </p>
+    {% endif %}
+</section>
+
+{# Still-live offers — currently in "shown" with hours remaining.
+   Closest-to-expiry first so ops can see who's about to lapse. #}
+<section class="admin-card">
+    <div class="admin-card-head" style="padding:14px 18px 0;">
+        <h2 style="margin:0;">Still live</h2>
+    </div>
+    {% if stats.still_live %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Prompts at qualification</th>
+                <th>Offered</th>
+                <th>Time remaining</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in stats.still_live %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('admin_user_detail', user_id=row.id) }}"
+                       style="color:var(--brand-deep, #16a99a); text-decoration:none;">
+                        {{ row.email }}
+                    </a>
+                </td>
+                <td style="text-align:center; font-variant-numeric: tabular-nums;">
+                    {{ row.prompt_count }}
+                </td>
+                <td style="color:var(--text-muted); font-size:11.5px; white-space:nowrap;">
+                    {{ row.offered_at.strftime('%d %b %Y %H:%M') if row.offered_at else '—' }}
+                </td>
+                <td style="font-variant-numeric: tabular-nums;">
+                    <strong>{{ row.hours_left }}h {{ row.minutes_left }}m</strong>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        No active offers right now.
+    </p>
+    {% endif %}
+</section>
+
+{% endblock %}
