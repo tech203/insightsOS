@@ -15251,6 +15251,7 @@ def settings_update_white_label():
             "is available on Pro and Growth — upgrade to enable it.",
             "warning",
         )
+        record_upsell_prompt(current_user, source="white_label_settings_gate")
         return redirect(url_for("settings_white_label"))
 
     current_user.is_white_label_enabled = bool(enable_requested)
@@ -17308,6 +17309,7 @@ def gsc_dashboard(client_id):
             "The Google Search Console connector is available on Pro and Growth plans.",
             "warning",
         )
+        record_upsell_prompt(current_user, source="gsc_dashboard_gate")
         return redirect(url_for("pricing_page"))
 
     connection = (
@@ -17902,6 +17904,7 @@ def ga_dashboard(client_id):
             "Google Analytics is available on Pro and Growth plans.",
             "warning",
         )
+        record_upsell_prompt(current_user, source="ga_dashboard_gate")
         return redirect(url_for("pricing_page"))
 
     connection = (
