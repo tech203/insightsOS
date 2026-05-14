@@ -11,6 +11,7 @@ URLs like /audit/<filename> continue to work because the audits
 table is keyed on filename.
 """
 
+import secrets
 from datetime import datetime
 
 
@@ -26,15 +27,27 @@ def clean_website_name(website):
 
 
 def build_base_filename(website, audit_type):
-    """Generate the filename-identifier prefix for an audit row.
+    """Construct an audit filename like:
 
-    Includes microseconds so back-to-back saves don't collide on the
-    `filename` primary key (e.g. a test loop, a bulk-audit run that
-    finishes two workspaces in <1 second, a retry-after-failure).
+        enfactum-com_full_20260506_145038_xY3z9aBc
+
+    The website slug + audit_type + timestamp keep the filename
+    self-describing for ops and debugging. The trailing
+    secrets.token_urlsafe(8) (~64 bits of entropy) is defence in
+    depth against IDOR — even if a future regression bypasses the
+    audit_belongs_to_current_user check, an attacker can't guess
+    valid filenames from a target's domain alone. It also replaces
+    the microsecond suffix previously used to avoid collisions on
+    the `filename` primary key (the nonce subsumes that purpose).
+
+    URL-safe characters (-, _, A-Z, a-z, 0-9) so the filename slots
+    into /audit/<filename> without escaping, and into S3 paths
+    without surprises.
     """
     clean_website = clean_website_name(website)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    return f"{clean_website}_{audit_type}_{timestamp}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nonce = secrets.token_urlsafe(8)
+    return f"{clean_website}_{audit_type}_{timestamp}_{nonce}"
 
 
 def build_client_summary(
