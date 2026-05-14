@@ -11,7 +11,6 @@ Defaults: quality 85, deletes the source PNG once the WebP is written.
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
