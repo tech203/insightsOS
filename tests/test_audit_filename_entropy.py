@@ -28,7 +28,6 @@ These tests guarantee:
    caught immediately.
 """
 import re
-import pytest
 
 from save_results import build_base_filename
 

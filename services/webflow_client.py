@@ -266,7 +266,7 @@ class WebflowCMSClient:
             WebflowAPIError: If publishing fails
         """
         if not self.publish_on_export:
-            logger.warning(f"Publishing disabled - WEBFLOW_PUBLISH_ON_EXPORT is not true")
+            logger.warning("Publishing disabled - WEBFLOW_PUBLISH_ON_EXPORT is not true")
             return {"message": "Publishing disabled - set WEBFLOW_PUBLISH_ON_EXPORT=true to enable"}
 
         try:

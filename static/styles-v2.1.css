@@ -1447,6 +1447,30 @@ textarea {
     color: var(--warning, #f59e0b);
 }
 
+/* Cancel button on the bulk progress panel — only visible while a
+   job is in flight. Sits in the head row next to the summary text. */
+.workspace-bulk-cancel {
+    background: transparent;
+    color: var(--text-muted, #64748b);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: color 120ms, border-color 120ms, background 120ms;
+}
+
+.workspace-bulk-cancel:hover:not(:disabled) {
+    color: var(--danger, #dc2626);
+    border-color: var(--danger, #dc2626);
+    background: var(--danger-soft, #fef2f2);
+}
+
+.workspace-bulk-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .workspace-bulk-progress-row[data-status="skipped"] {
     color: var(--text-muted, #6b7280);
 }

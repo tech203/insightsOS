@@ -22,7 +22,7 @@ def extract_site_content(url):
     try:
         response = requests.get(url, verify=False, timeout=10)
         html = response.text
-    except:
+    except Exception:
         return ""
 
     soup = BeautifulSoup(html, "html.parser")

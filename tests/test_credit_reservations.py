@@ -18,17 +18,14 @@ The contract being tested:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dtutils import utcnow
 
-import pytest
 
 import app as app_module
 from app import (
     CreditReservation,
     CreditTransaction,
-    User,
-    Wallet,
     commit_reservation,
     release_reservation,
     reserve_credits,
@@ -198,9 +195,9 @@ class TestReleaseReservation:
 
     def test_release_is_idempotent(self, user):
         row = reserve_credits_for(user, "audit_run")
-        before = user.wallet.balance  # post-reserve balance
+        # Sync post-reserve balance from DB (the in-memory wallet may
+        # be stale after reserve_credits_for committed).
         db.session.refresh(user.wallet)
-        before = user.wallet.balance
 
         assert release_reservation(row) is True
         db.session.refresh(user.wallet)

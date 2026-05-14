@@ -230,7 +230,7 @@ def build_next_best_action(
         if status == "brief_generated":
             return _action(
                 action_id="generate_queue_draft",
-                title=f"Turn the approved brief into a draft",
+                title="Turn the approved brief into a draft",
                 reason=(
                     "The brief exists, so the next step is to create an editable "
                     "draft for review."

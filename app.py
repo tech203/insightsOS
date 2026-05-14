@@ -79,7 +79,7 @@ from dtutils import utcnow
 
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -271,13 +271,14 @@ login_manager.login_view = "login"
 # CSRF protection — exempt only server-to-server routes (webhooks, OAuth
 # callbacks, cron jobs) that have their own authentication and cannot carry
 # a browser session cookie with a CSRF token.
-from flask_wtf.csrf import CSRFProtect, CSRFError
+# noqa: E402 — import is intentionally late so it can reference the
+# already-initialized `app` object two lines down.
+from flask_wtf.csrf import CSRFProtect, CSRFError  # noqa: E402
 csrf = CSRFProtect(app)
 app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1-hour token validity
 
 OUTPUTS_FOLDER = "outputs"
 DATA_FOLDER = "data"
-CLIENTS_FILE = os.path.join(DATA_FOLDER, "clients.json")
 
 
 # =========================
@@ -534,6 +535,204 @@ class WebhookEvent(db.Model):
         db.DateTime, default=utcnow, nullable=False
     )
     processed_at = db.Column(db.DateTime, nullable=True)
+
+
+class Audit(db.Model):
+    """A saved audit run.
+
+    Previously persisted as two on-disk JSON files in `outputs/`:
+    `<site>_<type>_<timestamp>_summary.json` (small, listed on the
+    audit-history page) and `..._full.json` (the heavy payload,
+    lazy-loaded when one specific audit is opened).
+
+    Migrated to SQL so:
+      - tests stop polluting `outputs/` every run
+      - user-scoped queries (the audit-history page filter) become
+        indexed `WHERE user_id = ?` instead of a Python scan over
+        every file in the directory
+      - audits can be joined with the rest of the activity log
+        surfaced by `/admin/users/<id>/activity` (PR #95)
+      - "delete this audit" becomes feasible (deleting a file by
+        URL was never wired up, partly because it was awkward to
+        do safely)
+
+    URL stability: `filename` is the primary key and matches the
+    legacy filename scheme exactly (`<site>_<type>_<ts>_summary.json`).
+    Every URL like `/audit/<filename>` keeps working through the
+    migration.
+
+    Two JSON columns (`summary_payload`, `full_payload`) mirror the
+    two-file split — list pages read only `summary_payload` (cheap),
+    the detail page hits `full_payload` (large blob, only when
+    opening a specific audit). The denormalized score columns let
+    the list page sort without unpacking the JSON.
+    """
+    __tablename__ = "audits"
+
+    # Filename-style identifier: matches the URL scheme already in
+    # use (e.g. `enfactum-com_full_20260506_145038_summary.json`),
+    # so existing browser bookmarks keep working post-migration.
+    filename = db.Column(db.String(255), primary_key=True)
+
+    # Scoping — indexed for the audit-history list query.
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=True, index=True,
+    )
+    # Stored as a string to match the legacy JSON shape (client_id
+    # was sometimes a slug, sometimes a numeric workspace id).
+    client_id = db.Column(db.String(255), nullable=True, index=True)
+    client_name = db.Column(db.String(255), nullable=True)
+
+    # Indexable summary fields.
+    website = db.Column(db.String(500), nullable=True, index=True)
+    audit_type = db.Column(db.String(40), nullable=True)
+    saved_at = db.Column(db.String(40), nullable=False, index=True)
+
+    # Denormalized scores so the list page can sort without unpacking
+    # `summary_payload`. Mirror what get_saved_audits() returned.
+    normalized_score = db.Column(db.Float, default=0, nullable=False)
+    visibility_score = db.Column(db.Float, default=0, nullable=False)
+    content_score = db.Column(db.Float, default=0, nullable=False)
+    schema_score = db.Column(db.Float, default=0, nullable=False)
+
+    # The two payloads, mirroring the legacy `_summary.json` and
+    # `_full.json` split. `summary_payload` is what get_saved_audits
+    # returned per row; `full_payload` is what read_full_audit_data
+    # returned for the detail / PDF export view.
+    summary_payload = db.Column(db.JSON, nullable=True)
+    full_payload = db.Column(db.JSON, nullable=True)
+
+
+class QueueItem(db.Model):
+    """A row in the content queue.
+
+    Previously persisted as a JSON-list-of-dicts in
+    data/content_queue.json. Migrated to SQL so:
+      - tests stop polluting the on-disk fixture
+      - queries can be indexed (user_id, client_id, status)
+      - admin tools (PR #95) can join queue items with the rest of
+        the user's activity log
+      - multi-tenant isolation is enforced by the DB, not a Python
+        filter on every read
+
+    The `id` column is a UUID string — preserves the URLs already
+    minted under the JSON-file scheme (e.g. /content-queue/<uuid>),
+    so existing browser bookmarks keep working through the migration.
+
+    `chat_history` and the legacy timestamp strings are stored as
+    JSON and ISO strings respectively to match the dict shape that
+    content_queue.py returns; templates were written against that
+    shape and a richer type would force a touch on every consumer.
+    """
+    __tablename__ = "queue_items"
+
+    # UUID string primary key — matches the IDs minted by the legacy
+    # JSON-file scheme so existing URLs keep working post-migration.
+    id = db.Column(db.String(40), primary_key=True)
+
+    # Ownership / scoping
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=True, index=True,
+    )
+    # client_id is the workspace slug (string) in the legacy data;
+    # we keep it as a string to avoid a destructive migration mapping
+    # slugs back to int FKs. New consumers can join on Client.slug.
+    client_id = db.Column(db.String(255), nullable=True, index=True)
+    client_name = db.Column(db.String(255), nullable=True)
+
+    # Content
+    target_query = db.Column(db.Text, nullable=True)
+    content_type = db.Column(db.String(80), nullable=True)
+    item_type = db.Column(db.String(20), default="brief", nullable=False)
+    title = db.Column(db.String(500), default="Untitled Item", nullable=False)
+    content = db.Column(db.Text, nullable=True)
+
+    # Lifecycle
+    status = db.Column(db.String(40), default="pending", nullable=False, index=True)
+    priority = db.Column(db.String(20), default="medium", nullable=False)
+    source = db.Column(db.String(40), default="manual", nullable=False)
+
+    # Execution metadata — used by the action engine to decide what
+    # button to render and how much it costs.
+    credits_required = db.Column(db.Integer, default=0, nullable=False)
+    execution_type = db.Column(db.String(40), default="ai_executable", nullable=False)
+    source_action_title = db.Column(db.String(500), nullable=True)
+
+    # Calendar / publication
+    scheduled_for = db.Column(db.String(10), nullable=True)  # "YYYY-MM-DD"
+    webflow_item_id = db.Column(db.String(120), nullable=True)
+    webflow_collection = db.Column(db.String(120), nullable=True)
+    webflow_live_url = db.Column(db.String(500), nullable=True)
+    og_image_url = db.Column(db.String(500), nullable=True)
+
+    # AI-edit conversation log — list of {role, content, summary,
+    # revised_content, ts} dicts.
+    chat_history = db.Column(db.JSON, nullable=True)
+
+    # Timestamps stored as ISO strings to match the legacy dict shape
+    # the templates were written against. Sortable lexicographically
+    # since ISO-8601 sort order == temporal order.
+    created_at = db.Column(db.String(40), nullable=False)
+    updated_at = db.Column(db.String(40), nullable=False)
+
+
+class JobRun(db.Model):
+    """A long-running background job — one row per "user kicked off
+    something they shouldn't have to wait on synchronously."
+
+    Initial use case is bulk audits (PR #90 + #100): a Growth agency
+    with 10 workspaces clicks "Run audits on selected", and the
+    request returns a job_id immediately. A background thread
+    processes the workspaces one at a time, writing progress here.
+    The user can close the tab and check back later.
+
+    Status lifecycle:
+        pending -> running -> done | failed | canceled
+
+    `kind` namespaces the job type so future async tasks (bulk
+    refresh of the answer monitor, etc.) can share this model
+    without a new table per worker. Today only "bulk_audit" exists.
+
+    `result` is a JSON column holding the per-job output (e.g. a
+    list of per-workspace {ok, audit_filename, error} records for
+    bulk audits). Shape is up to the worker function — the model
+    treats it as opaque.
+
+    progress_current / progress_total drive the UI progress bar.
+    """
+    __tablename__ = "job_runs"
+
+    # UUID string for URL stability and to avoid leaking sequential
+    # IDs in /api/jobs/<id> responses.
+    id = db.Column(db.String(40), primary_key=True)
+
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=False, index=True,
+    )
+    kind = db.Column(db.String(40), nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False, default="pending", index=True)
+
+    # Live progress (UI reads this between polls). Set to the size
+    # of the input list on start; incremented as each item completes.
+    progress_current = db.Column(db.Integer, default=0, nullable=False)
+    progress_total = db.Column(db.Integer, default=0, nullable=False)
+
+    # Opaque per-job JSON. For bulk_audit: a list of dicts with
+    # {client_id, ok, audit_filename, error, queue_added, ...} —
+    # one per workspace. The JS poller iterates it to render the
+    # per-workspace progress rows.
+    result = db.Column(db.JSON, nullable=True)
+
+    # If the worker raised, the friendly error message goes here.
+    error = db.Column(db.Text, nullable=True)
+
+    # Lifecycle timestamps (ISO strings, sortable lexicographically).
+    created_at = db.Column(db.String(40), nullable=False)
+    started_at = db.Column(db.String(40), nullable=True)
+    finished_at = db.Column(db.String(40), nullable=True)
 
 
 class Referral(db.Model):
@@ -2699,13 +2898,13 @@ def build_generated_site_page(client, blueprint, page_config):
                 elif "professional" in trait.lower():
                     proof_items.append(f"Professional {business_type} expertise")
                 elif "friendly" in trait.lower():
-                    proof_items.append(f"Friendly, approachable service")
+                    proof_items.append("Friendly, approachable service")
                 elif "modern" in trait.lower():
-                    proof_items.append(f"Modern, up-to-date approach")
+                    proof_items.append("Modern, up-to-date approach")
                 elif "warm" in trait.lower():
-                    proof_items.append(f"Warm, welcoming experience")
+                    proof_items.append("Warm, welcoming experience")
                 elif "clear" in trait.lower():
-                    proof_items.append(f"Clear, straightforward communication")
+                    proof_items.append("Clear, straightforward communication")
                 else:
                     proof_items.append(f"{trait} approach to {business_type}")
 
@@ -2732,7 +2931,7 @@ def build_generated_site_page(client, blueprint, page_config):
                 if "best" in focus.lower():
                     proof_items.append(f"Recognized as {focus}")
                 elif "where" in focus.lower():
-                    proof_items.append(f"Easy to find and contact")
+                    proof_items.append("Easy to find and contact")
 
         # Fallback items if we don't have enough
         fallbacks = [
@@ -3738,7 +3937,20 @@ def agency_branding(user) -> Dict[str, Any]:
     """Resolve the agency-branding dict that PDFs and the in-app
     sidebar use. Always returns the same shape so templates don't
     need to special-case missing fields. Falls back to DarInsights
-    branding when white-label is off."""
+    branding when white-label is off.
+
+    Plan gate: even if `is_white_label_enabled` is True on the row
+    (e.g. user enabled it on Pro, then downgraded to Free), the
+    branding is only applied when the user currently has access to
+    the `white_label` feature. Without this re-check, a downgraded
+    user would keep delivering branded reports indefinitely without
+    paying — a billing leak.
+
+    The feature check routes through PLAN_IMPLICIT_MODULES so
+    today's Pro/Growth users continue to qualify exactly as before;
+    once the modules system is surfaced for self-serve, an explicit
+    `UserModule(slug='agency')` row would qualify too.
+    """
     from services.storage import logo_storage
 
     # Resolve the uploaded logo URL regardless of whether white-label
@@ -3748,7 +3960,9 @@ def agency_branding(user) -> Dict[str, Any]:
         "agency_logos", getattr(user, "agency_logo_filename", None)
     ) if user else None
 
-    if not user or not getattr(user, "is_white_label_enabled", False):
+    toggle_on = bool(getattr(user, "is_white_label_enabled", False)) if user else False
+    plan_qualifies = bool(user) and user_has_feature(user, "white_label")
+    if not toggle_on or not plan_qualifies:
         return {
             "active": False,
             "name": "DarInsights",
@@ -4361,96 +4575,71 @@ def get_full_path(summary_filename):
 
 
 def read_full_audit_data(summary_filename):
-    full_path = get_full_path(summary_filename)
-    if not full_path:
+    """Return the full audit payload for a given filename identifier.
+
+    Migrated from `outputs/<filename>` lookup to a SQL row fetch on
+    the audits table. Returns None for unknown filenames (matches the
+    legacy "file not found" return shape).
+    """
+    if not summary_filename:
         return None
-    return safe_load_json(full_path, None)
+    row = db.session.get(Audit, summary_filename)
+    if row is None:
+        return None
+    return row.full_payload
 
 
 def get_saved_audits(user_id=None):
-    if not os.path.exists(OUTPUTS_FOLDER):
-        return []
+    """Return the audit history as a list of dicts, newest first.
 
-    files = os.listdir(OUTPUTS_FOLDER)
-    summary_files = sorted(
-        [f for f in files if f.endswith("_summary.json")], reverse=True
-    )
+    Migrated from a `for filename in os.listdir(outputs/)` scan to a
+    SQL query against the `audits` table. The returned dict shape
+    matches what the JSON-file scheme produced — same keys, same
+    types — so templates and downstream filter / sort helpers don't
+    need to change.
 
-    audits = []
-    for filename in summary_files:
-        filepath = os.path.join(OUTPUTS_FOLDER, filename)
+    user_id filter is now an indexed WHERE clause instead of a
+    Python skip-on-mismatch comprehension.
+    """
+    q = Audit.query
+    if user_id is not None:
+        q = q.filter_by(user_id=int(user_id))
+    rows = q.order_by(Audit.saved_at.desc()).all()
+    return [_serialize_audit_row(r) for r in rows]
 
-        try:
-            data = load_json_file(filepath)
 
-            saved_user_id = data.get("user_id")
-            if user_id is not None and str(saved_user_id) != str(user_id):
-                continue
-
-            website = data.get("website", "N/A")
-            audits.append(
-                {
-                    "filename": filename,
-                    "website": website,
-                    "website_normalized": normalize_website(website),
-                    "client_id": (
-                        str(data.get("client_id"))
-                        if data.get("client_id") is not None
-                        else None
-                    ),
-                    "client_name": data.get("client_name"),
-                    "audit_type": data.get("audit_type", "N/A"),
-                    "saved_at": data.get("saved_at", ""),
-                    "verdict": data.get("summary", {}).get("verdict", "N/A"),
-                    "opportunity_level": data.get("summary", {}).get(
-                        "opportunity_level", "N/A"
-                    ),
-                    "normalized_score": data.get("scores", {}).get(
-                        "normalized_score", 0
-                    ),
-                    "visibility_score": data.get("scores", {}).get(
-                        "visibility_score", 0
-                    ),
-                    "content_score": data.get("scores", {}).get(
-                        "content_score", 0
-                    ),
-                    "schema_score": data.get("scores", {}).get(
-                        "schema_score", 0
-                    ),
-                    "scores": data.get("scores", {}),
-                    "summary": data.get("summary", {}),
-                    "visibility_snapshot": data.get("visibility_snapshot", {}),
-                    "top_competitors": data.get("top_competitors", []),
-                    "top_content_gaps": data.get("top_content_gaps", []),
-                    "top_recommendations": data.get("top_recommendations", []),
-                }
-            )
-        except Exception as e:
-            audits.append(
-                {
-                    "filename": filename,
-                    "website": "Error reading file",
-                    "website_normalized": "",
-                    "client_id": None,
-                    "client_name": None,
-                    "audit_type": "N/A",
-                    "saved_at": "",
-                    "verdict": str(e),
-                    "opportunity_level": "N/A",
-                    "normalized_score": 0,
-                    "visibility_score": 0,
-                    "content_score": 0,
-                    "schema_score": 0,
-                    "scores": {},
-                    "summary": {},
-                    "visibility_snapshot": {},
-                    "top_competitors": [],
-                    "top_content_gaps": [],
-                    "top_recommendations": [],
-                }
-            )
-
-    return audits
+def _serialize_audit_row(row):
+    """Shape an Audit ORM row into the dict that the JSON-file era
+    returned. Kept tight so templates / filter helpers don't need
+    to be touched."""
+    summary = row.summary_payload or {}
+    website = row.website or summary.get("website") or "N/A"
+    return {
+        "filename": row.filename,
+        "website": website,
+        "website_normalized": normalize_website(website),
+        "client_id": row.client_id,
+        "client_name": row.client_name,
+        "audit_type": row.audit_type or "N/A",
+        "saved_at": row.saved_at or "",
+        "verdict": (summary.get("summary") or {}).get("verdict", "N/A"),
+        "opportunity_level": (summary.get("summary") or {}).get(
+            "opportunity_level", "N/A"
+        ),
+        # Denormalized columns are the source of truth for sortable
+        # numeric fields; fall back to summary_payload values only if
+        # the columns are missing (older rows).
+        "normalized_score": row.normalized_score or summary.get("scores", {}).get("normalized_score", 0),
+        "visibility_score": row.visibility_score or summary.get("scores", {}).get("visibility_score", 0),
+        "content_score": row.content_score or summary.get("scores", {}).get("content_score", 0),
+        "schema_score": row.schema_score or summary.get("scores", {}).get("schema_score", 0),
+        "scores": summary.get("scores", {}),
+        "summary": summary.get("summary", {}),
+        "visibility_snapshot": summary.get("visibility_snapshot", {}),
+        "top_competitors": summary.get("top_competitors", []),
+        "top_content_gaps": summary.get("top_content_gaps", []),
+        "top_recommendations": summary.get("top_recommendations", []),
+    }
 
 
 def filter_audits(audits, search_term="", audit_type="all"):
@@ -6493,7 +6682,7 @@ def admin_user_activity(user_id):
     # Tab selector. Anything outside the known set falls back to
     # "credits" so a broken bookmark doesn't 500.
     tab = (request.args.get("tab") or "credits").lower()
-    if tab not in {"credits", "webhooks", "reservations", "invites"}:
+    if tab not in {"credits", "webhooks", "reservations", "invites", "jobs"}:
         tab = "credits"
 
     # Filter values per tab. Empty string = no filter.
@@ -6524,6 +6713,10 @@ def admin_user_activity(user_id):
     reservation_statuses = []
     invite_rows = []
     invite_total = 0
+    job_rows = []
+    job_total = 0
+    job_kinds = []
+    job_statuses = []
 
     if tab == "credits":
         q = CreditTransaction.query.filter_by(user_id=user_id)
@@ -6605,6 +6798,44 @@ def admin_user_activity(user_id):
             .all()
         )
 
+    elif tab == "jobs":
+        # Background-job runs (bulk audits today; whatever else uses
+        # the JobRun model tomorrow). Filterable by kind + status so
+        # support can answer "did the user's bulk audit finish?" /
+        # "what failed?".
+        q = JobRun.query.filter_by(user_id=user_id)
+        if type_filter:
+            q = q.filter_by(kind=type_filter)
+        if status_filter:
+            q = q.filter_by(status=status_filter)
+        job_total = q.count()
+        # created_at is a string column (ISO timestamps) — sortable
+        # lexicographically because all values use the same width and
+        # timezone offset, so we don't need a separate datetime column
+        # just to order this view.
+        job_rows = (
+            q.order_by(JobRun.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        job_kinds = [
+            r[0] for r in
+            db.session.query(JobRun.kind)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(JobRun.kind.asc())
+            .all()
+        ]
+        job_statuses = [
+            r[0] for r in
+            db.session.query(JobRun.status)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(JobRun.status.asc())
+            .all()
+        ]
+
     return render_template(
         "admin/user_activity.html",
         u=user,
@@ -6625,6 +6856,10 @@ def admin_user_activity(user_id):
         reservation_statuses=reservation_statuses,
         invite_rows=invite_rows,
         invite_total=invite_total,
+        job_rows=job_rows,
+        job_total=job_total,
+        job_kinds=job_kinds,
+        job_statuses=job_statuses,
     )
 
 
@@ -6647,9 +6882,52 @@ def admin_user_set_role(user_id):
     return redirect(url_for("admin_user_detail", user_id=user_id))
 
 
+#  Rank table for admin plan-change direction detection. A change
+#  from a higher rank to a lower one triggers downgrade_plan() so the
+#  state-reconciliation (workspace soft-lock, addon cancellation,
+#  audit trail) runs the same way a Stripe-triggered downgrade does.
+#  Internal/comp tiers (starter, agency, dev_unlimited) sit above the
+#  public tiers so swapping someone into one doesn't trip the
+#  "downgrade" path; moving out of one toward a public tier does.
+_PLAN_RANK: Dict[str, int] = {
+    "free": 0,
+    "pro": 1,
+    "growth": 2,
+    "starter": 3,
+    "agency": 4,
+    "dev_unlimited": 5,
+}
+
+
+def _plan_rank(slug: str | None) -> int:
+    return _PLAN_RANK.get((slug or "free").lower(), 0)
+
+
 @app.route("/admin/users/<int:user_id>/plan", methods=["POST"])
 @login_required
 def admin_user_set_plan(user_id):
+    """Set a user's plan from the admin UI.
+
+    The naive implementation was `user.plan = new_plan; commit`. That
+    works for upgrades but silently leaks on downgrades — workspaces
+    over the new cap stay unlocked, addon subscriptions stay billing
+    in Stripe, the extra_workspaces / extra_seats counters stay
+    inflated. Customers downgraded manually through admin ended up
+    keeping all their Growth-tier perks while the audit log showed
+    them on Pro.
+
+    Fix: when stepping down in plan rank, route through
+    downgrade_plan() — the same helper Stripe webhooks call on
+    subscription cancellation. That helper:
+      - Cancels addon Stripe subscriptions (cancel_at_period_end)
+      - Clears extra_workspaces / extra_seats counters
+      - Soft-locks workspaces over the new cap (oldest kept)
+      - Revokes pending team invites if over seat cap
+      - Writes a `plan_downgrade` CreditTransaction audit row
+
+    Upgrades just flip the plan directly — no special state cleanup
+    is needed when moving up.
+    """
     guard = _require_admin()
     if guard is not None:
         return guard[0]
@@ -6657,12 +6935,37 @@ def admin_user_set_plan(user_id):
     if not user:
         abort(404)
     new_plan = (request.form.get("plan") or "").strip().lower()
-    if new_plan not in PLAN_CATALOG:
+    # Allow internal tiers (starter, agency, dev_unlimited) even though
+    # they aren't in PLAN_CATALOG — admins flip users into them as
+    # comp/enterprise arrangements.
+    if new_plan not in PLAN_CATALOG and new_plan not in _PLAN_RANK:
         flash(f"Unknown plan: {new_plan}", "error")
         return redirect(url_for("admin_user_detail", user_id=user_id))
-    user.plan = new_plan
-    db.session.commit()
-    flash(f"Plan updated to {new_plan}.", "success")
+
+    old_plan = (user.plan or "free").lower()
+    if new_plan == old_plan:
+        flash(f"Plan is already {new_plan}.", "info")
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+
+    if _plan_rank(new_plan) < _plan_rank(old_plan):
+        # Downgrade: reconcile state the same way a Stripe-driven
+        # cancellation does. `downgrade_plan()` commits internally.
+        summary = downgrade_plan(
+            user, new_plan, reason=f"Admin change by user #{current_user.id}",
+        )
+        msg = f"Plan downgraded to {new_plan}."
+        if summary.get("workspaces_locked"):
+            msg += f" {summary['workspaces_locked']} workspace(s) soft-locked."
+        if summary.get("addons_canceled"):
+            msg += f" {summary['addons_canceled']} Stripe addon(s) canceled."
+        flash(msg, "success")
+    else:
+        # Upgrade or same-rank lateral move (e.g. free → starter):
+        # no state cleanup needed. Just persist the plan.
+        user.plan = new_plan
+        db.session.commit()
+        flash(f"Plan updated to {new_plan}.", "success")
+
     return redirect(url_for("admin_user_detail", user_id=user_id))
 
 
@@ -11322,7 +11625,6 @@ def position_tracking_page():
     market = request.args.get("market", "United States (English)").strip()
     topic = request.args.get("topic", "").strip()
 
-    view_mode = get_view_mode(current_user)
     focused_client = get_focused_client_for_user(current_user)
 
     selected_client = None
@@ -13000,6 +13302,498 @@ def api_client_run_audit(client_id):
         }), 500
 
 
+# ---------------------------------------------------------------------------
+# Background-job runtime
+# ---------------------------------------------------------------------------
+# Earlier bulk audit (PR #90) was JS-driven sequential AJAX: the user
+# had to keep the tab open while N audits ran one at a time. That
+# works for the happy path but loses the work-in-progress if the
+# user navigates away, closes the laptop, or hits a flaky connection.
+#
+# New flow:
+#   1. JS POSTs once to /api/jobs/bulk-audit/start with the workspace
+#      list.
+#   2. Server creates a JobRun row, spawns a daemon thread, returns
+#      the job_id immediately.
+#   3. JS polls /api/jobs/<id> every couple of seconds and updates
+#      the progress UI. User can close the tab — the thread keeps
+#      running; when they reopen, the same poll reads the latest
+#      state.
+#
+# Threading caveats handled below:
+#   - Each worker thread pushes its own app_context so SQLAlchemy
+#     has a session.
+#   - Worker uses a fresh DB session per item; the parent request's
+#     session would close as soon as the request returns.
+#   - Daemon thread so the worker dies with the app instead of
+#     keeping the process alive on shutdown.
+#
+# This is purposely *not* Redis/Celery-based. At current scale a
+# single in-process worker is fine, and the architecture is simple
+# enough to reason about (no broker, no separate process). The
+# JobRun row gives us a recovery point if we later want to migrate
+# to a real queue.
+
+# noqa: E402 — intentional late import. `threading` is only used by
+# the background-job runtime below; co-locating the import with the
+# code that uses it keeps the dependency obvious.
+import threading  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Stuck-job recovery on app boot
+# ---------------------------------------------------------------------------
+# JobRun rows in `pending` or `running` state when the process restarts are
+# orphans — their daemon thread died with the previous process and the row
+# will never advance on its own. The poll endpoint would report "running"
+# forever and the UI's spinner would never resolve.
+#
+# On first request after boot, sweep those rows into `failed` with a clear
+# error so the user can re-run intentionally. We don't auto-resume: the
+# worker may have already committed some workspaces, credit reservations
+# could be mid-commit, and replaying duplicate work risks double-spend.
+#
+# Reservations that the dead worker left in `pending` state are handled
+# separately by sweep_expired_reservations() — they expire after 15 min
+# and get auto-released without touching this path.
+
+_jobs_recovery_lock = threading.Lock()
+_jobs_recovered = False
+
+
+def recover_interrupted_jobs() -> int:
+    """Mark any JobRun rows stuck in pending/running as failed.
+
+    Called once per worker process on first request. A row in either
+    of those states means the previous process died mid-flight. We
+    set status="failed" with a recognizable error string so the UI
+    can hint at recovery and the user can re-run.
+
+    Returns the count swept (for logging / metrics).
+    """
+    stuck = JobRun.query.filter(
+        JobRun.status.in_(("pending", "running"))
+    ).all()
+    if not stuck:
+        return 0
+    now_iso = utcnow().isoformat(timespec="seconds")
+    for job in stuck:
+        prior = (job.error or "").strip()
+        msg = "Interrupted by server restart — please re-run."
+        job.error = (prior + "\n" + msg).strip()[:1000] if prior else msg
+        job.status = "failed"
+        job.finished_at = now_iso
+    db.session.commit()
+    logger.info("Recovered %d interrupted background job(s)", len(stuck))
+    return len(stuck)
+
+
+@app.before_request
+def _recover_interrupted_jobs_once():
+    """Run stuck-job recovery exactly once per worker process.
+
+    `before_request` fires under both `flask run` and gunicorn, so
+    this works in dev and prod without a separate boot hook. The
+    first call into the lock does the work; subsequent requests
+    short-circuit on the boolean flag.
+    """
+    global _jobs_recovered
+    if _jobs_recovered:
+        return
+    with _jobs_recovery_lock:
+        if _jobs_recovered:
+            return
+        try:
+            recover_interrupted_jobs()
+        except Exception as exc:
+            logger.warning("Job recovery on boot failed: %s", exc)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        finally:
+            _jobs_recovered = True
+
+
+def _spawn_background_job(job_id: str, worker_fn, *args, **kwargs) -> None:
+    """Spawn `worker_fn(*args, **kwargs)` in a daemon thread that
+    operates inside its own Flask app context. The worker is
+    responsible for updating the JobRun row's status / progress /
+    result / error fields.
+
+    `worker_fn`'s first argument MUST be `job_id` so it can look up
+    its own row inside the thread. The wrapper handles status
+    bookkeeping for the boundary cases:
+      - Marks status="running" + started_at on entry
+      - Marks status="failed" + error if the worker raises
+      - Marks status="done" + finished_at on clean exit (unless the
+        worker already set a terminal status itself)
+    """
+    def _runner():
+        # Bind to the global Flask app — threads don't inherit the
+        # request's app_context.
+        with app.app_context():
+            started_iso = utcnow().isoformat(timespec="seconds")
+            try:
+                job = db.session.get(JobRun, job_id)
+                if job is None:
+                    logger.warning("Job %s vanished before worker started", job_id)
+                    return
+                job.status = "running"
+                job.started_at = started_iso
+                db.session.commit()
+            except Exception:
+                logger.exception("Failed to mark job %s running", job_id)
+                db.session.rollback()
+                return
+
+            try:
+                worker_fn(job_id, *args, **kwargs)
+                # If the worker didn't set a terminal status, default
+                # to done. Workers are encouraged to set their own
+                # status explicitly so error paths aren't masked.
+                job = db.session.get(JobRun, job_id)
+                if job and job.status == "running":
+                    job.status = "done"
+                    job.finished_at = utcnow().isoformat(timespec="seconds")
+                    db.session.commit()
+            except Exception as exc:
+                logger.exception("Background job %s failed", job_id)
+                try:
+                    job = db.session.get(JobRun, job_id)
+                    if job:
+                        job.status = "failed"
+                        job.error = str(exc)[:1000]
+                        job.finished_at = utcnow().isoformat(timespec="seconds")
+                        db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
+    t = threading.Thread(target=_runner, daemon=True, name=f"job-{job_id}")
+    t.start()
+
+
+def _bulk_audit_worker(job_id: str, client_slugs: List[str], user_id: int) -> None:
+    """Per-workspace bulk-audit worker.
+
+    Processes `client_slugs` sequentially. For each:
+      1. Reserves credits for the audit.
+      2. Runs the audit + queue-opportunity-creation.
+      3. Commits the reservation on success or releases it on failure.
+      4. Appends a per-workspace record to the JobRun's `result` list
+         and bumps progress_current.
+
+    If credits run dry mid-batch, the remaining workspaces are
+    marked skipped (no audit attempted, no reservation made).
+
+    Mirrors the per-workspace behavior of /api/client/<id>/run-audit
+    so the user gets the same semantics whether they kick off audits
+    one at a time or via the bulk job.
+    """
+    from services.ai_errors import friendly_ai_error_message
+
+    user = db.session.get(User, user_id)
+    if not user:
+        # Should never happen — auth is checked before enqueue —
+        # but guard so a deleted-mid-batch user doesn't crash the
+        # worker thread.
+        return
+
+    out_of_credits = False
+    canceled = False
+    for slug in client_slugs:
+        # Re-fetch the JobRun row on each iteration so we can append
+        # progress incrementally. Each commit makes the partial state
+        # visible to the polling endpoint.
+        job = db.session.get(JobRun, job_id)
+        if job is None:
+            return  # Job deleted underneath us — bail.
+
+        # Cooperative cancel check — see /api/jobs/<id>/cancel.
+        # If the user hit cancel while a previous iteration was in
+        # flight, the row's status is already "canceled". Bail out of
+        # the loop and let the remaining workspaces be marked skipped.
+        if job.status == "canceled":
+            canceled = True
+
+        # Look up the workspace row directly — get_client_by_id uses
+        # `current_user` from Flask-Login, which doesn't exist in a
+        # background thread. We have the user_id already.
+        ws_row = Client.query.filter_by(slug=str(slug), user_id=user.id).first()
+        client = serialize_client_row(ws_row) if ws_row else None
+        result_records = list(job.result or [])
+
+        if canceled:
+            result_records.append({
+                "client_id": slug,
+                "client_name": client.get("name") if client else None,
+                "ok": False,
+                "error": "Skipped — job canceled",
+                "skipped": True,
+                "canceled": True,
+            })
+        elif not client:
+            result_records.append({
+                "client_id": slug,
+                "client_name": None,
+                "ok": False,
+                "error": "Workspace not found",
+            })
+        elif out_of_credits:
+            result_records.append({
+                "client_id": slug,
+                "client_name": client.get("name"),
+                "ok": False,
+                "error": "Skipped — out of credits",
+                "skipped": True,
+            })
+        else:
+            reservation = reserve_credits_for(
+                user, "audit_run",
+                notes=f"Bulk audit (job {job_id}): {client.get('name')}",
+            )
+            if reservation is None:
+                # Wallet drained mid-batch — short-circuit the rest.
+                out_of_credits = True
+                result_records.append({
+                    "client_id": slug,
+                    "client_name": client.get("name"),
+                    "ok": False,
+                    "error": insufficient_credits_message(
+                        user, "audit_run", "An audit"
+                    ),
+                    "reason": "insufficient_credits",
+                })
+            else:
+                try:
+                    run_audit_for_input(
+                        website=client.get("website", ""),
+                        industry=client.get("industry", ""),
+                        location=client.get("location", ""),
+                        topic=(client.get("industry") or None),
+                        audit_type="quick",
+                        client_id=slug,
+                        client_name=client.get("name"),
+                        user_id=user.id,
+                    )
+                    queue_result = create_content_opportunities_from_latest_audit(
+                        client_id=slug, user_id=user.id,
+                    )
+                    commit_reservation(
+                        reservation,
+                        notes=f"Bulk audit completed (job {job_id})",
+                    )
+                    result_records.append({
+                        "client_id": slug,
+                        "client_name": client.get("name"),
+                        "ok": True,
+                        "queue_added": (
+                            queue_result.get("added", 0)
+                            if isinstance(queue_result, dict)
+                            else queue_result or 0
+                        ),
+                        "queue_skipped_due_to_cap": (
+                            queue_result.get("skipped_due_to_cap", 0)
+                            if isinstance(queue_result, dict) else 0
+                        ),
+                    })
+                except Exception as exc:
+                    release_reservation(
+                        reservation,
+                        reason=f"Bulk audit job worker failure: {exc!r}"[:1000],
+                    )
+                    logger.exception(
+                        "Bulk audit job %s failed on client %s", job_id, slug,
+                    )
+                    result_records.append({
+                        "client_id": slug,
+                        "client_name": client.get("name"),
+                        "ok": False,
+                        "error": friendly_ai_error_message(exc),
+                    })
+
+        # Persist progress after each workspace — this is what the
+        # poll endpoint reads. Atomic per-iteration commit.
+        job.result = result_records
+        job.progress_current = len(result_records)
+        db.session.commit()
+
+    # Mark the job done. The wrapper would do this for us, but doing
+    # it explicitly lets us be clear about success vs the wrapper's
+    # default behavior. Preserve a "canceled" status if the user
+    # aborted mid-batch — don't overwrite it with "done".
+    job = db.session.get(JobRun, job_id)
+    if job and job.status != "canceled":
+        job.status = "done"
+        job.finished_at = utcnow().isoformat(timespec="seconds")
+        db.session.commit()
+    elif job and job.status == "canceled" and not job.finished_at:
+        job.finished_at = utcnow().isoformat(timespec="seconds")
+        db.session.commit()
+
+
+@app.route("/api/jobs/bulk-audit/start", methods=["POST"])
+@login_required
+def api_jobs_bulk_audit_start():
+    """Kick off a bulk-audit job.
+
+    Body: {"client_ids": ["slug-1", "slug-2", ...]}
+    Returns: 200 {"job_id": "<uuid>"} on accept, or 4xx with an
+    error message.
+
+    Auth: login_required. Plan gate: only subscriber plans can
+    bulk-run; Free has at most 1 workspace and gets the per-audit
+    HTML route. Admin / dev_unlimited bypass.
+
+    Important: credits are NOT pre-reserved as a lump sum here.
+    Each workspace's audit reserves and commits independently in
+    the worker. If the wallet empties mid-batch, the remaining
+    workspaces are marked "skipped — out of credits" without
+    failing the job.
+    """
+    body = request.get_json(silent=True) or {}
+    client_ids = body.get("client_ids") or []
+    if not isinstance(client_ids, list) or not client_ids:
+        return jsonify({"ok": False, "error": "client_ids must be a non-empty list"}), 400
+
+    # Normalize to strings and dedupe while preserving order.
+    seen = set()
+    slugs: List[str] = []
+    for cid in client_ids:
+        s = str(cid).strip()
+        if s and s not in seen:
+            seen.add(s)
+            slugs.append(s)
+    if not slugs:
+        return jsonify({"ok": False, "error": "No valid client_ids supplied"}), 400
+
+    # Plan gate. Subscribers (Pro / Growth / agency / dev_unlimited)
+    # can run bulk; Free users can't (their 1-workspace cap makes
+    # the feature meaningless anyway, but enforced here for
+    # defense in depth).
+    if not (
+        is_subscriber(getattr(current_user, "plan", "free"))
+        or user_has_unlimited_credits(current_user)
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "Bulk audit is available on Pro and Growth plans.",
+        }), 403
+
+    # Cap the batch size — pragmatic guard against a runaway request
+    # body. 50 is well above the Growth plan's 10-workspace cap.
+    if len(slugs) > 50:
+        return jsonify({
+            "ok": False,
+            "error": "Too many workspaces in one batch (max 50).",
+        }), 400
+
+    job_id = secrets.token_urlsafe(16)
+    now = utcnow().isoformat(timespec="seconds")
+    job = JobRun(
+        id=job_id,
+        user_id=current_user.id,
+        kind="bulk_audit",
+        status="pending",
+        progress_current=0,
+        progress_total=len(slugs),
+        result=[],
+        created_at=now,
+    )
+    db.session.add(job)
+    db.session.commit()
+
+    _spawn_background_job(
+        job_id, _bulk_audit_worker,
+        client_slugs=slugs, user_id=current_user.id,
+    )
+
+    return jsonify({"ok": True, "job_id": job_id})
+
+
+@app.route("/api/jobs/<job_id>", methods=["GET"])
+@login_required
+def api_jobs_get(job_id):
+    """Poll a job's current state.
+
+    Returns the JobRun row's status / progress / result / error
+    fields. Auth: must be the user that started the job (no shared
+    job visibility across users — even teammates of the same
+    workspace see their own jobs only, matching the per-user
+    audit-history scoping).
+
+    Response shape:
+      200 {"ok": true, "job": {"id", "kind", "status",
+            "progress_current", "progress_total", "result", "error",
+            "created_at", "started_at", "finished_at"}}
+      404 if the job doesn't exist or belongs to another user
+    """
+    job = db.session.get(JobRun, job_id)
+    if job is None or job.user_id != current_user.id:
+        return jsonify({"ok": False, "error": "Job not found"}), 404
+
+    return jsonify({
+        "ok": True,
+        "job": {
+            "id": job.id,
+            "kind": job.kind,
+            "status": job.status,
+            "progress_current": job.progress_current,
+            "progress_total": job.progress_total,
+            "result": job.result or [],
+            "error": job.error,
+            "created_at": job.created_at,
+            "started_at": job.started_at,
+            "finished_at": job.finished_at,
+        },
+    })
+
+
+@app.route("/api/jobs/<job_id>/cancel", methods=["POST"])
+@login_required
+def api_jobs_cancel(job_id):
+    """Cooperatively cancel a running JobRun.
+
+    Sets the row's status to "canceled" so the worker thread will
+    bail out at the next iteration boundary. The current in-flight
+    workspace finishes (its credit reservation is either committed
+    on success or released on failure — we don't kill mid-audit
+    because that risks a partially-billed Stripe charge or a
+    half-written audit row); remaining workspaces are marked
+    "Skipped — job canceled" without consuming credits.
+
+    Auth: must be the user that started the job. Same scoping rule
+    as the GET endpoint — no shared job visibility across users.
+
+    Response:
+      200 {"ok": true, "status": "canceled"} on successful cancel
+      404 if the job doesn't exist or belongs to another user
+      409 if the job is already in a terminal state (done / failed
+          / canceled) — clients can read `status` from the GET
+          response to know what happened
+    """
+    job = db.session.get(JobRun, job_id)
+    if job is None or job.user_id != current_user.id:
+        return jsonify({"ok": False, "error": "Job not found"}), 404
+
+    if job.status in ("done", "failed", "canceled"):
+        return jsonify({
+            "ok": False,
+            "error": f"Job is already {job.status}; nothing to cancel.",
+            "status": job.status,
+        }), 409
+
+    # Flip to canceled. The worker reads this at the top of each
+    # iteration and bails out. finished_at is set when the worker
+    # exits the loop (or here, if the worker has already returned
+    # without setting it).
+    job.status = "canceled"
+    db.session.commit()
+    logger.info("Job %s canceled by user %s", job_id, current_user.id)
+
+    return jsonify({"ok": True, "status": "canceled"})
+
+
 @app.route("/client/<client_id>/presentation")
 @login_required
 def client_presentation_page(client_id):
@@ -13034,9 +13828,6 @@ def client_growth_plan(client_id):
 
     if not row:
         return f"❌ Client not found or access denied: {client_id}", 404
-
-    # convert to dict (same format your templates expect)
-    client = serialize_client_row(row)
 
     # 🔥 rebuild full view manually
     all_clients = build_client_views()
@@ -13119,7 +13910,6 @@ def new_audit():
         location = request.form.get("location", "").strip()
         topic = request.form.get("topic", "").strip()
         audit_type = request.form.get("audit_type", "quick").strip()
-        notes = request.form.get("notes", "").strip()
 
         if not client_id:
             if view_mode == "single" and focused_client:
@@ -13738,9 +14528,15 @@ def settings_update_white_label():
     current_user.agency_footer = footer or None
     current_user.agency_disclaimer = disclaimer or None
 
-    # White-label enable is gated to subscribers. Free users can save
-    # fields (prepping for an upgrade) but the toggle stays off.
-    if enable_requested and not is_subscriber(getattr(current_user, "plan", "free")):
+    # White-label enable is gated to users with access to the
+    # `white_label` feature. Routes through PLAN_IMPLICIT_MODULES so
+    # Pro/Growth users qualify implicitly today; an explicit
+    # UserModule(slug='agency') row also qualifies once modules become
+    # self-serve. Free users can save fields (prepping for an upgrade)
+    # but the toggle stays off. agency_branding() also re-checks this
+    # at read time so a downgrade auto-disables branding even if the
+    # toggle stays True on the row.
+    if enable_requested and not user_has_feature(current_user, "white_label"):
         current_user.is_white_label_enabled = False
         db.session.commit()
         flash(
@@ -13972,7 +14768,7 @@ def webflow_export_blog(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError
         
         blog_collection_id = os.getenv("WEBFLOW_BLOG_COLLECTION_ID")
         if not blog_collection_id or blog_collection_id.startswith("your_"):
@@ -14008,8 +14804,9 @@ def webflow_export_blog(item_id):
             ).first()
             
             if existing_export and existing_export.webflow_item_id:
-                # Update existing item
-                result = client.update_item(blog_collection_id, existing_export.webflow_item_id, field_data)
+                # Update existing item — return value unused but the
+                # call's side effect (Webflow CMS update) is what matters
+                client.update_item(blog_collection_id, existing_export.webflow_item_id, field_data)
                 webflow_item_id = existing_export.webflow_item_id
                 action = "updated"
             else:
@@ -14092,7 +14889,7 @@ def webflow_export_faq(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError
         
         faq_collection_id = os.getenv("WEBFLOW_FAQ_COLLECTION_ID")
         if not faq_collection_id or faq_collection_id.startswith("your_"):
@@ -14121,7 +14918,8 @@ def webflow_export_faq(item_id):
             ).first()
             
             if existing_export and existing_export.webflow_item_id:
-                result = client.update_item(faq_collection_id, existing_export.webflow_item_id, field_data)
+                # Return value unused; the CMS-update side effect is the point
+                client.update_item(faq_collection_id, existing_export.webflow_item_id, field_data)
                 webflow_item_id = existing_export.webflow_item_id
                 action = "updated"
             else:
@@ -14202,7 +15000,7 @@ def webflow_export_service(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
+        from services.webflow_client import WebflowCMSClient, WebflowAPIError
         
         service_collection_id = os.getenv("WEBFLOW_SERVICE_COLLECTION_ID")
         if not service_collection_id or service_collection_id.startswith("your_"):
@@ -14232,7 +15030,8 @@ def webflow_export_service(item_id):
             ).first()
             
             if existing_export and existing_export.webflow_item_id:
-                result = client.update_item(service_collection_id, existing_export.webflow_item_id, field_data)
+                # Return value unused; the CMS-update side effect is the point
+                client.update_item(service_collection_id, existing_export.webflow_item_id, field_data)
                 webflow_item_id = existing_export.webflow_item_id
                 action = "updated"
             else:
@@ -14858,7 +15657,6 @@ def answer_monitor_page():
 
     requested_client_id = request.args.get("client_id", "").strip()
     clients = build_client_views()
-    view_mode = get_view_mode(current_user)
     focused_client = get_focused_client_for_user(current_user)
 
     selected_client = None
@@ -16385,7 +17183,7 @@ def shopify_descriptions_preview(client_id):
     body. Stores the proposals in shop_meta so the user can review and
     approve before any write. Charges nothing on preview (no Shopify
     write yet) — the apply step charges credits."""
-    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError, scope_has
+    from services.shopify_client import ShopifyAdminClient, ShopifyAPIError
     from services.shopify_audit import _is_thin_description
 
     workspace = db.session.get(Client, client_id)
@@ -17208,8 +18006,17 @@ def internal_server_error(error):
 
 
 if __name__ == "__main__":
+    # When run as `python app.py`, this module's name is `__main__`, so any
+    # later `from app import ...` (e.g. content_queue._model() at request
+    # time) would reimport this file as a separate `app` module — creating
+    # a duplicate Flask app + SQLAlchemy instance and 500ing requests with
+    # "current Flask app is not registered with this 'SQLAlchemy' instance".
+    # Aliasing keeps a single module identity.
+    import sys as _sys
+    _sys.modules.setdefault("app", _sys.modules[__name__])
+
     ensure_data_dirs()
     with app.app_context():
         db.create_all()
     print("Starting Flask app...")
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5001)), debug=True)

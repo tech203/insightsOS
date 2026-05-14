@@ -38,7 +38,7 @@ traceback at WARN level for ops.
 from __future__ import annotations
 
 import logging
-from typing import Any, Tuple
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 

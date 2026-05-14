@@ -25,8 +25,6 @@ import pytest
 from app import (
     Client,
     CreditReservation,
-    CreditTransaction,
-    Wallet,
     db,
 )
 from app import app as flask_app

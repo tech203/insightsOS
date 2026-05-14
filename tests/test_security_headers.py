@@ -96,23 +96,25 @@ def test_remember_cookie_is_httponly_and_samesite():
 # Production-conditional config
 # ---------------------------------------------------------------------------
 
-def test_session_cookie_secure_is_set_in_production(monkeypatch):
+def test_session_cookie_secure_is_set_in_production():
     """SESSION_COOKIE_SECURE must be True when FLASK_ENV signals prod.
-    Re-imports the app module under monkeypatched env so we don't
-    pollute the singleton other tests rely on."""
-    monkeypatch.setenv("FLASK_ENV", "production")
-    # Force a fresh import of the app module so its top-level config
-    # block re-runs against the patched env.
-    sys.modules.pop("app", None)
-    try:
-        import app as fresh_app
-        assert fresh_app.app.config.get("SESSION_COOKIE_SECURE") is True
-        assert fresh_app.app.config.get("REMEMBER_COOKIE_SECURE") is True
-    finally:
-        # Restore the original module so subsequent tests see the
-        # dev-mode config we built the rest of the suite against.
-        sys.modules.pop("app", None)
-        import app  # noqa: F401  — re-import for cleanup
+    Run in a subprocess so the re-import of app doesn't replace the
+    already-imported `app` module other tests captured references into
+    (that caused `test_stuck_job_recovery` to fail under suite ordering)."""
+    import subprocess
+    env = {**os.environ, "FLASK_ENV": "production"}
+    script = (
+        "import sys; "
+        "sys.path.insert(0, '.'); "
+        "from app import app; "
+        "assert app.config.get('SESSION_COOKIE_SECURE') is True, app.config.get('SESSION_COOKIE_SECURE'); "
+        "assert app.config.get('REMEMBER_COOKIE_SECURE') is True, app.config.get('REMEMBER_COOKIE_SECURE')"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        env=env, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 
 
 def test_session_cookie_secure_is_off_in_development():

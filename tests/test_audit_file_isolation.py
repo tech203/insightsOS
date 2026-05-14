@@ -23,7 +23,6 @@ This suite locks the ownership check in:
 """
 import json
 import os
-import tempfile
 import pytest
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash

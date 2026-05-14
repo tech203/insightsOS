@@ -19,17 +19,13 @@ Behavior under test:
 
 from __future__ import annotations
 
-from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from app import (
     Client,
     CreditTransaction,
     TeamInvite,
-    User,
-    Wallet,
     db,
     downgrade_plan,
     reactivate_workspace,

@@ -110,7 +110,7 @@ def summarize_property(client: GA4Client, *, property_id: str) -> Dict[str, Any]
     """Pull the canonical 28-day overview for a GA4 property: site
     totals, top pages, top sources. Caller persists this on the
     connection so the dashboard renders HTTP-free between syncs."""
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     end = utcnow().date()
     start = end - timedelta(days=28)

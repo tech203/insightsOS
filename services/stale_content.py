@@ -14,7 +14,7 @@ them apart from generic content recs.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dtutils import utcnow
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -121,8 +121,8 @@ def find_stale_queue_actions(
     limit: int = MAX_RECOMMENDATIONS,
 ) -> List[Dict[str, Any]]:
     """Same idea but for queue items the workspace marked as
-    published. Queue items live in JSON (data/content_queue.json),
-    so callers pass the already-loaded dicts."""
+    published. Callers pass already-loaded dicts (the content_queue
+    module returns dicts, not ORM rows, for back-compat with templates)."""
     candidates: List[Dict[str, Any]] = []
     for item in queue_items or []:
         status = (item.get("status") or "").lower()

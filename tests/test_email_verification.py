@@ -21,16 +21,14 @@ Helpers tested directly (no HTTP layer):
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dtutils import utcnow
 from unittest.mock import patch
 
-import pytest
 
 from app import (
     EmailVerificationToken,
     User,
-    Wallet,
     db,
     email_verification_required_for_user,
     issue_and_send_email_verification,

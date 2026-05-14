@@ -4,7 +4,6 @@ import os
 from typing import Any, Dict, List, Optional
 
 from audit_schema import build_audit_payload, save_audit_payload
-from save_results import save_audit_results
 
 
 def _safe_import(module_name: str, func_name: str):

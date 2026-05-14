@@ -2,29 +2,44 @@
 
 {% block title %}Help Center | DarInsights{% endblock %}
 {% block page_title %}Help Center{% endblock %}
-{% block page_subtitle %}Simple guidance for busy business owners and teams who want clarity fast.{% endblock %}
+{% block page_subtitle %}Step-by-step guides, screenshots, and answers to the questions people ask most.{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Dashboard</a>
-<a href="{{ url_for('clients_page') if url_for else '#' }}" class="btn btn-secondary">Open Workspaces</a>
+<a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspaces</a>
 {% endblock %}
 
 {% block content %}
 
+{# Macro: render a screenshot. Files live at static/images/help/<name>.webp
+   (PNG captures converted by scripts/compress_help_screenshots.py for a
+   ~66% size cut). If the file is missing the browser shows alt text. #}
+{% macro shot(name, caption='') -%}
+<figure class="help-shot">
+    <img src="{{ url_for('static', filename='images/help/' ~ name ~ '.webp') }}"
+         alt="Screenshot: {{ caption or name.replace('-', ' ') }}"
+         loading="lazy">
+    {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}
+</figure>
+{%- endmacro %}
+
 <div class="help-shell">
 
+    {# ===========================================================
+       HERO
+       =========================================================== #}
     <section class="help-hero">
         <div class="help-hero-main">
             <div class="help-badge-row">
                 <span class="help-badge help-badge-primary">Start Here</span>
                 <span class="help-badge">Plain English</span>
-                <span class="help-badge">Business Friendly</span>
+                <span class="help-badge">Screenshots Included</span>
             </div>
 
-            <h1>You do not need technical knowledge to use this platform well.</h1>
+            <h1>Everything you need to use DarInsights — explained simply.</h1>
             <p class="help-hero-copy">
-                This platform helps you understand whether your business is easy to find in AI answers and modern search,
-                then shows what to improve next. Most users only need to follow the workflow below.
+                Use the table of contents to jump to a topic. Each section explains
+                what the feature does, walks through the steps, and shows what to expect on screen.
             </p>
         </div>
 
@@ -32,216 +47,1142 @@
             <span class="hero-side-label">Best first move</span>
             <strong class="hero-side-value">Add a workspace, then run an audit</strong>
             <p class="hero-side-text">
-                After that, open the workspace overview — it shows the score, the next best action, and the priorities to work on first.
+                After that, open the workspace overview — it shows the score, the next best
+                action, and the priorities to work on first.
             </p>
         </div>
     </section>
 
-    <section class="quick-start-card">
-        <div class="section-head">
-            <div>
-                <h2>Quick start</h2>
-                <p>The shortest path from setup to useful action.</p>
-            </div>
-        </div>
+    {# ===========================================================
+       POPULAR TOPICS — editor-curated shortcuts. Keep this list short
+       (4–6 entries); the goal is "what do I actually do first?",
+       not a second TOC.
+       =========================================================== #}
+    <section class="help-popular" aria-label="Popular topics">
+        <header class="section-head">
+            <h2>Popular topics</h2>
+            <p>The things people open the help center to do.</p>
+        </header>
 
-        <div class="quick-start-grid">
-            <article class="step-card">
-                <span class="step-number">1</span>
-                <h3>Add your business</h3>
-                <p>Create a client with the business name, website, industry, and location.</p>
-            </article>
-
-            <article class="step-card">
-                <span class="step-number">2</span>
-                <h3>Run an audit</h3>
-                <p>The platform checks visibility, missing coverage, and competitor patterns.</p>
-            </article>
-
-            <article class="step-card">
-                <span class="step-number">3</span>
-                <h3>Open the workspace</h3>
-                <p>The workspace overview surfaces the score, top priorities, and the recommended next action from the audit.</p>
-            </article>
-
-            <article class="step-card">
-                <span class="step-number">4</span>
-                <h3>Create content</h3>
-                <p>Turn the findings into briefs and drafts your team can actually publish.</p>
-            </article>
+        <div class="popular-grid">
+            <a class="popular-card" href="#audits">
+                <span class="popular-kicker">Audits</span>
+                <strong>Run your first audit</strong>
+                <span class="popular-meta">Check visibility, missed mentions, and what to fix next.</span>
+            </a>
+            <a class="popular-card" href="#content">
+                <span class="popular-kicker">Content</span>
+                <strong>Create a brief or draft</strong>
+                <span class="popular-meta">Turn audit findings into pages your team can publish.</span>
+            </a>
+            <a class="popular-card" href="#integrations">
+                <span class="popular-kicker">Integrations</span>
+                <strong>Connect Webflow, Shopify, GSC</strong>
+                <span class="popular-meta">Sync your CMS or analytics so you can publish without leaving the queue.</span>
+            </a>
+            <a class="popular-card" href="#billing">
+                <span class="popular-kicker">Billing</span>
+                <strong>Subscribe or top up credits</strong>
+                <span class="popular-meta">Plans, credit bundles, workspace seats, and the Stripe portal.</span>
+            </a>
+            <a class="popular-card" href="#team">
+                <span class="popular-kicker">Team</span>
+                <strong>Invite a teammate</strong>
+                <span class="popular-meta">Add seats, accept invites, manage roles.</span>
+            </a>
+            <a class="popular-card" href="#troubleshooting">
+                <span class="popular-kicker">Help</span>
+                <strong>Something is not working</strong>
+                <span class="popular-meta">Common errors and what to check first.</span>
+            </a>
         </div>
     </section>
 
-    <section class="help-grid">
-        <article class="help-card">
-            <div class="section-head">
-                <div>
-                    <h2>Main pages explained</h2>
-                    <p>The platform becomes easier once each page has a clear purpose.</p>
+    {# ===========================================================
+       TWO-COLUMN LAYOUT: STICKY TOC + CONTENT
+       =========================================================== #}
+    <div class="help-layout">
+
+        {# ---------- TABLE OF CONTENTS ----------
+           Wrapped in <details> so mobile users get a compact toggle.
+           On desktop (>= 1100px) the CSS forces the disclosure open and
+           hides the summary chevron so it looks like a static sidebar. #}
+        <aside class="help-toc" aria-label="Help table of contents">
+            <details class="help-toc-disclosure" open>
+            <summary class="help-toc-summary">
+                <span>On this page</span>
+                <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </summary>
+            <div class="help-toc-inner">
+                <strong class="help-toc-title">On this page</strong>
+
+                {# Client-side filter — indexes section titles, H3
+                   subheadings, and FAQ summaries on load. #}
+                <div class="help-toc-search-wrap">
+                    <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="help-toc-search-icon">
+                        <circle cx="11" cy="11" r="7"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                        type="search"
+                        class="help-toc-search"
+                        placeholder="Search this page"
+                        aria-label="Search the help page"
+                        autocomplete="off"
+                    >
+                    <kbd class="help-toc-search-kbd" aria-hidden="true">/</kbd>
                 </div>
+                <div class="help-toc-results" role="listbox" hidden></div>
+
+                <nav class="help-toc-nav">
+                    <a href="#quick-start">Quick start</a>
+                    <a href="#account">Account &amp; sign-in</a>
+                    <a href="#workspaces">Workspaces</a>
+                    <a href="#brand-context">Brand context &amp; brand kit</a>
+                    <a href="#audits">Audits</a>
+                    <a href="#visibility">Visibility &amp; competitors</a>
+                    <a href="#position-tracking">Position tracking</a>
+                    <a href="#answer-monitor">Answer monitor</a>
+                    <a href="#marketplace-audits">Marketplace audits</a>
+                    <a href="#content">Content briefs &amp; drafts</a>
+                    <a href="#content-queue">Content queue</a>
+                    <a href="#growth-calendar">Growth calendar</a>
+                    <a href="#website-builder">Website builder</a>
+                    <a href="#reports">Reports &amp; sharing</a>
+                    <a href="#integrations">Integrations</a>
+                    <a href="#billing">Billing &amp; credits</a>
+                    <a href="#team">Team management</a>
+                    <a href="#settings">Settings</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="#troubleshooting">Troubleshooting</a>
+                    <a href="#glossary">Glossary</a>
+                </nav>
             </div>
+            </details>
+        </aside>
 
-            <div class="meaning-list">
-                <div class="meaning-item">
-                    <strong>Dashboard</strong>
-                    <p>Your overview page for progress, recent activity, and what needs attention.</p>
+        {# ---------- MAIN HELP CONTENT ---------- #}
+        <main class="help-content">
+
+            {# ===========================================================
+               QUICK START
+               =========================================================== #}
+            <section id="quick-start" class="help-section">
+                <header class="section-head">
+                    <h2>Quick start</h2>
+                    <p>The shortest path from setup to useful action.</p>
+                </header>
+
+                <div class="quick-start-grid">
+                    <article class="step-card">
+                        <span class="step-number">1</span>
+                        <h3>Add your business</h3>
+                        <p>Create a workspace with name, website, industry, and location.</p>
+                    </article>
+                    <article class="step-card">
+                        <span class="step-number">2</span>
+                        <h3>Run an audit</h3>
+                        <p>The platform checks visibility, missing coverage, and competitor patterns.</p>
+                    </article>
+                    <article class="step-card">
+                        <span class="step-number">3</span>
+                        <h3>Open the workspace</h3>
+                        <p>See the score, top priorities, and recommended next action.</p>
+                    </article>
+                    <article class="step-card">
+                        <span class="step-number">4</span>
+                        <h3>Create content</h3>
+                        <p>Turn findings into briefs and drafts your team can publish.</p>
+                    </article>
                 </div>
 
-                <div class="meaning-item">
-                    <strong>Workspaces</strong>
-                    <p>Where each brand or business lives. Audits, tracking, reports, and content all sit inside a workspace. This is usually the starting point.</p>
-                </div>
+                {{ shot('quick-start-dashboard', 'The dashboard. The “What needs attention now” block surfaces the most important next move.') }}
+            </section>
 
-                <div class="meaning-item">
-                    <strong>Growth Calendar</strong>
-                    <p>A 4-week view of recommended content and queue items. Recommendations come from your latest audit; auto-refreshes when content goes stale.</p>
-                </div>
+            {# ===========================================================
+               ACCOUNT & SIGN-IN
+               =========================================================== #}
+            <section id="account" class="help-section">
+                <header class="section-head">
+                    <h2>Account &amp; sign-in</h2>
+                    <p>Create an account, verify your email, reset a password, or sign in with Google.</p>
+                </header>
 
-                <div class="meaning-item">
-                    <strong>Visibility</strong>
-                    <p>Shows where the brand appears, where it is missing, and where to improve presence.</p>
-                </div>
+                <h3 class="help-h3">Create an account</h3>
+                <ol class="help-steps">
+                    <li>Go to <strong>Sign up</strong> from the marketing site or invitation email.</li>
+                    <li>Enter your name, email, and a password (or click <strong>Continue with Google</strong>).</li>
+                    <li>Open the verification email and click the link to activate your account.</li>
+                    <li>You will land on the dashboard ready to add your first workspace.</li>
+                </ol>
+                {{ shot('signup-form', 'Signup form — name, email, password, or one-click Google.') }}
 
-                <div class="meaning-item">
-                    <strong>Competitors</strong>
-                    <p>Shows where competitors are appearing instead of your brand.</p>
-                </div>
+                <h3 class="help-h3">Verify your email</h3>
+                <p>If you did not receive the email, open <strong>Settings → Account</strong> and click <strong>Resend verification</strong>. The link expires after 24 hours; you can request a new one any time.</p>
 
-                <div class="meaning-item">
-                    <strong>Content Queue</strong>
-                    <p>Where briefs and drafts move toward review, editing, and publishing.</p>
-                </div>
-            </div>
-        </article>
+                <h3 class="help-h3">Forgot password</h3>
+                <ol class="help-steps">
+                    <li>From the login page click <strong>Forgot password?</strong></li>
+                    <li>Enter your email; a reset link arrives within a minute.</li>
+                    <li>Open the link, choose a new password, and sign in.</li>
+                </ol>
+                {{ shot('forgot-password', 'Forgot password — enter your email and a reset link is sent.') }}
 
-        <article class="help-card">
-            <div class="section-head">
-                <div>
-                    <h2>When people get stuck</h2>
-                    <p>The most common confusion points, explained simply.</p>
-                </div>
-            </div>
+                <h3 class="help-h3">Sign in with Google</h3>
+                <p>Click <strong>Continue with Google</strong> on the login page. If your Google email matches an existing account they will be linked automatically.</p>
+                {{ shot('login-form', 'Login screen with email/password and Continue with Google.') }}
+            </section>
 
-            <div class="faq-list">
-                <div class="faq-item">
-                    <strong>Do I need to understand the score deeply?</strong>
-                    <p>No. The score is mainly a shortcut that tells you whether the overall position is strong, moderate, or still early-stage.</p>
-                </div>
+            {# ===========================================================
+               WORKSPACES
+               =========================================================== #}
+            <section id="workspaces" class="help-section">
+                <header class="section-head">
+                    <h2>Workspaces</h2>
+                    <p>Each brand or business lives in its own workspace. Audits, content, and integrations are scoped to it.</p>
+                </header>
 
-                <div class="faq-item">
-                    <strong>What should I open after an audit?</strong>
-                    <p>Go back to the workspace overview. The Next Best Step card surfaces the most important action from the audit, and the priority list shows the rest in order.</p>
-                </div>
+                <h3 class="help-h3">Create a workspace</h3>
+                <ol class="help-steps">
+                    <li>Open <strong>Workspaces</strong> from the sidebar.</li>
+                    <li>Click <strong>+ Add Workspace</strong>.</li>
+                    <li>Fill in business name, website URL, industry, and location.</li>
+                    <li>Save. The workspace appears in the list and opens to its overview.</li>
+                </ol>
+                {{ shot('workspace-new-form', 'New workspace form — only name and website are required.') }}
 
-                <div class="faq-item">
-                    <strong>Should I create a brief or a draft first?</strong>
-                    <p>Use a brief when you want structure and approval first. Use a draft when the topic is already clear and you want speed.</p>
-                </div>
+                <h3 class="help-h3">Workspaces list</h3>
+                <p>The <strong>Workspaces</strong> page shows every brand you track at a glance. Each tile links to that workspace’s overview.</p>
+                {{ shot('workspaces-list', 'Workspaces list — one tile per brand.') }}
 
-                <div class="faq-item">
-                    <strong>When should I re-run an audit?</strong>
-                    <p>After important new pages are published, after major revisions, or when you want to check whether visibility is improving.</p>
-                </div>
-            </div>
-        </article>
+                <h3 class="help-h3">Workspace overview</h3>
+                <p>The overview ties everything together: score, next best step, recommended actions, integrations, recent audits.</p>
+                {{ shot('workspace-overview', 'Workspace overview — score, priorities, integrations, and content opportunities in one place.') }}
 
-        <article class="help-card help-card-large">
-            <div class="section-head">
-                <div>
+                <h3 class="help-h3">Edit, archive, or delete a workspace</h3>
+                <ul class="help-bullets">
+                    <li><strong>Edit:</strong> Workspace overview → <em>Edit</em> button (top right).</li>
+                    <li><strong>Delete:</strong> Edit page → <em>Delete workspace</em>. This is permanent.</li>
+                    <li><strong>Reactivate:</strong> If you released a workspace seat, you can reactivate it from <strong>Settings → Workspaces</strong>.</li>
+                </ul>
+
+                <h3 class="help-h3">Upload a logo</h3>
+                <p>From the workspace overview click the logo placeholder and upload a square image. You can remove it any time.</p>
+            </section>
+
+            {# ===========================================================
+               BRAND CONTEXT & BRAND KIT
+               =========================================================== #}
+            <section id="brand-context" class="help-section">
+                <header class="section-head">
+                    <h2>Brand context &amp; brand kit</h2>
+                    <p>Tell the platform who you are so audits and content match your voice.</p>
+                </header>
+
+                <h3 class="help-h3">Brand context</h3>
+                <ol class="help-steps">
+                    <li>Open the workspace → <strong>Brand context</strong>.</li>
+                    <li>Click <strong>Suggest from website</strong> to auto-fill from your site, or type details yourself.</li>
+                    <li>Review tone, audience, offerings, and value proposition. Save.</li>
+                </ol>
+                {{ shot('brand-context', 'Brand context — audience, services, voice, and what to avoid.') }}
+
+                <h3 class="help-h3">Brand kit</h3>
+                <p>The brand kit stores colors, fonts, and visual rules used by generated pages and visuals.</p>
+                <ol class="help-steps">
+                    <li>Open <strong>Brand kit</strong> from the workspace.</li>
+                    <li>Generate suggested colors and fonts, or pick your own.</li>
+                    <li>Click <strong>Approve</strong> to lock in the kit. Approved kits are reused for content visuals and the website builder.</li>
+                </ol>
+                {{ shot('brand-kit', 'Brand kit studio — colors, typography, and imagery direction.') }}
+            </section>
+
+            {# ===========================================================
+               AUDITS
+               =========================================================== #}
+            <section id="audits" class="help-section">
+                <header class="section-head">
+                    <h2>Audits</h2>
+                    <p>An audit checks how visible your brand is in AI answers and modern search.</p>
+                </header>
+
+                <h3 class="help-h3">Run an audit</h3>
+                <ol class="help-steps">
+                    <li>Open the workspace → click <strong>Run audit</strong> (or use <em>Start audit</em> from the dashboard).</li>
+                    <li>Confirm credits to spend. Each audit deducts from your wallet.</li>
+                    <li>Wait for completion — usually under two minutes. You will see a progress card.</li>
+                    <li>The workspace overview refreshes with a new score, missed mentions, and recommended actions.</li>
+                </ol>
+                {{ shot('audit-run', 'Run audit screen — confirm scope and credits before starting.') }}
+                {{ shot('workspace-overview', 'After an audit, the overview surfaces the score, priorities, and content opportunities.') }}
+
+                <h3 class="help-h3">What the result page contains</h3>
+                <p>Once an audit finishes the workspace overview is split into clear blocks:</p>
+                <ul class="help-bullets">
+                    <li><strong>Scorecard</strong> — overall score plus four sub-scores: Visibility, Content, Entity, Trust.</li>
+                    <li><strong>Opportunity level</strong> — a one-line read on how much headroom remains (Weak, Moderate, Strong).</li>
+                    <li><strong>Missed brand mentions</strong> — every tracked query where the brand did not surface, ranked by impact.</li>
+                    <li><strong>Top priority actions</strong> — three to five next steps drawn straight from the audit signals.</li>
+                    <li><strong>Question opportunities</strong> — common customer questions you do not yet answer clearly.</li>
+                    <li><strong>Competitor highlights</strong> — who is showing up instead of you, and on which prompts.</li>
+                </ul>
+
+                <h3 class="help-h3">View past audits</h3>
+                <p>Workspace → <strong>History</strong> lists every audit with date, score, and a link to the full report.</p>
+                {{ shot('workspace-history', 'Workspace history — every previous audit run.') }}
+
+                <h3 class="help-h3">Export an audit as PDF</h3>
+                <p>Open the report → click <strong>Export PDF</strong> at the top right. The PDF mirrors the on-screen report and uses your white-label logo and brand colour if Settings → White-label is configured.</p>
+            </section>
+
+            {# ===========================================================
+               VISIBILITY & COMPETITORS
+               =========================================================== #}
+            <section id="visibility" class="help-section">
+                <header class="section-head">
+                    <h2>Visibility &amp; competitors</h2>
+                    <p>See where your brand appears, where it is missing, and who is showing up instead.</p>
+                </header>
+
+                <h3 class="help-h3">Visibility page</h3>
+                <p>Workspace → <strong>Visibility</strong> shows each tracked query, whether the brand appeared, and how strongly.</p>
+                {{ shot('visibility-page', 'Visibility — per-query appearance state.') }}
+
+                <p><strong>What you'll see when audits are populated:</strong></p>
+                <ul class="help-bullets">
+                    <li>A summary strip at the top: total queries tracked, queries the brand appeared in, and average rank.</li>
+                    <li>A per-query table with the prompt, whether the brand was mentioned, and a snippet of the AI answer for context.</li>
+                    <li>A filter to narrow by category, by missed mentions only, or by query that changed since the last audit.</li>
+                </ul>
+
+                <h3 class="help-h3">Competitors page</h3>
+                <p>Workspace → <strong>Competitors</strong> lists who is showing up for your tracked queries and where the gaps are.</p>
+                {{ shot('competitors-page', 'Competitors — who is showing up instead of your brand.') }}
+
+                <p><strong>What you'll see when audits are populated:</strong></p>
+                <ul class="help-bullets">
+                    <li>The top competitors ranked by how often they appeared instead of you.</li>
+                    <li>A side-by-side query column: for each prompt, you'll see whether the brand and each competitor appeared.</li>
+                    <li>An <em>Add competitor</em> button to track a specific rival, plus the auto-detect flow described below.</li>
+                </ul>
+
+                <h3 class="help-h3">Auto-detect competitors</h3>
+                <ol class="help-steps">
+                    <li>On the Competitors page click <strong>Auto-detect</strong>.</li>
+                    <li>The platform analyses recent answers and proposes the top rivals.</li>
+                    <li>Approve or remove suggestions. Approved competitors appear in future audits.</li>
+                </ol>
+            </section>
+
+            {# ===========================================================
+               POSITION TRACKING
+               =========================================================== #}
+            <section id="position-tracking" class="help-section">
+                <header class="section-head">
+                    <h2>Position tracking</h2>
+                    <p>Track how your visibility changes across audits over time.</p>
+                </header>
+                <ol class="help-steps">
+                    <li>Open <strong>Position tracking</strong> from the sidebar.</li>
+                    <li>Pick the workspace and time window.</li>
+                    <li>The chart shows score and rank history; the table shows per-query movement.</li>
+                </ol>
+                {{ shot('position-tracking', 'Position tracking — score and query movement over time.') }}
+            </section>
+
+            {# ===========================================================
+               ANSWER MONITOR
+               =========================================================== #}
+            <section id="answer-monitor" class="help-section">
+                <header class="section-head">
+                    <h2>Answer monitor</h2>
+                    <p>Re-run individual queries to check live AI answers between audits.</p>
+                </header>
+                <ol class="help-steps">
+                    <li>Open <strong>Answer monitor</strong>.</li>
+                    <li>Click <strong>Run all</strong> to refresh every tracked prompt, or use the row-level <em>Run</em> button for one.</li>
+                    <li>Each run shows the new AI answer and updates the “last seen” column.</li>
+                </ol>
+                {{ shot('answer-monitor', 'Answer monitor — re-run individual prompts to refresh AI answers.') }}
+            </section>
+
+            {# ===========================================================
+               MARKETPLACE AUDITS
+               =========================================================== #}
+            <section id="marketplace-audits" class="help-section">
+                <header class="section-head">
+                    <h2>Marketplace audits</h2>
+                    <p>Check how your brand appears across third-party marketplaces and directories.</p>
+                </header>
+                <ol class="help-steps">
+                    <li>Workspace → <strong>Marketplace audits</strong>.</li>
+                    <li>Click <strong>Add presence</strong> and pick the marketplace.</li>
+                    <li>Use <strong>Run</strong> per marketplace to refresh data; results show coverage gaps and listing quality.</li>
+                </ol>
+                {{ shot('marketplace-audits', 'Marketplace audits — track listings across Etsy, Amazon, and more.') }}
+            </section>
+
+            {# ===========================================================
+               CONTENT BRIEFS & DRAFTS
+               =========================================================== #}
+            <section id="content" class="help-section">
+                <header class="section-head">
+                    <h2>Content briefs &amp; drafts</h2>
+                    <p>Turn audit recommendations into briefs your team can review or drafts ready to publish.</p>
+                </header>
+
+                <h3 class="help-h3">Create a brief</h3>
+                <ol class="help-steps">
+                    <li>Workspace → <strong>Content brief</strong>.</li>
+                    <li>Enter or pick a query. Optional: choose tone and target page type.</li>
+                    <li>Click <strong>Generate brief</strong>. The brief includes structure, key sections, and target keywords.</li>
+                    <li><strong>Save brief</strong> to add it to the content queue.</li>
+                </ol>
+                {{ shot('brief-form', 'Content brief form — pick a topic and tone.') }}
+
+                <h3 class="help-h3">Create a draft</h3>
+                <ol class="help-steps">
+                    <li>Workspace → <strong>Content draft</strong> (or click <em>Generate draft</em> from a brief).</li>
+                    <li>Confirm the topic and tone, then click <strong>Generate</strong>.</li>
+                    <li>Review the draft inline; <strong>Save draft</strong> sends it to the content queue.</li>
+                </ol>
+                {{ shot('draft-form', 'Content draft form — same flow as briefs, end-to-end output.') }}
+
+                <h3 class="help-h3">Query ideas</h3>
+                <p>If you’re not sure what to write about, open <strong>Query ideas</strong> from the workspace for a fresh list of question-shaped topics tied to your industry.</p>
+                {{ shot('query-ideas', 'Query ideas — ready-made topic prompts based on the workspace.') }}
+
+                <h3 class="help-h3">Brief vs. draft — which first?</h3>
+                <p>Use a <strong>brief</strong> when you want structure and stakeholder approval before writing. Use a <strong>draft</strong> when the topic is clear and you want speed.</p>
+            </section>
+
+            {# ===========================================================
+               CONTENT QUEUE
+               =========================================================== #}
+            <section id="content-queue" class="help-section">
+                <header class="section-head">
+                    <h2>Content queue</h2>
+                    <p>Every brief and draft flows through the queue until it is approved and published.</p>
+                </header>
+
+                <h3 class="help-h3">Statuses</h3>
+                <ul class="help-bullets">
+                    <li><strong>Idea / Brief / Draft</strong> — work-in-progress stages.</li>
+                    <li><strong>Approved</strong> — locked for publishing.</li>
+                    <li><strong>Published</strong> — sent to an integration or marked done.</li>
+                </ul>
+                {{ shot('content-queue', 'Content queue — items moving from idea to published.') }}
+
+                <h3 class="help-h3">AI edit a draft</h3>
+                <ol class="help-steps">
+                    <li>Open the draft in the queue.</li>
+                    <li>Click <strong>AI edit</strong>; pick a section or the whole document from the dropdown.</li>
+                    <li>Describe the change (“shorter intro”, “add 3 FAQs”, “make the tone warmer”) in the instruction box and apply.</li>
+                    <li>The panel shows a side-by-side diff. Accept, refine, or revert from the history list on the right.</li>
+                </ol>
+                <p><strong>What you'll see:</strong> a section selector at the top, a prompt input below, and a two-column diff once the edit runs. Every edit is timestamped — clicking an entry in the history rolls the draft back to that state.</p>
+
+                <h3 class="help-h3">Generate a visual</h3>
+                <p>From an open draft click <strong>Generate visual</strong>. The platform uses your brand kit (primary, secondary, and accent colours plus typography) to produce a header image you can attach to the post.</p>
+                <p><strong>What you'll see:</strong> a preview thumbnail with your colours applied, a regenerate button, and an attach action that saves the image to the draft.</p>
+
+                <h3 class="help-h3">Approve and publish</h3>
+                <ol class="help-steps">
+                    <li>Click <strong>Approve</strong> on the queue item.</li>
+                    <li>Pick a destination: Webflow, Wix, Framer, Squarespace, Shopify, or mark as published manually.</li>
+                    <li>Publishing pushes the post to the CMS; <strong>Update on site</strong> re-syncs changes after edits.</li>
+                </ol>
+                <p><strong>What you'll see:</strong> the queue card flips to “Published” with the destination icon shown. If the push fails, the card expands to surface the underlying API error so you can fix the mapping.</p>
+            </section>
+
+            {# ===========================================================
+               GROWTH CALENDAR
+               =========================================================== #}
+            <section id="growth-calendar" class="help-section">
+                <header class="section-head">
+                    <h2>Growth calendar</h2>
+                    <p>A four-week plan that turns audit findings into a content schedule.</p>
+                </header>
+                <ol class="help-steps">
+                    <li>Open <strong>Growth calendar</strong> from the sidebar.</li>
+                    <li>Each recommendation card shows the suggested topic and target week.</li>
+                    <li>Click <strong>Schedule</strong> to lock a week or <strong>Dismiss</strong> to remove it.</li>
+                    <li>Scheduled items appear on the calendar; the queue gets a matching brief.</li>
+                </ol>
+                {{ shot('growth-calendar', 'Growth calendar — 4 weeks of recommendations ready to schedule.') }}
+
+                <h3 class="help-h3">Growth plan</h3>
+                <p>Need a longer view? The workspace → <strong>Growth plan</strong> page lays out a multi-month roadmap built from the same audit signals.</p>
+                {{ shot('growth-plan', 'Growth plan — multi-month roadmap built from audit findings.') }}
+            </section>
+
+            {# ===========================================================
+               WEBSITE BUILDER
+               =========================================================== #}
+            <section id="website-builder" class="help-section">
+                <header class="section-head">
+                    <h2>Website builder</h2>
+                    <p>Generate a full website draft styled with your approved brand kit.</p>
+                </header>
+                <ol class="help-steps">
+                    <li>Workspace → <strong>Website builder</strong>.</li>
+                    <li>Confirm or approve your brand kit (required first step).</li>
+                    <li>Click <strong>Generate site</strong>. Pages appear as previews.</li>
+                    <li>Open any page → <strong>Preview</strong> to view; <strong>Publish</strong> to make it shareable.</li>
+                </ol>
+                {{ shot('website-builder', 'Website builder — generated pages styled with your brand kit.') }}
+            </section>
+
+            {# ===========================================================
+               REPORTS & SHARING
+               =========================================================== #}
+            <section id="reports" class="help-section">
+                <header class="section-head">
+                    <h2>Reports &amp; sharing</h2>
+                    <p>Send a clean view of audit findings to clients or stakeholders.</p>
+                </header>
+                <ol class="help-steps">
+                    <li>Workspace → <strong>Report</strong>.</li>
+                    <li>Click <strong>Share</strong> → toggle on <em>Public link</em>.</li>
+                    <li>Copy the URL. Anyone with the link sees a read-only version.</li>
+                    <li>Toggle off any time to revoke access.</li>
+                </ol>
+                {{ shot('report-page', 'Workspace report — the snapshot you share with clients.') }}
+
+                <h3 class="help-h3">What clients see at the public link</h3>
+                <ul class="help-bullets">
+                    <li>The score and opportunity level at the top, with a plain-English summary of what it means.</li>
+                    <li>The top three to five priority actions only — no buried detail.</li>
+                    <li>Missed brand mentions and competitor highlights.</li>
+                    <li>Your white-label logo and brand colour, if Settings → White-label is configured.</li>
+                    <li>No edit buttons, no sidebar, no account information. The link is read-only and works without a DarInsights login.</li>
+                </ul>
+
+                <p>Use <strong>Export PDF</strong> on the report page to download a printable copy.</p>
+
+                <h3 class="help-h3">Presentation mode</h3>
+                <p>Open Presentation mode from the workspace overview for a client-friendly walkthrough — what the score means, what to fix first, and how to explain it.</p>
+                {{ shot('presentation-mode', 'Presentation mode — a client-ready walkthrough of the findings.') }}
+            </section>
+
+            {# ===========================================================
+               INTEGRATIONS
+               =========================================================== #}
+            <section id="integrations" class="help-section">
+                <header class="section-head">
+                    <h2>Integrations</h2>
+                    <p>Connect a workspace to your CMS, analytics, or booking tools.</p>
+                </header>
+
+                <h3 class="help-h3">Where to manage integrations</h3>
+                <p>Open the workspace overview — the <strong>Integrations</strong> section lists every tile with status, last sync time, and a connect/disconnect button. For low-level credentials see <strong>Module connectors</strong>.</p>
+                {{ shot('integrations-grid', 'Module connectors — store credentials per integration.') }}
+
+                <h3 class="help-h3">Webflow</h3>
+                <ol class="help-steps">
+                    <li>Integrations → Webflow → <strong>Settings</strong>.</li>
+                    <li>Paste your Webflow API token (found at <em>account.webflow.com → Workspace → Integrations → API tokens</em>) and click <strong>Test connection</strong>.</li>
+                    <li>Pick the target site, then map your three collection types: <strong>Blog</strong>, <strong>FAQ</strong>, <strong>Service</strong>. Each is required for the corresponding queue item to publish.</li>
+                    <li>From the content queue use <em>Publish → Webflow</em> on any approved item.</li>
+                </ol>
+                <p><strong>What you'll see:</strong> a single Settings page with the token field at the top, a green “Connected” pill once verified, three collection dropdowns below, and a “Test publish” button that pushes a dummy draft to verify mappings.</p>
+
+                <h3 class="help-h3">Wix</h3>
+                <ol class="help-steps">
+                    <li>Integrations → Wix → <strong>Connect</strong>; sign in with the Wix account that owns the site.</li>
+                    <li>Approve the requested scopes (read/write content).</li>
+                    <li>Click <strong>Refresh collections</strong> so the platform can see your blog and pages.</li>
+                    <li>Publish approved drafts from the queue with <em>Publish → Wix</em>.</li>
+                </ol>
+
+                <h3 class="help-h3">Framer</h3>
+                <p>Same flow as Wix: <strong>Connect</strong> → authorise → <strong>Refresh collections</strong>. Framer publishing creates draft pages in the matching collection so your team can review before going live.</p>
+
+                <h3 class="help-h3">Squarespace</h3>
+                <p>Connect via OAuth, then run <strong>Sync</strong>. Published items land in the matching blog. Image uploads are skipped — Squarespace does not yet expose an asset API.</p>
+
+                <h3 class="help-h3">Shopify</h3>
+                <ol class="help-steps">
+                    <li>Integrations → Shopify → <strong>Connect</strong>.</li>
+                    <li>Approve access in the Shopify admin pop-up. The OAuth scope is read/write products and product media.</li>
+                    <li>Click <strong>Sync products</strong>; the platform pulls product titles, descriptions, and image alt-text.</li>
+                    <li>Use <strong>Preview alt text fixes</strong> or <strong>Preview description rewrites</strong>, then <strong>Apply</strong> to push changes back to Shopify.</li>
+                </ol>
+                <p><strong>What you'll see:</strong> a product table with current vs. proposed values side by side, a per-row checkbox, and an Apply button. Nothing is changed until you confirm.</p>
+
+                <h3 class="help-h3">BigCommerce, Shopline, WooCommerce</h3>
+                <p>Each works the same way: open the tile, paste the credentials it asks for (BigCommerce store hash + access token, Shopline store handle + access token, WooCommerce REST consumer key + secret), and run <strong>Sync</strong> to pull the catalogue. Disconnect any time to revoke access immediately.</p>
+
+                <h3 class="help-h3">Google Search Console</h3>
+                <ol class="help-steps">
+                    <li>Integrations → Google Search Console → <strong>Connect</strong> and sign in with Google.</li>
+                    <li>Pick the verified property that matches the workspace URL.</li>
+                    <li>Click <strong>Sync</strong>. Recent impressions and clicks appear inside the workspace.</li>
+                </ol>
+                <p><strong>What you'll see:</strong> a property picker (only verified properties are listed), a sync status banner, and a table of the top queries with impressions/clicks/CTR once the sync completes.</p>
+
+                <h3 class="help-h3">Google Analytics</h3>
+                <p>Connect with Google, pick a GA4 property from the dropdown, then click <strong>Sync</strong>. The integration pulls session counts, traffic channels, and top landing pages. Disconnect any time from the tile.</p>
+
+                <h3 class="help-h3">Cal.com</h3>
+                <p>Paste your Cal.com API key in the tile (find it at <em>cal.com/settings/developer/api-keys</em>), click <strong>Connect</strong>, then <strong>Sync</strong> to pull booking volume, top event types, and recent bookings into the workspace.</p>
+            </section>
+
+            {# ===========================================================
+               BILLING & CREDITS
+               =========================================================== #}
+            <section id="billing" class="help-section">
+                <header class="section-head">
+                    <h2>Billing &amp; credits</h2>
+                    <p>Plans, credit bundles, workspace seats, and the customer portal.</p>
+                </header>
+
+                <h3 class="help-h3">Plans</h3>
+                <p>Open <strong>Pricing</strong> from the marketing page or <strong>Settings → Billing</strong>. Click <strong>Subscribe</strong> on a plan to start Stripe checkout. Plans include a monthly credit allowance.</p>
+                {{ shot('pricing-page', 'Pricing — pick a plan or top up with a credit bundle.') }}
+
+                <h3 class="help-h3">Billing page</h3>
+                <p>Settings → <strong>Billing</strong> shows your plan, renewal date, and shortcuts to Stripe.</p>
+                {{ shot('settings-billing', 'Settings → Billing.') }}
+
+                <h3 class="help-h3">Buy a credit bundle</h3>
+                <p>Settings → <strong>Credits</strong> → pick a bundle → checkout. Bundles top up your wallet and never expire.</p>
+                {{ shot('settings-credits', 'Settings → Credits — top up your wallet without changing plan.') }}
+
+                <h3 class="help-h3">Buy or release workspace seats</h3>
+                <ul class="help-bullets">
+                    <li><strong>Buy:</strong> Settings → Billing → <em>Add workspace seat</em>.</li>
+                    <li><strong>Release:</strong> Workspace overview → <em>Release seat</em>. The workspace is archived but can be reactivated later.</li>
+                </ul>
+
+                <h3 class="help-h3">Buy or release team seats</h3>
+                <p>Settings → <strong>Team</strong> → <em>Add seat</em>. Each invited teammate uses one seat. Removing a member releases it.</p>
+
+                <h3 class="help-h3">Manage your subscription</h3>
+                <p>Settings → Billing → <strong>Open Stripe portal</strong>. Update card, change plan, or cancel from there. Cancellations apply at the end of the current period.</p>
+
+                <h3 class="help-h3">What checkout looks like</h3>
+                <p>Clicking <strong>Subscribe</strong> on a plan or <strong>Buy</strong> on a bundle redirects to <em>checkout.stripe.com</em> — a hosted page run by Stripe. You'll see:</p>
+                <ul class="help-bullets">
+                    <li>The plan or bundle name, price, and renewal interval.</li>
+                    <li>A card field (Apple Pay and Google Pay are offered automatically on supported browsers).</li>
+                    <li>A billing address field and an optional company / VAT line.</li>
+                    <li>A “Subscribe” button. After payment you are returned to DarInsights and the new entitlements are live within a few seconds.</li>
+                </ul>
+
+                <h3 class="help-h3">What the Stripe portal looks like</h3>
+                <p>The portal is also a Stripe-hosted page. Sections you'll see:</p>
+                <ul class="help-bullets">
+                    <li><strong>Current plan</strong> — with a <em>Cancel</em> button (cancels at period end) and an <em>Update plan</em> link to switch tiers.</li>
+                    <li><strong>Payment method</strong> — add, remove, or set a default card.</li>
+                    <li><strong>Billing information</strong> — name, address, tax ID.</li>
+                    <li><strong>Invoice history</strong> — download every receipt and invoice as a PDF.</li>
+                </ul>
+                <p>Any change made in the portal is reflected back into DarInsights via webhook within seconds — no need to refresh manually.</p>
+            </section>
+
+            {# ===========================================================
+               TEAM MANAGEMENT
+               =========================================================== #}
+            <section id="team" class="help-section">
+                <header class="section-head">
+                    <h2>Team management</h2>
+                    <p>Invite teammates, accept invites, and manage roles.</p>
+                </header>
+
+                <h3 class="help-h3">Invite a teammate</h3>
+                <ol class="help-steps">
+                    <li>Settings → <strong>Team</strong>.</li>
+                    <li>Enter the email and pick a role.</li>
+                    <li>Click <strong>Send invite</strong>; they receive an email link.</li>
+                </ol>
+                {{ shot('settings-team', 'Team settings — invite, manage seats, revoke.') }}
+
+                <h3 class="help-h3">Accept an invite</h3>
+                <p>Click the link in the invite email, sign in or sign up, and you will land on the shared account.</p>
+
+                <h3 class="help-h3">Revoke or remove</h3>
+                <p>From the team list, use <strong>Revoke</strong> on a pending invite or <strong>Remove</strong> on an active member.</p>
+            </section>
+
+            {# ===========================================================
+               SETTINGS
+               =========================================================== #}
+            <section id="settings" class="help-section">
+                <header class="section-head">
+                    <h2>Settings</h2>
+                    <p>Account, preferences, white-label branding, and referrals.</p>
+                </header>
+
+                <h3 class="help-h3">Account</h3>
+                <p>Settings → <strong>Account</strong> to update your name, email, and password.</p>
+                {{ shot('settings-account', 'Account settings — name, email, password, verification.') }}
+
+                <h3 class="help-h3">Preferences</h3>
+                <p>Set theme (light or dark), default workspace, and notification options.</p>
+                {{ shot('settings-preferences', 'Preferences — theme, defaults, and notifications.') }}
+
+                <h3 class="help-h3">White-label</h3>
+                <ol class="help-steps">
+                    <li>Settings → <strong>White-label</strong>.</li>
+                    <li>Upload your logo, set brand colour, and choose the public report domain.</li>
+                    <li>Save. Shared reports and PDFs now use your branding.</li>
+                </ol>
+                {{ shot('settings-white-label', 'White-label — logo and colour applied to shared reports.') }}
+
+                <h3 class="help-h3">Referrals</h3>
+                <p>Settings → <strong>Referrals</strong> shows your share link and current credit earned per referral.</p>
+                {{ shot('settings-referrals', 'Referrals — share link and earned credits.') }}
+            </section>
+
+            {# ===========================================================
+               FAQ
+               =========================================================== #}
+            <section id="faq" class="help-section">
+                <header class="section-head">
+                    <h2>Frequently asked questions</h2>
+                    <p>The questions people send us most.</p>
+                </header>
+
+                <div class="faq-list">
+                    <details class="faq-item">
+                        <summary>Do I need to understand the score deeply?</summary>
+                        <p>No. The score is a shortcut: strong, moderate, or early-stage. The priorities tell you what to do next.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What should I open right after an audit?</summary>
+                        <p>The workspace overview. The Next Best Step card surfaces the top action and the priority list shows the rest in order.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Should I create a brief or a draft first?</summary>
+                        <p>Use a brief for structure and approval first. Use a draft when the topic is clear and you want speed.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>When should I re-run an audit?</summary>
+                        <p>After important new pages are published, after major revisions, or when you want to check whether visibility is improving.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How many credits does an audit cost?</summary>
+                        <p>Each audit deducts from your wallet at run time. The confirmation modal shows the exact cost before you confirm.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What happens if I run out of credits mid-audit?</summary>
+                        <p>Credits are reserved before an audit starts, so this cannot happen. If reservation fails the audit will not begin and you will be prompted to top up.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Do credits expire?</summary>
+                        <p>Bundle credits never expire. Monthly plan credits reset at the start of each billing cycle.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What is the difference between a workspace and a team seat?</summary>
+                        <p>A workspace is a brand or business you track. A team seat is a person who can sign into your account.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Can I move a workspace to another account?</summary>
+                        <p>Not yet — contact support if you need this.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What happens when I release a workspace?</summary>
+                        <p>It is archived and the seat returns to your pool. Reactivate any time from Settings → Workspaces.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How do I cancel my subscription?</summary>
+                        <p>Settings → Billing → <em>Open Stripe portal</em> → Cancel. Access continues until the end of the current period.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Can I get a refund on an unused bundle?</summary>
+                        <p>Unused credit bundles are refundable within 14 days of purchase. Reach out to support with your invoice number.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How do I connect Webflow?</summary>
+                        <p>Open the workspace → Integrations → Webflow → paste your API token → pick collections. See the Integrations section above for details.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>My Google Search Console connect button does nothing.</summary>
+                        <p>Make sure pop-ups are allowed for this domain. If the issue continues, sign out of every Google account except the one with verified properties.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Why did my draft fail to generate?</summary>
+                        <p>The most common cause is missing brand context. Open the workspace → Brand context → fill the required fields, then try again.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Can I edit a generated draft after publishing?</summary>
+                        <p>Yes. Edit in the content queue, then use <em>Update on site</em> on the queue item to re-sync to the CMS.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How do public report links work?</summary>
+                        <p>They are read-only, no login required, and can be revoked instantly by toggling the share switch off.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Does white-label apply to PDFs too?</summary>
+                        <p>Yes. Once a logo and colour are saved, all shared reports and PDF exports use them.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Can clients log in to see their report?</summary>
+                        <p>Use the public share link for read-only access. For collaboration, invite them as a team seat.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Why is the Growth Calendar empty?</summary>
+                        <p>Recommendations come from your latest audit. Run an audit first; the calendar populates within a minute of completion.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How do I add a competitor manually?</summary>
+                        <p>Workspace → Competitors → <em>Add competitor</em>. Enter name and website. They are included in the next audit.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>My logo upload was rejected.</summary>
+                        <p>Use a square PNG or JPG under 2 MB. Transparent backgrounds work best for dark-mode users.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Can I run audits on a single page rather than a whole site?</summary>
+                        <p>Audits are workspace-level, but you can use Answer Monitor to track specific queries that map to a single page.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Where do I see invoices?</summary>
+                        <p>Stripe portal (Settings → Billing → <em>Open Stripe portal</em>) keeps every invoice and receipt.</p>
+                    </details>
+                </div>
+            </section>
+
+            {# ===========================================================
+               TROUBLESHOOTING
+               =========================================================== #}
+            <section id="troubleshooting" class="help-section">
+                <header class="section-head">
+                    <h2>Troubleshooting</h2>
+                    <p>What to try when something is not working.</p>
+                </header>
+
+                <div class="meaning-list">
+                    <div class="meaning-item">
+                        <strong>I clicked Run audit but nothing happened</strong>
+                        <p>Check your credit balance in the top bar. If it shows 0 the run was blocked before starting — top up and try again.</p>
+                    </div>
+                    <div class="meaning-item">
+                        <strong>Integration shows “disconnected” after working before</strong>
+                        <p>OAuth tokens expire. Open the tile → <em>Reconnect</em>. Your previously synced data is preserved.</p>
+                    </div>
+                    <div class="meaning-item">
+                        <strong>Publishing to Webflow / Wix failed</strong>
+                        <p>Open the queue item → expand the error. Most failures are missing required fields in the target collection. Map them in Integration settings.</p>
+                    </div>
+                    <div class="meaning-item">
+                        <strong>Cannot sign in with Google</strong>
+                        <p>If the account already exists with a password, sign in that way once — Google linking happens automatically on success.</p>
+                    </div>
+                    <div class="meaning-item">
+                        <strong>Email verification link expired</strong>
+                        <p>Settings → Account → <em>Resend verification</em>. Links last 24 hours.</p>
+                    </div>
+                </div>
+            </section>
+
+            {# ===========================================================
+               GLOSSARY
+               =========================================================== #}
+            <section id="glossary" class="help-section">
+                <header class="section-head">
                     <h2>Glossary</h2>
-                    <p>Simple meanings without technical jargon.</p>
-                </div>
-            </div>
+                    <p>Plain meanings, no jargon.</p>
+                </header>
 
-            <div class="glossary-grid">
-                <div class="glossary-item">
-                    <h3>AEO</h3>
-                    <p>Helping your business show up better in AI answers and modern search journeys.</p>
+                <div class="glossary-grid">
+                    <div class="glossary-item">
+                        <h3>AEO</h3>
+                        <p>Helping your business show up in AI answers and modern search journeys.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Visibility</h3>
+                        <p>Whether your business appears when people ask AI tools or search.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Audit</h3>
+                        <p>A report that checks visibility, gaps, and improvement opportunities.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Growth Calendar</h3>
+                        <p>A 4-week schedule built from audit recommendations.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Content Brief</h3>
+                        <p>A structured outline for a page or article your team will create.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Content Draft</h3>
+                        <p>A first working version of content generated from your brief.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Competitor Gap</h3>
+                        <p>A query where competitors appear but your business does not.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Schema</h3>
+                        <p>Machine-readable labels that help search systems understand your business.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Credit</h3>
+                        <p>A unit spent to run audits and generation jobs. Stored in your wallet.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Workspace</h3>
+                        <p>One brand or business you track. Audits and content sit inside it.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Team seat</h3>
+                        <p>A person who can sign into your account. Different from a workspace.</p>
+                    </div>
+                    <div class="glossary-item">
+                        <h3>Brand kit</h3>
+                        <p>Colours, fonts, and visual rules reused for generated pages and visuals.</p>
+                    </div>
                 </div>
+            </section>
 
-                <div class="glossary-item">
-                    <h3>Visibility</h3>
-                    <p>Whether your business is appearing when people search or ask AI tools questions.</p>
-                </div>
+        </main>
+    </div>
 
-                <div class="glossary-item">
-                    <h3>Audit</h3>
-                    <p>A report that checks your current visibility, gaps, and improvement opportunities.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Growth Calendar</h3>
-                    <p>A 4-week scheduler that turns audit recommendations into a practical content plan.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Content Brief</h3>
-                    <p>A structured outline for the page or article your team should create.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Content Draft</h3>
-                    <p>A first working version of content generated from your brief and context.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Competitor Gap</h3>
-                    <p>A case where competitors are being shown but your business is missing.</p>
-                </div>
-
-                <div class="glossary-item">
-                    <h3>Schema</h3>
-                    <p>Machine-readable labels that help search systems understand your business more clearly.</p>
-                </div>
-            </div>
-        </article>
-
-        <article class="help-card help-card-large">
-            <div class="section-head">
-                <div>
-                    <h2>3 practical guides</h2>
-                    <p>Keep it simple and repeatable.</p>
-                </div>
-            </div>
-
-            <div class="guide-grid">
-                <div class="guide-card">
-                    <h3>I am new. Where do I start?</h3>
-                    <ol>
-                        <li>Go to Workspaces.</li>
-                        <li>Add the brand or business.</li>
-                        <li>Open the workspace.</li>
-                        <li>Run an audit.</li>
-                        <li>Follow the Next Best Step on the workspace overview.</li>
-                    </ol>
-                </div>
-
-                <div class="guide-card">
-                    <h3>I have a report. What next?</h3>
-                    <ol>
-                        <li>Read the top priority actions.</li>
-                        <li>Choose the first 1–3 actions only.</li>
-                        <li>Create a brief or draft.</li>
-                        <li>Publish improvements.</li>
-                        <li>Re-run the audit later.</li>
-                    </ol>
-                </div>
-
-                <div class="guide-card">
-                    <h3>How do I explain this to a client?</h3>
-                    <ol>
-                        <li>Start with the overall score.</li>
-                        <li>Explain what it means in plain English.</li>
-                        <li>Show the top 2–3 actions.</li>
-                        <li>Do not overwhelm them with every detail.</li>
-                        <li>End with the next 30-day plan.</li>
-                    </ol>
-                </div>
-            </div>
-        </article>
-    </section>
+    {# Floating "back to top" button. Shows after the user scrolls past
+       the hero; clicks scroll to the top with smooth behaviour. #}
+    <button type="button" class="help-to-top" aria-label="Back to top" hidden>
+        <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+        </svg>
+    </button>
 
 </div>
+
+<script>
+    (function () {
+        // Smooth-scroll + show "back to top" past the hero. Both are
+        // progressive enhancements — the page works fine without JS.
+        const btn = document.querySelector('.help-to-top');
+        const toc = document.querySelector('.help-toc-disclosure');
+
+        // The TOC is a <details> so it can collapse on mobile, where the
+        // chevron summary is the only affordance. On desktop the summary
+        // is hidden via CSS — if the disclosure happened to be closed
+        // (e.g., a user collapsed it on a smaller window and then
+        // widened) the panel would be invisible with no way to reopen.
+        // Force it open whenever the viewport is wide enough to show
+        // the static sidebar. On mobile, default to closed on first
+        // paint so the long link list doesn't eat the screen — users
+        // can tap the chevron to expand if they need navigation.
+        let userTouchedToc = false;
+        const markUserTouched = () => { userTouchedToc = true; };
+        if (toc) toc.addEventListener('toggle', markUserTouched, { once: true });
+
+        const syncToc = () => {
+            if (!toc) return;
+            const isDesktop = window.matchMedia('(min-width: 1100px)').matches;
+            if (isDesktop) {
+                toc.open = true;
+            } else if (!userTouchedToc) {
+                toc.open = false;
+            }
+        };
+        syncToc();
+        window.addEventListener('resize', syncToc);
+
+        if (!btn) return;
+
+        const onScroll = () => {
+            if (window.scrollY > 600) btn.removeAttribute('hidden');
+            else btn.setAttribute('hidden', '');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        btn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    })();
+
+    (function () {
+        // Help-page search. Builds an index from section titles, H3
+        // subheadings, and FAQ summaries on load; filters live as the
+        // user types. No backend, no fuzzy matching — case-insensitive
+        // substring is enough for a 38k-px page.
+        const input = document.querySelector('.help-toc-search');
+        const results = document.querySelector('.help-toc-results');
+        const nav = document.querySelector('.help-toc-nav');
+        if (!input || !results || !nav) return;
+
+        const index = [];
+
+        // 1. Each section's H2 (already in the TOC, but we index them
+        //    here too so a single search hits everything).
+        document.querySelectorAll('section.help-section').forEach(sec => {
+            const id = sec.id;
+            const h2 = sec.querySelector('h2');
+            if (!id || !h2) return;
+            const sectionTitle = h2.textContent.trim();
+            index.push({
+                kind: 'section',
+                text: sectionTitle,
+                section: sectionTitle,
+                anchor: '#' + id,
+            });
+            // 2. H3 subheadings inside the section.
+            sec.querySelectorAll('h3.help-h3').forEach(h3 => {
+                index.push({
+                    kind: 'subsection',
+                    text: h3.textContent.trim(),
+                    section: sectionTitle,
+                    anchor: '#' + id,
+                });
+            });
+            // 3. FAQ summaries.
+            sec.querySelectorAll('details.faq-item summary').forEach(sum => {
+                const text = sum.textContent.trim();
+                // We don't have per-FAQ IDs; jumping to the FAQ section
+                // and opening the matching <details> is good enough.
+                const faq = sum.parentElement;
+                if (!faq.id) faq.id = 'faq-' + Math.random().toString(36).slice(2, 8);
+                index.push({
+                    kind: 'faq',
+                    text,
+                    section: sectionTitle,
+                    anchor: '#' + faq.id,
+                    faqEl: faq,
+                });
+            });
+        });
+
+        const render = (query) => {
+            const q = query.trim().toLowerCase();
+            if (!q) {
+                results.hidden = true;
+                results.innerHTML = '';
+                nav.hidden = false;
+                return;
+            }
+            const matches = index
+                .filter(it => it.text.toLowerCase().includes(q))
+                .slice(0, 10);
+
+            if (!matches.length) {
+                results.hidden = false;
+                nav.hidden = true;
+                results.innerHTML =
+                    '<div class="help-toc-empty">No matches for “' +
+                    q.replace(/[<&]/g, c => ({ '<': '&lt;', '&': '&amp;' }[c])) +
+                    '”</div>';
+                return;
+            }
+
+            results.hidden = false;
+            nav.hidden = true;
+            results.innerHTML = matches.map(m => (
+                '<a href="' + m.anchor + '" class="help-toc-result" data-kind="' + m.kind + '">' +
+                '<span class="help-toc-result-text">' + highlight(m.text, q) + '</span>' +
+                '<span class="help-toc-result-meta">' + m.section + (m.kind === 'faq' ? ' · FAQ' : '') + '</span>' +
+                '</a>'
+            )).join('');
+
+            // Open the FAQ <details> when its result is clicked.
+            results.querySelectorAll('a[data-kind="faq"]').forEach((a, i) => {
+                a.addEventListener('click', () => {
+                    const m = matches[i];
+                    if (m.faqEl) m.faqEl.open = true;
+                });
+            });
+        };
+
+        const highlight = (text, q) => {
+            const i = text.toLowerCase().indexOf(q);
+            if (i < 0) return text;
+            const esc = s => s.replace(/[<&]/g, c => ({ '<': '&lt;', '&': '&amp;' }[c]));
+            return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+        };
+
+        input.addEventListener('input', e => render(e.target.value));
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                input.value = '';
+                render('');
+                input.blur();
+            }
+        });
+
+        // Keyboard shortcuts to focus the search:
+        //   - "/" (GitHub-style) when not already typing
+        //   - Cmd/Ctrl + K (modern-app standard)
+        document.addEventListener('keydown', e => {
+            const inField = /^(input|textarea|select)$/i.test(e.target.tagName)
+                || e.target.isContentEditable;
+            const slash = e.key === '/' && !inField;
+            const cmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+            if (slash || cmdK) {
+                e.preventDefault();
+                input.focus();
+                input.select();
+            }
+        });
+    })();
+
+    (function () {
+        // TOC scrollspy. Tracks which section is currently nearest the
+        // top of the viewport and highlights the matching TOC link with
+        // `.is-active` + aria-current.
+        //
+        // Uses scroll events rather than IntersectionObserver because
+        // some environments (notably the bundled preview harness) load
+        // the page with document.hidden=true, which throttles IO
+        // callbacks to near-zero. Scroll events fire regardless.
+        const links = Array.from(document.querySelectorAll('.help-toc-nav a'));
+        if (!links.length) return;
+
+        const sections = links
+            .map(a => {
+                const sec = document.querySelector(a.getAttribute('href'));
+                return sec ? { sec, link: a } : null;
+            })
+            .filter(Boolean);
+        if (!sections.length) return;
+
+        const setActive = (id) => {
+            links.forEach(l => {
+                const match = l.getAttribute('href') === '#' + id;
+                l.classList.toggle('is-active', match);
+                if (match) l.setAttribute('aria-current', 'true');
+                else l.removeAttribute('aria-current');
+            });
+        };
+
+        // Anchor line ~120px below the viewport top — gives the
+        // active state a small buffer so it switches mid-section
+        // rather than the instant a heading crosses the top.
+        const ANCHOR = 120;
+        let lastActive = null;
+
+        const update = () => {
+            let activeId = sections[0].sec.id;
+            for (const { sec } of sections) {
+                const top = sec.getBoundingClientRect().top;
+                if (top - ANCHOR <= 0) activeId = sec.id;
+                else break;
+            }
+            // When the user is near the bottom of the page, force the
+            // last section active so the TOC doesn't get stuck on a
+            // section the reader has already scrolled past.
+            const nearBottom =
+                window.innerHeight + window.scrollY >=
+                document.documentElement.scrollHeight - 60;
+            if (nearBottom) activeId = sections[sections.length - 1].sec.id;
+            if (activeId !== lastActive) {
+                lastActive = activeId;
+                setActive(activeId);
+            }
+        };
+
+        // Read scroll position synchronously on each event. We avoid
+        // rAF throttling because rAF is paused for hidden pages — in
+        // the preview harness that meant the active link never updated.
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+    })();
+</script>
 
 <style>
 .help-shell {
@@ -250,261 +1191,498 @@
     gap: 16px;
 }
 
+/* Smooth jumps when clicking TOC anchors; respect reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+}
+
+/* Push section anchors below any sticky topbar so the heading lands
+   in view instead of being clipped at the top of the viewport. */
+.help-section { scroll-margin-top: 16px; }
+.faq-item { scroll-margin-top: 16px; }
+
+/* ---------- Popular topics ---------- */
+.help-popular {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    padding: 18px;
+}
+.popular-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+.popular-card {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    color: #15233b;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.popular-card:hover,
+.popular-card:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(157, 124, 227, 0.4);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    outline: none;
+}
+.popular-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    color: #6745f5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.popular-card strong { font-size: 15px; color: #15233b; }
+.popular-meta { font-size: 13px; color: #617084; line-height: 1.5; }
+
+/* ---------- TOC search input ---------- */
+.help-toc-search-wrap {
+    position: relative;
+    margin-bottom: 8px;
+}
+.help-toc-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+}
+.help-toc-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px 8px 30px;
+    border-radius: 10px;
+    border: 1px solid #e8edf5;
+    background: #f8fafc;
+    font-size: 13px;
+    color: #15233b;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.help-toc-search::placeholder { color: #94a3b8; }
+.help-toc-search:focus {
+    background: #ffffff;
+    border-color: rgba(157, 124, 227, 0.45);
+}
+.help-toc-search::-webkit-search-cancel-button { cursor: pointer; }
+.help-toc-search-kbd {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #e8edf5;
+    color: #56657a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    pointer-events: none;
+}
+.help-toc-search:focus + .help-toc-search-kbd { opacity: 0; }
+
+/* Search results panel (replaces the nav while a query is active). */
+.help-toc-results {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 8px;
+}
+.help-toc-result {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #15233b;
+    transition: background 0.15s ease;
+}
+.help-toc-result:hover,
+.help-toc-result:focus-visible {
+    background: rgba(157, 124, 227, 0.08);
+    outline: none;
+}
+.help-toc-result-text { font-size: 13px; font-weight: 600; }
+.help-toc-result-text mark {
+    background: rgba(157, 124, 227, 0.18);
+    color: #6745f5;
+    padding: 0 1px;
+    border-radius: 3px;
+}
+.help-toc-result-meta {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+}
+.help-toc-empty {
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #617084;
+}
+
+/* ---------- Card surfaces ---------- */
 .help-hero,
-.quick-start-card,
 .help-card,
 .step-card,
 .guide-card,
-.help-hero-side {
+.help-hero-side,
+.help-section,
+.help-toc-inner {
     background: #ffffff;
     border: 1px solid #e8edf5;
     border-radius: 20px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-.help-hero {
-    padding: 18px;
-    display: grid;
-    gap: 16px;
-}
+.help-hero { padding: 18px; display: grid; gap: 16px; }
 
-.help-badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
+.help-badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .help-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid #e8edf5;
-    color: #56657a;
-    font-size: 12px;
-    font-weight: 800;
+    display: inline-flex; align-items: center;
+    padding: 7px 10px; border-radius: 999px;
+    background: #f8fafc; border: 1px solid #e8edf5;
+    color: #56657a; font-size: 12px; font-weight: 800;
 }
-
 .help-badge-primary {
     background: rgba(157, 124, 227, 0.12);
     border-color: rgba(157, 124, 227, 0.32);
     color: #6745f5;
 }
-
-.help-hero-main h1 {
-    margin: 0;
-    font-size: 28px;
-    line-height: 1.08;
-    color: #15233b;
+.help-hero-main h1 { margin: 0; font-size: 28px; line-height: 1.08; color: #15233b; }
+.help-hero-copy, .hero-side-text {
+    margin: 12px 0 0; color: #617084; font-size: 14px; line-height: 1.7;
 }
-
-.help-hero-copy,
-.hero-side-text {
-    margin: 12px 0 0;
-    color: #617084;
-    font-size: 14px;
-    line-height: 1.7;
-}
-
 .help-hero-side {
     padding: 16px;
     background: linear-gradient(180deg, rgba(62, 223, 203, 0.06) 0%, rgba(157, 124, 227, 0.04) 100%);
     border-color: rgba(62, 223, 203, 0.28);
 }
-
-.hero-side-label,
-.step-number {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    min-width: 30px;
-    height: 30px;
+.hero-side-label, .step-number {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: fit-content; min-width: 30px; height: 30px;
     border-radius: 999px;
     background: rgba(62, 223, 203, 0.14);
     border: 1px solid rgba(62, 223, 203, 0.32);
-    color: #0E7C6F;
-    font-size: 12px;
-    font-weight: 800;
+    color: #0E7C6F; font-size: 12px; font-weight: 800;
 }
-
 .hero-side-value {
-    display: block;
-    margin-top: 12px;
-    color: #15233b;
-    font-size: 18px;
-    line-height: 1.35;
+    display: block; margin-top: 12px; color: #15233b;
+    font-size: 18px; line-height: 1.35;
 }
 
-.quick-start-card,
-.help-card {
-    padding: 16px;
-}
+/* ---------- Two-column layout ---------- */
+.help-layout { display: grid; gap: 16px; }
 
-.section-head h2 {
-    margin: 0;
-    font-size: 18px;
-    color: #15233b;
+.help-toc {
+    align-self: start;
 }
-
-.section-head p {
-    margin: 6px 0 0;
-    color: #627084;
+.help-toc-disclosure {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+.help-toc-summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    font-weight: 800;
     font-size: 13px;
-    line-height: 1.6;
+    color: #15233b;
+    user-select: none;
+}
+.help-toc-summary::-webkit-details-marker { display: none; }
+.help-toc-summary svg {
+    transition: transform 0.2s ease;
+    color: #6745f5;
+}
+.help-toc-disclosure[open] .help-toc-summary svg {
+    transform: rotate(180deg);
+}
+.help-toc-inner {
+    padding: 4px 12px 14px;
+}
+.help-toc-title {
+    display: none; /* The summary already labels the panel. */
+}
+.help-toc nav { display: grid; gap: 2px; }
+.help-toc a {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 10px;
+    color: #56657a;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.help-toc a:hover,
+.help-toc a:focus-visible {
+    background: rgba(157, 124, 227, 0.08);
+    color: #6745f5;
+    outline: none;
+}
+.help-toc a.is-active {
+    background: rgba(157, 124, 227, 0.12);
+    color: #6745f5;
+    font-weight: 700;
 }
 
-.quick-start-grid,
-.help-grid,
-.glossary-grid,
-.guide-grid {
-    display: grid;
-    gap: 12px;
-    margin-top: 16px;
+/* Floating "back to top" button. Hidden by `hidden` attribute via JS. */
+.help-to-top {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(157, 124, 227, 0.32);
+    background: #ffffff;
+    color: #6745f5;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-
-.step-card,
-.guide-card {
-    padding: 16px;
-    box-shadow: none;
+.help-to-top:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
+.help-to-top[hidden] { display: none; }
 
-.step-card h3,
-.guide-card h3,
-.glossary-item h3 {
-    margin: 12px 0 8px;
+/* ---------- Sections ---------- */
+.help-section { padding: 18px; }
+.help-section + .help-section { margin-top: 16px; }
+.section-head h2 { margin: 0; font-size: 20px; color: #15233b; }
+.section-head p { margin: 6px 0 0; color: #627084; font-size: 13px; line-height: 1.6; }
+
+.help-h3 {
+    margin: 20px 0 8px;
+    font-size: 15px;
     color: #15233b;
 }
 
-.step-card p,
-.guide-card li,
-.glossary-item p,
-.meaning-item p,
-.faq-item p {
-    color: #617084;
+.help-steps,
+.help-bullets {
+    margin: 8px 0 12px;
+    padding-left: 20px;
+    color: #4a5568;
     font-size: 14px;
-    line-height: 1.65;
+    line-height: 1.7;
+}
+.help-steps li + li,
+.help-bullets li + li { margin-top: 4px; }
+.help-section p {
+    color: #4a5568;
+    font-size: 14px;
+    line-height: 1.7;
+    margin: 8px 0 0;
 }
 
-.meaning-list,
-.faq-list {
-    display: grid;
-    gap: 14px;
-    margin-top: 16px;
+/* ---------- Quick start ---------- */
+.quick-start-grid { display: grid; gap: 12px; margin-top: 16px; }
+.step-card { padding: 16px; box-shadow: none; }
+.step-card h3, .guide-card h3, .glossary-item h3 {
+    margin: 12px 0 8px; color: #15233b;
+}
+.step-card p, .guide-card li, .glossary-item p, .meaning-item p, .faq-item p {
+    color: #617084; font-size: 14px; line-height: 1.65;
 }
 
-.meaning-item,
-.faq-item,
-.glossary-item {
+/* ---------- Meaning / glossary / FAQ ---------- */
+.meaning-list { display: grid; gap: 14px; margin-top: 12px; }
+.faq-list { display: grid; gap: 10px; margin-top: 12px; }
+.glossary-grid { display: grid; gap: 12px; margin-top: 16px; }
+
+.meaning-item, .faq-item, .glossary-item {
     padding: 14px;
     border-radius: 16px;
     background: #f8fafc;
     border: 1px solid #e8edf5;
 }
-
-.meaning-item strong,
-.faq-item strong {
+.meaning-item strong, .faq-item summary {
     color: #15233b;
     display: block;
     margin-bottom: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+    content: "+";
+    float: right;
+    font-weight: 800;
+    color: #6745f5;
+}
+.faq-item[open] summary::after { content: "−"; }
+.faq-item p { margin-top: 8px; }
+
+/* ---------- Screenshot figures ---------- */
+.help-shot {
+    margin: 14px 0 6px;
+    display: grid;
+    gap: 6px;
+}
+.help-shot img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 14px;
+    border: 1px solid #e8edf5;
+    background: #fbfbff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+.help-shot figcaption {
+    color: #617084;
+    font-size: 12px;
+    font-style: italic;
+}
+/* Legacy placeholder (kept in case any remain) */
+.help-shot-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 180px;
+    padding: 18px;
+    border: 2px dashed rgba(157, 124, 227, 0.45);
+    border-radius: 14px;
+    background: #fbfbff;
+    color: #6745f5;
+    font-weight: 700;
+    font-size: 13px;
 }
 
-.help-card-large {
-    grid-column: span 1;
-}
-
-.guide-card ol {
-    margin: 10px 0 0;
-    padding-left: 18px;
-}
-
+/* ---------- Breakpoints ---------- */
 @media (min-width: 900px) {
     .help-hero {
         grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
         align-items: start;
     }
-
-    .quick-start-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .help-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .help-card-large {
-        grid-column: span 2;
-    }
-
-    .glossary-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .guide-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+    .quick-start-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .glossary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .popular-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-    /* === Dark-mode flip for inline styles === */
-    html[data-theme="dark"] .guide-card,
-    html[data-theme="dark"] .help-card,
-    html[data-theme="dark"] .help-hero,
-    html[data-theme="dark"] .help-hero-side,
-    html[data-theme="dark"] .quick-start-card,
-    html[data-theme="dark"] .step-card {
-        background: var(--theme-surface);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
+@media (min-width: 1100px) {
+    .help-layout {
+        grid-template-columns: 240px minmax(0, 1fr);
+        align-items: start;
     }
-    html[data-theme="dark"] .faq-item,
-    html[data-theme="dark"] .glossary-item,
-    html[data-theme="dark"] .help-badge,
-    html[data-theme="dark"] .meaning-item {
-        background: var(--theme-surface-alt);
-        border-color: var(--theme-border-subtle);
-        color: var(--theme-text-primary);
+    .help-toc {
+        position: sticky;
+        top: 16px;
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
     }
-    html[data-theme="dark"] .faq-item,
-    html[data-theme="dark"] .glossary-item,
-    html[data-theme="dark"] .guide-card,
-    html[data-theme="dark"] .help-hero-main,
-    html[data-theme="dark"] .hero-side-value,
-    html[data-theme="dark"] .meaning-item,
-    html[data-theme="dark"] .section-head,
-    html[data-theme="dark"] .step-card,
-    html[data-theme="dark"] .guide-card h1,
-    html[data-theme="dark"] .guide-card h2,
-    html[data-theme="dark"] .guide-card h3,
-    html[data-theme="dark"] .guide-card h4,
-    html[data-theme="dark"] .guide-card strong,
-    html[data-theme="dark"] .help-card h1,
-    html[data-theme="dark"] .help-card h2,
-    html[data-theme="dark"] .help-card h3,
-    html[data-theme="dark"] .help-card h4,
-    html[data-theme="dark"] .help-card strong,
-    html[data-theme="dark"] .help-hero h1,
-    html[data-theme="dark"] .help-hero h2,
-    html[data-theme="dark"] .help-hero h3,
-    html[data-theme="dark"] .help-hero h4,
-    html[data-theme="dark"] .help-hero strong,
-    html[data-theme="dark"] .help-hero-side h1,
-    html[data-theme="dark"] .help-hero-side h2,
-    html[data-theme="dark"] .help-hero-side h3,
-    html[data-theme="dark"] .help-hero-side h4,
-    html[data-theme="dark"] .help-hero-side strong,
-    html[data-theme="dark"] .quick-start-card h1,
-    html[data-theme="dark"] .quick-start-card h2,
-    html[data-theme="dark"] .quick-start-card h3,
-    html[data-theme="dark"] .quick-start-card h4,
-    html[data-theme="dark"] .quick-start-card strong,
-    html[data-theme="dark"] .step-card h1,
-    html[data-theme="dark"] .step-card h2,
-    html[data-theme="dark"] .step-card h3,
-    html[data-theme="dark"] .step-card h4,
-    html[data-theme="dark"] .step-card strong {
-        color: var(--theme-text-primary);
+    /* On desktop the disclosure is always open and the chevron is dropped
+       so the TOC reads like a static sidebar. */
+    .help-toc-summary { display: none; }
+    .help-toc-disclosure { background: #ffffff; }
+    .help-toc-inner { padding: 14px 12px; }
+    .help-toc-title {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        color: #56657a;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+        padding: 0 6px;
     }
+    .glossary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---------- Dark-mode overrides ---------- */
+html[data-theme="dark"] .help-hero,
+html[data-theme="dark"] .help-hero-side,
+html[data-theme="dark"] .help-section,
+html[data-theme="dark"] .help-popular,
+html[data-theme="dark"] .help-toc-disclosure,
+html[data-theme="dark"] .help-toc-inner,
+html[data-theme="dark"] .step-card,
+html[data-theme="dark"] .help-card,
+html[data-theme="dark"] .guide-card,
+html[data-theme="dark"] .help-to-top {
+    background: var(--theme-surface);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .popular-card {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .popular-card strong { color: var(--theme-text-primary); }
+html[data-theme="dark"] .help-toc-search {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-toc-search-kbd {
+    background: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-toc a.is-active {
+    background: rgba(157, 124, 227, 0.22);
+    color: #c3b0ff;
+}
+html[data-theme="dark"] .help-toc-result { color: var(--theme-text-primary); }
+html[data-theme="dark"] .help-toc-result:hover { background: rgba(157, 124, 227, 0.18); }
+html[data-theme="dark"] .help-toc-summary { color: var(--theme-text-primary); }
+html[data-theme="dark"] .help-to-top {
+    color: #c3b0ff;
+    border-color: rgba(157, 124, 227, 0.45);
+}
+html[data-theme="dark"] .faq-item,
+html[data-theme="dark"] .glossary-item,
+html[data-theme="dark"] .help-badge,
+html[data-theme="dark"] .meaning-item {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-section h1,
+html[data-theme="dark"] .help-section h2,
+html[data-theme="dark"] .help-section h3,
+html[data-theme="dark"] .help-section h4,
+html[data-theme="dark"] .help-section strong,
+html[data-theme="dark"] .help-section p,
+html[data-theme="dark"] .help-section li,
+html[data-theme="dark"] .help-toc a,
+html[data-theme="dark"] .help-hero h1,
+html[data-theme="dark"] .help-hero-side h2,
+html[data-theme="dark"] .hero-side-value,
+html[data-theme="dark"] .help-hero-copy,
+html[data-theme="dark"] .hero-side-text {
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-shot img {
+    border-color: var(--theme-border-subtle);
+    background: var(--theme-surface-alt);
+}
+html[data-theme="dark"] .help-shot-placeholder {
+    background: var(--theme-surface-alt);
+    border-color: rgba(157, 124, 227, 0.55);
+    color: #c3b0ff;
+}
 </style>
 {% endblock %}
