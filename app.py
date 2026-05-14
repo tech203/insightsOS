@@ -5785,6 +5785,57 @@ def _apply_security_headers(response):
             "Strict-Transport-Security",
             "max-age=31536000; includeSubDomains",
         )
+
+    # Content-Security-Policy in REPORT-ONLY mode. The browser
+    # enforces nothing, but reports any violations to the report-uri
+    # (or just to its own console). The plan is:
+    #
+    #   1. Ship in report-only — browsers send violation reports for
+    #      every inline <script>, every inline style="...", every
+    #      cross-origin asset that doesn't match the policy. Telemetry
+    #      shows us what the audit-summary HTML rendering, the in-app
+    #      JS, and the email-template iframes actually need.
+    #   2. Once the violation-report stream is quiet (we've added
+    #      'unsafe-inline' / 'unsafe-eval' / hashes / nonces where the
+    #      app legitimately needs them), flip the header name from
+    #      Content-Security-Policy-Report-Only to Content-Security-
+    #      Policy and the browser starts BLOCKING violations.
+    #
+    # Skip on the audit PDF render route — the templating there builds
+    # inline styles dynamically and a CSP violation report on every
+    # PDF export is noise. The PDF is rendered server-side anyway, so
+    # CSP inside the rendered HTML doesn't actually protect anything.
+    if not (request.path or "").startswith("/audit/") and not (request.path or "").endswith("/pdf"):
+        response.headers.setdefault(
+            "Content-Security-Policy-Report-Only",
+            (
+                # default-src 'self' covers iframes, fetches, etc.
+                "default-src 'self'; "
+                # Allow inline scripts during the report-only phase —
+                # the dashboard has many <script> blocks. We'll narrow
+                # this once telemetry shows what's used.
+                "script-src 'self' 'unsafe-inline' https://js.stripe.com; "
+                # Same for styles — Tailwind / inline style attributes.
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                # Logos / Stripe Elements / fonts.
+                "img-src 'self' data: https:; "
+                "font-src 'self' https://fonts.gstatic.com data:; "
+                # Stripe iframe + our own iframes only.
+                "frame-src https://js.stripe.com https://hooks.stripe.com; "
+                # Connect-src for /api/wallet polling, Stripe API, etc.
+                "connect-src 'self' https://api.stripe.com; "
+                # Block legacy plugins outright.
+                "object-src 'none'; "
+                # Form submissions to our own origin only.
+                "form-action 'self' https://checkout.stripe.com; "
+                # Reject any base href injection.
+                "base-uri 'self'; "
+                # Frame-ancestors mirrors X-Frame-Options=SAMEORIGIN
+                # but applies to descendants, not just the immediate
+                # parent — defends against nested iframe clickjacking.
+                "frame-ancestors 'self'"
+            ),
+        )
     return response
 
 
