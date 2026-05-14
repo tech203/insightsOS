@@ -22,6 +22,7 @@ import pytest
 from app import (
     CreditReservation,
     CreditTransaction,
+    JobRun,
     WebhookEvent,
     db,
 )
@@ -117,6 +118,13 @@ class TestTabRouting:
         assert r.status_code == 200
         assert b"Team invites" in r.data
 
+    def test_jobs_tab(self, admin_client, target):
+        r = admin_client.get(
+            f"/admin/users/{target.id}/activity?tab=jobs"
+        )
+        assert r.status_code == 200
+        assert b"Background jobs" in r.data
+
     def test_unknown_tab_falls_back_to_credits(self, admin_client, target):
         """A typo in ?tab= shouldn't 500 — it should silently
         degrade to the default."""
@@ -140,6 +148,10 @@ class TestFilters:
             s["_user_id"] = str(admin.id)
             s["_fresh"] = True
         return c
+
+    @pytest.fixture
+    def target(self, make_user):
+        return make_user(email="filters-target@x.com")
 
     def test_credit_type_filter(self, admin_client, make_user):
         u = make_user()
@@ -215,6 +227,72 @@ class TestFilters:
         # the dropdown showing "All statuses" not selected and the
         # released row's presence implicitly.
         assert r.status_code == 200
+
+    def test_jobs_kind_and_status_filters(self, admin_client, make_user):
+        u = make_user()
+        now_iso = utcnow().isoformat(timespec="seconds")
+        db.session.add_all([
+            JobRun(
+                id="job-done-1", user_id=u.id, kind="bulk_audit",
+                status="done", progress_current=3, progress_total=3,
+                result=[], created_at=now_iso, finished_at=now_iso,
+            ),
+            JobRun(
+                id="job-failed-1", user_id=u.id, kind="bulk_audit",
+                status="failed", progress_current=1, progress_total=3,
+                result=[], created_at=now_iso, finished_at=now_iso,
+                error="Boom: simulated worker crash",
+            ),
+            JobRun(
+                id="job-canceled-1", user_id=u.id, kind="bulk_audit",
+                status="canceled", progress_current=1, progress_total=3,
+                result=[], created_at=now_iso, finished_at=now_iso,
+            ),
+        ])
+        db.session.commit()
+
+        # No filter: all 3 visible.
+        r = admin_client.get(f"/admin/users/{u.id}/activity?tab=jobs")
+        assert r.status_code == 200
+        assert b"job-done-1" in r.data
+        assert b"job-failed-1" in r.data
+        assert b"job-canceled-1" in r.data
+
+        # Status filter pares down to one.
+        r = admin_client.get(
+            f"/admin/users/{u.id}/activity?tab=jobs&status=failed"
+        )
+        assert r.status_code == 200
+        assert b"job-failed-1" in r.data
+        assert b"job-done-1" not in r.data
+        assert b"job-canceled-1" not in r.data
+        # Error string surfaces so support can read it without
+        # opening the DB.
+        assert b"Boom: simulated worker crash" in r.data
+
+    def test_jobs_tab_empty_state(self, admin_client, target):
+        """Users with no JobRun rows see the empty message."""
+        r = admin_client.get(f"/admin/users/{target.id}/activity?tab=jobs")
+        assert r.status_code == 200
+        assert b"No background jobs" in r.data
+
+    def test_jobs_tab_isolates_per_user(self, admin_client, make_user):
+        """JobRun rows belonging to a different user are NOT
+        visible — the filter is scoped by user_id."""
+        u1 = make_user(email="job-isolate-1@x.com")
+        u2 = make_user(email="job-isolate-2@x.com")
+        now_iso = utcnow().isoformat(timespec="seconds")
+        db.session.add(JobRun(
+            id="leak-test-job", user_id=u2.id, kind="bulk_audit",
+            status="done", progress_current=1, progress_total=1,
+            result=[], created_at=now_iso, finished_at=now_iso,
+        ))
+        db.session.commit()
+
+        r = admin_client.get(f"/admin/users/{u1.id}/activity?tab=jobs")
+        assert r.status_code == 200
+        # u2's job must not appear on u1's activity page.
+        assert b"leak-test-job" not in r.data
 
 
 # ---------------------------------------------------------------------------

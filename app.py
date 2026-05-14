@@ -6580,7 +6580,7 @@ def admin_user_activity(user_id):
     # Tab selector. Anything outside the known set falls back to
     # "credits" so a broken bookmark doesn't 500.
     tab = (request.args.get("tab") or "credits").lower()
-    if tab not in {"credits", "webhooks", "reservations", "invites"}:
+    if tab not in {"credits", "webhooks", "reservations", "invites", "jobs"}:
         tab = "credits"
 
     # Filter values per tab. Empty string = no filter.
@@ -6611,6 +6611,10 @@ def admin_user_activity(user_id):
     reservation_statuses = []
     invite_rows = []
     invite_total = 0
+    job_rows = []
+    job_total = 0
+    job_kinds = []
+    job_statuses = []
 
     if tab == "credits":
         q = CreditTransaction.query.filter_by(user_id=user_id)
@@ -6692,6 +6696,44 @@ def admin_user_activity(user_id):
             .all()
         )
 
+    elif tab == "jobs":
+        # Background-job runs (bulk audits today; whatever else uses
+        # the JobRun model tomorrow). Filterable by kind + status so
+        # support can answer "did the user's bulk audit finish?" /
+        # "what failed?".
+        q = JobRun.query.filter_by(user_id=user_id)
+        if type_filter:
+            q = q.filter_by(kind=type_filter)
+        if status_filter:
+            q = q.filter_by(status=status_filter)
+        job_total = q.count()
+        # created_at is a string column (ISO timestamps) — sortable
+        # lexicographically because all values use the same width and
+        # timezone offset, so we don't need a separate datetime column
+        # just to order this view.
+        job_rows = (
+            q.order_by(JobRun.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        job_kinds = [
+            r[0] for r in
+            db.session.query(JobRun.kind)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(JobRun.kind.asc())
+            .all()
+        ]
+        job_statuses = [
+            r[0] for r in
+            db.session.query(JobRun.status)
+            .filter_by(user_id=user_id)
+            .distinct()
+            .order_by(JobRun.status.asc())
+            .all()
+        ]
+
     return render_template(
         "admin/user_activity.html",
         u=user,
@@ -6712,6 +6754,10 @@ def admin_user_activity(user_id):
         reservation_statuses=reservation_statuses,
         invite_rows=invite_rows,
         invite_total=invite_total,
+        job_rows=job_rows,
+        job_total=job_total,
+        job_kinds=job_kinds,
+        job_statuses=job_statuses,
     )
 
 
