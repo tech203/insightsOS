@@ -11,12 +11,12 @@
 
 {% block content %}
 
-{# Macro: render a screenshot. If the file is missing on disk the browser
-   shows alt text — placeholder styling kicks in via `img:not([src]):after`
-   fallback inside `.help-shot`. #}
+{# Macro: render a screenshot. Files live at static/images/help/<name>.webp
+   (PNG captures converted by scripts/compress_help_screenshots.py for a
+   ~66% size cut). If the file is missing the browser shows alt text. #}
 {% macro shot(name, caption='') -%}
 <figure class="help-shot">
-    <img src="{{ url_for('static', filename='images/help/' ~ name ~ '.png') }}"
+    <img src="{{ url_for('static', filename='images/help/' ~ name ~ '.webp') }}"
          alt="Screenshot: {{ caption or name.replace('-', ' ') }}"
          loading="lazy">
     {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}

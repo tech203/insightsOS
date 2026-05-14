@@ -4,6 +4,9 @@ Adds:
 - report-page             (workspace → Report)
 - presentation-mode       (workspace → Presentation)
 - verify-email            (Settings → Account verify-email banner / resend)
+
+Outputs PNGs. Run scripts/compress_help_screenshots.py afterward to convert
+them to the WebPs the help template references.
 """
 
 from __future__ import annotations
