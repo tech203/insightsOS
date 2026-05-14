@@ -17830,6 +17830,15 @@ def internal_server_error(error):
 
 
 if __name__ == "__main__":
+    # When run as `python app.py`, this module's name is `__main__`, so any
+    # later `from app import ...` (e.g. content_queue._model() at request
+    # time) would reimport this file as a separate `app` module — creating
+    # a duplicate Flask app + SQLAlchemy instance and 500ing requests with
+    # "current Flask app is not registered with this 'SQLAlchemy' instance".
+    # Aliasing keeps a single module identity.
+    import sys as _sys
+    _sys.modules.setdefault("app", _sys.modules[__name__])
+
     ensure_data_dirs()
     with app.app_context():
         db.create_all()
