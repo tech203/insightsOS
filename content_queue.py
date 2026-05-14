@@ -1,10 +1,32 @@
-import os
-import json
+"""
+Content queue persistence — backed by the SQLAlchemy `QueueItem`
+model (see app.py).
+
+This module is the only place in the codebase that writes to or reads
+from the queue. Callers (app.py routes, cleanup_queue_duplicates.py)
+use the public functions defined here and expect dicts back, not ORM
+rows — same shape as the legacy JSON-file scheme so templates and
+existing call sites are unaffected by the storage swap.
+
+History: before c3d4e5f6a7b8 the queue lived in
+data/content_queue.json, loaded into memory on every read and
+rewritten on every change. That worked at zero-scale but:
+  - tests polluted the on-disk file every time they ran upsert
+  - "filter by user_id" was a Python list comprehension, not a
+    SQL WHERE clause
+  - the admin activity log (PR #95) couldn't join the queue with
+    anything else
+  - concurrent writes raced on the JSON file with no locking
+Migrating to SQL fixes all four.
+"""
+
 import uuid
+
 from dtutils import utcnow
 
-QUEUE_FILE = os.path.join("data", "content_queue.json")
 
+# Re-exported for back-compat — call sites that did
+# `from content_queue import VALID_STATUSES` keep working.
 VALID_STATUSES = {
     "pending",
     "in_progress",
@@ -26,34 +48,16 @@ VALID_SOURCES = {
     "query_ideas",
     "competitor_research",
     "prompt_tracking",
+    # `generation` wasn't in the old VALID_SOURCES but
+    # upsert_generation_item passes it; treat as valid.
+    "generation",
 }
 
 
-def _ensure_data_dir():
-    os.makedirs(os.path.dirname(QUEUE_FILE), exist_ok=True)
-
-
-def _load_json_file(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _safe_load_json(filepath, default):
-    if not os.path.exists(filepath):
-        return default
-    try:
-        return _load_json_file(filepath)
-    except Exception:
-        return default
-
-
-def _save_json_file(filepath, payload):
-    folder = os.path.dirname(filepath)
-    if folder:
-        os.makedirs(folder, exist_ok=True)
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
-
+# ---------------------------------------------------------------------------
+# Normalization helpers — preserved verbatim from the JSON-era module
+# since templates / consumers depend on these defaults.
+# ---------------------------------------------------------------------------
 
 def _now_iso():
     return utcnow().replace(microsecond=0).isoformat()
@@ -99,158 +103,141 @@ def _normalize_scheduled_for(value):
     text = str(value).strip()
     if not text:
         return None
-    # Just keep the date portion if a fuller datetime was passed.
     return text[:10]
 
 
-def _normalize_item(raw):
-    created_at = raw.get("created_at", _now_iso())
+# ---------------------------------------------------------------------------
+# Model lookup — lazy import so this module stays importable without a
+# Flask app context (test stubs, migrations, etc.).
+# ---------------------------------------------------------------------------
 
+def _model():
+    """Return (QueueItem, db) from the app module. Lazy import to
+    avoid a circular dependency at module load time."""
+    from app import QueueItem, db
+    return QueueItem, db
+
+
+def _serialize(row):
+    """Convert a QueueItem ORM row to the dict shape that all callers
+    were written against. Returning a dict instead of the ORM object
+    means templates don't accidentally trigger lazy DB hits when they
+    iterate attributes, and means the swap was a true drop-in
+    replacement for the JSON-era API."""
+    if row is None:
+        return None
     return {
-        "id": raw.get("id", str(uuid.uuid4())),
-        "client_id": raw.get("client_id"),
-        "client_name": _normalize_text(raw.get("client_name")),
-        "target_query": _normalize_text(raw.get("target_query")),
-        "content_type": _normalize_text(raw.get("content_type")),
-        "item_type": _normalize_item_type(raw.get("item_type", "brief")),
-        "title": _normalize_text(raw.get("title"), "Untitled Item"),
-        "content": _normalize_text(raw.get("content")),
-        "status": _normalize_status(raw.get("status", "pending")),
-        "priority": _normalize_priority(raw.get("priority", "medium")),
-        "source": _normalize_source(raw.get("source", "manual")),
-        "credits_required": _normalize_int(raw.get("credits_required")),
-        "execution_type": _normalize_text(
-            raw.get("execution_type"), "ai_executable"
-        ),
-        "source_action_title": _normalize_text(raw.get("source_action_title")),
-        "scheduled_for": _normalize_scheduled_for(raw.get("scheduled_for")),
-        "webflow_item_id": _normalize_text(raw.get("webflow_item_id")) or None,
-        "webflow_collection": _normalize_text(raw.get("webflow_collection")) or None,
-        "webflow_live_url": _normalize_text(raw.get("webflow_live_url")) or None,
-        "og_image_url": _normalize_text(raw.get("og_image_url")) or None,
-        "chat_history": raw.get("chat_history") if isinstance(raw.get("chat_history"), list) else [],
-        "user_id": raw.get("user_id"),
-        "created_at": created_at,
-        "updated_at": raw.get("updated_at", created_at),
+        "id": row.id,
+        "user_id": row.user_id,
+        "client_id": row.client_id,
+        "client_name": row.client_name or "",
+        "target_query": row.target_query or "",
+        "content_type": row.content_type or "",
+        "item_type": row.item_type,
+        "title": row.title,
+        "content": row.content or "",
+        "status": row.status,
+        "priority": row.priority,
+        "source": row.source,
+        "credits_required": row.credits_required or 0,
+        "execution_type": row.execution_type or "ai_executable",
+        "source_action_title": row.source_action_title or "",
+        "scheduled_for": row.scheduled_for,
+        "webflow_item_id": row.webflow_item_id,
+        "webflow_collection": row.webflow_collection,
+        "webflow_live_url": row.webflow_live_url,
+        "og_image_url": row.og_image_url,
+        "chat_history": list(row.chat_history) if isinstance(row.chat_history, list) else [],
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
     }
 
 
-def append_queue_item_chat_messages(item_id, messages, user_id=None):
-    """Append one or more chat messages to a queue item's chat_history.
-
-    Each message is a dict shaped like:
-      {"role": "user"|"assistant", "content": str,
-       "revised_content": str|None, "summary": str|None, "ts": iso}
-    """
-    items = load_queue_items()
-    updated = None
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-        history = item.get("chat_history") or []
-        if not isinstance(history, list):
-            history = []
-        for m in messages or []:
-            if isinstance(m, dict):
-                history.append(m)
-        item["chat_history"] = history
-        item["updated_at"] = _now_iso()
-        updated = item
-        break
-    if not updated:
+def _row_by_id(item_id, user_id=None):
+    """Internal: return the ORM row for `item_id`, optionally scoped to
+    a user. Returns None if no match or the user_id doesn't match."""
+    QueueItem, _db = _model()
+    row = QueueItem.query.filter_by(id=item_id).first()
+    if not row:
         return None
-    save_queue_items(items)
-    return updated
-
-
-def clear_queue_item_chat_history(item_id, user_id=None):
-    items = load_queue_items()
-    updated = None
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-        item["chat_history"] = []
-        item["updated_at"] = _now_iso()
-        updated = item
-        break
-    if not updated:
+    if user_id is not None and row.user_id != user_id:
         return None
-    save_queue_items(items)
-    return updated
+    return row
 
 
-def update_queue_item_og_image(item_id, og_image_url, user_id=None):
-    """Record the URL of a generated visual (OG image, banner, etc.)
-    on a queue item."""
-    items = load_queue_items()
-    updated = None
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-        item["og_image_url"] = _normalize_text(og_image_url) or None
-        item["updated_at"] = _now_iso()
-        updated = item
-        break
-
-    if not updated:
-        return None
-
-    save_queue_items(items)
-    return updated
-
-
-def update_queue_item_webflow_export(
-    item_id,
-    webflow_item_id,
-    webflow_collection,
-    webflow_live_url=None,
-    user_id=None,
-):
-    """Record that a queue item was successfully exported to Webflow."""
-    items = load_queue_items()
-    updated = None
-
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-        item["webflow_item_id"] = _normalize_text(webflow_item_id) or None
-        item["webflow_collection"] = _normalize_text(webflow_collection) or None
-        if webflow_live_url is not None:
-            item["webflow_live_url"] = _normalize_text(webflow_live_url) or None
-        item["status"] = "published"
-        item["updated_at"] = _now_iso()
-        updated = item
-        break
-
-    if not updated:
-        return None
-
-    save_queue_items(items)
-    return updated
-
+# ---------------------------------------------------------------------------
+# Bulk loads — used by handful of legacy callers; kept for back-compat.
+# Most code paths should use get_queue_items() with filters instead.
+# ---------------------------------------------------------------------------
 
 def load_queue_items():
-    _ensure_data_dir()
-    raw_items = _safe_load_json(QUEUE_FILE, [])
-    if not isinstance(raw_items, list):
-        raw_items = []
+    """Return every queue item as a list of dicts, newest first.
 
-    items = [_normalize_item(item) for item in raw_items]
-    return sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)
+    Kept for back-compat with the JSON-era API. New call sites should
+    prefer get_queue_items() with filters — load_queue_items() pulls
+    every row in the table, which doesn't scale beyond the no-load
+    JSON era.
+    """
+    QueueItem, _db = _model()
+    rows = QueueItem.query.order_by(QueueItem.created_at.desc()).all()
+    return [_serialize(r) for r in rows]
 
 
 def save_queue_items(items):
-    normalized = [_normalize_item(item) for item in items]
-    _save_json_file(QUEUE_FILE, normalized)
+    """Replace the entire queue with `items`. Destructive — wipes
+    every existing row and recreates from the supplied list.
 
+    Kept for back-compat with cleanup_queue_duplicates.py which used
+    to read the whole file, dedupe in memory, and write it back. SQL-
+    native cleanup paths should use targeted UPDATE/DELETE; we keep
+    this here as a transitional bridge.
+    """
+    QueueItem, db = _model()
+    # Wipe and rebuild. Same destructive semantics as the JSON-file
+    # version: caller is responsible for passing the full new state.
+    db.session.query(QueueItem).delete()
+    for raw in items or []:
+        row = _new_row_from_dict(raw)
+        db.session.add(row)
+    db.session.commit()
+
+
+def _new_row_from_dict(raw):
+    """Build a fresh QueueItem row from a dict, applying the same
+    field defaults that _normalize_item did in the JSON era."""
+    QueueItem, _db = _model()
+    now = _now_iso()
+    return QueueItem(
+        id=raw.get("id") or str(uuid.uuid4()),
+        user_id=raw.get("user_id"),
+        client_id=str(raw["client_id"]) if raw.get("client_id") not in (None, "") else None,
+        client_name=_normalize_text(raw.get("client_name")),
+        target_query=_normalize_text(raw.get("target_query")),
+        content_type=_normalize_text(raw.get("content_type")),
+        item_type=_normalize_item_type(raw.get("item_type", "brief")),
+        title=_normalize_text(raw.get("title"), "Untitled Item"),
+        content=_normalize_text(raw.get("content")),
+        status=_normalize_status(raw.get("status", "pending")),
+        priority=_normalize_priority(raw.get("priority", "medium")),
+        source=_normalize_source(raw.get("source", "manual")),
+        credits_required=_normalize_int(raw.get("credits_required")),
+        execution_type=_normalize_text(raw.get("execution_type"), "ai_executable"),
+        source_action_title=_normalize_text(raw.get("source_action_title")),
+        scheduled_for=_normalize_scheduled_for(raw.get("scheduled_for")),
+        webflow_item_id=_normalize_text(raw.get("webflow_item_id")) or None,
+        webflow_collection=_normalize_text(raw.get("webflow_collection")) or None,
+        webflow_live_url=_normalize_text(raw.get("webflow_live_url")) or None,
+        og_image_url=_normalize_text(raw.get("og_image_url")) or None,
+        chat_history=raw.get("chat_history") if isinstance(raw.get("chat_history"), list) else [],
+        created_at=raw.get("created_at") or now,
+        updated_at=raw.get("updated_at") or raw.get("created_at") or now,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public CRUD API — same signatures as the JSON-era module so app.py
+# and other callers don't need to change.
+# ---------------------------------------------------------------------------
 
 def add_queue_item(
     client_id,
@@ -269,58 +256,33 @@ def add_queue_item(
     scheduled_for=None,
     user_id=None,
 ):
-    items = load_queue_items()
-
-    new_item = {
-        "id": str(uuid.uuid4()),
-        "client_id": client_id,
-        "client_name": _normalize_text(client_name),
-        "target_query": _normalize_text(target_query),
-        "content_type": _normalize_text(content_type),
-        "item_type": _normalize_item_type(item_type),
-        "title": _normalize_text(title, "Untitled Item"),
-        "content": _normalize_text(content),
-        "status": _normalize_status(status),
-        "priority": _normalize_priority(priority),
-        "source": _normalize_source(source),
-        "credits_required": _normalize_int(credits_required),
-        "execution_type": _normalize_text(
-            execution_type, "ai_executable"
-        ),
-        "source_action_title": _normalize_text(source_action_title),
-        "scheduled_for": _normalize_scheduled_for(scheduled_for),
-        "user_id": user_id,
-        "created_at": _now_iso(),
-        "updated_at": _now_iso(),
-    }
-
-    items.append(new_item)
-    save_queue_items(items)
-    return new_item
-
-
-def update_queue_item_schedule(item_id, scheduled_for, user_id=None):
-    """Set or clear the scheduled_for date on a queue item."""
-    items = load_queue_items()
-    updated = None
-
-    normalized_date = _normalize_scheduled_for(scheduled_for)
-
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-        item["scheduled_for"] = normalized_date
-        item["updated_at"] = _now_iso()
-        updated = item
-        break
-
-    if not updated:
-        return None
-
-    save_queue_items(items)
-    return updated
+    """Insert a new queue item. Returns the created item as a dict."""
+    QueueItem, db = _model()
+    now = _now_iso()
+    row = QueueItem(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        client_id=str(client_id) if client_id not in (None, "") else None,
+        client_name=_normalize_text(client_name),
+        target_query=_normalize_text(target_query),
+        content_type=_normalize_text(content_type),
+        item_type=_normalize_item_type(item_type),
+        title=_normalize_text(title, "Untitled Item"),
+        content=_normalize_text(content),
+        status=_normalize_status(status),
+        priority=_normalize_priority(priority),
+        source=_normalize_source(source),
+        credits_required=_normalize_int(credits_required),
+        execution_type=_normalize_text(execution_type, "ai_executable"),
+        source_action_title=_normalize_text(source_action_title),
+        scheduled_for=_normalize_scheduled_for(scheduled_for),
+        chat_history=[],
+        created_at=now,
+        updated_at=now,
+    )
+    db.session.add(row)
+    db.session.commit()
+    return _serialize(row)
 
 
 def get_queue_items(
@@ -332,70 +294,67 @@ def get_queue_items(
     source=None,
     include_dismissed=False,
 ):
-    items = load_queue_items()
+    """List queue items, optionally filtered. Newest first.
+
+    All filters translate to indexed SQL WHERE clauses now (vs the
+    previous full-list-comprehension scan), so this is order-of-
+    magnitude faster on real-world data.
+    """
+    QueueItem, _db = _model()
+    q = QueueItem.query
 
     if user_id is not None:
-        items = [item for item in items if item.get("user_id") == user_id]
-
-    if client_id:
-        items = [item for item in items if item.get("client_id") == client_id]
-
+        q = q.filter_by(user_id=user_id)
+    if client_id is not None and client_id != "":
+        q = q.filter_by(client_id=str(client_id))
     if status:
-        normalized_status = _normalize_status(status)
-        items = [item for item in items if item.get("status") == normalized_status]
+        q = q.filter_by(status=_normalize_status(status))
     elif not include_dismissed:
-        # Hide dismissed items from default listings (e.g., the queue page).
-        items = [item for item in items if item.get("status") != "dismissed"]
-
+        # Hide dismissed items from default listings.
+        q = q.filter(QueueItem.status != "dismissed")
     if item_type:
-        normalized_item_type = _normalize_item_type(item_type)
-        items = [item for item in items if item.get("item_type") == normalized_item_type]
-
+        q = q.filter_by(item_type=_normalize_item_type(item_type))
     if priority:
-        normalized_priority = _normalize_priority(priority)
-        items = [item for item in items if item.get("priority") == normalized_priority]
-
+        q = q.filter_by(priority=_normalize_priority(priority))
     if source:
-        normalized_source = _normalize_source(source)
-        items = [item for item in items if item.get("source") == normalized_source]
+        q = q.filter_by(source=_normalize_source(source))
 
-    return sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)
+    rows = q.order_by(QueueItem.created_at.desc()).all()
+    return [_serialize(r) for r in rows]
 
 
 def get_queue_item_by_id(item_id, user_id=None):
-    items = load_queue_items()
+    """Fetch one queue item. Returns None if not found or the user_id
+    doesn't match (defense-in-depth — routes also auth via
+    login_required + the workspace's user_id)."""
+    return _serialize(_row_by_id(item_id, user_id=user_id))
 
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-        return item
 
-    return None
-
+# ---------------------------------------------------------------------------
+# Single-field updates — mutation helpers
+# ---------------------------------------------------------------------------
 
 def update_queue_item_status(item_id, new_status, user_id=None):
-    items = load_queue_items()
-    normalized_status = _normalize_status(new_status)
-
-    updated_item = None
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-
-        item["status"] = normalized_status
-        item["updated_at"] = _now_iso()
-        updated_item = item
-        break
-
-    if not updated_item:
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
         return None
+    row.status = _normalize_status(new_status)
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
 
-    save_queue_items(items)
-    return updated_item
+
+def update_queue_item_schedule(item_id, scheduled_for, user_id=None):
+    """Set or clear the scheduled_for date on a queue item."""
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
+        return None
+    row.scheduled_for = _normalize_scheduled_for(scheduled_for)
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
 
 
 def update_queue_item_content(
@@ -410,51 +369,140 @@ def update_queue_item_content(
     source_action_title=None,
     user_id=None,
 ):
-    items = load_queue_items()
-    updated_item = None
-
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-
-        if content is not None:
-            item["content"] = _normalize_text(content)
-
-        if title is not None:
-            item["title"] = _normalize_text(title, item.get("title", "Untitled Item"))
-
-        if status is not None:
-            item["status"] = _normalize_status(status)
-
-        if priority is not None:
-            item["priority"] = _normalize_priority(priority)
-
-        if source is not None:
-            item["source"] = _normalize_source(source)
-
-        if credits_required is not None:
-            item["credits_required"] = _normalize_int(credits_required)
-
-        if execution_type is not None:
-            item["execution_type"] = _normalize_text(
-                execution_type, "ai_executable"
-            )
-
-        if source_action_title is not None:
-            item["source_action_title"] = _normalize_text(source_action_title)
-
-        item["updated_at"] = _now_iso()
-        updated_item = item
-        break
-
-    if not updated_item:
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
         return None
 
-    save_queue_items(items)
-    return updated_item
+    if content is not None:
+        row.content = _normalize_text(content)
+    if title is not None:
+        row.title = _normalize_text(title, row.title or "Untitled Item")
+    if status is not None:
+        row.status = _normalize_status(status)
+    if priority is not None:
+        row.priority = _normalize_priority(priority)
+    if source is not None:
+        row.source = _normalize_source(source)
+    if credits_required is not None:
+        row.credits_required = _normalize_int(credits_required)
+    if execution_type is not None:
+        row.execution_type = _normalize_text(execution_type, "ai_executable")
+    if source_action_title is not None:
+        row.source_action_title = _normalize_text(source_action_title)
 
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
+
+
+def update_queue_item_details(
+    item_id,
+    title=None,
+    target_query=None,
+    content_type=None,
+    item_type=None,
+    priority=None,
+    source=None,
+    user_id=None,
+):
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
+        return None
+
+    if title is not None:
+        row.title = _normalize_text(title, row.title or "Untitled Item")
+    if target_query is not None:
+        row.target_query = _normalize_text(target_query)
+    if content_type is not None:
+        row.content_type = _normalize_text(content_type, row.content_type or "service_page")
+    if item_type is not None:
+        row.item_type = _normalize_item_type(item_type)
+    if priority is not None:
+        row.priority = _normalize_priority(priority)
+    if source is not None:
+        row.source = _normalize_source(source)
+
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
+
+
+def update_queue_item_og_image(item_id, og_image_url, user_id=None):
+    """Record the URL of a generated visual on a queue item."""
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
+        return None
+    row.og_image_url = _normalize_text(og_image_url) or None
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
+
+
+def update_queue_item_webflow_export(
+    item_id,
+    webflow_item_id,
+    webflow_collection,
+    webflow_live_url=None,
+    user_id=None,
+):
+    """Record that a queue item was successfully exported to Webflow."""
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
+        return None
+    row.webflow_item_id = _normalize_text(webflow_item_id) or None
+    row.webflow_collection = _normalize_text(webflow_collection) or None
+    if webflow_live_url is not None:
+        row.webflow_live_url = _normalize_text(webflow_live_url) or None
+    row.status = "published"
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
+
+
+# ---------------------------------------------------------------------------
+# Chat history mutators
+# ---------------------------------------------------------------------------
+
+def append_queue_item_chat_messages(item_id, messages, user_id=None):
+    """Append one or more chat messages to a queue item's chat_history.
+
+    Each message is a dict shaped like:
+      {"role": "user"|"assistant", "content": str,
+       "revised_content": str|None, "summary": str|None, "ts": iso}
+    """
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
+        return None
+
+    history = list(row.chat_history) if isinstance(row.chat_history, list) else []
+    for m in messages or []:
+        if isinstance(m, dict):
+            history.append(m)
+    row.chat_history = history
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
+
+
+def clear_queue_item_chat_history(item_id, user_id=None):
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
+        return None
+    row.chat_history = []
+    row.updated_at = _now_iso()
+    db.session.commit()
+    return _serialize(row)
+
+
+# ---------------------------------------------------------------------------
+# Upsert from generation flow
+# ---------------------------------------------------------------------------
 
 def upsert_generation_item(
     *,
@@ -482,41 +530,44 @@ def upsert_generation_item(
     "Generate Draft" can advance the same item forward instead of
     spawning a parallel one. (Audit finding #5.)
 
-    Returns the created or updated item dict.
+    Returns the created or updated item as a dict.
     """
-    items = load_queue_items()
+    QueueItem, db = _model()
 
     normalized_query = _normalize_text(target_query)
     normalized_type = _normalize_text(content_type)
     normalized_status = _normalize_status(status)
+    client_id_s = str(client_id) if client_id not in (None, "") else None
 
+    # Find an existing item that matches on (user, client, query).
+    # content_type match is preferred but not required — re-running
+    # the generator without picking a type should advance the same
+    # row, not spawn a duplicate.
+    q = QueueItem.query.filter_by(
+        user_id=user_id,
+        client_id=client_id_s,
+    )
+    candidates = q.all()
     match = None
-    for item in items:
-        if user_id is not None and item.get("user_id") != user_id:
+    for row in candidates:
+        if _normalize_text(row.target_query) != normalized_query:
             continue
-        if str(item.get("client_id", "")) != str(client_id):
-            continue
-        if _normalize_text(item.get("target_query", "")) != normalized_query:
-            continue
-        # Match on content_type when set on both sides; otherwise
-        # accept any prior item for this query so we don't spawn
-        # duplicates when the user re-runs without picking a type.
-        existing_type = _normalize_text(item.get("content_type", ""))
+        existing_type = _normalize_text(row.content_type)
         if normalized_type and existing_type and existing_type != normalized_type:
             continue
-        match = item
+        match = row
         break
 
     if match:
-        match["target_query"] = normalized_query
-        match["content_type"] = normalized_type or match.get("content_type", "")
-        match["item_type"] = _normalize_item_type(item_type)
-        match["title"] = _normalize_text(title, match.get("title", "Untitled Item"))
-        match["content"] = _normalize_text(content)
-        match["status"] = normalized_status
-        match["updated_at"] = _now_iso()
-        save_queue_items(items)
-        return match
+        match.target_query = normalized_query
+        match.content_type = normalized_type or match.content_type or ""
+        match.item_type = _normalize_item_type(item_type)
+        match.title = _normalize_text(title, match.title or "Untitled Item")
+        match.content = _normalize_text(content)
+        match.status = normalized_status
+        match.updated_at = _now_iso()
+        db.session.commit()
+        return _serialize(match)
 
     return add_queue_item(
         client_id=client_id,
@@ -535,44 +586,43 @@ def upsert_generation_item(
     )
 
 
+# ---------------------------------------------------------------------------
+# Delete
+# ---------------------------------------------------------------------------
+
 def delete_queue_item(item_id, user_id=None):
-    items = load_queue_items()
-    remaining = []
-    deleted = False
-
-    for item in items:
-        if item.get("id") == item_id and (user_id is None or item.get("user_id") == user_id):
-            deleted = True
-            continue
-        remaining.append(item)
-
-    if not deleted:
+    QueueItem, db = _model()
+    row = _row_by_id(item_id, user_id=user_id)
+    if not row:
         return False
-
-    save_queue_items(remaining)
+    db.session.delete(row)
+    db.session.commit()
     return True
 
 
 def delete_items_for_client(client_id, user_id=None):
-    items = load_queue_items()
-    remaining = []
-    deleted_count = 0
+    """Delete every queue item belonging to `client_id` (and
+    optionally scoped to a user). Returns the number deleted."""
+    QueueItem, db = _model()
+    q = QueueItem.query.filter_by(client_id=str(client_id))
+    if user_id is not None:
+        q = q.filter_by(user_id=user_id)
+    rows = q.all()
+    count = len(rows)
+    for r in rows:
+        db.session.delete(r)
+    db.session.commit()
+    return count
 
-    for item in items:
-        same_client = item.get("client_id") == client_id
-        same_user = user_id is None or item.get("user_id") == user_id
 
-        if same_client and same_user:
-            deleted_count += 1
-            continue
-
-        remaining.append(item)
-
-    save_queue_items(remaining)
-    return deleted_count
-
+# ---------------------------------------------------------------------------
+# Pure helpers — no DB access
+# ---------------------------------------------------------------------------
 
 def get_next_action(item):
+    """Return the next user-visible action for a queue item, or None
+    if no further action is available from its current status. Pure
+    function; doesn't touch the DB."""
     if not item:
         return None
 
@@ -641,6 +691,8 @@ def transition_queue_item(item_id, transition, user_id=None):
 
 
 def get_client_progress(client_id, user_id=None):
+    """Aggregate counts for a client's queue. Used by the workspace
+    detail page's "progress" pill."""
     items = get_queue_items(client_id=client_id, user_id=user_id)
 
     total = len(items)
@@ -657,16 +709,7 @@ def get_client_progress(client_id, user_id=None):
 
 
 def create_queue_item_from_audit_opportunity(client_id, client_name, opportunity, user_id=None):
-    """
-    Helper to turn an audit opportunity into a queue item.
-    Expected opportunity example:
-    {
-        "title": "What is AEO for SMEs",
-        "target_query": "what is aeo for small business",
-        "content_type": "article",
-        "priority": "high"
-    }
-    """
+    """Helper to turn an audit opportunity dict into a queue item."""
     return add_queue_item(
         client_id=client_id,
         client_name=client_name,
@@ -683,51 +726,3 @@ def create_queue_item_from_audit_opportunity(client_id, client_name, opportunity
         source_action_title=opportunity.get("source_action_title", ""),
         user_id=user_id,
     )
-
-def update_queue_item_details(
-    item_id,
-    title=None,
-    target_query=None,
-    content_type=None,
-    item_type=None,
-    priority=None,
-    source=None,
-    user_id=None,
-):
-    items = load_queue_items()
-    updated_item = None
-
-    for item in items:
-        if item.get("id") != item_id:
-            continue
-
-        if user_id is not None and item.get("user_id") != user_id:
-            continue
-
-        if title is not None:
-            item["title"] = _normalize_text(title, item.get("title", "Untitled Item"))
-
-        if target_query is not None:
-            item["target_query"] = _normalize_text(target_query)
-
-        if content_type is not None:
-            item["content_type"] = _normalize_text(content_type, item.get("content_type", "service_page"))
-
-        if item_type is not None:
-            item["item_type"] = _normalize_item_type(item_type)
-
-        if priority is not None:
-            item["priority"] = _normalize_priority(priority)
-
-        if source is not None:
-            item["source"] = _normalize_source(source)
-
-        item["updated_at"] = _now_iso()
-        updated_item = item
-        break
-
-    if not updated_item:
-        return None
-
-    save_queue_items(items)
-    return updated_item
