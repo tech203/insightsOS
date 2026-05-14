@@ -1,11 +1,18 @@
-import json
+"""Persist a completed audit run.
+
+Migrated from outputs/<site>_<type>_<ts>_{summary,full}.json files
+to the SQL `audits` table. See app.py Audit model.
+
+The public function `save_audit_results` keeps the same signature
+and return shape (a {"full_file", "summary_file"} dict) so the two
+callers (main.py CLI + audit_runner.py) don't need to change. The
+"file" values are now filename-identifiers, not on-disk paths —
+URLs like /audit/<filename> continue to work because the audits
+table is keyed on filename.
+"""
+
 import os
 from datetime import datetime
-
-
-def ensure_output_folder(folder="outputs"):
-    os.makedirs(folder, exist_ok=True)
-    return folder
 
 
 def clean_website_name(website):
@@ -20,14 +27,15 @@ def clean_website_name(website):
 
 
 def build_base_filename(website, audit_type):
+    """Generate the filename-identifier prefix for an audit row.
+
+    Includes microseconds so back-to-back saves don't collide on the
+    `filename` primary key (e.g. a test loop, a bulk-audit run that
+    finishes two workspaces in <1 second, a retry-after-failure).
+    """
     clean_website = clean_website_name(website)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     return f"{clean_website}_{audit_type}_{timestamp}"
-
-
-def save_json(payload, filepath):
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
 
 
 def build_client_summary(
@@ -113,21 +121,34 @@ def save_audit_results(
     question_coverage,
     audit_data,
     final_report,
-    output_folder="outputs",
+    output_folder="outputs",  # kept for back-compat; unused
     client_id=None,
     client_name=None,
     user_id=None
 ):
-    ensure_output_folder(output_folder)
-    base_filename = build_base_filename(website, audit_type)
+    """Persist an audit run as a row in the `audits` table.
 
-    full_filepath = os.path.join(output_folder, f"{base_filename}_full.json")
-    summary_filepath = os.path.join(output_folder, f"{base_filename}_summary.json")
+    Return shape preserved from the JSON-file era:
+        {"full_file": "<filename>_full.json",
+         "summary_file": "<filename>_summary.json"}
+    so the two callers (main.py CLI, audit_runner.py) don't need
+    to change. The "file" values are filename-identifiers stored
+    on the Audit row, not on-disk paths — URLs like /audit/<filename>
+    continue to resolve because the table is keyed on filename.
+    """
+    # Lazy import — save_results.py is imported during app.py's own
+    # module load, so importing the model at top-level would race.
+    from app import Audit, db
+
+    base_filename = build_base_filename(website, audit_type)
+    full_filename = f"{base_filename}_full.json"
+    summary_filename = f"{base_filename}_summary.json"
+    saved_at = datetime.now().isoformat()
 
     full_payload = {
         "website": website,
         "audit_type": audit_type,
-        "saved_at": datetime.now().isoformat(),
+        "saved_at": saved_at,
         "client_id": client_id,
         "client_name": client_name,
         "user_id": user_id,
@@ -155,13 +176,44 @@ def save_audit_results(
         user_id=user_id,
     )
 
-    save_json(full_payload, full_filepath)
-    save_json(summary_payload, summary_filepath)
+    # Pull out denormalized score columns so the audit-history list
+    # page can sort without unpacking JSON. `_or_zero` is defensive
+    # against payloads where the score didn't get computed (legacy
+    # rows had None for some).
+    scores = summary_payload.get("scores", {}) or {}
+
+    audit = Audit(
+        filename=summary_filename,
+        user_id=user_id,
+        client_id=str(client_id) if client_id is not None else None,
+        client_name=client_name,
+        website=website,
+        audit_type=audit_type,
+        saved_at=saved_at,
+        normalized_score=_or_zero(scores.get("normalized_score")),
+        visibility_score=_or_zero(scores.get("visibility_score")),
+        content_score=_or_zero(scores.get("content_score")),
+        schema_score=_or_zero(scores.get("schema_score")),
+        summary_payload=summary_payload,
+        full_payload=full_payload,
+    )
+    db.session.add(audit)
+    db.session.commit()
 
     return {
-        "full_file": full_filepath,
-        "summary_file": summary_filepath,
+        "full_file": full_filename,
+        "summary_file": summary_filename,
     }
+
+
+def _or_zero(v):
+    """Coerce a possibly-None / possibly-string score field to float."""
+    try:
+        if v is None or v == "":
+            return 0.0
+        return float(v)
+    except Exception:
+        return 0.0
 
 
 if __name__ == "__main__":
