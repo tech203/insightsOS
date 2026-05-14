@@ -239,26 +239,26 @@ document.addEventListener("click", function (e) {
 });
 
 // =========================================================================
-// Bulk audit runner
+// Bulk audit runner — async job version
 // =========================================================================
-// JS-driven sequential bulk: a Growth agency owner with 8 workspaces
-// clicked through 8 audits one at a time before. Now they tick the
-// boxes, hit "Run audits on selected", and we fire the audits one
-// after the other via /api/client/<id>/run-audit while showing
-// per-workspace progress.
+// Earlier version (pre-#106): JS made N sequential AJAX POSTs to
+// /api/client/<id>/run-audit. Each POST ran an audit synchronously
+// server-side and the user had to keep the tab open the whole time.
 //
-// Sequential (not parallel) for three reasons:
-//   1. Each audit hits OpenAI + Tavily and we don't want to trip
-//      their rate limits with 10 parallel requests.
-//   2. Reservations are per-audit; if the wallet drains mid-batch,
-//      sequential lets us short-circuit cleanly without leaving
-//      orphaned reservations.
-//   3. Server-side runs in the request thread anyway, so parallel
-//      from the browser would queue at the worker.
+// New version: one POST kicks off a JobRun on the server. A daemon
+// thread processes the workspace list. The browser polls
+// /api/jobs/<id> every 2 seconds and renders the per-workspace
+// progress from the JobRun.result blob.
 //
-// The browser tab needs to stay open while the batch runs. Backgrounding
-// the work in a Celery-style queue is a future improvement; for now
-// the explicit progress UI makes it clear what's happening.
+// The big win: the user can close the tab. When they come back,
+// the work has either finished or is still in progress; either way
+// the same poll endpoint shows the latest state.
+//
+// Sequential server-side processing is preserved (the worker thread
+// runs one audit at a time — see _bulk_audit_worker in app.py). The
+// rationale from the old comment still applies: OpenAI / Tavily rate
+// limits, credit reservation cleanliness, and per-iteration commit
+// for partial-state recovery.
 (function () {
     const panel = document.getElementById("bulkProgressPanel");
     if (!panel) return; // bulk-disabled view, nothing to do
@@ -279,8 +279,6 @@ document.addEventListener("click", function (e) {
         const selected = getSelected();
         countEl.textContent = selected.length;
         runBtn.disabled = selected.length === 0;
-        // Tri-state header checkbox: checked when all are, indeterminate
-        // when partial, unchecked when none.
         if (selectAll) {
             const all = checkboxes.length;
             if (selected.length === 0) {
@@ -297,7 +295,6 @@ document.addEventListener("click", function (e) {
     }
 
     checkboxes.forEach(cb => cb.addEventListener("change", refreshCount));
-
     if (selectAll) {
         selectAll.addEventListener("change", function () {
             checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
@@ -306,9 +303,6 @@ document.addEventListener("click", function (e) {
     }
     refreshCount();
 
-    // Resolve the CSRF token from the <meta> tag added by the security
-    // PR — Flask-WTF requires it on POST and the API endpoint is no
-    // exception.
     function csrfToken() {
         const m = document.querySelector('meta[name="csrf-token"]');
         return m ? m.getAttribute("content") : "";
@@ -319,12 +313,88 @@ document.addEventListener("click", function (e) {
         row.querySelector(".workspace-bulk-progress-status").textContent = text;
     }
 
+    // Map a per-workspace record from JobRun.result into UI state.
+    // The worker writes one of these per processed workspace:
+    //   {client_id, client_name, ok: true,  queue_added, queue_skipped_due_to_cap}
+    //   {client_id, client_name, ok: false, error, reason?, skipped?}
+    function renderRecord(row, rec) {
+        if (rec.skipped) {
+            setRowStatus(row, "skipped", "Skipped — out of credits");
+            return;
+        }
+        if (rec.ok) {
+            const added = rec.queue_added || 0;
+            const skipped = rec.queue_skipped_due_to_cap || 0;
+            let txt = "Done — " + added + " queue item" + (added === 1 ? "" : "s") + " added";
+            if (skipped > 0) {
+                txt += " (" + skipped + " skipped — queue full)";
+            }
+            setRowStatus(row, "done", txt);
+            return;
+        }
+        if (rec.reason === "insufficient_credits") {
+            setRowStatus(row, "error", "Out of credits — upgrade or top up.");
+            return;
+        }
+        setRowStatus(row, "error", rec.error || "Failed.");
+    }
+
+    async function pollJob(jobId, rowsByClientId, allRows) {
+        // 2 second cadence — fast enough that progress feels live,
+        // slow enough that 10 polls per audit is cheap on the server.
+        const POLL_MS = 2000;
+        // Walk away after 30 minutes regardless. 10 audits × 1 min
+        // budget × 3 = comfortable upper bound. The job itself keeps
+        // running on the server; this just stops the browser poll
+        // so a forgotten tab doesn't keep hammering /api/jobs.
+        const MAX_POLLS = (30 * 60 * 1000) / POLL_MS;
+        let polls = 0;
+
+        while (polls < MAX_POLLS) {
+            polls++;
+            let data = null;
+            try {
+                const resp = await fetch("/api/jobs/" + jobId, {
+                    credentials: "same-origin",
+                });
+                if (resp.ok) data = await resp.json();
+            } catch (_) {
+                // Network blip — try again after the interval. The
+                // poll endpoint is idempotent so retries are safe.
+            }
+
+            if (data && data.ok && data.job) {
+                const job = data.job;
+                const records = job.result || [];
+
+                // Render whatever records have arrived; rows we
+                // haven't heard back on stay in "Running…" state.
+                for (const rec of records) {
+                    const row = rowsByClientId[rec.client_id];
+                    if (row) renderRecord(row, rec);
+                }
+
+                summaryEl.textContent =
+                    job.progress_current + " of " + job.progress_total + " complete";
+
+                if (job.status === "done" || job.status === "failed" || job.status === "canceled") {
+                    return job;
+                }
+            }
+
+            await new Promise(r => setTimeout(r, POLL_MS));
+        }
+        // Hit the poll cap. The job is still running server-side —
+        // the user can refresh to pick up the latest.
+        summaryEl.textContent +=
+            " — still running on the server. Refresh to see the latest.";
+        return null;
+    }
+
     runBtn.addEventListener("click", async function () {
         const selected = getSelected();
         if (selected.length === 0) return;
 
-        // Disable selection + button so the user can't fire twice or
-        // change the batch mid-run.
         runBtn.disabled = true;
         runBtn.textContent = "Running…";
         checkboxes.forEach(cb => { cb.disabled = true; });
@@ -333,72 +403,74 @@ document.addEventListener("click", function (e) {
         panel.hidden = false;
         listEl.innerHTML = "";
 
-        // Build one progress row per workspace up front so the user
-        // sees the full plan, not just the one currently running.
-        const rows = selected.map(cb => {
+        // Build one progress row per workspace up front, indexed by
+        // client_id so we can look up the corresponding row when each
+        // record lands in the poll response.
+        const allRows = [];
+        const rowsByClientId = {};
+        for (const cb of selected) {
             const node = rowTpl.content.firstElementChild.cloneNode(true);
             node.dataset.workspaceId = cb.value;
             node.querySelector(".workspace-bulk-progress-name").textContent =
                 cb.dataset.workspaceName || ("Workspace #" + cb.value);
+            setRowStatus(node, "running", "Queued…");
             listEl.appendChild(node);
-            return { row: node, id: cb.value, name: cb.dataset.workspaceName || cb.value };
-        });
-
-        summaryEl.textContent = "0 of " + rows.length + " complete";
-
-        let done = 0;
-        let succeeded = 0;
-        let outOfCredits = false;
-
-        for (const item of rows) {
-            // Skip remaining when credits ran out; mark them as
-            // "skipped" rather than letting them sit pending forever.
-            if (outOfCredits) {
-                setRowStatus(item.row, "skipped", "Skipped — out of credits");
-                done++;
-                summaryEl.textContent = done + " of " + rows.length + " complete";
-                continue;
-            }
-
-            setRowStatus(item.row, "running", "Running…");
-            try {
-                const resp = await fetch("/api/client/" + item.id + "/run-audit", {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": csrfToken(),
-                    },
-                    body: JSON.stringify({}),
-                });
-                const data = await resp.json().catch(() => null);
-
-                if (resp.status === 402 && data && data.reason === "insufficient_credits") {
-                    setRowStatus(item.row, "error", "Out of credits — upgrade or top up.");
-                    outOfCredits = true;
-                } else if (!resp.ok || !data || !data.ok) {
-                    const errMsg = (data && data.error) || ("Request failed (" + resp.status + ")");
-                    setRowStatus(item.row, "error", errMsg);
-                } else {
-                    const added = data.queue_added || 0;
-                    const skipped = data.queue_skipped_due_to_cap || 0;
-                    let txt = "Done — " + added + " queue item" + (added === 1 ? "" : "s") + " added";
-                    if (skipped > 0) {
-                        txt += " (" + skipped + " skipped — queue full)";
-                    }
-                    setRowStatus(item.row, "done", txt);
-                    succeeded++;
-                }
-            } catch (err) {
-                setRowStatus(item.row, "error", "Network error — try again later.");
-            }
-            done++;
-            summaryEl.textContent = done + " of " + rows.length + " complete";
+            allRows.push(node);
+            rowsByClientId[cb.value] = node;
         }
 
-        // Final state: re-enable controls and update the button.
-        // Don't auto-redirect — the user wants to see what happened
-        // across the batch.
+        summaryEl.textContent = "Starting…";
+
+        // Kick off the job. Server returns immediately with a job_id;
+        // the worker thread does the actual audits.
+        let job_id = null;
+        try {
+            const resp = await fetch("/api/jobs/bulk-audit/start", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken(),
+                },
+                body: JSON.stringify({
+                    client_ids: selected.map(cb => cb.value),
+                }),
+            });
+            const data = await resp.json().catch(() => null);
+            if (!resp.ok || !data || !data.ok || !data.job_id) {
+                const errMsg = (data && data.error) || ("Request failed (" + resp.status + ")");
+                summaryEl.textContent = "Couldn't start: " + errMsg;
+                allRows.forEach(r => setRowStatus(r, "error", errMsg));
+                resetControls();
+                return;
+            }
+            job_id = data.job_id;
+        } catch (err) {
+            summaryEl.textContent = "Network error — try again later.";
+            allRows.forEach(r => setRowStatus(r, "error", "Network error"));
+            resetControls();
+            return;
+        }
+
+        summaryEl.textContent = "0 of " + allRows.length + " complete";
+
+        const final = await pollJob(job_id, rowsByClientId, allRows);
+
+        // Re-enable controls. The button shows retry-count for
+        // partial-success runs so the user can re-tick what failed.
+        resetControls();
+        if (final && final.result) {
+            const succeeded = final.result.filter(r => r.ok).length;
+            if (succeeded === allRows.length) {
+                runBtn.textContent = "Run audits on selected (0)";
+            } else {
+                runBtn.textContent = "Retry remaining (" + (allRows.length - succeeded) + ")";
+            }
+        }
+        runBtn.disabled = true;
+    });
+
+    function resetControls() {
         checkboxes.forEach(cb => { cb.disabled = false; cb.checked = false; });
         if (selectAll) {
             selectAll.disabled = false;
@@ -406,13 +478,7 @@ document.addEventListener("click", function (e) {
             selectAll.indeterminate = false;
         }
         refreshCount();
-        if (succeeded === rows.length) {
-            runBtn.textContent = "Run audits on selected (0)";
-        } else {
-            runBtn.textContent = "Retry remaining (" + (rows.length - succeeded) + ")";
-        }
-        runBtn.disabled = true;
-    });
+    }
 })();
 </script>
 {% endblock %}

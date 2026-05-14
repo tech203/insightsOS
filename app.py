@@ -636,6 +636,63 @@ class QueueItem(db.Model):
     updated_at = db.Column(db.String(40), nullable=False)
 
 
+class JobRun(db.Model):
+    """A long-running background job — one row per "user kicked off
+    something they shouldn't have to wait on synchronously."
+
+    Initial use case is bulk audits (PR #90 + #100): a Growth agency
+    with 10 workspaces clicks "Run audits on selected", and the
+    request returns a job_id immediately. A background thread
+    processes the workspaces one at a time, writing progress here.
+    The user can close the tab and check back later.
+
+    Status lifecycle:
+        pending -> running -> done | failed | canceled
+
+    `kind` namespaces the job type so future async tasks (bulk
+    refresh of the answer monitor, etc.) can share this model
+    without a new table per worker. Today only "bulk_audit" exists.
+
+    `result` is a JSON column holding the per-job output (e.g. a
+    list of per-workspace {ok, audit_filename, error} records for
+    bulk audits). Shape is up to the worker function — the model
+    treats it as opaque.
+
+    progress_current / progress_total drive the UI progress bar.
+    """
+    __tablename__ = "job_runs"
+
+    # UUID string for URL stability and to avoid leaking sequential
+    # IDs in /api/jobs/<id> responses.
+    id = db.Column(db.String(40), primary_key=True)
+
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+        nullable=False, index=True,
+    )
+    kind = db.Column(db.String(40), nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False, default="pending", index=True)
+
+    # Live progress (UI reads this between polls). Set to the size
+    # of the input list on start; incremented as each item completes.
+    progress_current = db.Column(db.Integer, default=0, nullable=False)
+    progress_total = db.Column(db.Integer, default=0, nullable=False)
+
+    # Opaque per-job JSON. For bulk_audit: a list of dicts with
+    # {client_id, ok, audit_filename, error, queue_added, ...} —
+    # one per workspace. The JS poller iterates it to render the
+    # per-workspace progress rows.
+    result = db.Column(db.JSON, nullable=True)
+
+    # If the worker raised, the friendly error message goes here.
+    error = db.Column(db.Text, nullable=True)
+
+    # Lifecycle timestamps (ISO strings, sortable lexicographically).
+    created_at = db.Column(db.String(40), nullable=False)
+    started_at = db.Column(db.String(40), nullable=True)
+    finished_at = db.Column(db.String(40), nullable=True)
+
+
 class Referral(db.Model):
     """Referral payout record.
 
@@ -12938,6 +12995,354 @@ def api_client_run_audit(client_id):
             "client_name": client.get("name"),
             "error": friendly_ai_error_message(e),
         }), 500
+
+
+# ---------------------------------------------------------------------------
+# Background-job runtime
+# ---------------------------------------------------------------------------
+# Earlier bulk audit (PR #90) was JS-driven sequential AJAX: the user
+# had to keep the tab open while N audits ran one at a time. That
+# works for the happy path but loses the work-in-progress if the
+# user navigates away, closes the laptop, or hits a flaky connection.
+#
+# New flow:
+#   1. JS POSTs once to /api/jobs/bulk-audit/start with the workspace
+#      list.
+#   2. Server creates a JobRun row, spawns a daemon thread, returns
+#      the job_id immediately.
+#   3. JS polls /api/jobs/<id> every couple of seconds and updates
+#      the progress UI. User can close the tab — the thread keeps
+#      running; when they reopen, the same poll reads the latest
+#      state.
+#
+# Threading caveats handled below:
+#   - Each worker thread pushes its own app_context so SQLAlchemy
+#     has a session.
+#   - Worker uses a fresh DB session per item; the parent request's
+#     session would close as soon as the request returns.
+#   - Daemon thread so the worker dies with the app instead of
+#     keeping the process alive on shutdown.
+#
+# This is purposely *not* Redis/Celery-based. At current scale a
+# single in-process worker is fine, and the architecture is simple
+# enough to reason about (no broker, no separate process). The
+# JobRun row gives us a recovery point if we later want to migrate
+# to a real queue.
+
+import threading
+
+
+def _spawn_background_job(job_id: str, worker_fn, *args, **kwargs) -> None:
+    """Spawn `worker_fn(*args, **kwargs)` in a daemon thread that
+    operates inside its own Flask app context. The worker is
+    responsible for updating the JobRun row's status / progress /
+    result / error fields.
+
+    `worker_fn`'s first argument MUST be `job_id` so it can look up
+    its own row inside the thread. The wrapper handles status
+    bookkeeping for the boundary cases:
+      - Marks status="running" + started_at on entry
+      - Marks status="failed" + error if the worker raises
+      - Marks status="done" + finished_at on clean exit (unless the
+        worker already set a terminal status itself)
+    """
+    def _runner():
+        # Bind to the global Flask app — threads don't inherit the
+        # request's app_context.
+        with app.app_context():
+            started_iso = utcnow().isoformat(timespec="seconds")
+            try:
+                job = db.session.get(JobRun, job_id)
+                if job is None:
+                    logger.warning("Job %s vanished before worker started", job_id)
+                    return
+                job.status = "running"
+                job.started_at = started_iso
+                db.session.commit()
+            except Exception:
+                logger.exception("Failed to mark job %s running", job_id)
+                db.session.rollback()
+                return
+
+            try:
+                worker_fn(job_id, *args, **kwargs)
+                # If the worker didn't set a terminal status, default
+                # to done. Workers are encouraged to set their own
+                # status explicitly so error paths aren't masked.
+                job = db.session.get(JobRun, job_id)
+                if job and job.status == "running":
+                    job.status = "done"
+                    job.finished_at = utcnow().isoformat(timespec="seconds")
+                    db.session.commit()
+            except Exception as exc:
+                logger.exception("Background job %s failed", job_id)
+                try:
+                    job = db.session.get(JobRun, job_id)
+                    if job:
+                        job.status = "failed"
+                        job.error = str(exc)[:1000]
+                        job.finished_at = utcnow().isoformat(timespec="seconds")
+                        db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
+    t = threading.Thread(target=_runner, daemon=True, name=f"job-{job_id}")
+    t.start()
+
+
+def _bulk_audit_worker(job_id: str, client_slugs: List[str], user_id: int) -> None:
+    """Per-workspace bulk-audit worker.
+
+    Processes `client_slugs` sequentially. For each:
+      1. Reserves credits for the audit.
+      2. Runs the audit + queue-opportunity-creation.
+      3. Commits the reservation on success or releases it on failure.
+      4. Appends a per-workspace record to the JobRun's `result` list
+         and bumps progress_current.
+
+    If credits run dry mid-batch, the remaining workspaces are
+    marked skipped (no audit attempted, no reservation made).
+
+    Mirrors the per-workspace behavior of /api/client/<id>/run-audit
+    so the user gets the same semantics whether they kick off audits
+    one at a time or via the bulk job.
+    """
+    from services.ai_errors import friendly_ai_error_message
+
+    user = db.session.get(User, user_id)
+    if not user:
+        # Should never happen — auth is checked before enqueue —
+        # but guard so a deleted-mid-batch user doesn't crash the
+        # worker thread.
+        return
+
+    out_of_credits = False
+    for slug in client_slugs:
+        # Re-fetch the JobRun row on each iteration so we can append
+        # progress incrementally. Each commit makes the partial state
+        # visible to the polling endpoint.
+        job = db.session.get(JobRun, job_id)
+        if job is None:
+            return  # Job deleted underneath us — bail.
+
+        # Look up the workspace row directly — get_client_by_id uses
+        # `current_user` from Flask-Login, which doesn't exist in a
+        # background thread. We have the user_id already.
+        ws_row = Client.query.filter_by(slug=str(slug), user_id=user.id).first()
+        client = serialize_client_row(ws_row) if ws_row else None
+        result_records = list(job.result or [])
+
+        if not client:
+            result_records.append({
+                "client_id": slug,
+                "client_name": None,
+                "ok": False,
+                "error": "Workspace not found",
+            })
+        elif out_of_credits:
+            result_records.append({
+                "client_id": slug,
+                "client_name": client.get("name"),
+                "ok": False,
+                "error": "Skipped — out of credits",
+                "skipped": True,
+            })
+        else:
+            reservation = reserve_credits_for(
+                user, "audit_run",
+                notes=f"Bulk audit (job {job_id}): {client.get('name')}",
+            )
+            if reservation is None:
+                # Wallet drained mid-batch — short-circuit the rest.
+                out_of_credits = True
+                result_records.append({
+                    "client_id": slug,
+                    "client_name": client.get("name"),
+                    "ok": False,
+                    "error": insufficient_credits_message(
+                        user, "audit_run", "An audit"
+                    ),
+                    "reason": "insufficient_credits",
+                })
+            else:
+                try:
+                    run_audit_for_input(
+                        website=client.get("website", ""),
+                        industry=client.get("industry", ""),
+                        location=client.get("location", ""),
+                        topic=(client.get("industry") or None),
+                        audit_type="quick",
+                        client_id=slug,
+                        client_name=client.get("name"),
+                        user_id=user.id,
+                    )
+                    queue_result = create_content_opportunities_from_latest_audit(
+                        client_id=slug, user_id=user.id,
+                    )
+                    commit_reservation(
+                        reservation,
+                        notes=f"Bulk audit completed (job {job_id})",
+                    )
+                    result_records.append({
+                        "client_id": slug,
+                        "client_name": client.get("name"),
+                        "ok": True,
+                        "queue_added": (
+                            queue_result.get("added", 0)
+                            if isinstance(queue_result, dict)
+                            else queue_result or 0
+                        ),
+                        "queue_skipped_due_to_cap": (
+                            queue_result.get("skipped_due_to_cap", 0)
+                            if isinstance(queue_result, dict) else 0
+                        ),
+                    })
+                except Exception as exc:
+                    release_reservation(
+                        reservation,
+                        reason=f"Bulk audit job worker failure: {exc!r}"[:1000],
+                    )
+                    logger.exception(
+                        "Bulk audit job %s failed on client %s", job_id, slug,
+                    )
+                    result_records.append({
+                        "client_id": slug,
+                        "client_name": client.get("name"),
+                        "ok": False,
+                        "error": friendly_ai_error_message(exc),
+                    })
+
+        # Persist progress after each workspace — this is what the
+        # poll endpoint reads. Atomic per-iteration commit.
+        job.result = result_records
+        job.progress_current = len(result_records)
+        db.session.commit()
+
+    # Mark the job done. The wrapper would do this for us, but doing
+    # it explicitly lets us be clear about success vs the wrapper's
+    # default behavior.
+    job = db.session.get(JobRun, job_id)
+    if job:
+        job.status = "done"
+        job.finished_at = utcnow().isoformat(timespec="seconds")
+        db.session.commit()
+
+
+@app.route("/api/jobs/bulk-audit/start", methods=["POST"])
+@login_required
+def api_jobs_bulk_audit_start():
+    """Kick off a bulk-audit job.
+
+    Body: {"client_ids": ["slug-1", "slug-2", ...]}
+    Returns: 200 {"job_id": "<uuid>"} on accept, or 4xx with an
+    error message.
+
+    Auth: login_required. Plan gate: only subscriber plans can
+    bulk-run; Free has at most 1 workspace and gets the per-audit
+    HTML route. Admin / dev_unlimited bypass.
+
+    Important: credits are NOT pre-reserved as a lump sum here.
+    Each workspace's audit reserves and commits independently in
+    the worker. If the wallet empties mid-batch, the remaining
+    workspaces are marked "skipped — out of credits" without
+    failing the job.
+    """
+    body = request.get_json(silent=True) or {}
+    client_ids = body.get("client_ids") or []
+    if not isinstance(client_ids, list) or not client_ids:
+        return jsonify({"ok": False, "error": "client_ids must be a non-empty list"}), 400
+
+    # Normalize to strings and dedupe while preserving order.
+    seen = set()
+    slugs: List[str] = []
+    for cid in client_ids:
+        s = str(cid).strip()
+        if s and s not in seen:
+            seen.add(s)
+            slugs.append(s)
+    if not slugs:
+        return jsonify({"ok": False, "error": "No valid client_ids supplied"}), 400
+
+    # Plan gate. Subscribers (Pro / Growth / agency / dev_unlimited)
+    # can run bulk; Free users can't (their 1-workspace cap makes
+    # the feature meaningless anyway, but enforced here for
+    # defense in depth).
+    if not (
+        is_subscriber(getattr(current_user, "plan", "free"))
+        or user_has_unlimited_credits(current_user)
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "Bulk audit is available on Pro and Growth plans.",
+        }), 403
+
+    # Cap the batch size — pragmatic guard against a runaway request
+    # body. 50 is well above the Growth plan's 10-workspace cap.
+    if len(slugs) > 50:
+        return jsonify({
+            "ok": False,
+            "error": "Too many workspaces in one batch (max 50).",
+        }), 400
+
+    job_id = secrets.token_urlsafe(16)
+    now = utcnow().isoformat(timespec="seconds")
+    job = JobRun(
+        id=job_id,
+        user_id=current_user.id,
+        kind="bulk_audit",
+        status="pending",
+        progress_current=0,
+        progress_total=len(slugs),
+        result=[],
+        created_at=now,
+    )
+    db.session.add(job)
+    db.session.commit()
+
+    _spawn_background_job(
+        job_id, _bulk_audit_worker,
+        client_slugs=slugs, user_id=current_user.id,
+    )
+
+    return jsonify({"ok": True, "job_id": job_id})
+
+
+@app.route("/api/jobs/<job_id>", methods=["GET"])
+@login_required
+def api_jobs_get(job_id):
+    """Poll a job's current state.
+
+    Returns the JobRun row's status / progress / result / error
+    fields. Auth: must be the user that started the job (no shared
+    job visibility across users — even teammates of the same
+    workspace see their own jobs only, matching the per-user
+    audit-history scoping).
+
+    Response shape:
+      200 {"ok": true, "job": {"id", "kind", "status",
+            "progress_current", "progress_total", "result", "error",
+            "created_at", "started_at", "finished_at"}}
+      404 if the job doesn't exist or belongs to another user
+    """
+    job = db.session.get(JobRun, job_id)
+    if job is None or job.user_id != current_user.id:
+        return jsonify({"ok": False, "error": "Job not found"}), 404
+
+    return jsonify({
+        "ok": True,
+        "job": {
+            "id": job.id,
+            "kind": job.kind,
+            "status": job.status,
+            "progress_current": job.progress_current,
+            "progress_total": job.progress_total,
+            "result": job.result or [],
+            "error": job.error,
+            "created_at": job.created_at,
+            "started_at": job.started_at,
+            "finished_at": job.finished_at,
+        },
+    })
 
 
 @app.route("/client/<client_id>/presentation")
