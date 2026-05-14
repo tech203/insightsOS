@@ -453,6 +453,13 @@ class User(UserMixin, db.Model):
     # idempotency guard so a user can't be re-emailed even if their
     # row somehow gets re-qualified.
     upsell_lto_email_sent_at = db.Column(db.DateTime, nullable=True)
+    # When set, the user clicked unsubscribe in a marketing email
+    # (the LTO nudge today). We don't send them any further marketing
+    # mail. Transactional emails — password reset, email verification,
+    # team invites — are unaffected (service-of-the-account mail is
+    # exempt from CAN-SPAM commercial-content rules and required for
+    # the user to operate their account).
+    email_marketing_opt_out_at = db.Column(db.DateTime, nullable=True)
 
     wallet = db.relationship(
         "Wallet",
@@ -5474,6 +5481,109 @@ def record_upsell_prompt(user, source: str = "") -> None:
             )
 
 
+# ---------------------------------------------------------------------------
+# Marketing-email opt-out (CAN-SPAM / GDPR compliance)
+# ---------------------------------------------------------------------------
+# Two layers of separation here:
+#
+#   1. Email category — marketing vs transactional. Marketing emails
+#      (LTO nudge, future drip campaigns, newsletters) honor the
+#      user's opt-out flag. Transactional emails (password reset,
+#      email verification, team invites, receipts) DON'T — those
+#      are service-of-the-account mail, exempt from CAN-SPAM
+#      commercial-content rules, and required for the user to
+#      operate their account regardless of preference.
+#
+#   2. Signed-token unsubscribe — the unsubscribe link in marketing
+#      emails carries a token signed with SECRET_KEY. The /unsubscribe
+#      route decodes it to find the user_id. Without signing, anyone
+#      with the URL could unsubscribe arbitrary users by guessing
+#      sequential IDs.
+#
+# The token doesn't expire — a user who finds an old email a year
+# later should still be able to click the link and unsubscribe. The
+# signature guarantees authenticity; replay is not an attack here
+# (the action is idempotent).
+
+UNSUBSCRIBE_TOKEN_SALT = "email-marketing-unsubscribe-v1"
+
+
+def _unsubscribe_serializer():
+    """Lazy URLSafeSerializer keyed off Flask's SECRET_KEY. Lazy so
+    the import doesn't run at module-load time before app config is
+    settled. itsdangerous is in requirements.txt — same library
+    Flask-WTF uses for CSRF, so already imported elsewhere."""
+    from itsdangerous import URLSafeSerializer
+    return URLSafeSerializer(app.config["SECRET_KEY"], salt=UNSUBSCRIBE_TOKEN_SALT)
+
+
+def make_unsubscribe_token(user_id: int) -> str:
+    """Sign a token that lets the bearer unsubscribe user_id."""
+    return _unsubscribe_serializer().dumps({"uid": int(user_id)})
+
+
+def decode_unsubscribe_token(token: str) -> Optional[int]:
+    """Reverse of make_unsubscribe_token. Returns user_id on success,
+    None on any failure (tampered, malformed, signature mismatch).
+    Never raises so the unsubscribe route can render a friendly
+    error page instead of 500ing."""
+    from itsdangerous import BadSignature
+    try:
+        payload = _unsubscribe_serializer().loads(token)
+        return int(payload.get("uid") or 0) or None
+    except (BadSignature, ValueError, TypeError):
+        return None
+
+
+def can_send_marketing_email(user) -> bool:
+    """True when user is allowed to receive marketing emails. False
+    after they've clicked unsubscribe. Anonymous / missing email →
+    False (defensive; send_email already short-circuits on no email
+    but checking here avoids burning a template render)."""
+    if not user or not user.email or "@" not in user.email:
+        return False
+    return user.email_marketing_opt_out_at is None
+
+
+@app.route("/unsubscribe/<token>", methods=["GET", "POST"])
+@csrf.exempt  # GET-only unsubscribe link — no browser-form POST body
+def unsubscribe_marketing(token):
+    """Unsubscribe a user from marketing emails via signed token.
+
+    GET to render a confirmation page (with the user's email shown
+    so they know which account they're acting on) and POST to
+    commit the opt-out. One-click email clients (Apple Mail's
+    "Unsubscribe" prompt, Gmail's same) issue a POST; the GET
+    fallback lets a user paste the URL into a browser.
+
+    Idempotent — already-opted-out users see the same confirmation
+    page so they don't get confused. Invalid / tampered tokens get
+    a friendly error page, not a 500.
+    """
+    user_id = decode_unsubscribe_token(token)
+    user = db.session.get(User, user_id) if user_id else None
+    if not user:
+        return render_template(
+            "unsubscribe_invalid.html",
+        ), 400
+
+    if request.method == "POST":
+        if user.email_marketing_opt_out_at is None:
+            user.email_marketing_opt_out_at = utcnow()
+            db.session.commit()
+            logger.info(
+                "User %s unsubscribed from marketing email", user.id,
+            )
+
+    already_opted_out = user.email_marketing_opt_out_at is not None
+    return render_template(
+        "unsubscribe_confirm.html",
+        user_email=user.email,
+        already_opted_out=already_opted_out,
+        method=request.method,
+    )
+
+
 def _send_upsell_lto_email(user) -> bool:
     """Send the one-shot LTO email and set the idempotency timestamp.
 
@@ -5491,6 +5601,17 @@ def _send_upsell_lto_email(user) -> bool:
         return False
     if user.upsell_lto_email_sent_at is not None:
         return False  # idempotent — already sent
+    # Opt-out gate. The LTO is a marketing email; users who clicked
+    # unsubscribe in a prior marketing email must not get any further
+    # marketing mail. We still stamp the timestamp below as if we'd
+    # sent it, so a future re-qualification doesn't try again either.
+    if not can_send_marketing_email(user):
+        user.upsell_lto_email_sent_at = utcnow()
+        db.session.commit()
+        logger.info(
+            "LTO email skipped for user %s — marketing opt-out", user.id,
+        )
+        return False
 
     from services.email_helper import render_upsell_lto_email, send_email
 
@@ -5502,11 +5623,19 @@ def _send_upsell_lto_email(user) -> bool:
         upgrade_url = url_for(
             "pricing_page", source="upsell_lto", _external=True,
         )
+        unsubscribe_url = url_for(
+            "unsubscribe_marketing",
+            token=make_unsubscribe_token(user.id),
+            _external=True,
+        )
     except RuntimeError:
         # No request context (e.g. a background sweep someday). Fall
-        # back to a relative URL — degraded but still useful in plain
+        # back to relative URLs — degraded but still useful in plain
         # text. HTML render escapes either way.
         upgrade_url = "/pricing?source=upsell_lto"
+        unsubscribe_url = (
+            "/unsubscribe/" + make_unsubscribe_token(user.id)
+        )
 
     expires_at = user.upsell_lto_expires_at
     if expires_at:
@@ -5520,6 +5649,7 @@ def _send_upsell_lto_email(user) -> bool:
         headline=headline,
         upgrade_url=upgrade_url,
         hours_left=hours_left,
+        unsubscribe_url=unsubscribe_url,
     )
     sent = send_email(
         to=user.email, subject=subject, body_text=text, body_html=html,

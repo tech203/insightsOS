@@ -1,0 +1,64 @@
+{# Unsubscribe confirmation page.
+
+   Reached via GET /unsubscribe/<signed-token>. The token decoded to
+   a real user, and either:
+     - method=GET → show the "click to confirm" form
+     - method=POST → user already clicked through; show confirmation
+
+   Anonymous-friendly — no login required, since the signed token
+   IS the authentication for this one action. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Email preferences | DarInsights</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; margin: 0;">
+
+<main style="background: #fff; border-radius: 16px; padding: 40px 36px; max-width: 480px; width: 100%; box-shadow: 0 8px 24px rgba(15,23,42,0.06); text-align: center;">
+
+    {% if already_opted_out %}
+        <div style="font-size: 32px; margin-bottom: 16px;">✓</div>
+        <h1 style="margin: 0 0 12px; font-size: 22px; color: #191929;">
+            You're unsubscribed
+        </h1>
+        <p style="line-height: 1.55; color: #475569; margin: 0 0 24px;">
+            <strong>{{ user_email }}</strong> won't receive marketing emails
+            from DarInsights. Account emails (password resets, receipts,
+            team invites) will still be delivered.
+        </p>
+        <p style="line-height: 1.55; color: #64748b; font-size: 13px; margin: 0;">
+            Changed your mind? Email <a href="mailto:hello@darinsights.com" style="color: #16a99a;">hello@darinsights.com</a> and we'll resubscribe you.
+        </p>
+
+    {% else %}
+        <h1 style="margin: 0 0 12px; font-size: 22px; color: #191929;">
+            Unsubscribe from marketing emails?
+        </h1>
+        <p style="line-height: 1.55; color: #475569; margin: 0 0 28px;">
+            You'll stop receiving promotional emails at
+            <strong>{{ user_email }}</strong>. Account emails —
+            password resets, receipts, team invites — will still
+            be delivered as usual.
+        </p>
+        <form method="POST" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="btn btn-primary"
+                    style="display: inline-block; padding: 12px 28px; background: #3EDFCB; color: #191929; border: 0; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit;">
+                Yes, unsubscribe
+            </button>
+        </form>
+        <p style="line-height: 1.55; color: #64748b; font-size: 13px; margin: 24px 0 0;">
+            Changed your mind? Just close this tab.
+        </p>
+    {% endif %}
+
+</main>
+
+</body>
+</html>
