@@ -34,6 +34,10 @@ os.environ.setdefault("RESEND_FROM", "test@example.com")
 # OpenAI client at module import time, which crashes if the key is
 # missing. Tests mock the client itself, so the value is never used.
 os.environ.setdefault("OPENAI_API_KEY", "test-key-not-used")
+# /cron/* endpoints return 503 if CRON_SECRET is unconfigured. Tests
+# that exercise the auth boundary (wrong / missing header → 403) need
+# the server-side secret to be set so the auth check actually runs.
+os.environ.setdefault("CRON_SECRET", "test-cron-secret-not-for-prod")
 
 import pytest  # noqa: E402
 from dtutils import utcnow
