@@ -147,7 +147,7 @@ def test_slug_post_blocks_cross_user(two_users_one_workspace, path_tmpl, data):
     """Bob POSTing to Alice's workspace must not mutate it."""
     bob, slug, _ = two_users_one_workspace
     path = path_tmpl.format(slug=slug)
-    resp = bob.post(path, data=data, follow_redirects=False)
+    bob.post(path, data=data, follow_redirects=False)
     # 200 OR 302 with success flash would be the leak — but both Alice's
     # name and website should remain untouched regardless.
     ws = Client.query.filter_by(slug="alice-co").first()
@@ -164,7 +164,7 @@ def test_intid_post_blocks_cross_user(two_users_one_workspace, path_tmpl, data):
     """Bob POSTing to int-id endpoint on Alice's workspace must not mutate it."""
     bob, _, cid = two_users_one_workspace
     path = path_tmpl.format(cid=cid)
-    resp = bob.post(path, data=data, follow_redirects=False)
+    bob.post(path, data=data, follow_redirects=False)
     # share/toggle would set public_share_token if it succeeded; verify
     # Alice's workspace doesn't have one as a result of Bob's POST.
     ws = db.session.get(Client, cid)
