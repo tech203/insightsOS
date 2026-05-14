@@ -5163,6 +5163,24 @@ def build_client_views():
     clients = load_clients(user_id=owner_id)
     audits = get_saved_audits(user_id=owner_id)
 
+    # PERF: pre-fetch every per-workspace integration row in 3 queries
+    # up front instead of running 3 queries per workspace inside the
+    # render loop. Before this change, /clients and /dashboard scaled
+    # at ~9 queries per workspace — a Growth-tier user with 10
+    # workspaces hit 100+ queries per page load; an agency with 30
+    # workspaces hit 270+. With the pre-fetch the count is constant.
+    _shopify_by_client = {
+        c.client_id: c for c in
+        ShopifyConnection.query.filter_by(user_id=owner_id).all()
+    }
+    _gsc_by_client = {
+        c.client_id: c for c in
+        GoogleSearchConsoleConnection.query.filter_by(user_id=owner_id).all()
+    }
+    _wf_by_client: Dict[Any, List[WebflowExport]] = {}
+    for _export in WebflowExport.query.filter_by(user_id=owner_id).all():
+        _wf_by_client.setdefault(_export.client_id, []).append(_export)
+
     client_views = []
 
     for client in clients:
@@ -5226,9 +5244,13 @@ def build_client_views():
             industry=client.get("industry", ""),
         )
 
-        shopify_findings = _shopify_findings_for_client(
-            current_user.id, client.get("id")
-        )
+        # Use the pre-fetched Shopify connection (PERF — see top of fn).
+        _shop_conn = _shopify_by_client.get(client.get("id"))
+        shopify_findings = []
+        if _shop_conn and isinstance(_shop_conn.shop_meta, dict):
+            _findings = _shop_conn.shop_meta.get("cached_findings")
+            if isinstance(_findings, list):
+                shopify_findings = _findings
         if shopify_findings:
             recommended_actions = list(recommended_actions) + shopify_findings
 
@@ -5239,11 +5261,7 @@ def build_client_views():
             from services.google_data_recommendations import (
                 build_google_data_recommendations,
             )
-            gsc_conn = (
-                GoogleSearchConsoleConnection.query.filter_by(
-                    user_id=owner_id, client_id=client.get("id")
-                ).first() if client.get("id") else None
-            )
+            gsc_conn = _gsc_by_client.get(client.get("id"))
             if gsc_conn:
                 google_recs = build_google_data_recommendations(
                     gsc_payload=gsc_conn.last_sync_payload,
@@ -5261,12 +5279,7 @@ def build_client_views():
         # Calendar so it stays self-feeding between fresh audits.
         try:
             from services.stale_content import find_stale_actions
-            wf_exports = (
-                WebflowExport.query
-                .filter_by(user_id=owner_id, client_id=client.get("id"))
-                .all()
-                if client.get("id") else []
-            )
+            wf_exports = _wf_by_client.get(client.get("id"), [])
             client_queue = get_queue_items(
                 client_id=client.get("id"),
                 user_id=owner_id,
