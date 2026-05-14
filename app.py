@@ -79,7 +79,7 @@ from dtutils import utcnow
 
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
