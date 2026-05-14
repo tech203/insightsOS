@@ -15981,6 +15981,19 @@ def answer_monitor_run_single(prompt_id):
 # marketplaces (Etsy, Amazon, Shopee, eBay). We don't ingest the
 # catalog — we generate marketplace-flavoured prompts and check how
 # often the shop is cited.
+#
+# Free-tier rate limit: marketplace audits aren't plan-gated (Free
+# users can pay $2/credit to run one), but they're capped at once
+# per 30 days per shop on Free. The cap protects two concerns:
+#   1. Cost: each run hits OpenAI / answer engines across ~5 queries,
+#      so unthrottled Free abuse could rack up server-side spend.
+#   2. Pricing integrity: this feature belongs to the Action Plan
+#      module ($19/mo). The pay-per-credit option exists for casual
+#      use; a Free user running daily would undercut the module.
+# Paid plans (and dev_unlimited / admin) bypass the cooldown — they
+# pay credits per run and the cost is bounded by their wallet.
+
+MARKETPLACE_AUDIT_FREE_COOLDOWN_DAYS = 30
 
 
 @app.route("/marketplace-audits/<int:client_id>")
@@ -16060,6 +16073,28 @@ def marketplace_run_audit(client_id, presence_id):
     if not presence:
         flash("That marketplace listing wasn't found.", "error")
         return redirect(url_for("marketplace_audits_page", client_id=client_id))
+
+    # Free-tier cooldown — see MARKETPLACE_AUDIT_FREE_COOLDOWN_DAYS
+    # rationale above. Paid plans and admin/dev_unlimited bypass.
+    # The cooldown is per-presence: if a user has 3 linked shops,
+    # each gets its own 30-day window, not a global limit.
+    if (
+        not is_subscriber(getattr(current_user, "plan", "free"))
+        and not user_has_unlimited_credits(current_user)
+        and presence.last_audited_at is not None
+    ):
+        next_at = presence.last_audited_at + timedelta(
+            days=MARKETPLACE_AUDIT_FREE_COOLDOWN_DAYS,
+        )
+        if utcnow() < next_at:
+            flash(
+                "Free plan limits marketplace audits to once every "
+                f"{MARKETPLACE_AUDIT_FREE_COOLDOWN_DAYS} days per shop. "
+                f"Next run available {next_at.strftime('%d %b %Y')}. "
+                "Upgrade to Pro or Growth for unlimited runs.",
+                "warning",
+            )
+            return redirect(url_for("marketplace_audits_page", client_id=client_id))
 
     reservation = reserve_credits_for(
         current_user,
