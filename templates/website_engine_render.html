@@ -1,3 +1,20 @@
+{# Theme-keyed badge for the hero visual. Mirrors the icon map in
+   website_brand_kit_preview.html so the preview and the rendered
+   site stay consistent. The legacy template hardcoded "Ice"/"Shop"/
+   "AI" and ignored clinics, education, and professional services. #}
+{% set _entity_lower = (page_json.semantic_profile.entity_type if page_json.semantic_profile else "")|lower %}
+{% if "food" in _entity_lower or "ice" in _entity_lower or "dessert" in _entity_lower or "confectionery" in _entity_lower or "bakery" in _entity_lower %}
+    {% set hero_badge = "🍦" %}
+{% elif "ecommerce" in _entity_lower or "e-commerce" in _entity_lower or "retail" in _entity_lower or "shop" in _entity_lower %}
+    {% set hero_badge = "🛍️" %}
+{% elif "clinic" in _entity_lower or "health" in _entity_lower or "dental" in _entity_lower or "medical" in _entity_lower or "aesthetic" in _entity_lower %}
+    {% set hero_badge = "🩺" %}
+{% elif "tuition" in _entity_lower or "education" in _entity_lower or "school" in _entity_lower or "enrichment" in _entity_lower or "learning" in _entity_lower %}
+    {% set hero_badge = "🎓" %}
+{% else %}
+    {% set hero_badge = "✦" %}
+{% endif %}
+
 {% for section in page_json.sections %}
 
     {% if section.type == "hero" %}
@@ -31,22 +48,7 @@
 
             <div class="site-hero-card" aria-hidden="true">
                 <div class="site-hero-visual">
-                    {% if page_json.semantic_profile and (
-                        "food" in page_json.semantic_profile.entity_type|lower
-                        or "ice" in page_json.semantic_profile.entity_type|lower
-                        or "dessert" in page_json.semantic_profile.entity_type|lower
-                        or "confectionery" in page_json.semantic_profile.entity_type|lower
-                    ) %}
-                    <span>Ice</span>
-                    {% elif page_json.semantic_profile and (
-                        "ecommerce" in page_json.semantic_profile.entity_type|lower
-                        or "e-commerce" in page_json.semantic_profile.entity_type|lower
-                        or "retail" in page_json.semantic_profile.entity_type|lower
-                    ) %}
-                    <span>Shop</span>
-                    {% else %}
-                    <span>AI</span>
-                    {% endif %}
+                    <span>{{ hero_badge }}</span>
                 </div>
                 <div>
                     <h3>{{ page_json.semantic_profile.entity_name if page_json.semantic_profile else page.title }}</h3>
@@ -117,18 +119,59 @@
     </section>
     {% endif %}
 
-    {% if section.type == "cta" %}
+    {# Match both "cta" (rule-based generator) and "cta_block" (AI
+       generator) — they're the same block, just named differently
+       in two code paths that should converge but don't yet. #}
+    {% if section.type in ["cta", "cta_block"] %}
     <section class="site-section site-cta" id="contact">
         <div class="site-container site-container-narrow">
             <h2>{{ section.headline }}</h2>
-            {% if section.body %}
-            <p>{{ section.body }}</p>
+            {% if section.body or section.subtext %}
+            <p>{{ section.body or section.subtext }}</p>
             {% endif %}
 
-            {% if section.button %}
+            {% set cta_label = section.button or section.primary_cta %}
+            {% if cta_label %}
             <a href="#" class="site-button site-button-inverse">
-                {{ section.button }}
+                {{ cta_label }}
             </a>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# Contact-page-specific block. AI prompt emits this with items[]
+       carrying phone/email/address/hours pairs. #}
+    {% if section.type == "contact_details" %}
+    <section class="site-section site-section-light" id="contact">
+        <div class="site-container site-container-narrow">
+            <p class="site-kicker">Contact</p>
+            <h2>{{ section.headline }}</h2>
+
+            <div class="site-card-grid">
+                {% for item in section.get("items", []) %}
+                <article class="site-feature-card">
+                    <div class="site-card-body">
+                        <h3>{{ item.title if item is mapping else item }}</h3>
+                        {% if item is mapping and item.description %}
+                        <p>{{ item.description }}</p>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {# About-page story block — narrative prose, no card grid. #}
+    {% if section.type == "story" %}
+    <section class="site-section">
+        <div class="site-container site-container-narrow">
+            <p class="site-kicker">Our Story</p>
+            <h2>{{ section.headline }}</h2>
+            {% if section.body %}
+            <p class="site-lede">{{ section.body }}</p>
             {% endif %}
         </div>
     </section>

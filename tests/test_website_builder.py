@@ -297,3 +297,109 @@ def test_page_spec_unknown_content_type_falls_back_to_home():
     )
     assert spec["slug"] == "home"
     assert spec["page_label"] == "homepage"
+
+
+# ---------------------------------------------------------------------------
+# Section renderer — guard against silent "section type unknown → not
+# rendered" regressions. The AI prompt emits cta_block / contact_details
+# / story; the previous template only knew hero / services / value_prop /
+# proof / faq / cta, so the final CTA on every AI-generated page was
+# silently dropped. This test ensures each new section type renders.
+# ---------------------------------------------------------------------------
+
+def _render_engine_template(sections):
+    """Render the website_engine_render.html partial with a
+    full-featured page_json so we can grep the resulting HTML for
+    section markers."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page_json = {
+        "sections": sections,
+        "semantic_profile": {
+            "entity_name": "Test Co",
+            "entity_type": "Marketing agency",
+        },
+    }
+    # The partial includes via the parent template; render it directly
+    # using a tiny wrapper template string.
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            return render_template(
+                "website_engine_render.html",
+                page_json=page_json,
+                page=type("P", (), {"title": "Test"})(),
+            )
+
+
+def test_renderer_handles_cta_block_section():
+    """The AI prompt emits "cta_block" — the renderer must treat it
+    identically to "cta" so the final CTA actually appears."""
+    html = _render_engine_template([
+        {
+            "type": "cta_block",
+            "headline": "Ready to dive in?",
+            "subtext": "Take the next step.",
+            "primary_cta": "Get Started",
+        }
+    ])
+    assert "Ready to dive in?" in html
+    assert "Get Started" in html
+
+
+def test_renderer_handles_contact_details_section():
+    """Contact pages emit a contact_details section — must render
+    a card grid of items[]."""
+    html = _render_engine_template([
+        {
+            "type": "contact_details",
+            "headline": "How to reach us",
+            "items": [
+                {"title": "Phone", "description": "+65 1234 5678"},
+                {"title": "Email", "description": "hi@test.co"},
+            ],
+        }
+    ])
+    assert "How to reach us" in html
+    assert "Phone" in html
+    assert "+65 1234 5678" in html
+    assert "hi@test.co" in html
+
+
+def test_renderer_handles_story_section():
+    """About pages emit a story section — narrative prose, no grid."""
+    html = _render_engine_template([
+        {
+            "type": "story",
+            "headline": "The origin of Test Co",
+            "body": "Founded in 2020 to solve X.",
+        }
+    ])
+    assert "The origin of Test Co" in html
+    assert "Founded in 2020 to solve X." in html
+
+
+def test_renderer_hero_badge_is_theme_specific():
+    """The hero badge used to hardcode Ice/Shop/AI strings, ignoring
+    clinics and education. Confirm the new theme-keyed badge map
+    picks an industry-appropriate icon."""
+    page_json = {
+        "sections": [{"type": "hero", "headline": "h"}],
+        "semantic_profile": {
+            "entity_name": "Test",
+            "entity_type": "Dental clinic",
+        },
+    }
+    from flask import render_template
+    from app import app as flask_app
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_render.html",
+                page_json=page_json,
+                page=type("P", (), {"title": "Test"})(),
+            )
+    # Clinic theme should yield the stethoscope, not the legacy "AI"
+    # fallback string.
+    assert "🩺" in html
+    assert ">AI<" not in html
