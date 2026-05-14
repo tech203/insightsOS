@@ -1,0 +1,115 @@
+{# Limited-time-offer popup for Free users past the paywall threshold.
+   Rendered from base.html when context processor resolved an active
+   upsell_lto dict. Dismiss POSTs to /upsell/dismiss; Upgrade just
+   hops to /pricing where the existing checkout flow takes over.
+
+   Self-contained — no template inheritance, all classes prefixed
+   with `upsell-` to avoid colliding with anything else. #}
+<div class="upsell-modal-backdrop" id="upsellModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="upsellModalTitle">
+    <div class="upsell-modal">
+        <button type="button"
+                class="upsell-modal-close"
+                onclick="window.__dismissUpsellModal && window.__dismissUpsellModal()"
+                aria-label="Close offer">
+            ×
+        </button>
+
+        <div class="upsell-modal-badge">Limited time</div>
+
+        <h2 class="upsell-modal-title" id="upsellModalTitle">
+            Ready to unlock everything?
+        </h2>
+
+        <p class="upsell-modal-body">
+            You've hit our paid features {{ upsell_lto.prompt_count }} time{{ "" if upsell_lto.prompt_count == 1 else "s" }}.
+            Upgrade now to lift every cap — more workspaces, unlimited audits,
+            multi-engine answer monitoring, and white-label reports.
+        </p>
+
+        <div class="upsell-modal-countdown" data-expires-at="{{ upsell_lto.expires_at.isoformat() if upsell_lto.expires_at else '' }}">
+            <span class="upsell-modal-countdown-label">Offer ends in</span>
+            <span class="upsell-modal-countdown-value">
+                {{ upsell_lto.hours_left }}h {{ upsell_lto.minutes_left }}m
+            </span>
+        </div>
+
+        <div class="upsell-modal-actions">
+            <a href="{{ url_for('pricing_page', source='upsell_lto') }}"
+               class="btn btn-primary upsell-modal-cta">
+                See plans
+            </a>
+            <button type="button"
+                    class="btn btn-secondary upsell-modal-maybe-later"
+                    onclick="window.__dismissUpsellModal && window.__dismissUpsellModal()">
+                Maybe later
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dismiss handler — posts to /upsell/dismiss with the CSRF token
+    // and removes the modal from the DOM. The server transitions
+    // upsell_lto_status → "dismissed" so the popup won't re-show on
+    // the next page load. We hide synchronously regardless of the
+    // network result so the UI feels snappy.
+    (function () {
+        var backdrop = document.getElementById("upsellModalBackdrop");
+        if (!backdrop) return;
+
+        function csrfToken() {
+            var m = document.querySelector('meta[name="csrf-token"]');
+            return m ? m.getAttribute("content") : "";
+        }
+
+        function hide() {
+            backdrop.style.display = "none";
+            try { backdrop.parentNode.removeChild(backdrop); } catch (_) {}
+        }
+
+        window.__dismissUpsellModal = function () {
+            hide();
+            try {
+                fetch("{{ url_for('upsell_dismiss') }}", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "X-CSRFToken": csrfToken() },
+                });
+            } catch (_) {
+                // Network failure is fine — the user will just see
+                // the popup again next page load. The server-side
+                // expires_at will eventually clear it either way.
+            }
+        };
+
+        // Close on Escape key.
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && backdrop.style.display !== "none") {
+                window.__dismissUpsellModal();
+            }
+        });
+
+        // Update the countdown every minute so the user sees time
+        // ticking down. If they leave the modal open past expiry,
+        // hide it client-side too (server will mark expired on the
+        // next request).
+        var countdownEl = backdrop.querySelector(".upsell-modal-countdown-value");
+        var expiresAtIso = backdrop.querySelector(".upsell-modal-countdown").getAttribute("data-expires-at");
+        if (countdownEl && expiresAtIso) {
+            var expiresAt = new Date(expiresAtIso);
+            var tick = function () {
+                var ms = expiresAt - new Date();
+                if (ms <= 0) {
+                    hide();
+                    return;
+                }
+                var totalMin = Math.floor(ms / 60000);
+                var h = Math.floor(totalMin / 60);
+                var m = totalMin % 60;
+                countdownEl.textContent = h + "h " + m + "m";
+            };
+            tick();
+            setInterval(tick, 60000);
+        }
+    })();
+</script>
