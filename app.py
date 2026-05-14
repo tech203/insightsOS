@@ -4894,8 +4894,6 @@ def build_client_views():
 
 
 def get_client_by_id(client_id):
-    print("LOOKUP client_id:", client_id)
-
     row = Client.query.filter_by(
         slug=str(client_id), user_id=current_user.id
     ).first()
@@ -7808,10 +7806,14 @@ def _build_audit_pdf(workspace_row, client, *, agency_override=None):
     business_profile = _resolve_business_profile_for_pdf(workspace_row, client)
     citation_rows = _citation_table_rows(client, max_rows=5)
 
-    latest = client.get("latest_audit", {})
-    recommended_actions = client.get("recommended_actions", [])
-    question_rows = client.get("question_rows", [])
-    missing_rows = client.get("missing_rows", [])
+    # build_client_views() sets "latest_audit" to None (not absent) when
+    # the workspace has no audits yet, so dict.get(..., {}) won't return
+    # the default — we have to coalesce explicitly. Same for the row
+    # lists below which are downstream of latest_audit.
+    latest = client.get("latest_audit") or {}
+    recommended_actions = client.get("recommended_actions") or []
+    question_rows = client.get("question_rows") or []
+    missing_rows = client.get("missing_rows") or []
     top_action = recommended_actions[0] if recommended_actions else None
 
     # Tavily research pack — extract real competitor list and a
@@ -7867,6 +7869,16 @@ def export_client_audit_pdf(client_id):
     client = get_client_by_id(client_id)
     if not client:
         abort(404)
+
+    # No audit yet → don't render a PDF full of "Not measured" rows;
+    # send the user to run an audit first with a clear message.
+    if not client.get("latest_audit"):
+        flash(
+            "No audit to export yet — run an audit first, then your PDF "
+            "will include the latest scores and recommended actions.",
+            "info",
+        )
+        return redirect(url_for("run_client_audit", client_id=client_id))
 
     # The Client ORM row drives the business-profile cache; client (the
     # serialised dict) drives the rest of the rendering.
