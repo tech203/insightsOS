@@ -13082,6 +13082,81 @@ def api_client_run_audit(client_id):
 import threading  # noqa: E402
 
 
+# ---------------------------------------------------------------------------
+# Stuck-job recovery on app boot
+# ---------------------------------------------------------------------------
+# JobRun rows in `pending` or `running` state when the process restarts are
+# orphans — their daemon thread died with the previous process and the row
+# will never advance on its own. The poll endpoint would report "running"
+# forever and the UI's spinner would never resolve.
+#
+# On first request after boot, sweep those rows into `failed` with a clear
+# error so the user can re-run intentionally. We don't auto-resume: the
+# worker may have already committed some workspaces, credit reservations
+# could be mid-commit, and replaying duplicate work risks double-spend.
+#
+# Reservations that the dead worker left in `pending` state are handled
+# separately by sweep_expired_reservations() — they expire after 15 min
+# and get auto-released without touching this path.
+
+_jobs_recovery_lock = threading.Lock()
+_jobs_recovered = False
+
+
+def recover_interrupted_jobs() -> int:
+    """Mark any JobRun rows stuck in pending/running as failed.
+
+    Called once per worker process on first request. A row in either
+    of those states means the previous process died mid-flight. We
+    set status="failed" with a recognizable error string so the UI
+    can hint at recovery and the user can re-run.
+
+    Returns the count swept (for logging / metrics).
+    """
+    stuck = JobRun.query.filter(
+        JobRun.status.in_(("pending", "running"))
+    ).all()
+    if not stuck:
+        return 0
+    now_iso = utcnow().isoformat(timespec="seconds")
+    for job in stuck:
+        prior = (job.error or "").strip()
+        msg = "Interrupted by server restart — please re-run."
+        job.error = (prior + "\n" + msg).strip()[:1000] if prior else msg
+        job.status = "failed"
+        job.finished_at = now_iso
+    db.session.commit()
+    logger.info("Recovered %d interrupted background job(s)", len(stuck))
+    return len(stuck)
+
+
+@app.before_request
+def _recover_interrupted_jobs_once():
+    """Run stuck-job recovery exactly once per worker process.
+
+    `before_request` fires under both `flask run` and gunicorn, so
+    this works in dev and prod without a separate boot hook. The
+    first call into the lock does the work; subsequent requests
+    short-circuit on the boolean flag.
+    """
+    global _jobs_recovered
+    if _jobs_recovered:
+        return
+    with _jobs_recovery_lock:
+        if _jobs_recovered:
+            return
+        try:
+            recover_interrupted_jobs()
+        except Exception as exc:
+            logger.warning("Job recovery on boot failed: %s", exc)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        finally:
+            _jobs_recovered = True
+
+
 def _spawn_background_job(job_id: str, worker_fn, *args, **kwargs) -> None:
     """Spawn `worker_fn(*args, **kwargs)` in a daemon thread that
     operates inside its own Flask app context. The worker is
