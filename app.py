@@ -236,7 +236,6 @@ app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1-hour token validity
 
 OUTPUTS_FOLDER = "outputs"
 DATA_FOLDER = "data"
-CLIENTS_FILE = os.path.join(DATA_FOLDER, "clients.json")
 
 
 # =========================
