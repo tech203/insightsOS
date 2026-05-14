@@ -121,20 +121,31 @@ def create_subscription_checkout_session(
     plan_slug: str,
     success_url: str,
     cancel_url: str,
+    source: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Recurring subscription Checkout Session for a plan tier."""
+    """Recurring subscription Checkout Session for a plan tier.
+
+    `source` is an optional attribution tag (e.g. "upsell_lto" when
+    the user came from the limited-time-offer modal). When present
+    it's stashed in Stripe's `metadata.source` so the webhook can
+    credit the conversion to the right surface for funnel analytics.
+    Pass it through verbatim — the dispatcher whitelists known values.
+    """
     stripe = _stripe_module()
     price_id = _plan_price_id(plan_slug)
+    metadata: Dict[str, str] = {
+        "kind": "subscription",
+        "user_id": str(user_id),
+        "plan_slug": plan_slug,
+    }
+    if source:
+        metadata["source"] = source
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
         client_reference_id=str(user_id),
         customer_email=user_email,
-        metadata={
-            "kind": "subscription",
-            "user_id": str(user_id),
-            "plan_slug": plan_slug,
-        },
+        metadata=metadata,
         success_url=success_url,
         cancel_url=cancel_url,
     )
