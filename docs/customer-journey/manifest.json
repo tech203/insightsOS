@@ -1,0 +1,218 @@
+[
+  {
+    "slug": "01-landing",
+    "label": "Landing page",
+    "url": "/aeo-agency",
+    "notes": "First impression. Are the value prop and CTA clear?",
+    "auth": false,
+    "status": "ok",
+    "file": "01-landing.webp"
+  },
+  {
+    "slug": "02-pricing",
+    "label": "Pricing",
+    "url": "/pricing",
+    "notes": "Plan comparison + credit bundles. Do tiers feel distinct?",
+    "auth": false,
+    "status": "ok",
+    "file": "02-pricing.webp"
+  },
+  {
+    "slug": "03-signup",
+    "label": "Sign up",
+    "url": "/signup",
+    "notes": "Email/password vs. Google. Is the choice obvious?",
+    "auth": false,
+    "status": "ok",
+    "file": "03-signup.webp"
+  },
+  {
+    "slug": "04-login",
+    "label": "Log in",
+    "url": "/login",
+    "notes": "Returning users. Forgot-password discoverable?",
+    "auth": false,
+    "status": "ok",
+    "file": "04-login.webp"
+  },
+  {
+    "slug": "05-workspaces",
+    "label": "Workspaces list",
+    "url": "/clients",
+    "notes": "Where the existing user lands after sign-in (if they have workspaces).",
+    "auth": true,
+    "status": "ok",
+    "file": "05-workspaces.webp"
+  },
+  {
+    "slug": "06-workspace-new",
+    "label": "Add a workspace",
+    "url": "/clients/new",
+    "notes": "First-run capture. Only name + website are required; the rest live behind a disclosure.",
+    "auth": true,
+    "status": "ok",
+    "file": "06-workspace-new.webp"
+  },
+  {
+    "slug": "07-brand-context",
+    "label": "Brand context",
+    "url": "/client/acme-bakery/brand-context",
+    "notes": "Soft step between workspace and first audit. Boost downstream content quality.",
+    "auth": true,
+    "status": "ok",
+    "file": "07-brand-context.webp"
+  },
+  {
+    "slug": "08-brand-kit",
+    "label": "Brand kit studio",
+    "url": "/client/1/brand-kit",
+    "notes": "Colors + typography. Used by generated pages and visuals.",
+    "auth": true,
+    "status": "ok",
+    "file": "08-brand-kit.webp"
+  },
+  {
+    "slug": "09-run-audit",
+    "label": "Launch an audit",
+    "url": "/client/acme-bakery/run-audit",
+    "notes": "Single click + credit confirmation. Wait time = first activation moment.",
+    "auth": true,
+    "status": "ok",
+    "file": "09-run-audit.webp"
+  },
+  {
+    "slug": "10-workspace",
+    "label": "Workspace overview",
+    "url": "/client/acme-bakery",
+    "notes": "The hub. Score, priorities, recommended actions, integrations.",
+    "auth": true,
+    "status": "crash",
+    "file": "10-workspace.webp"
+  },
+  {
+    "slug": "11-visibility",
+    "label": "Visibility",
+    "url": "/client/acme-bakery/visibility",
+    "notes": "Per-query state \u2014 where the brand appears and where it misses.",
+    "auth": true,
+    "status": "ok",
+    "file": "11-visibility.webp"
+  },
+  {
+    "slug": "12-competitors",
+    "label": "Competitor gaps",
+    "url": "/client/acme-bakery/competitors",
+    "notes": "Who is showing up instead. Empty state nudges 'Run analysis'.",
+    "auth": true,
+    "status": "ok",
+    "file": "12-competitors.webp"
+  },
+  {
+    "slug": "13-history",
+    "label": "Audit history",
+    "url": "/client/acme-bakery/history",
+    "notes": "Returning users see deltas vs. the previous audit.",
+    "auth": true,
+    "status": "ok",
+    "file": "13-history.webp"
+  },
+  {
+    "slug": "14-brief-form",
+    "label": "Content brief",
+    "url": "/client/acme-bakery/content-brief",
+    "notes": "Pick a query, pick a tone. The fastest path from finding to fixing.",
+    "auth": true,
+    "status": "ok",
+    "file": "14-brief-form.webp"
+  },
+  {
+    "slug": "15-content-queue",
+    "label": "Content queue",
+    "url": "/content-queue",
+    "notes": "Briefs and drafts in flight. Approve / AI-edit / publish from here.",
+    "auth": true,
+    "status": "crash",
+    "file": "15-content-queue.webp"
+  },
+  {
+    "slug": "16-growth-cal",
+    "label": "Growth calendar",
+    "url": "/growth-calendar",
+    "notes": "4-week schedule built from the latest audit.",
+    "auth": true,
+    "status": "crash",
+    "file": "16-growth-cal.webp"
+  },
+  {
+    "slug": "17-position",
+    "label": "Position tracking",
+    "url": "/position-tracking",
+    "notes": "Score and per-query movement across audits over time.",
+    "auth": true,
+    "status": "ok",
+    "file": "17-position.webp"
+  },
+  {
+    "slug": "18-answer-mon",
+    "label": "Answer monitor",
+    "url": "/answer-monitor",
+    "notes": "Re-run individual prompts between audits.",
+    "auth": true,
+    "status": "ok",
+    "file": "18-answer-mon.webp"
+  },
+  {
+    "slug": "19-pricing-up",
+    "label": "Pricing (logged in)",
+    "url": "/pricing",
+    "notes": "Same page as step 2, but for an authenticated user \u2014 does the CTA shift?",
+    "auth": true,
+    "status": "ok",
+    "file": "19-pricing-up.webp"
+  },
+  {
+    "slug": "20-billing",
+    "label": "Settings \u2192 Billing",
+    "url": "/settings/billing",
+    "notes": "Plan + Stripe portal + workspace seats.",
+    "auth": true,
+    "status": "ok",
+    "file": "20-billing.webp"
+  },
+  {
+    "slug": "21-credits",
+    "label": "Settings \u2192 Credits",
+    "url": "/settings/credits",
+    "notes": "Top up the wallet without changing plan.",
+    "auth": true,
+    "status": "ok",
+    "file": "21-credits.webp"
+  },
+  {
+    "slug": "22-team",
+    "label": "Settings \u2192 Team",
+    "url": "/settings/team",
+    "notes": "Invite teammates, manage seats.",
+    "auth": true,
+    "status": "ok",
+    "file": "22-team.webp"
+  },
+  {
+    "slug": "23-whitelabel",
+    "label": "Settings \u2192 White-label",
+    "url": "/settings/white-label",
+    "notes": "Logo + brand colour applied to public reports + PDFs.",
+    "auth": true,
+    "status": "ok",
+    "file": "23-whitelabel.webp"
+  },
+  {
+    "slug": "24-help",
+    "label": "Help center",
+    "url": "/help",
+    "notes": "Self-serve guidance for everything above.",
+    "auth": true,
+    "status": "ok",
+    "file": "24-help.webp"
+  }
+]
