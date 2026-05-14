@@ -93,6 +93,23 @@ def mocked_audit_internals():
 # ---------------------------------------------------------------------------
 
 class TestStartEndpoint:
+    """Endpoint-only tests — they should NOT trigger the daemon
+    worker thread. The thread would attempt a real audit (which
+    calls OpenAI / Tavily) and pollute the DB for subsequent tests.
+
+    `no_worker` is autouse so every test in this class gets a
+    patched `_spawn_background_job` that does nothing. The endpoint
+    still creates the JobRun row, which is what these tests care
+    about. The worker itself is tested separately in
+    TestBulkAuditWorker by calling the function synchronously.
+    """
+
+    @pytest.fixture(autouse=True)
+    def no_worker(self):
+        from unittest.mock import patch
+        with patch("app._spawn_background_job"):
+            yield
+
     def test_anonymous_redirected(self, app_ctx, workspaces):
         c = flask_app.test_client()
         r = c.post(
