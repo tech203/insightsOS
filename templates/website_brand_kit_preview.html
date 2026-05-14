@@ -1,13 +1,31 @@
 {% extends "base.html" %}
 
 {% block head %}
+{# Defensive fallbacks — preview must render even if a blueprint field is
+   missing, otherwise CSS variables resolve to empty and the page goes
+   blank. #}
+{% set primary_color = blueprint.primary_color or '#4f46e5' %}
+{% set secondary_color = blueprint.secondary_color or '#eef2ff' %}
+{% set accent_color = blueprint.accent_color or '#c7d2fe' %}
+{% set text_color = blueprint.text_color or '#0f172a' %}
+{# Theme-appropriate icon for the hero-mock visual. The old template
+   hardcoded an ice-cream cone — wrong for clinics, education, and
+   professional services. #}
+{% set theme_icons = {
+    'restaurant_cafe': '🍦',
+    'ecommerce_store': '🛍️',
+    'clinic_wellness': '🩺',
+    'education_centre': '🎓',
+    'professional_services': '✦'
+} %}
+{% set hero_icon = theme_icons.get(blueprint.theme, '✦') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='website-brand-kit.css') }}">
 <style>
 :root {
-    --brand-primary: {{ blueprint.primary_color }};
-    --brand-secondary: {{ blueprint.secondary_color }};
-    --brand-accent: {{ blueprint.accent_color }};
-    --brand-text: {{ blueprint.text_color }};
+    --brand-primary: {{ primary_color }};
+    --brand-secondary: {{ secondary_color }};
+    --brand-accent: {{ accent_color }};
+    --brand-text: {{ text_color }};
 }
 </style>
 {% endblock %}
@@ -26,7 +44,7 @@
                 <p class="eyebrow">Brand Kit Studio</p>
 
                 <div class="brand-kit-avatar-row">
-                    <div class="brand-kit-avatar" style="background: {{ blueprint.primary_color }};">
+                    <div class="brand-kit-avatar" style="background: {{ primary_color }};">
                         {{ blueprint.client_name[:1] }}
                     </div>
 
@@ -54,7 +72,7 @@
                         name="primary_cta"
                         value="{{ blueprint.primary_cta }}"
                         class="brand-kit-primary-cta"
-                        style="background: {{ blueprint.primary_color }};"
+                        style="background: {{ primary_color }};"
                     >
 
                     <input
@@ -92,12 +110,12 @@
                     </div>
 
                     <!-- HERO MOCK -->
-                    <div class="brand-kit-mock-hero" style="background: linear-gradient(135deg, {{ blueprint.secondary_color }} 0%, rgba(255, 255, 255, 0.9) 100%);">
+                    <div class="brand-kit-mock-hero" style="background: linear-gradient(135deg, {{ secondary_color }} 0%, rgba(255, 255, 255, 0.9) 100%);">
 
                         <div class="brand-kit-mock-content-grid">
 
                             <div>
-                                <div class="brand-kit-mock-eyebrow" style="color: {{ blueprint.primary_color }};">
+                                <div class="brand-kit-mock-eyebrow" style="color: {{ primary_color }};">
                                     {{ blueprint.business_type }}
                                 </div>
 
@@ -110,7 +128,7 @@
                                 </p>
 
                                 <div class="brand-kit-mock-buttons">
-                                    <button type="button" class="brand-kit-mock-primary-btn" style="background: {{ blueprint.primary_color }};">
+                                    <button type="button" class="brand-kit-mock-primary-btn" style="background: {{ primary_color }};">
                                         {{ blueprint.primary_cta }}
                                     </button>
 
@@ -121,8 +139,8 @@
                             </div>
 
                             <div>
-                                <div class="brand-kit-mock-visual" style="background: linear-gradient(135deg, {{ blueprint.primary_color }} 0%, {{ blueprint.accent_color }} 100%);">
-                                    🍦
+                                <div class="brand-kit-mock-visual" style="background: linear-gradient(135deg, {{ primary_color }} 0%, {{ accent_color }} 100%);">
+                                    {{ hero_icon }}
                                 </div>
                             </div>
 
@@ -156,10 +174,10 @@
 
             <div class="brand-kit-color-grid">
                 {% set color_items = [
-                    ('Primary', 'primary_color', blueprint.primary_color),
-                    ('Secondary', 'secondary_color', blueprint.secondary_color),
-                    ('Accent', 'accent_color', blueprint.accent_color),
-                    ('Text', 'text_color', blueprint.text_color)
+                    ('Primary', 'primary_color', primary_color),
+                    ('Secondary', 'secondary_color', secondary_color),
+                    ('Accent', 'accent_color', accent_color),
+                    ('Text', 'text_color', text_color)
                 ] %}
 
                 {% for label, field_name, color in color_items %}
@@ -201,8 +219,8 @@
                 {% set style_value = style|lower|replace(" ", "_") %}
                 <div class="brand-kit-style-option{% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %} selected{% endif %}" style="
                     {% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %}
-                    border: 2px solid {{ blueprint.primary_color }};
-                    background: {{ blueprint.secondary_color }};
+                    border: 2px solid {{ primary_color }};
+                    background: {{ secondary_color }};
                     {% endif %}
                 ">
                     <input
@@ -245,7 +263,7 @@
         <div class="brand-kit-pages-grid">
             {% for page in blueprint.pages %}
             <div class="brand-kit-page-card">
-                <div class="brand-kit-page-icon" style="background: {{ blueprint.secondary_color }};">
+                <div class="brand-kit-page-icon" style="background: {{ secondary_color }};">
                     ✦
                 </div>
 
@@ -303,7 +321,7 @@
 
 
     <!-- CTA -->
-    <section class="card brand-kit-cta-section" style="background: linear-gradient(135deg, {{ blueprint.primary_color }} 0%, {{ blueprint.accent_color }} 100%);">
+    <section class="card brand-kit-cta-section" style="background: linear-gradient(135deg, {{ primary_color }} 0%, {{ accent_color }} 100%);">
 
         <div class="brand-kit-cta-content">
             <h2 class="brand-kit-cta-title">
@@ -315,7 +333,7 @@
             </p>
 
             <div class="brand-kit-cta-buttons">
-                <button class="brand-kit-cta-primary-btn" type="submit" style="background: white; color: {{ blueprint.primary_color }};">
+                <button class="brand-kit-cta-primary-btn" type="submit" style="background: white; color: {{ primary_color }};">
                     Approve & Generate Website
                 </button>
 
