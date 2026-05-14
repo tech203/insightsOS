@@ -9,7 +9,6 @@ def classify_result(result, official_website=None):
     domain = result.get("domain", "").lower()
     title = result.get("title", "").lower()
     snippet = result.get("snippet", "").lower()
-    url = result.get("url", "").lower()
     category = result.get("category", "").lower()
 
     official_domain = ""

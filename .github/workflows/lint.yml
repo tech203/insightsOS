@@ -1,0 +1,51 @@
+name: lint
+
+# Same trigger surface as tests.yml — every push to main, every PR
+# targeting main. Lint runs as a separate workflow rather than a
+# second job in tests.yml so a flaky pytest failure doesn't mask a
+# lint regression (or vice versa). They're independent signals.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    name: ruff
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install ruff
+        # Ruff is the only thing this job needs. Installing just ruff
+        # (not the full dev requirements) keeps the lint job under 30s
+        # cold and ~5s on cache hit. Pinned in requirements-dev.txt;
+        # we read the pinned version from there so the source of truth
+        # stays single.
+        run: |
+          python -m pip install --upgrade pip
+          # Extract the pinned ruff version so local + CI agree.
+          pip install "$(grep '^ruff==' requirements-dev.txt)"
+
+      - name: Run ruff
+        # Config lives in ruff.toml at the project root. --no-fix so
+        # CI can't accidentally land auto-fixes; --output-format=github
+        # surfaces violations as annotated PR comments.
+        run: ruff check --no-fix --output-format=github .

@@ -14,7 +14,7 @@ Behavior under test:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dtutils import utcnow
 
 import pytest
@@ -22,8 +22,6 @@ import pytest
 from app import (
     CreditReservation,
     CreditTransaction,
-    TeamInvite,
-    User,
     WebhookEvent,
     db,
 )

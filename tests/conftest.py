@@ -30,14 +30,16 @@ os.environ.setdefault("SECRET_KEY", "test-secret-not-for-prod")
 # output for things that are intentionally unset in CI.
 os.environ.setdefault("STRIPE_SECRET_KEY", "")
 os.environ.setdefault("RESEND_FROM", "test@example.com")
+# content_draft_generator / content_brief_generator instantiate an
+# OpenAI client at module import time, which crashes if the key is
+# missing. Tests mock the client itself, so the value is never used.
+os.environ.setdefault("OPENAI_API_KEY", "test-key-not-used")
 
 import pytest  # noqa: E402
-from datetime import datetime  # noqa: E402
 from dtutils import utcnow
 
 # Import after env is primed. The app module wires the DB engine at
 # import time, so this can only be done once env is set.
-import app as app_module  # noqa: E402
 from app import app as flask_app, db  # noqa: E402
 from app import User, Wallet, CreditTransaction  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402

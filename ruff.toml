@@ -1,0 +1,51 @@
+# Ruff lint configuration.
+#
+# Conservative ruleset — we want to catch real bugs (undefined names,
+# unused imports that leak side effects, bare excepts) without
+# bikeshedding style. The Python code in this repo is varied (long
+# Flask app, lots of templates, mixed indentation tolerances) and an
+# aggressive ruleset would just spam noise in PRs.
+#
+# Selected rules:
+#   E4 — import-ordering errors (e.g. ambiguous star imports)
+#   E7 — semicolons, comparisons to literals via == None
+#   E9 — syntax errors and runtime errors caught at parse time
+#   F  — pyflakes: undefined names, unused imports, unused locals,
+#        f-strings without placeholders
+#   W6 — invalid escape sequences in strings
+#
+# Explicitly NOT selected:
+#   E1, E2, E3 — whitespace / blank lines (cosmetic)
+#   E5         — line length (already a wash given some routes are
+#                deliberately long for readability)
+#   I          — isort-style import ordering (would touch ~every file)
+#   N          — naming conventions (would touch every function)
+#
+# To add stricter rules later: append to `select` and run
+# `ruff check --fix .` to handle the autofixable subset, then
+# review the rest. Don't enable rules wholesale without a fixup PR
+# first.
+
+line-length = 120
+target-version = "py313"
+
+# Files and directories ruff should not touch. Migrations are
+# auto-generated; templates is a static folder; outputs and data are
+# runtime artifacts.
+extend-exclude = [
+    "migrations/versions",
+    "outputs",
+    "data",
+    "instance",
+    ".venv",
+    "venv",
+]
+
+[lint]
+select = [
+    "E4",  # import errors
+    "E7",  # statement-level errors (compare-to-None, semicolons)
+    "E9",  # parse/runtime errors
+    "F",   # pyflakes
+    "W6",  # invalid escapes
+]
