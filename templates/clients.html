@@ -52,6 +52,16 @@
             <div class="workspace-bulk-progress-head">
                 <strong>Running audits</strong>
                 <span id="bulkProgressSummary"></span>
+                {# Cancel button — only shown while the job is in
+                   flight. Hits POST /api/jobs/<id>/cancel which flips
+                   the JobRun status; the worker bails at the next
+                   iteration boundary. #}
+                <button type="button"
+                        id="bulkCancelBtn"
+                        class="workspace-bulk-cancel"
+                        hidden>
+                    Cancel
+                </button>
             </div>
             <ul class="workspace-bulk-progress-list" id="bulkProgressList"></ul>
         </div>
@@ -270,6 +280,12 @@ document.addEventListener("click", function (e) {
     const listEl = document.getElementById("bulkProgressList");
     const summaryEl = document.getElementById("bulkProgressSummary");
     const rowTpl = document.getElementById("bulkProgressRowTemplate");
+    const cancelBtn = document.getElementById("bulkCancelBtn");
+
+    // Track the in-flight job so the cancel button knows what to hit.
+    // Cleared when the job finishes (any terminal state) or fails to
+    // start in the first place.
+    let currentJobId = null;
 
     function getSelected() {
         return Array.from(checkboxes).filter(cb => cb.checked);
@@ -452,9 +468,22 @@ document.addEventListener("click", function (e) {
             return;
         }
 
+        // Surface the cancel button once we have a live job id.
+        currentJobId = job_id;
+        if (cancelBtn) {
+            cancelBtn.hidden = false;
+            cancelBtn.disabled = false;
+            cancelBtn.textContent = "Cancel";
+        }
+
         summaryEl.textContent = "0 of " + allRows.length + " complete";
 
         const final = await pollJob(job_id, rowsByClientId, allRows);
+
+        // Job reached a terminal state (or the poll cap fired) —
+        // hide the cancel button either way.
+        currentJobId = null;
+        if (cancelBtn) cancelBtn.hidden = true;
 
         // Re-enable controls. The button shows retry-count for
         // partial-success runs so the user can re-tick what failed.
@@ -478,6 +507,54 @@ document.addEventListener("click", function (e) {
             selectAll.indeterminate = false;
         }
         refreshCount();
+    }
+
+    // Cancel handler. POSTs to /api/jobs/<id>/cancel which flips the
+    // JobRun row to "canceled"; the worker bails out cleanly at its
+    // next iteration boundary and the poll loop sees the terminal
+    // status. The currently in-flight workspace finishes (we don't
+    // kill mid-audit to avoid partial Stripe billing / half-written
+    // audit rows), but every remaining workspace is marked skipped.
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", async function () {
+            if (!currentJobId) return;
+            if (!confirm(
+                "Cancel the remaining audits in this batch?\n\n" +
+                "The current audit will still finish, but no further " +
+                "workspaces will be audited and no extra credits will " +
+                "be charged."
+            )) return;
+
+            cancelBtn.disabled = true;
+            cancelBtn.textContent = "Canceling…";
+            try {
+                const resp = await fetch(
+                    "/api/jobs/" + currentJobId + "/cancel",
+                    {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: { "X-CSRFToken": csrfToken() },
+                    },
+                );
+                if (resp.ok) {
+                    summaryEl.textContent += " — canceling…";
+                } else if (resp.status === 409) {
+                    // Already terminal — the poll will catch up on
+                    // its own. No-op.
+                } else {
+                    cancelBtn.disabled = false;
+                    cancelBtn.textContent = "Cancel";
+                    alert(
+                        "Couldn't cancel right now. The job may have " +
+                        "already finished — give it a moment."
+                    );
+                }
+            } catch (_) {
+                cancelBtn.disabled = false;
+                cancelBtn.textContent = "Cancel";
+                alert("Network error — try cancel again.");
+            }
+        });
     }
 })();
 </script>

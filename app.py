@@ -13284,6 +13284,7 @@ def _bulk_audit_worker(job_id: str, client_slugs: List[str], user_id: int) -> No
         return
 
     out_of_credits = False
+    canceled = False
     for slug in client_slugs:
         # Re-fetch the JobRun row on each iteration so we can append
         # progress incrementally. Each commit makes the partial state
@@ -13292,6 +13293,13 @@ def _bulk_audit_worker(job_id: str, client_slugs: List[str], user_id: int) -> No
         if job is None:
             return  # Job deleted underneath us — bail.
 
+        # Cooperative cancel check — see /api/jobs/<id>/cancel.
+        # If the user hit cancel while a previous iteration was in
+        # flight, the row's status is already "canceled". Bail out of
+        # the loop and let the remaining workspaces be marked skipped.
+        if job.status == "canceled":
+            canceled = True
+
         # Look up the workspace row directly — get_client_by_id uses
         # `current_user` from Flask-Login, which doesn't exist in a
         # background thread. We have the user_id already.
@@ -13299,7 +13307,16 @@ def _bulk_audit_worker(job_id: str, client_slugs: List[str], user_id: int) -> No
         client = serialize_client_row(ws_row) if ws_row else None
         result_records = list(job.result or [])
 
-        if not client:
+        if canceled:
+            result_records.append({
+                "client_id": slug,
+                "client_name": client.get("name") if client else None,
+                "ok": False,
+                "error": "Skipped — job canceled",
+                "skipped": True,
+                "canceled": True,
+            })
+        elif not client:
             result_records.append({
                 "client_id": slug,
                 "client_name": None,
@@ -13387,10 +13404,14 @@ def _bulk_audit_worker(job_id: str, client_slugs: List[str], user_id: int) -> No
 
     # Mark the job done. The wrapper would do this for us, but doing
     # it explicitly lets us be clear about success vs the wrapper's
-    # default behavior.
+    # default behavior. Preserve a "canceled" status if the user
+    # aborted mid-batch — don't overwrite it with "done".
     job = db.session.get(JobRun, job_id)
-    if job:
+    if job and job.status != "canceled":
         job.status = "done"
+        job.finished_at = utcnow().isoformat(timespec="seconds")
+        db.session.commit()
+    elif job and job.status == "canceled" and not job.finished_at:
         job.finished_at = utcnow().isoformat(timespec="seconds")
         db.session.commit()
 
@@ -13510,6 +13531,51 @@ def api_jobs_get(job_id):
             "finished_at": job.finished_at,
         },
     })
+
+
+@app.route("/api/jobs/<job_id>/cancel", methods=["POST"])
+@login_required
+def api_jobs_cancel(job_id):
+    """Cooperatively cancel a running JobRun.
+
+    Sets the row's status to "canceled" so the worker thread will
+    bail out at the next iteration boundary. The current in-flight
+    workspace finishes (its credit reservation is either committed
+    on success or released on failure — we don't kill mid-audit
+    because that risks a partially-billed Stripe charge or a
+    half-written audit row); remaining workspaces are marked
+    "Skipped — job canceled" without consuming credits.
+
+    Auth: must be the user that started the job. Same scoping rule
+    as the GET endpoint — no shared job visibility across users.
+
+    Response:
+      200 {"ok": true, "status": "canceled"} on successful cancel
+      404 if the job doesn't exist or belongs to another user
+      409 if the job is already in a terminal state (done / failed
+          / canceled) — clients can read `status` from the GET
+          response to know what happened
+    """
+    job = db.session.get(JobRun, job_id)
+    if job is None or job.user_id != current_user.id:
+        return jsonify({"ok": False, "error": "Job not found"}), 404
+
+    if job.status in ("done", "failed", "canceled"):
+        return jsonify({
+            "ok": False,
+            "error": f"Job is already {job.status}; nothing to cancel.",
+            "status": job.status,
+        }), 409
+
+    # Flip to canceled. The worker reads this at the top of each
+    # iteration and bails out. finished_at is set when the worker
+    # exits the loop (or here, if the worker has already returned
+    # without setting it).
+    job.status = "canceled"
+    db.session.commit()
+    logger.info("Job %s canceled by user %s", job_id, current_user.id)
+
+    return jsonify({"ok": True, "status": "canceled"})
 
 
 @app.route("/client/<client_id>/presentation")
