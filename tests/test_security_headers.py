@@ -71,6 +71,39 @@ def test_security_headers_applied_to_404_response(client):
 
 
 # ---------------------------------------------------------------------------
+# Content-Security-Policy (report-only)
+# ---------------------------------------------------------------------------
+
+def test_csp_report_only_header_is_set(client):
+    """CSP ships in report-only mode — browsers don't enforce, just
+    log violations. The plan is to flip to enforcing once the
+    violation telemetry quiets down. Header must be present so the
+    telemetry pipeline starts building the moment users hit the app."""
+    resp = client.get("/login")
+    csp = resp.headers.get("Content-Security-Policy-Report-Only")
+    assert csp, "Content-Security-Policy-Report-Only header is missing"
+    # Spot-check the directives we care most about.
+    assert "default-src 'self'" in csp
+    assert "frame-ancestors 'self'" in csp  # clickjacking
+    assert "object-src 'none'" in csp        # plugins blocked
+    assert "base-uri 'self'" in csp          # base href injection blocked
+
+
+def test_csp_not_yet_in_enforcing_mode(client):
+    """Sentinel: CSP is INTENTIONALLY in report-only until the
+    violation telemetry shows what we'd break by enforcing. If this
+    test starts failing because the enforcing header is set, GREAT —
+    just delete this test and document the cutover. But it shouldn't
+    flip silently without an audit."""
+    resp = client.get("/login")
+    enforcing = resp.headers.get("Content-Security-Policy")
+    assert not enforcing, (
+        f"CSP flipped to enforcing mode without an audit: {enforcing!r}\n"
+        f"If this is intentional, delete this sentinel test."
+    )
+
+
+# ---------------------------------------------------------------------------
 # Session cookie flags
 # ---------------------------------------------------------------------------
 
