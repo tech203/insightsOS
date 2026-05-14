@@ -208,6 +208,8 @@
            class="admin-side-link {% if active_section == 'interest' %}active{% endif %}">Interest CRM</a>
         <a href="{{ url_for('admin_campaigns_list') }}"
            class="admin-side-link {% if active_section == 'campaigns' %}active{% endif %}">Email Campaigns</a>
+        <a href="{{ url_for('admin_upsell_stats') }}"
+           class="admin-side-link {% if active_section == 'upsell' %}active{% endif %}">Upsell Funnel</a>
     </aside>
 
     <main class="admin-main">

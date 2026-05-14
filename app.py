@@ -5261,6 +5261,103 @@ def resolve_upsell_lto(user) -> Optional[Dict[str, Any]]:
     }
 
 
+def compute_upsell_funnel_stats(days: int = 30) -> Dict[str, Any]:
+    """Aggregate the LTO funnel for the admin stats view.
+
+    Returns a dict shaped for direct template consumption:
+
+        {
+          "status_counts": {"none": 0, "shown": 0, ...},
+          "qualified_count": int,      # everyone who hit threshold
+          "decision_count":  int,      # shown + terminal decisions
+          "accepted_count":  int,
+          "conversion_rate": float,    # accepted / decisions
+          "window_days":     int,
+          "recent_offers":   [...],    # users qualified within window
+          "still_live":      [...],    # currently in "shown" with hours_left
+        }
+
+    `days` filters the recent-activity slices but counts are global —
+    we want absolute numbers in the funnel even if they were
+    generated weeks ago.
+    """
+    # Status group-counts — one SELECT, no Python iteration.
+    rows = (
+        db.session.query(User.upsell_lto_status, db.func.count(User.id))
+        .group_by(User.upsell_lto_status)
+        .all()
+    )
+    status_counts: Dict[str, int] = {
+        "none": 0, "shown": 0, "dismissed": 0, "accepted": 0, "expired": 0,
+    }
+    for status, count in rows:
+        key = (status or "none").lower()
+        if key in status_counts:
+            status_counts[key] = int(count)
+
+    qualified_count = sum(
+        status_counts[k] for k in ("shown", "dismissed", "accepted", "expired")
+    )
+    decision_count = sum(
+        status_counts[k] for k in ("dismissed", "accepted", "expired")
+    )
+    accepted_count = status_counts["accepted"]
+    conversion_rate = (
+        round(100.0 * accepted_count / decision_count, 1)
+        if decision_count > 0 else 0.0
+    )
+
+    cutoff = utcnow() - timedelta(days=days)
+    recent_offers = (
+        User.query
+        .filter(
+            User.upsell_lto_offered_at.isnot(None),
+            User.upsell_lto_offered_at >= cutoff,
+        )
+        .order_by(User.upsell_lto_offered_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    # Still-live offers — users currently in 'shown' with hours
+    # remaining. Useful for ops to spot anyone we should follow up
+    # with manually before TTL.
+    now = utcnow()
+    still_live_rows = (
+        User.query
+        .filter(
+            User.upsell_lto_status == "shown",
+            User.upsell_lto_expires_at.isnot(None),
+            User.upsell_lto_expires_at > now,
+        )
+        .order_by(User.upsell_lto_expires_at.asc())  # closest to expiry first
+        .limit(50)
+        .all()
+    )
+    still_live = []
+    for u in still_live_rows:
+        remaining = u.upsell_lto_expires_at - now
+        still_live.append({
+            "id": u.id,
+            "email": u.email,
+            "hours_left": max(0, int(remaining.total_seconds() // 3600)),
+            "minutes_left": max(0, int((remaining.total_seconds() % 3600) // 60)),
+            "offered_at": u.upsell_lto_offered_at,
+            "prompt_count": int(u.upsell_prompt_count or 0),
+        })
+
+    return {
+        "status_counts": status_counts,
+        "qualified_count": qualified_count,
+        "decision_count": decision_count,
+        "accepted_count": accepted_count,
+        "conversion_rate": conversion_rate,
+        "window_days": int(days),
+        "recent_offers": recent_offers,
+        "still_live": still_live,
+    }
+
+
 def get_active_queue_limit(user):
     """
     Controls how many active content queue items each plan can have.
@@ -6898,6 +6995,41 @@ def admin_users_list():
     )
 
 
+@app.route("/admin/upsell-stats", methods=["GET"])
+@login_required
+def admin_upsell_stats():
+    """Aggregate view over the LTO upsell funnel.
+
+    Shows the lifetime status counts, conversion rate, and recent
+    activity inside a configurable lookback window. Used by product
+    to tune UPSELL_PROMPT_THRESHOLD / UPSELL_LTO_TTL_HOURS without
+    shelling into the DB.
+
+    Query params:
+        ?days=N  — recent-activity window (default 30, capped 1..365)
+    """
+    guard = _require_admin()
+    if guard is not None:
+        return guard[0]
+
+    # Window param — clamp aggressively so a bad URL can't trigger a
+    # 6-month full-table scan or get cute with negative numbers.
+    try:
+        days = int(request.args.get("days", 30))
+    except (TypeError, ValueError):
+        days = 30
+    days = max(1, min(365, days))
+
+    stats = compute_upsell_funnel_stats(days=days)
+
+    return render_template(
+        "admin/upsell_stats.html",
+        stats=stats,
+        upsell_threshold=UPSELL_PROMPT_THRESHOLD,
+        upsell_ttl_hours=UPSELL_LTO_TTL_HOURS,
+    )
+
+
 @app.route("/admin/users/<int:user_id>", methods=["GET"])
 @login_required
 def admin_user_detail(user_id):
@@ -7665,6 +7797,16 @@ def pricing_page():
     return_to = safe_return_url(request.args.get("return_to", ""))
     if return_to:
         session["pricing_return_to"] = return_to
+
+    # Conversion attribution — if the user landed here from the LTO
+    # popup ("Maybe later" → no source; "See plans" → source=upsell_lto),
+    # stash the source so it can be carried into the Stripe checkout
+    # session's metadata and read back by the webhook. Whitelist the
+    # value to known sources so a malicious URL can't smuggle arbitrary
+    # text into our analytics.
+    source = (request.args.get("source") or "").strip().lower()
+    if source in {"upsell_lto"}:
+        session["pricing_source"] = source
 
     return render_template(
         "pricing.html",
@@ -8743,12 +8885,18 @@ def stripe_checkout_plan(plan_slug):
         cancel_url = (
             url_for("pricing_page", _external=True) + "?canceled=1"
         )
+        # Carry the conversion source from /pricing into Stripe
+        # metadata so the webhook can attribute the upgrade. Pop so
+        # a stale session value doesn't leak into a later, unrelated
+        # checkout (the modal-flow UX is one-shot).
+        conversion_source = session.pop("pricing_source", None)
         result = create_subscription_checkout_session(
             user_id=current_user.id,
             user_email=current_user.email,
             plan_slug=plan_slug,
             success_url=success_url,
             cancel_url=cancel_url,
+            source=conversion_source,
         )
     except StripeNotConfigured as exc:
         flash(f"Plan checkout unavailable: {exc}", "error")
@@ -9387,6 +9535,25 @@ def _handle_checkout_completed(data: Dict[str, Any]) -> tuple:
                 user.payment_status_updated_at = utcnow()
             grant_monthly_credits_if_due(user)
             notes = f"plan -> {plan_slug}"
+
+            # LTO conversion attribution. If the user came through
+            # the limited-time-offer popup (source set by /pricing
+            # when they landed via the modal CTA), flip their LTO
+            # status to "accepted" so the funnel stats show this as
+            # a popup-driven conversion rather than an organic one.
+            # We require status=="shown" so a stale source value from
+            # a previously-dismissed user can't false-attribute.
+            source = (metadata.get("source") or "").strip().lower()
+            if (
+                source == "upsell_lto"
+                and (user.upsell_lto_status or "none").lower() == "shown"
+            ):
+                user.upsell_lto_status = "accepted"
+                notes += " (lto:accepted)"
+                logger.info(
+                    "Upsell LTO accepted: user=%s plan=%s sub=%s",
+                    user.id, plan_slug, new_sub_id,
+                )
 
     elif kind == "extra_workspace":
         user.extra_workspaces = int(user.extra_workspaces or 0) + 1
