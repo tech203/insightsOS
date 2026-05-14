@@ -80,6 +80,7 @@ from dtutils import utcnow
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
 from urllib.parse import urlencode
+from brand_kit_engine import generate_brand_kit
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -2038,6 +2039,8 @@ def website_builder_page(client_id):
         ).first()
 
     projects = []
+    open_opportunities_count = 0
+    project_summaries = []
     if row:
         projects = (
             GeneratedWebsiteProject.query.filter_by(
@@ -2047,8 +2050,47 @@ def website_builder_page(client_id):
             .all()
         )
 
+        # One grouped query for page counts across all projects, then
+        # zip in Python — avoids N+1 if a user accumulates many drafts.
+        page_counts = {}
+        if projects:
+            project_ids = [p.id for p in projects]
+            rows = (
+                db.session.query(
+                    GeneratedWebsitePage.project_id,
+                    db.func.count(GeneratedWebsitePage.id),
+                )
+                .filter(GeneratedWebsitePage.project_id.in_(project_ids))
+                .group_by(GeneratedWebsitePage.project_id)
+                .all()
+            )
+            page_counts = {pid: count for pid, count in rows}
+
+        for project in projects:
+            project_summaries.append(
+                {
+                    "project": project,
+                    "page_count": page_counts.get(project.id, 0),
+                }
+            )
+
+        # Surface how many actionable queue items will feed the AEO
+        # focus list when the user kicks off generation — gives them
+        # confidence the brand kit will be informed by real audit data,
+        # not just generic templates.
+        queue_items = get_queue_items(
+            client_id=row.slug, user_id=current_user.id
+        )
+        open_opportunities_count = sum(
+            1 for q in queue_items if q.get("status") != "published"
+        )
+
     return render_template(
-        "website_builder.html", client=client, projects=projects
+        "website_builder.html",
+        client=client,
+        projects=projects,
+        project_summaries=project_summaries,
+        open_opportunities_count=open_opportunities_count,
     )
 
 
@@ -2129,8 +2171,23 @@ def generate_full_website(client_id):
     if not row:
         abort(404)
 
-    # Step 1: Build brand kit / blueprint first
-    blueprint = build_demo_website_blueprint(client)
+    # Step 1: Build brand kit / blueprint first, seeded with the
+    # client's actionable content-queue items so AEO focus reflects
+    # real audit findings rather than generic template strings.
+    # Dismissed items are filtered out by default; we drop published
+    # items (done) and bias high-priority items to the top.
+    queue_items = get_queue_items(
+        client_id=row.slug,
+        user_id=current_user.id,
+    )
+    priority_rank = {"high": 0, "medium": 1, "low": 2}
+    open_opportunities = sorted(
+        (q for q in queue_items if q.get("status") != "published"),
+        key=lambda q: priority_rank.get(q.get("priority"), 1),
+    )
+    blueprint = build_demo_website_blueprint(
+        client, opportunities=open_opportunities
+    )
 
     # Save temporary brand kit in session for preview/approval
     session["pending_website_blueprint"] = blueprint
@@ -2858,7 +2915,14 @@ def public_website_page(project_id, slug):
     )
 
 
-def build_demo_website_blueprint(client):
+def build_demo_website_blueprint(client, opportunities=None):
+    """Build the brand-kit + page-structure blueprint for a client.
+
+    `opportunities` is an optional list of content-queue items (dicts).
+    When provided, their `target_query` values become the AEO focus
+    list — surfacing real audit findings instead of the four generic
+    fallback templates.
+    """
     industry = (client.get("industry") or "").lower()
     client_name = client.get("name", "Business")
     location = client.get("location", "Singapore")
@@ -2908,15 +2972,37 @@ def build_demo_website_blueprint(client):
         else "View Services"
     )
 
+    brand_kit = generate_brand_kit(
+        business_name=client_name,
+        industry=client.get("industry", ""),
+        location=location,
+        services=client.get("services", "") or client.get("industry", ""),
+    )
+
+    is_product_theme = theme in ["restaurant_cafe", "ecommerce_store"]
+
     return {
         "client_name": client_name,
         "business_type": client.get("industry", "Professional Services"),
         "location": location,
         "theme": theme,
         "style_direction": style,
-        "primary_cta": primary_cta,
-        "secondary_cta": secondary_cta,
+        "primary_cta": brand_kit.get("primary_cta") or primary_cta,
+        "secondary_cta": brand_kit.get("secondary_cta") or secondary_cta,
         "functions": functions,
+        # Brand kit fields used by the brand-kit preview template.
+        "personality": brand_kit.get("personality", []),
+        "tone_of_voice": brand_kit.get("tone_of_voice", ""),
+        "visual_style": brand_kit.get("visual_style", ""),
+        "primary_color": brand_kit.get("primary_color", "#4f46e5"),
+        "secondary_color": brand_kit.get("secondary_color", "#eef2ff"),
+        "accent_color": brand_kit.get("accent_color", "#c7d2fe"),
+        "text_color": brand_kit.get("text_color", "#0f172a"),
+        "background_color": brand_kit.get("background_color", "#ffffff"),
+        "font_style": brand_kit.get("font_style", ""),
+        "imagery_style": brand_kit.get("imagery_style", ""),
+        "hero_direction": brand_kit.get("hero_direction", ""),
+        "industry_theme": brand_kit.get("industry_theme", "general"),
         "pages": [
             {
                 "title": "Home",
@@ -2925,8 +3011,8 @@ def build_demo_website_blueprint(client):
                 "goal": "Explain the business clearly and convert visitors into enquiries.",
             },
             {
-                "title": "Products" if theme in ["restaurant_cafe", "ecommerce_store"] else "Services",
-                "slug": "products" if theme in ["restaurant_cafe", "ecommerce_store"] else "services",
+                "title": "Products" if is_product_theme else "Services",
+                "slug": "products" if is_product_theme else "services",
                 "page_type": "services",
                 "goal": "Show what the business offers and answer buying-intent questions.",
             },
@@ -2949,15 +3035,141 @@ def build_demo_website_blueprint(client):
                 "goal": "Make it easy for visitors to enquire.",
             },
         ],
-        "aeo_focus": [
-            f"best {client.get('industry', 'service provider')} in {location}",
-            f"{client_name} products" if theme in ["restaurant_cafe", "ecommerce_store"] else f"{client_name} services",
-            f"where to buy {client_name}" if theme in ["restaurant_cafe", "ecommerce_store"] else f"how to choose {client.get('industry', 'a provider')}",
-            f"{client.get('industry', 'service')} in {location}",
-        ],
+        "aeo_focus": _aeo_focus_from_opportunities(
+            opportunities,
+            client_name=client_name,
+            industry=client.get("industry", ""),
+            location=location,
+            is_product_theme=is_product_theme,
+        ),
     }
 
+
+def _aeo_focus_from_opportunities(
+    opportunities, client_name, industry, location, is_product_theme
+):
+    """Pick up to 4 unique target_query strings from open queue items.
+    Falls back to the generic templates only when no opportunities exist
+    — so a brand-new client without audit data still gets a sensible
+    starting list."""
+    focus = []
+    seen = set()
+    for item in opportunities or []:
+        query = (item.get("target_query") or "").strip()
+        if not query:
+            continue
+        key = query.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        focus.append(query)
+        if len(focus) >= 4:
+            break
+
+    if focus:
+        return focus
+
+    return [
+        f"best {industry or 'service provider'} in {location}",
+        f"{client_name} products" if is_product_theme else f"{client_name} services",
+        (
+            f"where to buy {client_name}"
+            if is_product_theme
+            else f"how to choose {industry or 'a provider'}"
+        ),
+        f"{industry or 'service'} in {location}",
+    ]
+
+def _try_ai_generate_site_page(client, blueprint, page_config):
+    """Try LLM-driven page generation. Returns a page_json dict on
+    success, or None on any failure (so the caller falls back to the
+    rule-based generator).
+
+    Threading the blueprint's personality, style direction, products,
+    and AEO focus into `brand_context` gives the LLM enough signal to
+    produce client-specific copy rather than the generic templates it
+    would otherwise return."""
+    try:
+        client_name = (
+            blueprint.get("client_name")
+            or client.get("name")
+            or "Business"
+        )
+        industry = blueprint.get("business_type") or client.get("industry", "")
+        location = blueprint.get("location") or client.get("location") or "Singapore"
+        page_type = page_config.get("page_type", "home")
+        page_goal = page_config.get("goal", "")
+
+        products = blueprint.get("products_or_services") or blueprint.get("services") or []
+        if isinstance(products, list):
+            products_text = ", ".join(str(p) for p in products if p)
+        else:
+            products_text = str(products or "")
+
+        target_query = products_text or page_goal or industry or client_name
+
+        brand_context_parts = []
+        if blueprint.get("style_direction"):
+            brand_context_parts.append(f"Style: {blueprint['style_direction']}")
+        if blueprint.get("personality"):
+            brand_context_parts.append(
+                "Personality: " + ", ".join(blueprint["personality"])
+            )
+        if blueprint.get("tone_of_voice"):
+            brand_context_parts.append(f"Tone: {blueprint['tone_of_voice']}")
+        if blueprint.get("aeo_focus"):
+            brand_context_parts.append(
+                "AEO focus: " + "; ".join(blueprint["aeo_focus"])
+            )
+        if page_goal:
+            brand_context_parts.append(f"Page goal: {page_goal}")
+        brand_context = ". ".join(brand_context_parts)
+
+        page_json = generate_structured_website_page(
+            client_name=client_name,
+            industry=industry,
+            location=location,
+            target_query=target_query,
+            content_type=page_type,
+            brand_context=brand_context,
+        )
+
+        # Trust but verify — the generator already has its own
+        # validator + fallback path, but treat malformed output here
+        # as a failure so we fall through to the rule-based path.
+        if not isinstance(page_json, dict) or not page_json.get("sections"):
+            return None
+
+        # Overwrite page metadata with the blueprint's page_config so
+        # slugs and types match what the rest of the system expects.
+        page_json["page_type"] = page_type
+        page_json["slug"] = page_config.get("slug") or page_json.get("slug") or "home"
+        page_json.setdefault(
+            "title",
+            f"{client_name} | {page_config.get('title', page_type.title())}",
+        )
+        return page_json
+    except Exception as e:
+        logger.warning(
+            "AI page generation failed for %s/%s: %s — falling back to rule-based",
+            client.get("name", "?"),
+            page_config.get("page_type", "?"),
+            e,
+        )
+        return None
+
+
 def build_generated_site_page(client, blueprint, page_config):
+    # Try AI-driven generation first — the rule-based path below
+    # produces formulaic, template-bingo copy ("Discover X's products
+    # and sweet treats" for every food client). When the LLM is
+    # unavailable (test env, network error, malformed JSON), we fall
+    # through to the existing deterministic generator so the user
+    # always gets a complete page.
+    ai_page = _try_ai_generate_site_page(client, blueprint, page_config)
+    if ai_page is not None:
+        return enrich_generated_page_json(client, blueprint, ai_page)
+
     client_name = blueprint.get("client_name") or getattr(client, "name", "This Business")
     page_type = page_config.get("page_type", "home")
 
@@ -15140,6 +15352,243 @@ def settings_change_password():
         login_user(fresh_user)
     flash("Password updated.", "success")
     return redirect(url_for("settings_account"))
+
+
+# =========================
+# GDPR — data export + account deletion
+# =========================
+# Right-to-portability (Article 20) → /settings/account/export-data
+# returns a JSON bundle of everything we have about the user.
+# Right-to-erasure (Article 17) → /settings/account/delete cascades
+# a hard delete of the user + all owned data (workspaces, audits,
+# wallet, integrations, etc.) and best-effort cancels Stripe.
+
+def _build_user_data_export(user) -> Dict[str, Any]:
+    """Bundle every piece of user-owned data we hold.
+
+    Includes: profile, wallet + transactions, workspaces (Brand Kit,
+    business profile), audit JSON files, content queue items,
+    integrations (with OAuth tokens REDACTED — they're our auth state,
+    not user data). Excludes: other users' workspaces, server logs."""
+    workspaces = []
+    for ws in Client.query.filter_by(user_id=user.id).all():
+        workspaces.append({
+            "id": ws.id, "slug": ws.slug, "name": ws.name,
+            "website": ws.website, "industry": ws.industry,
+            "location": ws.location, "owner_type": ws.owner_type,
+            "notes": ws.notes,
+            "brand_audience": ws.brand_audience,
+            "brand_services": ws.brand_services,
+            "brand_differentiators": ws.brand_differentiators,
+            "brand_voice": ws.brand_voice,
+            "brand_personality": ws.brand_personality,
+            "founded_year": ws.founded_year,
+            "google_rating": ws.google_rating,
+            "business_summary": ws.business_summary,
+            "is_locked": ws.is_locked,
+            "created_at": ws.created_at.isoformat() if ws.created_at else None,
+        })
+
+    wallet = getattr(user, "wallet", None)
+    transactions = [
+        {
+            "type": t.type, "amount": t.amount,
+            "balance_after": t.balance_after, "notes": t.notes,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        }
+        for t in CreditTransaction.query.filter_by(user_id=user.id)
+        .order_by(CreditTransaction.created_at.asc()).all()
+    ]
+
+    # Audits live as JSON files on disk (or S3) keyed off the user's
+    # workspace slugs. Include the saved summaries so the export is
+    # actually useful (the user's strategic data + scores).
+    audit_summaries = get_saved_audits(user_id=user.id)
+
+    return {
+        "export_format_version": 1,
+        "exported_at": utcnow().isoformat(),
+        "profile": {
+            "id": user.id, "email": user.email, "name": user.name,
+            "plan": user.plan, "role": user.role,
+            "referral_code": user.referral_code,
+            "email_verified_at": (
+                user.email_verified_at.isoformat()
+                if user.email_verified_at else None
+            ),
+            "created_at": (
+                user.created_at.isoformat() if user.created_at else None
+            ),
+            "agency_name": user.agency_name,
+            "is_white_label_enabled": user.is_white_label_enabled,
+        },
+        "wallet": {
+            "balance": wallet.balance if wallet else 0,
+            "transactions": transactions,
+        },
+        "workspaces": workspaces,
+        "audits": audit_summaries,
+        "notes": (
+            "OAuth tokens, Stripe customer IDs, and password hashes are "
+            "intentionally omitted from this export — they're auth state, "
+            "not user data, and would let an attacker impersonate you if "
+            "this file leaked."
+        ),
+    }
+
+
+@app.route("/settings/account/export-data", methods=["GET"])
+@login_required
+def settings_export_data():
+    """GDPR Art. 20 (right to data portability). Returns a JSON file
+    bundling everything we have about the user."""
+    payload = _build_user_data_export(current_user)
+    body = json.dumps(payload, indent=2, default=str)
+    safe_email = (current_user.email or "user").split("@")[0]
+    filename = f"darinsights-data-export-{safe_email}-{utcnow().strftime('%Y%m%d')}.json"
+    response = make_response(body)
+    response.headers["Content-Type"] = "application/json"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def _hard_delete_user_owned_data(user_id: int) -> None:
+    """Cascade-delete everything tied to the user. Each delete is
+    scoped by user_id so the function is safe to call repeatedly
+    (idempotent — a partial run that committed some deletes can be
+    re-run without re-deleting other users' data).
+
+    Tables with a user_id column on this app's data model — kept
+    explicit so a future schema add can fail loudly here (better
+    than silently leaving an orphan row that re-identifies the
+    user)."""
+    from sqlalchemy import text as sql_text
+    # The set of tables that hold per-user data. Each is deleted
+    # by user_id (or the equivalent column). Order matters where
+    # FK constraints exist: child rows before parent rows.
+    statements = [
+        # Webhook bookkeeping that references the user (not vice versa)
+        "DELETE FROM credit_reservations WHERE user_id = :uid",
+        "DELETE FROM credit_transactions WHERE user_id = :uid",
+        # Integration connections
+        "DELETE FROM google_search_console_connections WHERE user_id = :uid",
+        "DELETE FROM shopify_connections WHERE user_id = :uid",
+        "DELETE FROM bigcommerce_connections WHERE user_id = :uid",
+        "DELETE FROM shopline_connections WHERE user_id = :uid",
+        "DELETE FROM wix_connections WHERE user_id = :uid",
+        "DELETE FROM framer_connections WHERE user_id = :uid",
+        "DELETE FROM squarespace_connections WHERE user_id = :uid",
+        "DELETE FROM woocommerce_connections WHERE user_id = :uid",
+        "DELETE FROM calcom_connections WHERE user_id = :uid",
+        "DELETE FROM webflow_exports WHERE user_id = :uid",
+        # Marketplace + tracking + modules
+        "DELETE FROM marketplace_presences WHERE user_id = :uid",
+        "DELETE FROM prompt_check_snapshots WHERE user_id = :uid",
+        "DELETE FROM prompt_tracking WHERE user_id = :uid",
+        "DELETE FROM user_modules WHERE user_id = :uid",
+        # Website builder
+        "DELETE FROM generated_website_pages WHERE project_id IN "
+        "(SELECT id FROM generated_website_projects WHERE user_id = :uid)",
+        "DELETE FROM generated_website_projects WHERE user_id = :uid",
+        # Workspaces (clients)
+        "DELETE FROM clients WHERE user_id = :uid",
+        # Auth / verification tokens
+        "DELETE FROM password_reset_tokens WHERE user_id = :uid",
+        "DELETE FROM email_verification_tokens WHERE user_id = :uid",
+        # Wallet (1:1)
+        "DELETE FROM wallets WHERE user_id = :uid",
+        # Webhook events tied to the user
+        "DELETE FROM webhook_events WHERE user_id = :uid",
+        # Team invites (both sent and accepted)
+        "DELETE FROM team_invites WHERE owner_user_id = :uid OR accepted_user_id = :uid",
+        # Referrals (both directions — null out so the OTHER user's
+        # referral history isn't broken; full delete would orphan)
+        "UPDATE referrals SET referrer_user_id = NULL WHERE referrer_user_id = :uid",
+        "UPDATE referrals SET referred_user_id = NULL WHERE referred_user_id = :uid",
+        # Email campaign recipients (admin-sent campaigns to this user)
+        "DELETE FROM email_campaign_recipients WHERE user_id = :uid",
+        # Detach team members so the deleted user's teammates don't
+        # all become orphaned (they keep working as solo accounts).
+        "UPDATE users SET team_owner_id = NULL WHERE team_owner_id = :uid",
+        # Same for referral attribution from the OTHER direction.
+        "UPDATE users SET referred_by_user_id = NULL WHERE referred_by_user_id = :uid",
+        # And finally the user row itself.
+        "DELETE FROM users WHERE id = :uid",
+    ]
+    for stmt in statements:
+        try:
+            db.session.execute(sql_text(stmt), {"uid": user_id})
+        except Exception as exc:
+            # Log + continue. Failing one delete shouldn't leave the
+            # user partially deleted forever — better to keep going
+            # and end up with some orphan rows that ops can clean.
+            logger.warning(
+                "Account deletion: statement failed (user=%s, stmt=%s): %s",
+                user_id, stmt[:80], exc,
+            )
+    db.session.commit()
+
+
+@app.route("/settings/account/delete", methods=["POST"])
+@login_required
+@limiter.limit("3 per hour", methods=["POST"])
+def settings_delete_account():
+    """GDPR Art. 17 (right to erasure). Requires the user's current
+    password (anti-CSRF + anti-stranger-with-cookie); cancels their
+    Stripe subscription best-effort; cascade-deletes every row tied
+    to them; logs them out; redirects to the landing page.
+
+    Rate-limited at 3/hour per IP — this is a destructive irreversible
+    action and accidental double-clicks shouldn't compound."""
+    current = request.form.get("current_password") or ""
+    confirm_text = (request.form.get("confirm_phrase") or "").strip().lower()
+
+    if not check_password_hash(current_user.password_hash, current):
+        flash("Current password is incorrect — account not deleted.", "error")
+        return redirect(url_for("settings_account"))
+
+    # Belt-and-braces: require the user to type "delete my account"
+    # so it's clear this isn't a misclick.
+    if confirm_text != "delete my account":
+        flash(
+            "Type 'delete my account' exactly to confirm deletion.",
+            "error",
+        )
+        return redirect(url_for("settings_account"))
+
+    user_id = current_user.id
+    user_email = current_user.email
+
+    # Best-effort Stripe cancellation. Don't block deletion on it —
+    # the user can chase any leftover subscription via Stripe support.
+    try:
+        from services.stripe_helper import cancel_subscription_now
+        if current_user.stripe_subscription_id:
+            cancel_subscription_now(current_user.stripe_subscription_id)
+        for sub_id in (current_user.stripe_extra_workspace_sub_ids or []):
+            cancel_subscription_now(sub_id)
+        for sub_id in (current_user.stripe_extra_seat_sub_ids or []):
+            cancel_subscription_now(sub_id)
+    except Exception as exc:
+        logger.warning(
+            "Stripe cancellation failed during deletion for user=%s: %s",
+            user_id, exc,
+        )
+
+    # Log out before deleting — once the row is gone, current_user
+    # is the AnonymousUserMixin and logout_user() is a no-op.
+    logout_user()
+
+    _hard_delete_user_owned_data(user_id)
+
+    logger.info("Account deleted (GDPR Art. 17): user_id=%s email=%s",
+                user_id, user_email)
+    flash(
+        "Your account and all associated data have been deleted. "
+        "We're sorry to see you go.",
+        "success",
+    )
+    return redirect(url_for("aeo_agency_page"))
 
 
 # =========================

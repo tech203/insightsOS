@@ -226,3 +226,27 @@ def create_billing_portal_session(
         return_url=return_url,
     )
     return {"url": session.url}
+
+
+def cancel_subscription_now(subscription_id: str) -> bool:
+    """Cancel a Stripe subscription immediately (no period-end wait).
+
+    Used by GDPR account-deletion to stop billing the customer the
+    moment they delete the account. Returns True on success, False
+    on any error — never raises, since the deletion flow proceeds
+    regardless and a leftover subscription can be cleaned up via
+    Stripe support.
+
+    No-op (returns False) when Stripe isn't configured — typical
+    for dev / CI environments without API keys.
+    """
+    if not subscription_id:
+        return False
+    if not is_stripe_configured():
+        return False
+    try:
+        stripe = _stripe_module()
+        stripe.Subscription.delete(subscription_id)
+        return True
+    except Exception:
+        return False
