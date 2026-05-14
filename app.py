@@ -80,6 +80,7 @@ from dtutils import utcnow
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
 from urllib.parse import urlencode
+from brand_kit_engine import generate_brand_kit
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -1965,6 +1966,8 @@ def website_builder_page(client_id):
         ).first()
 
     projects = []
+    open_opportunities_count = 0
+    project_summaries = []
     if row:
         projects = (
             GeneratedWebsiteProject.query.filter_by(
@@ -1974,8 +1977,47 @@ def website_builder_page(client_id):
             .all()
         )
 
+        # One grouped query for page counts across all projects, then
+        # zip in Python — avoids N+1 if a user accumulates many drafts.
+        page_counts = {}
+        if projects:
+            project_ids = [p.id for p in projects]
+            rows = (
+                db.session.query(
+                    GeneratedWebsitePage.project_id,
+                    db.func.count(GeneratedWebsitePage.id),
+                )
+                .filter(GeneratedWebsitePage.project_id.in_(project_ids))
+                .group_by(GeneratedWebsitePage.project_id)
+                .all()
+            )
+            page_counts = {pid: count for pid, count in rows}
+
+        for project in projects:
+            project_summaries.append(
+                {
+                    "project": project,
+                    "page_count": page_counts.get(project.id, 0),
+                }
+            )
+
+        # Surface how many actionable queue items will feed the AEO
+        # focus list when the user kicks off generation — gives them
+        # confidence the brand kit will be informed by real audit data,
+        # not just generic templates.
+        queue_items = get_queue_items(
+            client_id=row.slug, user_id=current_user.id
+        )
+        open_opportunities_count = sum(
+            1 for q in queue_items if q.get("status") != "published"
+        )
+
     return render_template(
-        "website_builder.html", client=client, projects=projects
+        "website_builder.html",
+        client=client,
+        projects=projects,
+        project_summaries=project_summaries,
+        open_opportunities_count=open_opportunities_count,
     )
 
 
@@ -2056,8 +2098,23 @@ def generate_full_website(client_id):
     if not row:
         abort(404)
 
-    # Step 1: Build brand kit / blueprint first
-    blueprint = build_demo_website_blueprint(client)
+    # Step 1: Build brand kit / blueprint first, seeded with the
+    # client's actionable content-queue items so AEO focus reflects
+    # real audit findings rather than generic template strings.
+    # Dismissed items are filtered out by default; we drop published
+    # items (done) and bias high-priority items to the top.
+    queue_items = get_queue_items(
+        client_id=row.slug,
+        user_id=current_user.id,
+    )
+    priority_rank = {"high": 0, "medium": 1, "low": 2}
+    open_opportunities = sorted(
+        (q for q in queue_items if q.get("status") != "published"),
+        key=lambda q: priority_rank.get(q.get("priority"), 1),
+    )
+    blueprint = build_demo_website_blueprint(
+        client, opportunities=open_opportunities
+    )
 
     # Save temporary brand kit in session for preview/approval
     session["pending_website_blueprint"] = blueprint
@@ -2785,7 +2842,14 @@ def public_website_page(project_id, slug):
     )
 
 
-def build_demo_website_blueprint(client):
+def build_demo_website_blueprint(client, opportunities=None):
+    """Build the brand-kit + page-structure blueprint for a client.
+
+    `opportunities` is an optional list of content-queue items (dicts).
+    When provided, their `target_query` values become the AEO focus
+    list — surfacing real audit findings instead of the four generic
+    fallback templates.
+    """
     industry = (client.get("industry") or "").lower()
     client_name = client.get("name", "Business")
     location = client.get("location", "Singapore")
@@ -2835,15 +2899,37 @@ def build_demo_website_blueprint(client):
         else "View Services"
     )
 
+    brand_kit = generate_brand_kit(
+        business_name=client_name,
+        industry=client.get("industry", ""),
+        location=location,
+        services=client.get("services", "") or client.get("industry", ""),
+    )
+
+    is_product_theme = theme in ["restaurant_cafe", "ecommerce_store"]
+
     return {
         "client_name": client_name,
         "business_type": client.get("industry", "Professional Services"),
         "location": location,
         "theme": theme,
         "style_direction": style,
-        "primary_cta": primary_cta,
-        "secondary_cta": secondary_cta,
+        "primary_cta": brand_kit.get("primary_cta") or primary_cta,
+        "secondary_cta": brand_kit.get("secondary_cta") or secondary_cta,
         "functions": functions,
+        # Brand kit fields used by the brand-kit preview template.
+        "personality": brand_kit.get("personality", []),
+        "tone_of_voice": brand_kit.get("tone_of_voice", ""),
+        "visual_style": brand_kit.get("visual_style", ""),
+        "primary_color": brand_kit.get("primary_color", "#4f46e5"),
+        "secondary_color": brand_kit.get("secondary_color", "#eef2ff"),
+        "accent_color": brand_kit.get("accent_color", "#c7d2fe"),
+        "text_color": brand_kit.get("text_color", "#0f172a"),
+        "background_color": brand_kit.get("background_color", "#ffffff"),
+        "font_style": brand_kit.get("font_style", ""),
+        "imagery_style": brand_kit.get("imagery_style", ""),
+        "hero_direction": brand_kit.get("hero_direction", ""),
+        "industry_theme": brand_kit.get("industry_theme", "general"),
         "pages": [
             {
                 "title": "Home",
@@ -2852,8 +2938,8 @@ def build_demo_website_blueprint(client):
                 "goal": "Explain the business clearly and convert visitors into enquiries.",
             },
             {
-                "title": "Products" if theme in ["restaurant_cafe", "ecommerce_store"] else "Services",
-                "slug": "products" if theme in ["restaurant_cafe", "ecommerce_store"] else "services",
+                "title": "Products" if is_product_theme else "Services",
+                "slug": "products" if is_product_theme else "services",
                 "page_type": "services",
                 "goal": "Show what the business offers and answer buying-intent questions.",
             },
@@ -2876,15 +2962,141 @@ def build_demo_website_blueprint(client):
                 "goal": "Make it easy for visitors to enquire.",
             },
         ],
-        "aeo_focus": [
-            f"best {client.get('industry', 'service provider')} in {location}",
-            f"{client_name} products" if theme in ["restaurant_cafe", "ecommerce_store"] else f"{client_name} services",
-            f"where to buy {client_name}" if theme in ["restaurant_cafe", "ecommerce_store"] else f"how to choose {client.get('industry', 'a provider')}",
-            f"{client.get('industry', 'service')} in {location}",
-        ],
+        "aeo_focus": _aeo_focus_from_opportunities(
+            opportunities,
+            client_name=client_name,
+            industry=client.get("industry", ""),
+            location=location,
+            is_product_theme=is_product_theme,
+        ),
     }
 
+
+def _aeo_focus_from_opportunities(
+    opportunities, client_name, industry, location, is_product_theme
+):
+    """Pick up to 4 unique target_query strings from open queue items.
+    Falls back to the generic templates only when no opportunities exist
+    — so a brand-new client without audit data still gets a sensible
+    starting list."""
+    focus = []
+    seen = set()
+    for item in opportunities or []:
+        query = (item.get("target_query") or "").strip()
+        if not query:
+            continue
+        key = query.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        focus.append(query)
+        if len(focus) >= 4:
+            break
+
+    if focus:
+        return focus
+
+    return [
+        f"best {industry or 'service provider'} in {location}",
+        f"{client_name} products" if is_product_theme else f"{client_name} services",
+        (
+            f"where to buy {client_name}"
+            if is_product_theme
+            else f"how to choose {industry or 'a provider'}"
+        ),
+        f"{industry or 'service'} in {location}",
+    ]
+
+def _try_ai_generate_site_page(client, blueprint, page_config):
+    """Try LLM-driven page generation. Returns a page_json dict on
+    success, or None on any failure (so the caller falls back to the
+    rule-based generator).
+
+    Threading the blueprint's personality, style direction, products,
+    and AEO focus into `brand_context` gives the LLM enough signal to
+    produce client-specific copy rather than the generic templates it
+    would otherwise return."""
+    try:
+        client_name = (
+            blueprint.get("client_name")
+            or client.get("name")
+            or "Business"
+        )
+        industry = blueprint.get("business_type") or client.get("industry", "")
+        location = blueprint.get("location") or client.get("location") or "Singapore"
+        page_type = page_config.get("page_type", "home")
+        page_goal = page_config.get("goal", "")
+
+        products = blueprint.get("products_or_services") or blueprint.get("services") or []
+        if isinstance(products, list):
+            products_text = ", ".join(str(p) for p in products if p)
+        else:
+            products_text = str(products or "")
+
+        target_query = products_text or page_goal or industry or client_name
+
+        brand_context_parts = []
+        if blueprint.get("style_direction"):
+            brand_context_parts.append(f"Style: {blueprint['style_direction']}")
+        if blueprint.get("personality"):
+            brand_context_parts.append(
+                "Personality: " + ", ".join(blueprint["personality"])
+            )
+        if blueprint.get("tone_of_voice"):
+            brand_context_parts.append(f"Tone: {blueprint['tone_of_voice']}")
+        if blueprint.get("aeo_focus"):
+            brand_context_parts.append(
+                "AEO focus: " + "; ".join(blueprint["aeo_focus"])
+            )
+        if page_goal:
+            brand_context_parts.append(f"Page goal: {page_goal}")
+        brand_context = ". ".join(brand_context_parts)
+
+        page_json = generate_structured_website_page(
+            client_name=client_name,
+            industry=industry,
+            location=location,
+            target_query=target_query,
+            content_type=page_type,
+            brand_context=brand_context,
+        )
+
+        # Trust but verify — the generator already has its own
+        # validator + fallback path, but treat malformed output here
+        # as a failure so we fall through to the rule-based path.
+        if not isinstance(page_json, dict) or not page_json.get("sections"):
+            return None
+
+        # Overwrite page metadata with the blueprint's page_config so
+        # slugs and types match what the rest of the system expects.
+        page_json["page_type"] = page_type
+        page_json["slug"] = page_config.get("slug") or page_json.get("slug") or "home"
+        page_json.setdefault(
+            "title",
+            f"{client_name} | {page_config.get('title', page_type.title())}",
+        )
+        return page_json
+    except Exception as e:
+        logger.warning(
+            "AI page generation failed for %s/%s: %s — falling back to rule-based",
+            client.get("name", "?"),
+            page_config.get("page_type", "?"),
+            e,
+        )
+        return None
+
+
 def build_generated_site_page(client, blueprint, page_config):
+    # Try AI-driven generation first — the rule-based path below
+    # produces formulaic, template-bingo copy ("Discover X's products
+    # and sweet treats" for every food client). When the LLM is
+    # unavailable (test env, network error, malformed JSON), we fall
+    # through to the existing deterministic generator so the user
+    # always gets a complete page.
+    ai_page = _try_ai_generate_site_page(client, blueprint, page_config)
+    if ai_page is not None:
+        return enrich_generated_page_json(client, blueprint, ai_page)
+
     client_name = blueprint.get("client_name") or getattr(client, "name", "This Business")
     page_type = page_config.get("page_type", "home")
 

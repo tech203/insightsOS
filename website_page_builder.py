@@ -293,23 +293,35 @@ Use this exact JSON structure:
 }}
 """
 
+    # Model + response_format align with content_brief_generator and
+    # content_draft_generator (the other user-facing copy generators).
+    # `json_object` lets us drop the brittle ```json``` strip-and-pray
+    # logic the older version needed.
+    system_prompt = (
+        "You are a senior conversion copywriter for AI-answer-engine-"
+        "optimised (AEO) websites. Write copy that is specific to the "
+        "actual business given — never use template phrases like "
+        "'discover X's products and sweet treats' or 'we help "
+        "customers understand their options'. Every section must "
+        "reference real products, real services, or real concerns of "
+        "this business's customers. Return a JSON object that exactly "
+        "matches the schema in the user message — no extra keys, no "
+        "markdown, no commentary."
+    )
+
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": "Return valid JSON only. No markdown. No explanations.",
-                },
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.2,
-            max_tokens=2500,
+            temperature=0.4,
+            max_tokens=3000,
+            response_format={"type": "json_object"},
         )
 
-        raw = response.choices[0].message.content.strip()
-        raw = raw.replace("```json", "").replace("```", "").strip()
-
+        raw = response.choices[0].message.content
         page_json = json.loads(raw)
 
         page_json = _validate_page_structure(

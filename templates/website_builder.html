@@ -26,6 +26,16 @@
                     <button type="submit" class="btn btn-secondary">
                         Generate Full Website
                     </button>
+                    {% if open_opportunities_count %}
+                    <p class="muted" style="margin-top:8px;font-size:0.85rem;">
+                        Will seed the brand kit with {{ open_opportunities_count }}
+                        open audit {% if open_opportunities_count == 1 %}opportunity{% else %}opportunities{% endif %}.
+                    </p>
+                    {% else %}
+                    <p class="muted" style="margin-top:8px;font-size:0.85rem;">
+                        No open opportunities yet — generation will use generic AEO templates. Run an audit first for better results.
+                    </p>
+                    {% endif %}
                 </form>
             </div>
         </div>
@@ -68,16 +78,24 @@
         </div>
     </section>
 
-    {% if projects %}
+    {% if project_summaries %}
     <section class="panel">
         <h2>Generated Websites</h2>
 
         <div class="premium-queue-list">
-            {% for project in projects %}
+            {% for summary in project_summaries %}
+            {% set project = summary.project %}
             <article class="premium-queue-item-card">
                 <div class="queue-item-main">
                     <h3>{{ project.title }}</h3>
-                    <p>Theme: {{ project.theme|replace("_", " ")|title }} · Status: {{ project.status|title }}</p>
+                    <p>
+                        Theme: {{ project.theme|replace("_", " ")|title }}
+                        · Status: {{ project.status|title }}
+                        · {{ summary.page_count }} page{% if summary.page_count != 1 %}s{% endif %}
+                        {% if project.updated_at %}
+                        · Updated {{ project.updated_at.strftime("%b %d, %Y") }}
+                        {% endif %}
+                    </p>
                 </div>
 
                 <div class="queue-item-actions">
