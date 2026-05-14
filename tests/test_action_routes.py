@@ -40,6 +40,7 @@ import pytest
 from app import (
     Client,
     CreditReservation,
+    MarketplacePresence,
     PromptTracking,
     db,
 )
@@ -596,3 +597,468 @@ class TestAnswerMonitorRunAll:
             .first()
         )
         assert latest is None
+
+
+# ---------------------------------------------------------------------------
+# /answer-monitor/run/<id> (answer_monitor_run_single cost = 1)
+# ---------------------------------------------------------------------------
+
+class TestAnswerMonitorRunSingle:
+    """Re-running one tracked prompt. Same shape as the bulk run-all
+    above but per-prompt (and only 1 credit). Covers the case where
+    a user clicks "re-check this one" instead of running the whole
+    monitor sweep."""
+
+    @pytest.fixture
+    def tracked_prompt(self, user, workspace):
+        row = PromptTracking(
+            user_id=user.id,
+            domain="action-target.example.com",
+            prompt="best AI visibility tool 2026",
+        )
+        db.session.add(row)
+        db.session.commit()
+        return row
+
+    def test_success_commits_after_successful_check(
+        self, logged_in_client, tracked_prompt, user,
+    ):
+        balance_before = user.wallet.balance
+
+        fake_snap = [
+            {"engine_label": "chatgpt", "brand_mentioned": True},
+        ]
+        with patch("app._run_answer_check_for_id", return_value=fake_snap):
+            r = logged_in_client.post(
+                f"/answer-monitor/run/{tracked_prompt.id}",
+                follow_redirects=False,
+            )
+
+        # Redirects back to the answer monitor page.
+        assert r.status_code == 302
+        assert "/answer-monitor" in (r.headers.get("Location") or "")
+
+        # 1-credit cost debited.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 1
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="answer_monitor_run_single")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "committed"
+
+    def test_no_result_releases_reservation(
+        self, logged_in_client, tracked_prompt, user,
+    ):
+        """If the per-prompt check returns nothing (OpenAI not
+        configured, transient API error), refund the user."""
+        balance_before = user.wallet.balance
+
+        with patch("app._run_answer_check_for_id", return_value=None):
+            logged_in_client.post(
+                f"/answer-monitor/run/{tracked_prompt.id}",
+            )
+
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="answer_monitor_run_single")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_unknown_prompt_redirects_without_reserving(
+        self, logged_in_client, user,
+    ):
+        """Unknown / other-user's prompt id: bail before reserving."""
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            "/answer-monitor/run/999999",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        # Wallet untouched; no reservation row created.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="answer_monitor_run_single",
+        ).first() is None
+
+    def test_insufficient_credits_redirects(self, app_ctx, make_user):
+        thin = make_user(plan="pro", balance=0, email="thin-monitor-1@x.com")
+        row = PromptTracking(
+            user_id=thin.id, domain="any.example.com", prompt="x",
+        )
+        db.session.add(row)
+        db.session.commit()
+
+        c = flask_app.test_client()
+        with c.session_transaction() as s:
+            s["_user_id"] = str(thin.id)
+            s["_fresh"] = True
+        r = c.post(
+            f"/answer-monitor/run/{row.id}",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        # Wallet untouched.
+        db.session.refresh(thin.wallet)
+        assert thin.wallet.balance == 0
+        # No reservation created — the insufficient-credit branch
+        # is the early return path.
+        assert CreditReservation.query.filter_by(
+            user_id=thin.id, action_key="answer_monitor_run_single",
+        ).first() is None
+
+
+# ---------------------------------------------------------------------------
+# /marketplace-audits/<client_id>/run/<presence_id> (marketplace_audit cost = 2)
+# ---------------------------------------------------------------------------
+
+class TestMarketplaceRunAudit:
+    """Run the AI-visibility audit for one marketplace presence
+    (Etsy / Amazon / Shopee / eBay shop). 2 credits — higher cost
+    than answer monitor because it generates marketplace-flavoured
+    prompts and runs them across configured engines."""
+
+    @pytest.fixture
+    def presence(self, user, workspace):
+        p = MarketplacePresence(
+            user_id=user.id,
+            client_id=workspace.id,
+            marketplace="etsy",
+            shop_name="Action Target Shop",
+            shop_url="https://www.etsy.com/shop/ActionTarget",
+            category="vintage",
+            region="US",
+        )
+        db.session.add(p)
+        db.session.commit()
+        return p
+
+    def test_success_commits(self, logged_in_client, workspace, presence, user):
+        balance_before = user.wallet.balance
+
+        payload = {
+            "visibility_score": 42,
+            "queries": [
+                {"query": "vintage etsy ?", "cited": True},
+                {"query": "best US etsy shop", "cited": False},
+            ],
+        }
+        with patch(
+            "services.marketplace_audit.run_marketplace_audit",
+            return_value=payload,
+        ), patch(
+            "ai_answer_agent.enabled_engines",
+            return_value=["chatgpt"],
+        ):
+            r = logged_in_client.post(
+                f"/marketplace-audits/{workspace.id}/run/{presence.id}",
+                follow_redirects=False,
+            )
+
+        # Always redirects back to the marketplace audits page.
+        assert r.status_code == 302
+        assert "/marketplace-audits" in (r.headers.get("Location") or "")
+
+        # 2-credit cost debited.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 2
+
+        # Reservation committed.
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="marketplace_audit")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "committed"
+
+        # Presence row updated with the audit payload.
+        db.session.refresh(presence)
+        assert presence.last_visibility_score == 42
+        assert presence.last_audit_payload is not None
+
+    def test_audit_failure_releases_reservation(
+        self, logged_in_client, workspace, presence, user,
+    ):
+        """Exception inside the audit function: release the reservation
+        (refund) and don't leave a half-written presence row."""
+        balance_before = user.wallet.balance
+
+        with patch(
+            "services.marketplace_audit.run_marketplace_audit",
+            side_effect=RuntimeError("simulated OpenAI 500"),
+        ), patch(
+            "ai_answer_agent.enabled_engines",
+            return_value=["chatgpt"],
+        ):
+            logged_in_client.post(
+                f"/marketplace-audits/{workspace.id}/run/{presence.id}",
+            )
+
+        # Wallet untouched, reservation released.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="marketplace_audit")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+        # The presence row should NOT have been updated with a payload.
+        db.session.refresh(presence)
+        assert presence.last_visibility_score is None
+        assert presence.last_audit_payload is None
+
+    def test_insufficient_credits_redirects(
+        self, app_ctx, make_user,
+    ):
+        thin = make_user(plan="pro", balance=1, email="thin-mp@x.com")
+        # marketplace_audit costs 2 — 1 credit isn't enough.
+        ws = Client(
+            slug="thin-mp", user_id=thin.id, name="Thin MP",
+            website="https://thin-mp.example.com",
+            website_normalized="thin-mp.example.com",
+            industry="A", location="B",
+        )
+        db.session.add(ws)
+        db.session.flush()
+        p = MarketplacePresence(
+            user_id=thin.id, client_id=ws.id,
+            marketplace="etsy", shop_name="Thin",
+            shop_url="https://etsy.com/shop/thin",
+        )
+        db.session.add(p)
+        db.session.commit()
+
+        c = flask_app.test_client()
+        with c.session_transaction() as s:
+            s["_user_id"] = str(thin.id)
+            s["_fresh"] = True
+        r = c.post(
+            f"/marketplace-audits/{ws.id}/run/{p.id}",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        # Wallet untouched.
+        db.session.refresh(thin.wallet)
+        assert thin.wallet.balance == 1
+
+    def test_unknown_presence_redirects_without_reserving(
+        self, logged_in_client, workspace, user,
+    ):
+        """Bogus presence id: route bails before reserving credits."""
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            f"/marketplace-audits/{workspace.id}/run/999999",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        # No reservation made.
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="marketplace_audit",
+        ).first() is None
+
+
+# ---------------------------------------------------------------------------
+# /content-queue/<id>/ai-edit (ai_edit_turn cost = 1)
+# ---------------------------------------------------------------------------
+# Unlike the redirect-based routes above, this is a JSON endpoint —
+# returns 200 on success, 402 on insufficient credits, 4xx on input
+# errors. Same reserve/commit/release shape underneath.
+
+class TestAiEditQueueItem:
+    """Multi-turn AI revision on a queue item. Each turn appends to
+    the chat history; the response surfaces revised content. 1 credit
+    per turn — the only reserve/commit JSON endpoint in this suite,
+    so its tests assert on response shape rather than redirects."""
+
+    @pytest.fixture
+    def queue_item(self, user, workspace, monkeypatch):
+        # add_queue_item lives in content_queue; the route fetches via
+        # get_queue_item_by_id. We construct via the same helper to
+        # match the production write path.
+        from content_queue import add_queue_item, update_queue_item_content
+        item = add_queue_item(
+            client_id=workspace.slug,
+            client_name=workspace.name,
+            target_query="how to improve AEO",
+            content_type="article",
+            item_type="draft",
+            title="Draft test",
+            user_id=user.id,
+        )
+        # Drafts arrive empty; populate so the route's "has content?"
+        # check passes.
+        update_queue_item_content(
+            item_id=item["id"],
+            user_id=user.id,
+            content="# Heading\n\nFirst paragraph of the draft.",
+        )
+        # OPENAI_API_KEY must be present for the route to attempt the
+        # call (otherwise it short-circuits with a 503). The test_key
+        # value is fine — every test patches the OpenAI client itself.
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-used")
+        return item
+
+    def test_success_returns_200_and_commits(
+        self, logged_in_client, queue_item, user,
+    ):
+        balance_before = user.wallet.balance
+
+        # Mock the OpenAI client's response shape. The route parses
+        # message.content as JSON to extract revised_content +
+        # summary.
+        fake_response = type("R", (), {
+            "choices": [type("C", (), {
+                "message": type("M", (), {
+                    "content": (
+                        '{"revised_content": "# New heading\\n\\nRevised.",'
+                        ' "summary": "Tightened the heading."}'
+                    ),
+                })(),
+            })()],
+        })()
+
+        with patch("openai.OpenAI") as mock_openai:
+            mock_openai.return_value.chat.completions.create.return_value = (
+                fake_response
+            )
+            r = logged_in_client.post(
+                f"/content-queue/{queue_item['id']}/ai-edit",
+                data={"instruction": "tighten the heading"},
+            )
+
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body.get("ok") is True
+
+        # 1-credit cost debited.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 1
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="ai_edit_turn")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "committed"
+
+    def test_openai_failure_releases_reservation(
+        self, logged_in_client, queue_item, user,
+    ):
+        """If the OpenAI call blows up, the reservation is released
+        and the user gets back a 5xx-ish error (not charged)."""
+        balance_before = user.wallet.balance
+
+        with patch("openai.OpenAI") as mock_openai:
+            mock_openai.return_value.chat.completions.create.side_effect = (
+                RuntimeError("simulated OpenAI 500")
+            )
+            r = logged_in_client.post(
+                f"/content-queue/{queue_item['id']}/ai-edit",
+                data={"instruction": "tighten it"},
+            )
+
+        # Route handles the exception and returns a JSON error
+        # response with the reservation released.
+        assert r.status_code >= 400
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+        latest = (
+            CreditReservation.query
+            .filter_by(user_id=user.id, action_key="ai_edit_turn")
+            .order_by(CreditReservation.id.desc())
+            .first()
+        )
+        assert latest is not None
+        assert latest.status == "released"
+
+    def test_unknown_item_returns_404_without_reserving(
+        self, logged_in_client, user,
+    ):
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            "/content-queue/does-not-exist/ai-edit",
+            data={"instruction": "tighten it"},
+        )
+        assert r.status_code == 404
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        # No reservation row at all.
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="ai_edit_turn",
+        ).first() is None
+
+    def test_missing_instruction_returns_400_without_reserving(
+        self, logged_in_client, queue_item, user,
+    ):
+        balance_before = user.wallet.balance
+        r = logged_in_client.post(
+            f"/content-queue/{queue_item['id']}/ai-edit",
+            data={"instruction": "   "},  # whitespace-only
+        )
+        assert r.status_code == 400
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+        assert CreditReservation.query.filter_by(
+            user_id=user.id, action_key="ai_edit_turn",
+        ).first() is None
+
+    def test_insufficient_credits_returns_402(
+        self, app_ctx, make_user, monkeypatch,
+    ):
+        from content_queue import add_queue_item, update_queue_item_content
+        thin = make_user(plan="pro", balance=0, email="thin-edit@x.com")
+        ws = Client(
+            slug="thin-edit-ws", user_id=thin.id, name="Thin Edit",
+            website="https://x.com", website_normalized="x.com",
+            industry="A", location="B",
+        )
+        db.session.add(ws)
+        db.session.commit()
+        item = add_queue_item(
+            client_id=ws.slug, client_name=ws.name,
+            target_query="q", content_type="article", item_type="draft",
+            title="t", user_id=thin.id,
+        )
+        update_queue_item_content(
+            item_id=item["id"], user_id=thin.id, content="something",
+        )
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-used")
+
+        c = flask_app.test_client()
+        with c.session_transaction() as s:
+            s["_user_id"] = str(thin.id)
+            s["_fresh"] = True
+        r = c.post(
+            f"/content-queue/{item['id']}/ai-edit",
+            data={"instruction": "tighten it"},
+        )
+        assert r.status_code == 402
+        body = r.get_json()
+        assert body.get("ok") is False
+        assert "top up" in body.get("error", "").lower()
+        # Wallet untouched.
+        db.session.refresh(thin.wallet)
+        assert thin.wallet.balance == 0
