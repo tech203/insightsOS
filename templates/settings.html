@@ -946,7 +946,7 @@
         <div class="settings-v3-panel surface-card">
             <div class="settings-v3-panel-head">
                 <h2>Agency logo</h2>
-                <p>PNG, JPG, SVG, or WEBP. Up to 5 MB. Used in the sidebar, the audit PDF topbar, and client-facing report headers.</p>
+                <p>PNG, JPG, or WEBP. Up to 5 MB. Used in the sidebar, the audit PDF topbar, and client-facing report headers.</p>
             </div>
 
             {% if agency_brand and agency_brand.logo_url %}
@@ -962,7 +962,7 @@
 
             <form method="post" action="{{ url_for('settings_upload_agency_logo') }}" enctype="multipart/form-data" class="settings-v3-form">
                 <label for="wl-logo">Upload new logo</label>
-                <input id="wl-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.svg,.webp" required>
+                <input id="wl-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" required>
                 <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Upload</button>
             </form>
         </div>
