@@ -54,6 +54,51 @@
     </section>
 
     {# ===========================================================
+       POPULAR TOPICS — editor-curated shortcuts. Keep this list short
+       (4–6 entries); the goal is "what do I actually do first?",
+       not a second TOC.
+       =========================================================== #}
+    <section class="help-popular" aria-label="Popular topics">
+        <header class="section-head">
+            <h2>Popular topics</h2>
+            <p>The things people open the help center to do.</p>
+        </header>
+
+        <div class="popular-grid">
+            <a class="popular-card" href="#audits">
+                <span class="popular-kicker">Audits</span>
+                <strong>Run your first audit</strong>
+                <span class="popular-meta">Check visibility, missed mentions, and what to fix next.</span>
+            </a>
+            <a class="popular-card" href="#content">
+                <span class="popular-kicker">Content</span>
+                <strong>Create a brief or draft</strong>
+                <span class="popular-meta">Turn audit findings into pages your team can publish.</span>
+            </a>
+            <a class="popular-card" href="#integrations">
+                <span class="popular-kicker">Integrations</span>
+                <strong>Connect Webflow, Shopify, GSC</strong>
+                <span class="popular-meta">Sync your CMS or analytics so you can publish without leaving the queue.</span>
+            </a>
+            <a class="popular-card" href="#billing">
+                <span class="popular-kicker">Billing</span>
+                <strong>Subscribe or top up credits</strong>
+                <span class="popular-meta">Plans, credit bundles, workspace seats, and the Stripe portal.</span>
+            </a>
+            <a class="popular-card" href="#team">
+                <span class="popular-kicker">Team</span>
+                <strong>Invite a teammate</strong>
+                <span class="popular-meta">Add seats, accept invites, manage roles.</span>
+            </a>
+            <a class="popular-card" href="#troubleshooting">
+                <span class="popular-kicker">Help</span>
+                <strong>Something is not working</strong>
+                <span class="popular-meta">Common errors and what to check first.</span>
+            </a>
+        </div>
+    </section>
+
+    {# ===========================================================
        TWO-COLUMN LAYOUT: STICKY TOC + CONTENT
        =========================================================== #}
     <div class="help-layout">
@@ -70,7 +115,25 @@
             </summary>
             <div class="help-toc-inner">
                 <strong class="help-toc-title">On this page</strong>
-                <nav>
+
+                {# Client-side filter — indexes section titles, H3
+                   subheadings, and FAQ summaries on load. #}
+                <div class="help-toc-search-wrap">
+                    <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="help-toc-search-icon">
+                        <circle cx="11" cy="11" r="7"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                        type="search"
+                        class="help-toc-search"
+                        placeholder="Search this page"
+                        aria-label="Search the help page"
+                        autocomplete="off"
+                    >
+                </div>
+                <div class="help-toc-results" role="listbox" hidden></div>
+
+                <nav class="help-toc-nav">
                     <a href="#quick-start">Quick start</a>
                     <a href="#account">Account &amp; sign-in</a>
                     <a href="#workspaces">Workspaces</a>
@@ -932,6 +995,113 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     })();
+
+    (function () {
+        // Help-page search. Builds an index from section titles, H3
+        // subheadings, and FAQ summaries on load; filters live as the
+        // user types. No backend, no fuzzy matching — case-insensitive
+        // substring is enough for a 38k-px page.
+        const input = document.querySelector('.help-toc-search');
+        const results = document.querySelector('.help-toc-results');
+        const nav = document.querySelector('.help-toc-nav');
+        if (!input || !results || !nav) return;
+
+        const index = [];
+
+        // 1. Each section's H2 (already in the TOC, but we index them
+        //    here too so a single search hits everything).
+        document.querySelectorAll('section.help-section').forEach(sec => {
+            const id = sec.id;
+            const h2 = sec.querySelector('h2');
+            if (!id || !h2) return;
+            const sectionTitle = h2.textContent.trim();
+            index.push({
+                kind: 'section',
+                text: sectionTitle,
+                section: sectionTitle,
+                anchor: '#' + id,
+            });
+            // 2. H3 subheadings inside the section.
+            sec.querySelectorAll('h3.help-h3').forEach(h3 => {
+                index.push({
+                    kind: 'subsection',
+                    text: h3.textContent.trim(),
+                    section: sectionTitle,
+                    anchor: '#' + id,
+                });
+            });
+            // 3. FAQ summaries.
+            sec.querySelectorAll('details.faq-item summary').forEach(sum => {
+                const text = sum.textContent.trim();
+                // We don't have per-FAQ IDs; jumping to the FAQ section
+                // and opening the matching <details> is good enough.
+                const faq = sum.parentElement;
+                if (!faq.id) faq.id = 'faq-' + Math.random().toString(36).slice(2, 8);
+                index.push({
+                    kind: 'faq',
+                    text,
+                    section: sectionTitle,
+                    anchor: '#' + faq.id,
+                    faqEl: faq,
+                });
+            });
+        });
+
+        const render = (query) => {
+            const q = query.trim().toLowerCase();
+            if (!q) {
+                results.hidden = true;
+                results.innerHTML = '';
+                nav.hidden = false;
+                return;
+            }
+            const matches = index
+                .filter(it => it.text.toLowerCase().includes(q))
+                .slice(0, 10);
+
+            if (!matches.length) {
+                results.hidden = false;
+                nav.hidden = true;
+                results.innerHTML =
+                    '<div class="help-toc-empty">No matches for “' +
+                    q.replace(/[<&]/g, c => ({ '<': '&lt;', '&': '&amp;' }[c])) +
+                    '”</div>';
+                return;
+            }
+
+            results.hidden = false;
+            nav.hidden = true;
+            results.innerHTML = matches.map(m => (
+                '<a href="' + m.anchor + '" class="help-toc-result" data-kind="' + m.kind + '">' +
+                '<span class="help-toc-result-text">' + highlight(m.text, q) + '</span>' +
+                '<span class="help-toc-result-meta">' + m.section + (m.kind === 'faq' ? ' · FAQ' : '') + '</span>' +
+                '</a>'
+            )).join('');
+
+            // Open the FAQ <details> when its result is clicked.
+            results.querySelectorAll('a[data-kind="faq"]').forEach((a, i) => {
+                a.addEventListener('click', () => {
+                    const m = matches[i];
+                    if (m.faqEl) m.faqEl.open = true;
+                });
+            });
+        };
+
+        const highlight = (text, q) => {
+            const i = text.toLowerCase().indexOf(q);
+            if (i < 0) return text;
+            const esc = s => s.replace(/[<&]/g, c => ({ '<': '&lt;', '&': '&amp;' }[c]));
+            return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+        };
+
+        input.addEventListener('input', e => render(e.target.value));
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                input.value = '';
+                render('');
+            }
+        });
+    })();
 </script>
 
 <style>
@@ -949,6 +1119,120 @@
 /* Push section anchors below any sticky topbar so the heading lands
    in view instead of being clipped at the top of the viewport. */
 .help-section { scroll-margin-top: 16px; }
+.faq-item { scroll-margin-top: 16px; }
+
+/* ---------- Popular topics ---------- */
+.help-popular {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    padding: 18px;
+}
+.popular-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+.popular-card {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    color: #15233b;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.popular-card:hover,
+.popular-card:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(157, 124, 227, 0.4);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    outline: none;
+}
+.popular-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    color: #6745f5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.popular-card strong { font-size: 15px; color: #15233b; }
+.popular-meta { font-size: 13px; color: #617084; line-height: 1.5; }
+
+/* ---------- TOC search input ---------- */
+.help-toc-search-wrap {
+    position: relative;
+    margin-bottom: 8px;
+}
+.help-toc-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+}
+.help-toc-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px 8px 30px;
+    border-radius: 10px;
+    border: 1px solid #e8edf5;
+    background: #f8fafc;
+    font-size: 13px;
+    color: #15233b;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.help-toc-search::placeholder { color: #94a3b8; }
+.help-toc-search:focus {
+    background: #ffffff;
+    border-color: rgba(157, 124, 227, 0.45);
+}
+.help-toc-search::-webkit-search-cancel-button { cursor: pointer; }
+
+/* Search results panel (replaces the nav while a query is active). */
+.help-toc-results {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 8px;
+}
+.help-toc-result {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #15233b;
+    transition: background 0.15s ease;
+}
+.help-toc-result:hover,
+.help-toc-result:focus-visible {
+    background: rgba(157, 124, 227, 0.08);
+    outline: none;
+}
+.help-toc-result-text { font-size: 13px; font-weight: 600; }
+.help-toc-result-text mark {
+    background: rgba(157, 124, 227, 0.18);
+    color: #6745f5;
+    padding: 0 1px;
+    border-radius: 3px;
+}
+.help-toc-result-meta {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+}
+.help-toc-empty {
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #617084;
+}
 
 /* ---------- Card surfaces ---------- */
 .help-hero,
@@ -1194,6 +1478,7 @@
     }
     .quick-start-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .glossary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .popular-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1100px) {
@@ -1229,6 +1514,7 @@
 html[data-theme="dark"] .help-hero,
 html[data-theme="dark"] .help-hero-side,
 html[data-theme="dark"] .help-section,
+html[data-theme="dark"] .help-popular,
 html[data-theme="dark"] .help-toc-disclosure,
 html[data-theme="dark"] .help-toc-inner,
 html[data-theme="dark"] .step-card,
@@ -1239,6 +1525,19 @@ html[data-theme="dark"] .help-to-top {
     border-color: var(--theme-border-subtle);
     color: var(--theme-text-primary);
 }
+html[data-theme="dark"] .popular-card {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .popular-card strong { color: var(--theme-text-primary); }
+html[data-theme="dark"] .help-toc-search {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-subtle);
+    color: var(--theme-text-primary);
+}
+html[data-theme="dark"] .help-toc-result { color: var(--theme-text-primary); }
+html[data-theme="dark"] .help-toc-result:hover { background: rgba(157, 124, 227, 0.18); }
 html[data-theme="dark"] .help-toc-summary { color: var(--theme-text-primary); }
 html[data-theme="dark"] .help-to-top {
     color: #c3b0ff;
