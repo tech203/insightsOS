@@ -36,10 +36,12 @@ def test_filename_includes_random_nonce():
     """The filename must include enough entropy to resist guessing
     from public info (website + approximate timestamp)."""
     fn = build_base_filename("https://example.com", "full")
-    # Format: <slug>_<type>_<timestamp>_<nonce>
-    parts = fn.rsplit("_", 1)
-    assert len(parts) == 2, f"Filename {fn!r} has no nonce part"
-    nonce = parts[1]
+    # Format: <slug>_<type>_YYYYMMDD_HHMMSS_<nonce>. token_urlsafe(8) can
+    # itself contain '_' or '-', so a plain rsplit on '_' would split
+    # mid-nonce on ~17% of runs (flake). Anchor on the timestamp instead.
+    m = re.search(r"_\d{8}_\d{6}_(.+)$", fn)
+    assert m, f"Filename {fn!r} doesn't match <slug>_<type>_<ts>_<nonce> shape"
+    nonce = m.group(1)
     # secrets.token_urlsafe(8) yields ~11 chars (base64-ish encoding
     # of 8 bytes). Anything shorter than ~10 chars is a regression.
     assert len(nonce) >= 10, (
