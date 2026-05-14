@@ -4275,6 +4275,39 @@ def get_summary_path(summary_filename):
     return summary_path
 
 
+def _audit_belongs_to_current_user(summary_data) -> bool:
+    """True iff the audit JSON's `user_id` is the logged-in user (or
+    their team owner). Audit files include strategic data (competitor
+    intelligence, content gaps, business profile) — we cannot rely on
+    filename obscurity since slugs are derived from public website
+    domains and trivially guessable.
+
+    Admins (and dev_unlimited) get blanket access — they need it for
+    support / debugging via the admin tooling.
+    """
+    if not current_user.is_authenticated:
+        return False
+    if current_user.role == "admin" or current_user.plan == "dev_unlimited":
+        return True
+    if not isinstance(summary_data, dict):
+        return False
+    saved_user_id = summary_data.get("user_id")
+    if saved_user_id is None:
+        # Pre-multi-tenant audits without a user_id stamp are treated
+        # as unowned and inaccessible to non-admins. Anyone who needs
+        # them can request an admin re-export.
+        return False
+    # Compare by str() to absorb int/str inconsistencies between the
+    # JSON file's user_id and current_user.id.
+    if str(saved_user_id) == str(current_user.id):
+        return True
+    # Team members share the workspace owner's audits.
+    owner_id = getattr(current_user, "team_owner_id", None)
+    if owner_id is not None and str(saved_user_id) == str(owner_id):
+        return True
+    return False
+
+
 def get_full_path(summary_filename):
     full_filename = get_matching_full_filename(summary_filename)
     if not full_filename:
@@ -10761,6 +10794,11 @@ def audit_summary(summary_filename):
 
     summary_filename = get_matching_summary_filename(summary_filename)
     summary_data = load_json_file(summary_path)
+    # Ownership check — filenames are guessable (slug-based) so
+    # @login_required alone isn't enough to keep Bob out of Alice's
+    # audit. 404 (not 403) so we don't confirm the file exists.
+    if not _audit_belongs_to_current_user(summary_data):
+        abort(404)
     full_filename = get_matching_full_filename(summary_filename)
     return render_template(
         "audit_summary.html",
@@ -10779,6 +10817,10 @@ def audit_summary_pdf(summary_filename):
 
     summary_filename = get_matching_summary_filename(summary_filename)
     summary_data = load_json_file(summary_path)
+    # Same ownership check as the HTML view above — the PDF contains
+    # the same strategic data and was reachable via direct URL.
+    if not _audit_belongs_to_current_user(summary_data):
+        abort(404)
     full_filename = get_matching_full_filename(summary_filename)
     report_date = utcnow().strftime("%d %b %Y")
 
