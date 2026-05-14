@@ -143,6 +143,27 @@ def _check_launch_config() -> None:
     starts regardless so dev stays frictionless."""
     warns: list[str] = []
 
+    # --- SECRET_KEY: must be set, must NOT be the placeholder default ---
+    # Sessions are signed with this key. If left at the literal default,
+    # any attacker who knows the default (i.e., anyone with the source)
+    # can forge sessions for any user. This is the most dangerous single
+    # config gap, hence first in the warning list.
+    secret_key = (os.getenv("SECRET_KEY") or "").strip()
+    if not secret_key:
+        warns.append(
+            "SECRET_KEY is not set — Flask is using the literal default "
+            "'change-this-to-a-random-secret-key' to sign session cookies. "
+            "Anyone with the source can forge sessions for any user. "
+            "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(48))'"
+        )
+    elif secret_key == "change-this-to-a-random-secret-key":
+        warns.append(
+            "SECRET_KEY is set to the placeholder string from .env.example — "
+            "session cookies are forgeable by anyone who reads the source. "
+            "Generate a real one with: "
+            "python -c 'import secrets; print(secrets.token_urlsafe(48))'"
+        )
+
     # --- Stripe: test keys present in a production-looking context ---
     stripe_key = (os.getenv("STRIPE_SECRET_KEY") or "").strip()
     if stripe_key.startswith("sk_test_") or stripe_key.startswith("rk_test_"):
@@ -220,6 +241,27 @@ app.config["AGENCY_LOGO_FOLDER"] = os.path.join(
     "static", "uploads", "agency_logos"
 )
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+
+# ----------------------------------------------------------------------
+# Cookie hardening
+# ----------------------------------------------------------------------
+# HttpOnly is on by default in Flask. Add SameSite=Lax (defence against
+# CSRF and accidental cross-site exposure) and Secure (cookies only over
+# HTTPS — prevents MITM cookie theft on plain HTTP). Secure is gated on
+# FLASK_ENV so local dev over http://localhost still works; production
+# environments must set FLASK_ENV=production (or any value other than
+# "development") to enable it.
+# Flask pre-populates SESSION_COOKIE_SAMESITE=None so setdefault is a
+# no-op; we have to assign directly to flip it to Lax. Using = instead
+# of setdefault throughout for consistency.
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
+_is_production_env = (os.getenv("FLASK_ENV") or "").lower() not in ("", "development", "dev", "test", "testing")
+if _is_production_env:
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["REMEMBER_COOKIE_SECURE"] = True
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -5393,6 +5435,51 @@ def grant_monthly_credits_if_due(user) -> int:
     )
     db.session.commit()
     return monthly
+
+
+@app.after_request
+def _apply_security_headers(response):
+    """Attach baseline security headers to every response.
+
+    Why each one:
+    - X-Content-Type-Options: nosniff
+        Stops the browser MIME-sniffing a .png we serve as image/png
+        as if it were HTML — defence in depth on top of our extension
+        allowlist for logo uploads (PR #118 also dropped SVG).
+    - X-Frame-Options: SAMEORIGIN
+        Blocks clickjacking via iframe embed on attacker pages.
+        SAMEORIGIN lets us still embed our own pages (e.g. the
+        public report could be iframed from an agency dashboard).
+    - Referrer-Policy: strict-origin-when-cross-origin
+        Don't leak full URLs (which include workspace slugs and audit
+        filenames — even with the IDOR fix from PR #120, less leaked
+        is less risk) to third parties via the Referer header.
+    - Strict-Transport-Security: max-age=1y; includeSubDomains
+        Tell browsers to only ever speak HTTPS to this host. Only
+        emit in production — dev runs over http://localhost.
+    - Content-Security-Policy: report-only baseline
+        Set in Report-Only mode so we get telemetry on what would
+        break before flipping it to enforcing. Tightening later is
+        a follow-up; for now we get the X-Content-Type-Options /
+        X-Frame-Options / HSTS protection without any product risk.
+
+    Skip on static assets — they're pinned by hash and Flask serves
+    them via send_from_directory which already sets sensible headers.
+    """
+    # Strip Werkzeug's default Server header so we don't broadcast
+    # the exact Python + Werkzeug versions to anyone scanning.
+    response.headers["Server"] = "DarInsights"
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault(
+        "Referrer-Policy", "strict-origin-when-cross-origin"
+    )
+    if _is_production_env:
+        response.headers.setdefault(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains",
+        )
+    return response
 
 
 @app.before_request
