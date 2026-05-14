@@ -81,6 +81,53 @@
     </table>
 </section>
 
+{# Conversion by source — which paywall surface produces the best
+   conversion rate. Most-qualifying source first. Empty until at
+   least one user has qualified with a non-null source (legacy rows
+   from before the source column was added won't appear here). #}
+<section class="admin-card" style="margin-bottom:16px;">
+    <div class="admin-card-head" style="padding:14px 18px 0;">
+        <h2 style="margin:0;">Conversion by source</h2>
+    </div>
+    {% if stats.source_breakdown %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Source</th>
+                <th style="text-align:right;">Qualified</th>
+                <th style="text-align:right;">Shown</th>
+                <th style="text-align:right;">Dismissed</th>
+                <th style="text-align:right;">Accepted</th>
+                <th style="text-align:right;">Expired</th>
+                <th style="text-align:right;">Conversion</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for src, bucket in stats.source_breakdown.items() %}
+            <tr>
+                <td>
+                    <code style="font-size:11.5px; color:var(--text-muted);">{{ src }}</code>
+                </td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums;">{{ bucket.qualified }}</td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums; color:var(--text-muted);">{{ bucket.shown }}</td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums; color:var(--text-muted);">{{ bucket.dismissed }}</td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums; font-weight:700; color:#065f46;">{{ bucket.accepted }}</td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums; color:var(--text-muted);">{{ bucket.expired }}</td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums; font-weight:700;">
+                    {{ bucket.conversion_rate }}%
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding:20px; color:var(--text-muted); margin:0;">
+        No source-tagged qualifications yet. Sources populate once a Free user
+        crosses the prompt threshold via one of the wired paywalls.
+    </p>
+    {% endif %}
+</section>
+
 {# Recent activity — qualifications inside the lookback window. Both
    live and decided rows so product can see fresh data without
    scrolling past lifetime numbers. #}
@@ -101,6 +148,7 @@
             <tr>
                 <th>User</th>
                 <th>Plan</th>
+                <th>Source</th>
                 <th>Prompts</th>
                 <th>Status</th>
                 <th>Offered</th>
@@ -117,6 +165,11 @@
                     </a>
                 </td>
                 <td><span class="admin-pill">{{ u.plan }}</span></td>
+                <td>
+                    <code style="font-size:11.5px; color:var(--text-muted);">
+                        {{ u.upsell_lto_source or '—' }}
+                    </code>
+                </td>
                 <td style="text-align:center; font-variant-numeric: tabular-nums;">
                     {{ u.upsell_prompt_count }}
                 </td>
@@ -154,6 +207,7 @@
         <thead>
             <tr>
                 <th>User</th>
+                <th>Source</th>
                 <th>Prompts at qualification</th>
                 <th>Offered</th>
                 <th>Time remaining</th>
@@ -167,6 +221,11 @@
                        style="color:var(--brand-deep, #16a99a); text-decoration:none;">
                         {{ row.email }}
                     </a>
+                </td>
+                <td>
+                    <code style="font-size:11.5px; color:var(--text-muted);">
+                        {{ row.source or '—' }}
+                    </code>
                 </td>
                 <td style="text-align:center; font-variant-numeric: tabular-nums;">
                     {{ row.prompt_count }}
