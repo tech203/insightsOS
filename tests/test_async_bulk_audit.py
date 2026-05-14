@@ -306,7 +306,6 @@ class TestBulkAuditWorker:
         # achieve this by patching create_content_opportunities to
         # check the JobRun row mid-loop.
         seen_progress = []
-        real_create = __import__("app").create_content_opportunities_from_latest_audit
 
         def spy(*args, **kwargs):
             # Force a fresh read of the job row to observe partial state

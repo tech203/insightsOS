@@ -13029,7 +13029,10 @@ def api_client_run_audit(client_id):
 # JobRun row gives us a recovery point if we later want to migrate
 # to a real queue.
 
-import threading
+# noqa: E402 — intentional late import. `threading` is only used by
+# the background-job runtime below; co-locating the import with the
+# code that uses it keeps the dependency obvious.
+import threading  # noqa: E402
 
 
 def _spawn_background_job(job_id: str, worker_fn, *args, **kwargs) -> None:
