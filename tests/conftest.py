@@ -56,6 +56,17 @@ def _configure_app():
     # per request. The handlers we're testing don't themselves care
     # about CSRF; that's a middleware concern covered separately.
     flask_app.config["WTF_CSRF_ENABLED"] = False
+    # Disable rate limiting in tests — the suite makes hundreds of
+    # requests from the same address and would trip its own limits.
+    # Limiter is added in app.py via flask-limiter; the .enabled flag
+    # is checked per-request so toggling it here is enough.
+    try:
+        from app import limiter as _limiter
+        _limiter.enabled = False
+    except ImportError:
+        # flask-limiter not installed in this environment — fine, no
+        # limits to disable.
+        pass
     yield flask_app
 
 
