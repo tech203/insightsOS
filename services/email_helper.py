@@ -12,6 +12,7 @@ the invite URL for the owner to copy manually).
 
 from __future__ import annotations
 
+import html as _html
 import logging
 import os
 import smtplib
@@ -159,6 +160,7 @@ def send_email(
 def render_password_reset_email(*, user_name: str, reset_url: str) -> tuple[str, str, str]:
     """Subject + plain-text + HTML body for a password-reset request."""
     subject = "Reset your DarInsights password"
+    # Plain-text body uses raw values; only the HTML body needs escaping.
     text = (
         f"Hi {user_name or 'there'},\n\n"
         "We received a request to reset the password on your DarInsights account.\n"
@@ -167,20 +169,25 @@ def render_password_reset_email(*, user_name: str, reset_url: str) -> tuple[str,
         "If you didn't request a password reset, you can safely ignore this email — "
         "your password stays unchanged."
     )
+    # HTML escape every user-controlled value before f-string interpolation.
+    # `quote=True` (the default) escapes both " and ', which we need because
+    # values land inside attribute contexts like href="…" as well as text.
+    safe_name = _html.escape(user_name or "there")
+    safe_url = _html.escape(reset_url)
     html = f"""\
 <!DOCTYPE html>
 <html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
   <h1 style="font-size: 22px; margin: 0 0 16px;">Reset your password</h1>
-  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {user_name or 'there'},</p>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {safe_name},</p>
   <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
     We received a request to reset the password on your DarInsights account.
     Click below to set a new password. <strong>The link expires in 60 minutes.</strong>
   </p>
   <p style="margin: 0 0 24px;">
-    <a href="{reset_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset password →</a>
+    <a href="{safe_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset password →</a>
   </p>
   <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
-  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{reset_url}</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{safe_url}</p>
   <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you didn't request a password reset, you can safely ignore this email — your password stays unchanged.</p>
 </body></html>"""
     return subject, text, html
@@ -206,20 +213,23 @@ def render_email_verification_email(
         "before you can buy credits or upgrade your plan.\n\n"
         "If you didn't sign up for DarInsights, you can safely ignore this email."
     )
+    # HTML-escape every user-controlled value before f-string interpolation.
+    safe_name = _html.escape(user_name or "there")
+    safe_url = _html.escape(verify_url)
     html = f"""\
 <!DOCTYPE html>
 <html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
   <h1 style="font-size: 22px; margin: 0 0 16px;">Confirm your email</h1>
-  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {user_name or 'there'},</p>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {safe_name},</p>
   <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
     Welcome to DarInsights! Click below to confirm your email address.
     <strong>The link expires in 24 hours.</strong>
   </p>
   <p style="margin: 0 0 24px;">
-    <a href="{verify_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify email →</a>
+    <a href="{safe_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify email →</a>
   </p>
   <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
-  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{verify_url}</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{safe_url}</p>
   <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0 0 6px;">
     Verifying isn't required to use the free tier — but it's needed before you can buy credits or upgrade your plan.
   </p>
@@ -235,7 +245,11 @@ def render_team_invite_email(
     invite_url: str,
 ) -> tuple[str, str, str]:
     """Build subject + plain-text + HTML body for a team invite."""
-    subject = f"{owner_name} invited you to join their team on DarInsights"
+    # Subject line is a header value, not HTML — but we still strip
+    # newlines defensively so an attacker can't inject Bcc:/etc. headers
+    # via the owner's display name (header injection).
+    safe_subject_owner = (owner_name or "Someone").replace("\n", " ").replace("\r", " ")
+    subject = f"{safe_subject_owner} invited you to join their team on DarInsights"
     text = (
         f"{owner_name} has invited you to join their DarInsights team as {invitee_email}.\n\n"
         "Team members share the same workspaces, plan, and credit wallet — you'll see "
@@ -243,22 +257,29 @@ def render_team_invite_email(
         f"Accept the invite: {invite_url}\n\n"
         "If you didn't expect this invite, you can safely ignore this email."
     )
+    # HTML-escape every user-controlled value before f-string interpolation.
+    # owner_name is from the inviting user (not necessarily the recipient).
+    # invitee_email is also user-supplied. Both must be escaped to prevent
+    # the inviter sneaking HTML into mail sent to other people.
+    safe_owner = _html.escape(owner_name or "Someone")
+    safe_invitee = _html.escape(invitee_email or "")
+    safe_url = _html.escape(invite_url)
     html = f"""\
 <!DOCTYPE html>
 <html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
   <h1 style="font-size: 22px; margin: 0 0 16px;">You're invited to join a team</h1>
   <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">
-    <strong>{owner_name}</strong> has invited you to join their DarInsights team
-    as <code style="background: #f6f6fa; padding: 2px 6px; border-radius: 4px;">{invitee_email}</code>.
+    <strong>{safe_owner}</strong> has invited you to join their DarInsights team
+    as <code style="background: #f6f6fa; padding: 2px 6px; border-radius: 4px;">{safe_invitee}</code>.
   </p>
   <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
     Team members share the same workspaces, plan, and credit wallet — you'll see everything they're working on once you accept.
   </p>
   <p style="margin: 0 0 24px;">
-    <a href="{invite_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept invite →</a>
+    <a href="{safe_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept invite →</a>
   </p>
   <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
-  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{invite_url}</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{safe_url}</p>
   <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you didn't expect this invite, you can safely ignore this email.</p>
 </body></html>"""
     return subject, text, html
