@@ -32,6 +32,7 @@ from app import (
     JobRun,
     _bulk_audit_worker,
     db,
+    utcnow,
 )
 from app import app as flask_app
 
@@ -473,3 +474,197 @@ class TestBulkAuditWorker:
         assert len(reservations) == 2
         assert reservations[0].status == "released"
         assert reservations[1].status == "committed"
+
+
+# ---------------------------------------------------------------------------
+# POST /api/jobs/<id>/cancel
+# ---------------------------------------------------------------------------
+
+class TestCancelEndpoint:
+    """Cooperative cancel — sets status="canceled"; the worker reads
+    the row at the top of each iteration and bails."""
+
+    def _make_job(self, user, *, status="running", jid="cancel-test"):
+        from app import utcnow
+        job = JobRun(
+            id=jid,
+            user_id=user.id,
+            kind="bulk_audit",
+            status=status,
+            progress_current=0,
+            progress_total=3,
+            result=[],
+            created_at=utcnow().isoformat(timespec="seconds"),
+            started_at=(
+                utcnow().isoformat(timespec="seconds")
+                if status == "running" else None
+            ),
+            finished_at=(
+                utcnow().isoformat(timespec="seconds")
+                if status in ("done", "failed", "canceled") else None
+            ),
+        )
+        db.session.add(job)
+        db.session.commit()
+        return job
+
+    def test_cancels_a_running_job(self, logged_in_client, user):
+        job = self._make_job(user, status="running")
+        r = logged_in_client.post(f"/api/jobs/{job.id}/cancel")
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body["ok"] is True
+        assert body["status"] == "canceled"
+        db.session.refresh(job)
+        assert job.status == "canceled"
+
+    def test_cancels_a_pending_job(self, logged_in_client, user):
+        """Cancel works pre-start (worker hasn't picked it up yet)
+        too — the worker's first iteration will see canceled and
+        skip every workspace."""
+        job = self._make_job(user, status="pending")
+        r = logged_in_client.post(f"/api/jobs/{job.id}/cancel")
+        assert r.status_code == 200
+        db.session.refresh(job)
+        assert job.status == "canceled"
+
+    def test_unknown_job_returns_404(self, logged_in_client):
+        r = logged_in_client.post("/api/jobs/does-not-exist/cancel")
+        assert r.status_code == 404
+
+    def test_other_users_job_returns_404(self, app_ctx, make_user):
+        """Same scoping as the GET endpoint — cancel must not leak
+        the existence of other users' jobs."""
+        owner = make_user(email="cancel-owner@x.com")
+        intruder = make_user(email="cancel-intruder@x.com")
+        job = JobRun(
+            id="owner-job-cancel", user_id=owner.id, kind="bulk_audit",
+            status="running", progress_current=0, progress_total=1,
+            result=[], created_at=utcnow().isoformat(timespec="seconds"),
+        )
+        db.session.add(job)
+        db.session.commit()
+        c = flask_app.test_client()
+        with c.session_transaction() as s:
+            s["_user_id"] = str(intruder.id)
+            s["_fresh"] = True
+        r = c.post("/api/jobs/owner-job-cancel/cancel")
+        assert r.status_code == 404
+        db.session.refresh(job)
+        assert job.status == "running"  # untouched
+
+    def test_done_job_returns_409(self, logged_in_client, user):
+        job = self._make_job(user, status="done")
+        r = logged_in_client.post(f"/api/jobs/{job.id}/cancel")
+        assert r.status_code == 409
+        body = r.get_json()
+        assert body["ok"] is False
+        assert body["status"] == "done"
+
+    def test_failed_job_returns_409(self, logged_in_client, user):
+        job = self._make_job(user, status="failed")
+        r = logged_in_client.post(f"/api/jobs/{job.id}/cancel")
+        assert r.status_code == 409
+
+    def test_canceled_job_returns_409(self, logged_in_client, user):
+        job = self._make_job(user, status="canceled")
+        r = logged_in_client.post(f"/api/jobs/{job.id}/cancel")
+        assert r.status_code == 409
+
+    def test_anonymous_redirected(self, app_ctx):
+        c = flask_app.test_client()
+        r = c.post("/api/jobs/whatever/cancel", follow_redirects=False)
+        assert r.status_code == 302
+        assert "/login" in (r.headers.get("Location") or "")
+
+
+# ---------------------------------------------------------------------------
+# Worker cooperative cancel
+# ---------------------------------------------------------------------------
+
+class TestWorkerRespectsCancel:
+    """The worker reads JobRun.status at the top of each iteration.
+    If the user flipped it to "canceled" between rows, the loop
+    bails out and marks remaining workspaces skipped."""
+
+    def _make_job(self, user, *, status="running"):
+        import secrets
+        from app import utcnow
+        job = JobRun(
+            id=secrets.token_urlsafe(16),
+            user_id=user.id,
+            kind="bulk_audit",
+            status=status,
+            progress_current=0,
+            progress_total=3,
+            result=[],
+            created_at=utcnow().isoformat(timespec="seconds"),
+            started_at=utcnow().isoformat(timespec="seconds"),
+        )
+        db.session.add(job)
+        db.session.commit()
+        return job
+
+    def test_cancel_before_start_skips_all(
+        self, user, workspaces, mocked_audit_internals,
+    ):
+        """Status set to canceled before the worker is invoked: every
+        workspace is recorded as skipped, no credits spent."""
+        balance_before = user.wallet.balance
+        job = self._make_job(user, status="canceled")
+
+        _bulk_audit_worker(job.id, ["ws-0", "ws-1", "ws-2"], user.id)
+
+        db.session.refresh(job)
+        # Status stays canceled (not auto-promoted to done).
+        assert job.status == "canceled"
+        assert len(job.result) == 3
+        # Every row recorded as canceled-skip, no successes.
+        for row in job.result:
+            assert row["ok"] is False
+            assert row.get("canceled") is True
+            assert row.get("skipped") is True
+        # No credits debited.
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before
+
+    def test_cancel_midway_skips_remaining(
+        self, user, workspaces,
+    ):
+        """Cancel flipped after one workspace completed — the rest
+        get skipped with the canceled marker."""
+        balance_before = user.wallet.balance
+        job = self._make_job(user)
+        call_counter = {"n": 0}
+
+        def _opportunity_side_effect(*args, **kwargs):
+            # After the first audit completes, simulate the user
+            # hitting cancel by flipping the status mid-flight.
+            call_counter["n"] += 1
+            if call_counter["n"] == 1:
+                j = db.session.get(JobRun, job.id)
+                j.status = "canceled"
+                db.session.commit()
+            return {
+                "added": 0, "skipped_existing": 0,
+                "skipped_due_to_cap": 0,
+                "total_opportunities": 0, "active_queue_limit": 25,
+            }
+
+        with patch("app.run_audit_for_input", return_value=None), \
+             patch(
+                 "app.create_content_opportunities_from_latest_audit",
+                 side_effect=_opportunity_side_effect,
+             ):
+            _bulk_audit_worker(job.id, ["ws-0", "ws-1", "ws-2"], user.id)
+
+        db.session.refresh(job)
+        assert job.status == "canceled"
+        assert len(job.result) == 3
+        # First workspace succeeded (credit committed); the next two
+        # are canceled-skips (no credit consumed).
+        assert job.result[0]["ok"] is True
+        assert job.result[1].get("canceled") is True
+        assert job.result[2].get("canceled") is True
+        db.session.refresh(user.wallet)
+        assert user.wallet.balance == balance_before - 1
