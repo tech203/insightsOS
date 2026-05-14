@@ -9113,8 +9113,10 @@ def create_client():
                 "skip and run the audit now.",
                 "success",
             )
+            # serialize_client_row() exposes the slug under the "id" key
+            # (slug is the public identifier in URLs); see line ~4048.
             return redirect(
-                url_for("client_brand_context", client_id=client["slug"])
+                url_for("client_brand_context", client_id=client["id"])
             )
 
         flash("Client workspace created successfully.", "success")
