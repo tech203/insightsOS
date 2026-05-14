@@ -31,6 +31,21 @@
 {% endblock %}
 
 {% block content %}
+{# Re-declare here too — Jinja {% set %} inside block head doesn't leak
+   into block content, so every inline `style="...{{ primary_color }}..."`
+   below this point would render as empty string without these. #}
+{% set primary_color = blueprint.primary_color or '#4f46e5' %}
+{% set secondary_color = blueprint.secondary_color or '#eef2ff' %}
+{% set accent_color = blueprint.accent_color or '#c7d2fe' %}
+{% set text_color = blueprint.text_color or '#0f172a' %}
+{% set theme_icons = {
+    'restaurant_cafe': '🍦',
+    'ecommerce_store': '🛍️',
+    'clinic_wellness': '🩺',
+    'education_centre': '🎓',
+    'professional_services': '✦'
+} %}
+{% set hero_icon = theme_icons.get(blueprint.theme, '✦') %}
 <div class="brand-kit-page-shell">
 <form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}">
 

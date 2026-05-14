@@ -403,3 +403,70 @@ def test_renderer_hero_badge_is_theme_specific():
     # fallback string.
     assert "🩺" in html
     assert ">AI<" not in html
+
+
+# ---------------------------------------------------------------------------
+# Brand-kit preview — colour palette must render with non-empty inline
+# styles. Regression for the Jinja {% set %} scope bug: declaring colour
+# variables inside {% block head %} did NOT leak into {% block content %},
+# so every direct {{ primary_color }} reference in the palette evaluated
+# to empty string. CSS variables masked the bug for elements styled via
+# class (avatar, mock buttons), but the palette swatches and <input
+# type="color"> values went blank.
+# ---------------------------------------------------------------------------
+
+def test_brand_kit_preview_color_palette_renders_with_real_values(app_ctx, monkeypatch):
+    """The colour samples in the brand-kit preview must have non-empty
+    inline `style="background: #...;"` values, and the colour picker
+    inputs must carry real hex values (not the default #000000)."""
+    from werkzeug.security import generate_password_hash
+    from app import db, User, Wallet, Client, app as flask_app
+    from datetime import datetime, timezone
+
+    u = User(
+        email="kit@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Kit Test",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    u.wallet = Wallet(user_id=u.id, balance=100)
+    db.session.add(u.wallet)
+    ws = Client(
+        slug="kitco",
+        user_id=u.id,
+        name="Kit Co",
+        website="https://kit.example.com",
+        website_normalized="kit.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    # Kick off the website-builder generate flow to populate the
+    # pending blueprint in session, then load the brand-kit preview.
+    resp = c.post(f"/client/{ws.slug}/website-builder/generate")
+    assert resp.status_code in (302, 303), resp.status_code
+
+    resp = c.get(f"/client/{ws.slug}/website-builder/brand-kit")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+
+    # The palette inline style must carry a real hex colour. The bug
+    # left this as `style="background: ;"` for every swatch.
+    assert 'style="background: ;"' not in body, (
+        "Color palette swatch is rendering with empty inline style — "
+        "{% set %} block-scope leak from head into content again"
+    )
+    assert 'background: #4f46e5;' in body or 'background: #f97316;' in body
+
+    # The colour picker inputs must carry real hex values, not blank.
+    assert 'value=""' not in body or "type=\"color\" value=\"\"" not in body
