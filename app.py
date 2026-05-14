@@ -442,6 +442,13 @@ class User(UserMixin, db.Model):
     )
     upsell_lto_offered_at = db.Column(db.DateTime, nullable=True)
     upsell_lto_expires_at = db.Column(db.DateTime, nullable=True)
+    # Source tag from record_upsell_prompt at the moment qualification
+    # crossed the threshold (e.g. "workspace_cap", "insufficient_credits",
+    # "gsc_dashboard_gate"). Lets the admin funnel view break down
+    # conversion rate by paywall surface and lets the modal pick
+    # source-aware copy. Nullable because earlier rows were created
+    # before this column existed.
+    upsell_lto_source = db.Column(db.String(60), nullable=True)
 
     wallet = db.relationship(
         "Wallet",
@@ -5409,8 +5416,13 @@ def record_upsell_prompt(user, source: str = "") -> None:
     Call this from any route that flashes an upgrade nudge or
     redirects a Free user to /pricing. Idempotent across paid
     users (no-op) and users who've already crossed the threshold
-    (no-op). `source` is a short tag for logging — useful when
-    eyeballing which paywall is converting best.
+    (no-op).
+
+    `source` is a short tag identifying which paywall (e.g.
+    "workspace_cap", "insufficient_credits", "gsc_dashboard_gate").
+    Persisted on the user row at the moment of qualification so the
+    admin funnel breakdown can attribute conversions per surface and
+    the modal can pick source-aware copy.
     """
     if not user or not getattr(user, "is_authenticated", False):
         return
@@ -5429,6 +5441,11 @@ def record_upsell_prompt(user, source: str = "") -> None:
         user.upsell_lto_status = "shown"
         user.upsell_lto_offered_at = now
         user.upsell_lto_expires_at = now + timedelta(hours=UPSELL_LTO_TTL_HOURS)
+        # Stash the source that finally tipped them — this is the
+        # most actionable "what made them want to upgrade" signal.
+        # Truncate to the column width so a long future tag can't
+        # blow up the INSERT.
+        user.upsell_lto_source = (source or None) and source[:60]
         logger.info(
             "Upsell LTO triggered for user %s after %d prompts (source=%s)",
             user.id, user.upsell_prompt_count, source or "—",
@@ -5476,6 +5493,7 @@ def resolve_upsell_lto(user) -> Optional[Dict[str, Any]]:
     remaining = (user.upsell_lto_expires_at - now) if user.upsell_lto_expires_at else timedelta(hours=UPSELL_LTO_TTL_HOURS)
     hours_left = max(0, int(remaining.total_seconds() // 3600))
     minutes_left = max(0, int((remaining.total_seconds() % 3600) // 60))
+    source = (user.upsell_lto_source or "").strip()
     return {
         "active": True,
         "offered_at": user.upsell_lto_offered_at,
@@ -5483,7 +5501,35 @@ def resolve_upsell_lto(user) -> Optional[Dict[str, Any]]:
         "hours_left": hours_left,
         "minutes_left": minutes_left,
         "prompt_count": int(user.upsell_prompt_count or 0),
+        "source": source or None,
+        "headline": _upsell_headline_for_source(source),
     }
+
+
+# Source-aware headline copy. The modal body stays generic ("upgrade
+# now to lift every cap") but the headline switches to whatever
+# paywall they hit most recently — both makes the popup feel less
+# spammy and gives product a single tunable file for A/B copy.
+# Keys here MUST match the `source` tags passed to record_upsell_prompt.
+UPSELL_HEADLINES_BY_SOURCE: Dict[str, str] = {
+    "workspace_cap":             "Need more workspaces?",
+    "workspace_cap_single":      "Need more workspaces?",
+    "insufficient_credits":      "Running out of credits?",
+    "marketplace_cooldown":      "Running marketplace audits often?",
+    "gsc_dashboard_gate":        "Want Search Console data?",
+    "ga_dashboard_gate":         "Want Google Analytics inside?",
+    "white_label_settings_gate": "Ready to white-label your reports?",
+}
+_DEFAULT_UPSELL_HEADLINE = "Ready to unlock everything?"
+
+
+def _upsell_headline_for_source(source: str) -> str:
+    """Pick the modal headline based on which paywall triggered the
+    LTO. Falls back to the generic headline for unknown / missing
+    sources (legacy rows, new paywalls not yet in the table)."""
+    if not source:
+        return _DEFAULT_UPSELL_HEADLINE
+    return UPSELL_HEADLINES_BY_SOURCE.get(source, _DEFAULT_UPSELL_HEADLINE)
 
 
 def compute_upsell_funnel_stats(days: int = 30) -> Dict[str, Any]:
@@ -5569,7 +5615,54 @@ def compute_upsell_funnel_stats(days: int = 30) -> Dict[str, Any]:
             "minutes_left": max(0, int((remaining.total_seconds() % 3600) // 60)),
             "offered_at": u.upsell_lto_offered_at,
             "prompt_count": int(u.upsell_prompt_count or 0),
+            "source": u.upsell_lto_source or None,
         })
+
+    # Per-source breakdown — group qualified users by the source that
+    # triggered their LTO, then split by terminal status so product
+    # can see "GSC paywall converted at 12%, workspace cap at 8%".
+    # Done with a single SQL pass over qualified rows (source is only
+    # set on qualification, so non-null source ≈ qualified user).
+    source_rows = (
+        db.session.query(
+            User.upsell_lto_source,
+            User.upsell_lto_status,
+            db.func.count(User.id),
+        )
+        .filter(User.upsell_lto_source.isnot(None))
+        .group_by(User.upsell_lto_source, User.upsell_lto_status)
+        .all()
+    )
+    source_breakdown: Dict[str, Dict[str, Any]] = {}
+    for src, status, count in source_rows:
+        bucket = source_breakdown.setdefault(src, {
+            "qualified": 0,
+            "shown": 0,
+            "dismissed": 0,
+            "accepted": 0,
+            "expired": 0,
+            "conversion_rate": 0.0,
+        })
+        bucket["qualified"] += int(count)
+        if status in ("shown", "dismissed", "accepted", "expired"):
+            bucket[status] = int(count)
+    # Per-source conversion rate (same shape as the headline metric:
+    # accepted ÷ decided). Compute after the loop so the denominator
+    # is correct for each source.
+    for src, bucket in source_breakdown.items():
+        decided = bucket["dismissed"] + bucket["accepted"] + bucket["expired"]
+        bucket["decided"] = decided
+        bucket["conversion_rate"] = (
+            round(100.0 * bucket["accepted"] / decided, 1)
+            if decided > 0 else 0.0
+        )
+    # Stable ordering — most-qualifying source first so the table
+    # reads naturally.
+    source_breakdown_ordered = dict(sorted(
+        source_breakdown.items(),
+        key=lambda kv: kv[1]["qualified"],
+        reverse=True,
+    ))
 
     return {
         "status_counts": status_counts,
@@ -5580,6 +5673,7 @@ def compute_upsell_funnel_stats(days: int = 30) -> Dict[str, Any]:
         "window_days": int(days),
         "recent_offers": recent_offers,
         "still_live": still_live,
+        "source_breakdown": source_breakdown_ordered,
     }
 
 
