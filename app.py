@@ -16856,13 +16856,28 @@ def ga_dashboard(client_id):
 @app.route("/integrations/ga/<int:client_id>/select-property", methods=["POST"])
 @login_required
 def ga_select_property(client_id):
-    """Pick a GA4 property and pull a first 28-day summary."""
+    """Pick a GA4 property and pull a first 28-day summary.
+
+    Plan-gated for the same reason as the GSC mutating routes —
+    GA4 reuses the GSC OAuth grant and ships under the same
+    paid-plan gate. Without this, a downgraded user could keep
+    refreshing GA data by hitting this route directly.
+    """
+    from pricing import plan_allows_google_search_console
     from services.ga_client import GA4Client, GAAPIError, summarize_property
 
     workspace = db.session.get(Client, client_id)
     if not workspace or workspace.user_id != effective_owner_id():
         flash("Workspace not found.", "error")
         return redirect(url_for("index"))
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "Google Analytics is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     connection = (
         GoogleSearchConsoleConnection.query.filter_by(
@@ -16901,12 +16916,25 @@ def ga_select_property(client_id):
 @app.route("/integrations/ga/<int:client_id>/sync", methods=["POST"])
 @login_required
 def ga_sync(client_id):
-    """Re-pull the 28-day GA summary."""
+    """Re-pull the 28-day GA summary.
+
+    Plan-gated. Fires before any GA API call so a Free bypass can't
+    burn Google quota the customer was supposed to be paying for.
+    """
+    from pricing import plan_allows_google_search_console
     from services.ga_client import GA4Client, GAAPIError, summarize_property
 
     workspace = db.session.get(Client, client_id)
     if not workspace or workspace.user_id != effective_owner_id():
         return jsonify({"success": False, "message": "Workspace not found."}), 404
+
+    owner = effective_owner() or current_user
+    if not plan_allows_google_search_console(owner.plan):
+        flash(
+            "Google Analytics is available on Pro and Growth plans.",
+            "warning",
+        )
+        return redirect(url_for("pricing_page"))
 
     connection = (
         GoogleSearchConsoleConnection.query.filter_by(

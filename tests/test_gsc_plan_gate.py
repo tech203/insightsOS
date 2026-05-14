@@ -256,3 +256,111 @@ class TestDisconnectStaysOpen:
         assert GoogleSearchConsoleConnection.query.filter_by(
             user_id=u.id, client_id=ws.id,
         ).first() is None
+
+
+# ---------------------------------------------------------------------------
+# /integrations/ga/<id>/select-property and /sync
+# ---------------------------------------------------------------------------
+# GA4 piggybacks on the GSC OAuth grant so the dashboard, select,
+# and sync routes share the same paid-plan policy. Same leak shape
+# as the GSC routes above — fix mirrors fix.
+
+class TestGASelectPropertyGate:
+
+    def test_pro_user_can_select_property(self, connected_workspace):
+        u, ws, conn = connected_workspace("pro", email="ga-select-pro@x.com")
+        with patch(
+            "services.ga_client.summarize_property",
+            return_value={"users": 100},
+        ), patch("services.ga_client.GA4Client"):
+            r = _logged_in(u).post(
+                f"/integrations/ga/{ws.id}/select-property",
+                data={"property_id": "properties/12345"},
+                follow_redirects=False,
+            )
+        assert r.status_code == 302
+        assert "/pricing" not in (r.headers.get("Location") or "")
+        db.session.refresh(conn)
+        assert conn.ga_property_id == "properties/12345"
+
+    def test_free_user_redirected_no_property_saved(self, connected_workspace):
+        u, ws, conn = connected_workspace(
+            "free", email="ga-select-free@x.com",
+        )
+        original_property = conn.ga_property_id
+
+        r = _logged_in(u).post(
+            f"/integrations/ga/{ws.id}/select-property",
+            data={"property_id": "properties/99999"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        assert "/pricing" in (r.headers.get("Location") or "")
+        db.session.refresh(conn)
+        assert conn.ga_property_id == original_property
+
+
+class TestGASyncGate:
+
+    def test_pro_user_can_sync(self, connected_workspace):
+        u, ws, conn = connected_workspace("pro", email="ga-sync-pro@x.com")
+        conn.ga_property_id = "properties/12345"
+        db.session.commit()
+
+        called = {"n": 0}
+
+        def _spy(*args, **kwargs):
+            called["n"] += 1
+            return {"users": 250}
+
+        with patch("services.ga_client.summarize_property", side_effect=_spy), \
+             patch("services.ga_client.GA4Client"):
+            r = _logged_in(u).post(
+                f"/integrations/ga/{ws.id}/sync",
+                follow_redirects=False,
+            )
+        assert r.status_code == 302
+        assert "/pricing" not in (r.headers.get("Location") or "")
+        assert called["n"] == 1
+
+    def test_free_user_redirected_no_sync_runs(self, connected_workspace):
+        u, ws, conn = connected_workspace("free", email="ga-sync-free@x.com")
+        conn.ga_property_id = "properties/12345"
+        db.session.commit()
+        called = {"n": 0}
+
+        def _spy(*args, **kwargs):
+            called["n"] += 1
+            return {}
+
+        with patch("services.ga_client.summarize_property", side_effect=_spy):
+            r = _logged_in(u).post(
+                f"/integrations/ga/{ws.id}/sync",
+                follow_redirects=False,
+            )
+        assert r.status_code == 302
+        assert "/pricing" in (r.headers.get("Location") or "")
+        # Gate fires before _ensure_gsc_access_token + GA4Client calls,
+        # so the Free user can't burn Google API quota.
+        assert called["n"] == 0
+
+
+class TestGADisconnectStaysOpen:
+
+    def test_free_user_can_ga_disconnect(self, connected_workspace):
+        u, ws, conn = connected_workspace(
+            "free", email="ga-disconnect-free@x.com",
+        )
+        conn.ga_property_id = "properties/12345"
+        db.session.commit()
+
+        r = _logged_in(u).post(
+            f"/integrations/ga/{ws.id}/disconnect",
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        assert "/pricing" not in (r.headers.get("Location") or "")
+        # GA half cleared; GSC half intact.
+        db.session.refresh(conn)
+        assert conn.ga_property_id is None
+        assert conn.site_url is not None
