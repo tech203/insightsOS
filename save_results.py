@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 from datetime import datetime
 
 
@@ -20,9 +21,25 @@ def clean_website_name(website):
 
 
 def build_base_filename(website, audit_type):
+    """Construct an audit filename like:
+
+        enfactum-com_full_20260506_145038_xY3z9aBc
+
+    The website slug + audit_type + timestamp keep the filename
+    self-describing for ops and debugging. The trailing
+    secrets.token_urlsafe(8) (~64 bits of entropy) is defence in
+    depth against IDOR — even if a future regression bypasses the
+    audit_belongs_to_current_user check, an attacker can't guess
+    valid filenames from a target's domain alone.
+
+    URL-safe characters (-, _, A-Z, a-z, 0-9) so the filename slots
+    into /audit/<filename> without escaping, and into S3 paths
+    without surprises.
+    """
     clean_website = clean_website_name(website)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"{clean_website}_{audit_type}_{timestamp}"
+    nonce = secrets.token_urlsafe(8)
+    return f"{clean_website}_{audit_type}_{timestamp}_{nonce}"
 
 
 def save_json(payload, filepath):
