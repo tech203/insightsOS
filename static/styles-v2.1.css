@@ -14232,6 +14232,15 @@ body.sidebar-open {
     gap: 8px;
 }
 
+/* Visual group separation in icon-only sidebar mode. Group header text
+   is hidden (display: none on .nav-label), so subsequent groups get a
+   thin top border + extra spacing to make the grouping legible. */
+.nav-group + .nav-group {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
 .nav-label {
     display: none;
 }
@@ -17274,13 +17283,15 @@ html[data-theme="dark"] .workspace-more-divider {
     .app-sidebar .sidebar-credits-value {
         display: block;
         width: 100%;
-        font-size: 13px !important;
+        font-size: 12px !important;
         line-height: 1.05;
         font-weight: 900;
         letter-spacing: -0.02em;
-        white-space: normal;
-        word-break: break-word;
-        overflow-wrap: anywhere;
+        white-space: nowrap;
+        word-break: normal;
+        overflow-wrap: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .app-sidebar .sidebar-credits-meta {
