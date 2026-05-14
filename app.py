@@ -7559,6 +7559,16 @@ def pricing_page():
     if return_to:
         session["pricing_return_to"] = return_to
 
+    # Conversion attribution — if the user landed here from the LTO
+    # popup ("Maybe later" → no source; "See plans" → source=upsell_lto),
+    # stash the source so it can be carried into the Stripe checkout
+    # session's metadata and read back by the webhook. Whitelist the
+    # value to known sources so a malicious URL can't smuggle arbitrary
+    # text into our analytics.
+    source = (request.args.get("source") or "").strip().lower()
+    if source in {"upsell_lto"}:
+        session["pricing_source"] = source
+
     return render_template(
         "pricing.html",
         plans=list_public_plans(),
@@ -8636,12 +8646,18 @@ def stripe_checkout_plan(plan_slug):
         cancel_url = (
             url_for("pricing_page", _external=True) + "?canceled=1"
         )
+        # Carry the conversion source from /pricing into Stripe
+        # metadata so the webhook can attribute the upgrade. Pop so
+        # a stale session value doesn't leak into a later, unrelated
+        # checkout (the modal-flow UX is one-shot).
+        conversion_source = session.pop("pricing_source", None)
         result = create_subscription_checkout_session(
             user_id=current_user.id,
             user_email=current_user.email,
             plan_slug=plan_slug,
             success_url=success_url,
             cancel_url=cancel_url,
+            source=conversion_source,
         )
     except StripeNotConfigured as exc:
         flash(f"Plan checkout unavailable: {exc}", "error")
@@ -9280,6 +9296,25 @@ def _handle_checkout_completed(data: Dict[str, Any]) -> tuple:
                 user.payment_status_updated_at = utcnow()
             grant_monthly_credits_if_due(user)
             notes = f"plan -> {plan_slug}"
+
+            # LTO conversion attribution. If the user came through
+            # the limited-time-offer popup (source set by /pricing
+            # when they landed via the modal CTA), flip their LTO
+            # status to "accepted" so the funnel stats show this as
+            # a popup-driven conversion rather than an organic one.
+            # We require status=="shown" so a stale source value from
+            # a previously-dismissed user can't false-attribute.
+            source = (metadata.get("source") or "").strip().lower()
+            if (
+                source == "upsell_lto"
+                and (user.upsell_lto_status or "none").lower() == "shown"
+            ):
+                user.upsell_lto_status = "accepted"
+                notes += " (lto:accepted)"
+                logger.info(
+                    "Upsell LTO accepted: user=%s plan=%s sub=%s",
+                    user.id, plan_slug, new_sub_id,
+                )
 
     elif kind == "extra_workspace":
         user.extra_workspaces = int(user.extra_workspaces or 0) + 1
