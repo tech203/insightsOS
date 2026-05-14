@@ -5,6 +5,9 @@ for each `data-shot` placeholder referenced in templates/help.html.
 
 Run with:
     PORT=5002 python scripts/capture_help_screenshots.py
+
+Outputs PNGs. Run scripts/compress_help_screenshots.py afterward to convert
+them to the WebPs the help template references (~66% size reduction).
 """
 
 from __future__ import annotations
