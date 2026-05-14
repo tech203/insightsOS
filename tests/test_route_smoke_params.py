@@ -165,6 +165,12 @@ CLIENT_HAPPY_PATHS = [
     "/client/{slug}/query-ideas",
     "/client/{slug}/website-builder",
     "/client/{slug}/website-builder/brand-kit",
+    "/client/{slug}/content-brief",
+    "/client/{slug}/content-draft",
+    "/client/{slug}/presentation",
+    "/client/{slug}/report",
+    "/client/{slug}/run-audit",
+    "/client/{slug}/export-pdf",
     "/api/client/{slug}",
 ]
 
@@ -230,3 +236,81 @@ def test_client_route_happy_path(client_with_workspace, path_tmpl):
         f"{path} returned {resp.status_code}\n"
         f"Body (first 500 bytes): {resp.data[:500]!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# First-workspace POST flow — the path EVERY new user takes
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def fresh_user_client(app_ctx):
+    """A logged-in user with NO workspaces — the state right after
+    signup, before they hit /clients/new the first time."""
+    u = User(
+        email="fresh@test.com",
+        password_hash=generate_password_hash("xxxxxxxx"),
+        name="Fresh User",
+        plan="free",
+        role="user",
+        email_verified_at=None,  # mimics a brand-new signup
+    )
+    db.session.add(u)
+    db.session.flush()
+    u.wallet = Wallet(user_id=u.id, balance=3)
+    db.session.add(u.wallet)
+    db.session.add(CreditTransaction(
+        user_id=u.id, type="signup_bonus", amount=3, balance_after=3,
+        notes="Signup bonus",
+    ))
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+    return c
+
+
+def test_export_pdf_no_audit_redirects_without_500(client_with_workspace):
+    """Regression: GET /client/<slug>/export-pdf used to 500 on a
+    workspace with no audits because client_audit_pdf_lines() called
+    .get() on a None `latest`. Should now redirect with a flash."""
+    c, slug = client_with_workspace
+    resp = c.get(f"/client/{slug}/export-pdf", follow_redirects=False)
+    assert resp.status_code < 500, (
+        f"export-pdf returned {resp.status_code}\n"
+        f"Body: {resp.data[:500]!r}"
+    )
+    # Should redirect to run-audit with a flash, not 500
+    assert resp.status_code == 302
+    assert "run-audit" in resp.headers.get("Location", "")
+
+
+def test_first_workspace_create_redirects_without_500(fresh_user_client):
+    """Submitting /clients/new for the FIRST workspace must not 500.
+
+    Regression guard: an earlier version called
+        url_for("client_brand_context", client_id=client["slug"])
+    but serialize_client_row() exposes the slug under the "id" key,
+    not "slug" — so the redirect crashed with KeyError. Every new
+    user hit this on their first workspace create."""
+    resp = fresh_user_client.post(
+        "/clients/new",
+        data={
+            "name": "Acme Coffee",
+            "website": "https://acme-coffee.example.com",
+            "industry": "Coffee",
+            "location": "Singapore",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code < 500, (
+        f"POST /clients/new returned {resp.status_code}\n"
+        f"Body (first 500 bytes): {resp.data[:500]!r}"
+    )
+    # First-workspace path should redirect to brand-context for the
+    # newly-created workspace (slug-based URL).
+    assert resp.status_code == 302
+    assert "/client/" in resp.headers.get("Location", "")
+    assert "/brand-context" in resp.headers.get("Location", "")
