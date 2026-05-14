@@ -641,6 +641,15 @@
         </div>
     </div>
 
+    {# Limited-time-offer popup — only renders when the context
+       processor resolved an active LTO (Free user past the prompt
+       threshold, within the 24h window, not yet dismissed). Stays
+       outside the main content so it can position fixed without
+       fighting layout. #}
+    {% if upsell_lto and upsell_lto.active %}
+    {% include "partials/upsell_modal.html" %}
+    {% endif %}
+
     <script>
         // Wallet balance + credit gate helper. Templates call
         // __creditCheckBeforeSubmit(this, COST, "label") from form onsubmit

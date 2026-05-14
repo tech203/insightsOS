@@ -397,6 +397,23 @@ class User(UserMixin, db.Model):
         db.Integer, db.ForeignKey("users.id"), nullable=True, index=True
     )
 
+    # ---- Upsell tracking (see record_upsell_prompt + UPSELL_*) ----
+    # Each time a Free user bumps into a paid-feature paywall we
+    # increment upsell_prompt_count. Once count >= threshold, we
+    # trigger the limited-time-offer popup by setting lto_status =
+    # "shown" + offered_at + expires_at (24h). The user can dismiss
+    # ("dismissed"), accept (handled by the Stripe checkout webhook
+    # which flips to "accepted"), or let it lapse → "expired".
+    upsell_prompt_count = db.Column(
+        db.Integer, default=0, server_default="0", nullable=False,
+    )
+    # none | shown | dismissed | accepted | expired
+    upsell_lto_status = db.Column(
+        db.String(20), default="none", server_default="none", nullable=False,
+    )
+    upsell_lto_offered_at = db.Column(db.DateTime, nullable=True)
+    upsell_lto_expires_at = db.Column(db.DateTime, nullable=True)
+
     wallet = db.relationship(
         "Wallet",
         backref="user",
@@ -5084,6 +5101,110 @@ def user_has_unlimited_credits(user):
     return user.role == "admin" or user.plan == "dev_unlimited"
 
 
+# ---------------------------------------------------------------------------
+# Upsell tracking — limited-time-offer popup for Free users
+# ---------------------------------------------------------------------------
+# Premise: Free users who keep bumping into paywalls without converting
+# are the most ready-to-buy cohort we have. Counting those encounters
+# lets us trigger a time-bounded popup at exactly the right moment
+# instead of pestering every Free user from signup.
+#
+# Lifecycle:
+#   none → shown → { dismissed | accepted | expired }
+#
+# Once a user reaches any terminal state, we stop nudging them — no
+# infinite re-triggers if they ignore the popup. A future "second
+# wind" campaign can reset to "none" via an admin tool.
+#
+# Tuning constants live here so product can A/B them in one place:
+UPSELL_PROMPT_THRESHOLD = 3   # paywall encounters before LTO triggers
+UPSELL_LTO_TTL_HOURS = 24     # how long the offer stays live once shown
+
+
+def record_upsell_prompt(user, source: str = "") -> None:
+    """Increment paywall-encounter count for a Free user, trigger the
+    LTO popup at threshold.
+
+    Call this from any route that flashes an upgrade nudge or
+    redirects a Free user to /pricing. Idempotent across paid
+    users (no-op) and users who've already crossed the threshold
+    (no-op). `source` is a short tag for logging — useful when
+    eyeballing which paywall is converting best.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return
+    # Paid users have already converted; don't track them.
+    if is_subscriber(getattr(user, "plan", "free")) or user_has_unlimited_credits(user):
+        return
+    # Once we've moved past "none" the user is in a terminal state
+    # (shown / dismissed / accepted / expired). Don't re-track.
+    status = (user.upsell_lto_status or "none").lower()
+    if status != "none":
+        return
+
+    user.upsell_prompt_count = int(user.upsell_prompt_count or 0) + 1
+    if user.upsell_prompt_count >= UPSELL_PROMPT_THRESHOLD:
+        now = utcnow()
+        user.upsell_lto_status = "shown"
+        user.upsell_lto_offered_at = now
+        user.upsell_lto_expires_at = now + timedelta(hours=UPSELL_LTO_TTL_HOURS)
+        logger.info(
+            "Upsell LTO triggered for user %s after %d prompts (source=%s)",
+            user.id, user.upsell_prompt_count, source or "—",
+        )
+    db.session.commit()
+
+
+def _mark_upsell_lto(user, status: str) -> bool:
+    """Transition the user's LTO state. Returns True on a real
+    transition (i.e. the user was actually in 'shown'), False
+    otherwise. Used by /upsell/dismiss and the Stripe checkout
+    hook so accepting a paid plan flips the row to 'accepted'
+    for funnel analytics."""
+    if not user or (user.upsell_lto_status or "none").lower() != "shown":
+        return False
+    user.upsell_lto_status = status
+    db.session.commit()
+    return True
+
+
+def resolve_upsell_lto(user) -> Optional[Dict[str, Any]]:
+    """Return a render-ready dict for the LTO modal, or None when
+    nothing should be shown.
+
+    Auto-expires the offer (flips status → "expired", clears it
+    from view) when the user loads a page past expires_at. Doing
+    the expiry check here means the popup is never stale — by the
+    time the template renders, the dict is either valid-and-live
+    or None.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    if (user.upsell_lto_status or "none").lower() != "shown":
+        return None
+
+    now = utcnow()
+    if user.upsell_lto_expires_at and user.upsell_lto_expires_at <= now:
+        user.upsell_lto_status = "expired"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return None
+
+    remaining = (user.upsell_lto_expires_at - now) if user.upsell_lto_expires_at else timedelta(hours=UPSELL_LTO_TTL_HOURS)
+    hours_left = max(0, int(remaining.total_seconds() // 3600))
+    minutes_left = max(0, int((remaining.total_seconds() % 3600) // 60))
+    return {
+        "active": True,
+        "offered_at": user.upsell_lto_offered_at,
+        "expires_at": user.upsell_lto_expires_at,
+        "hours_left": hours_left,
+        "minutes_left": minutes_left,
+        "prompt_count": int(user.upsell_prompt_count or 0),
+    }
+
+
 def get_active_queue_limit(user):
     """
     Controls how many active content queue items each plan can have.
@@ -6051,7 +6172,14 @@ def pricing_redirect_with_return_to():
     so /pricing can capture the return URL into the session and
     /stripe/success can hop the user back to where they were
     interrupted. Use this anywhere we'd otherwise just call
-    `redirect(url_for('pricing_page'))` mid-flow."""
+    `redirect(url_for('pricing_page'))` mid-flow.
+
+    Side effect: every paywall redirect counts as one upsell prompt.
+    Routing all credit-gated bounces through this helper means we
+    catch the entire family (audit / brief / draft / monitor sweep)
+    with a single call site for record_upsell_prompt().
+    """
+    record_upsell_prompt(current_user, source="insufficient_credits")
     target = safe_return_url(request.path)
     if not target:
         return redirect(url_for("pricing_page"))
@@ -9528,6 +9656,7 @@ def create_client():
             "Your current plan supports 1 workspace only. Upgrade to add more workspaces.",
             "warning",
         )
+        record_upsell_prompt(current_user, source="workspace_cap_single")
         return redirect(url_for("pricing_page"))
 
     allowed, limit, count = can_create_workspace(current_user)
@@ -9537,6 +9666,7 @@ def create_client():
             f"You’ve reached your workspace limit ({count}/{limit}) for your current plan. Upgrade to add more workspaces.",
             "warning",
         )
+        record_upsell_prompt(current_user, source="workspace_cap")
         return redirect(url_for("pricing_page"))
 
     if request.method == "POST":
@@ -13231,6 +13361,19 @@ def api_wallet():
     })
 
 
+@app.route("/upsell/dismiss", methods=["POST"])
+@login_required
+def upsell_dismiss():
+    """Dismiss the limited-time-offer popup.
+
+    Idempotent — if the user's status isn't "shown" we return ok
+    without modifying anything. JSON endpoint so the modal can
+    fire-and-forget on close without a full-page reload.
+    """
+    transitioned = _mark_upsell_lto(current_user, "dismissed")
+    return jsonify({"ok": True, "transitioned": transitioned})
+
+
 @app.route("/content/brief/new")
 @login_required
 def generate_content_brief_page():
@@ -14235,6 +14378,14 @@ def inject_template_globals():
         "focused_client": focused_client,
         "onboarding_state": onboarding_state,
         "feature_gates": feature_gates,
+        # Limited-time-offer popup state. None when nothing to show
+        # (anonymous, paid, never qualified, dismissed, expired);
+        # a dict with hours_left + minutes_left when active. Auto-
+        # expires here so the template never sees a stale offer.
+        "upsell_lto": (
+            resolve_upsell_lto(current_user)
+            if current_user.is_authenticated else None
+        ),
         # True when the current user is on a paid subscriber plan
         # (Pro, Growth, agency, etc.). Used by templates that want to
         # gate UI on "paying customer" without reaching back into the
@@ -16094,6 +16245,7 @@ def marketplace_run_audit(client_id, presence_id):
                 "Upgrade to Pro or Growth for unlimited runs.",
                 "warning",
             )
+            record_upsell_prompt(current_user, source="marketplace_cooldown")
             return redirect(url_for("marketplace_audits_page", client_id=client_id))
 
     reservation = reserve_credits_for(

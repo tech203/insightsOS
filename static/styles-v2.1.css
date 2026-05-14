@@ -21854,3 +21854,139 @@ html[data-theme="dark"] .workspace-logo-image {
         font-size: 16px !important;
     }
 }
+
+/* ─── Upsell limited-time-offer modal ────────────────────────────
+   Rendered from partials/upsell_modal.html. Centered overlay
+   modal with a backdrop. Stays on top of everything (z-index high
+   enough to clear the existing onboarding / toast layers). */
+.upsell-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 16px;
+    animation: upsell-fade-in 180ms ease-out;
+}
+
+@keyframes upsell-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.upsell-modal {
+    position: relative;
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px 32px 28px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.35);
+    text-align: center;
+    animation: upsell-pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes upsell-pop-in {
+    from { transform: translateY(12px) scale(0.96); opacity: 0; }
+    to   { transform: translateY(0)     scale(1);    opacity: 1; }
+}
+
+.upsell-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.upsell-modal-close:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.upsell-modal-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--brand-soft, rgba(124, 92, 255, 0.12));
+    color: var(--brand, #7c5cff);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+}
+
+.upsell-modal-title {
+    margin: 0 0 12px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.upsell-modal-body {
+    margin: 0 0 20px;
+    font-size: 0.95rem;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.upsell-modal-countdown {
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.upsell-modal-countdown-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+}
+
+.upsell-modal-countdown-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.upsell-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.upsell-modal-cta {
+    min-width: 140px;
+}
+
+.upsell-modal-maybe-later {
+    min-width: 130px;
+}
+
+/* Stack the buttons on narrow screens so they don't squeeze. */
+@media (max-width: 480px) {
+    .upsell-modal-actions {
+        flex-direction: column;
+    }
+    .upsell-modal-cta,
+    .upsell-modal-maybe-later {
+        width: 100%;
+    }
+}
