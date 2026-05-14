@@ -277,6 +277,38 @@ from flask_wtf.csrf import CSRFProtect, CSRFError  # noqa: E402
 csrf = CSRFProtect(app)
 app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1-hour token validity
 
+# ----------------------------------------------------------------------
+# Rate limiting
+# ----------------------------------------------------------------------
+# In-memory backend by default — fine for single-instance dev and small
+# deploys; multi-instance prod should set RATELIMIT_STORAGE_URI to a
+# shared Redis (e.g. redis://...) so per-IP counters are coherent
+# across replicas. Without that, attackers route around the limit by
+# hammering different replicas. Falling back to in-memory is OK; the
+# 429 handler is already wired (see app.errorhandler(429) below).
+#
+# Defaults are intentionally generous so normal product usage isn't
+# tripping limits — the @limiter.limit decorators on the brute-force
+# targets (/login, /signup, /forgot-password, /interest, /verify-
+# email/resend) are what actually throttle attackers.
+# noqa: E402 — imports kept next to the Limiter() configuration below
+# for readability; flask_limiter doesn't depend on any earlier code in
+# this file.
+from flask_limiter import Limiter  # noqa: E402
+from flask_limiter.util import get_remote_address  # noqa: E402
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    storage_uri=os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
+    default_limits=["1000 per hour", "200 per minute"],
+)
+# Tests set this in conftest right after flipping TESTING=True. Without
+# it, the test suite trips its own per-IP limit (hundreds of requests
+# from the same address) and starts spuriously 429-ing tests we wrote
+# to assert non-429 status codes.
+# Production / dev: limiter is enabled (the default).
+
 OUTPUTS_FOLDER = "outputs"
 DATA_FOLDER = "data"
 
@@ -6325,7 +6357,11 @@ def _migrate_csv_interest_to_db():
         db.session.rollback()
 
 
+# Spam defence: 10 interest-list signups per hour per IP. Generous so
+# a casual visitor can re-submit if they think it didn't go through,
+# but tight enough to stop a script flooding the list.
 @app.route("/interest", methods=["POST"])
+@limiter.limit("10 per hour")
 def collect_interest():
     email = (request.form.get("email") or "").strip().lower()
     company = (request.form.get("company") or "").strip()
@@ -9857,7 +9893,11 @@ def client_detail(client_id):
     )
 
 
+# Spam defence: 5 signups per hour per IP. Real users sign up once;
+# anything more is a script. Higher than per-minute limits because a
+# legit user might accidentally reload after a slow signup.
 @app.route("/signup", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for("index"))
@@ -10015,7 +10055,12 @@ def signup():
     )
 
 
+# Email-bomb / cost defence: 3 reset requests per hour per IP. Each
+# POST sends a real Resend email (cost + spam to the target's inbox).
+# A legitimate user clicking "request another link" 3 times in an hour
+# is generous; bots get throttled hard.
 @app.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("3 per hour", methods=["POST"])
 def forgot_password():
     """Request a password-reset link. Always returns the same flash
     message regardless of whether the email exists — prevents
@@ -10203,7 +10248,11 @@ def verify_email(token):
     return redirect(url_for("login"))
 
 
+# Same email-bomb defence as forgot-password — each call sends a real
+# Resend email. Plus this is a state-changing POST so abuse here also
+# spams our outbound mail quota.
 @app.route("/verify-email/resend", methods=["POST"])
+@limiter.limit("3 per hour", methods=["POST"])
 @login_required
 def resend_verification_email():
     """Resend the verification email to the current user.
@@ -10256,7 +10305,11 @@ def resend_verification_email():
     return redirect(url_for("settings_page"))
 
 
+# Token-guess defence: 10 attempts per hour per IP. The token is 256
+# bits of entropy so brute-force is infeasible regardless, but capping
+# requests stops a misconfigured client from flooding logs.
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("10 per hour")
 def reset_password(token):
     """Land here from the email link. Show a simple new-password form
     and on submit, update the user's password + invalidate the token."""
@@ -10300,7 +10353,11 @@ def reset_password(token):
     return render_template("reset_password.html", token=token)
 
 
+# Brute-force defence: 10 login attempts per minute per IP. Caps a
+# credential-stuffing attacker at ~600 attempts/hour against the same
+# email address (the bottleneck in real-world attacks).
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute", methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("index"))
@@ -18019,4 +18076,11 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     print("Starting Flask app...")
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5001)), debug=True)
+    # Debug is opt-IN, gated on FLASK_ENV — leaving it hardcoded True
+    # would mean any prod deploy that runs `python app.py` directly
+    # (some PaaS providers default to this if no Procfile exists)
+    # would expose the Werkzeug debugger console — remote code
+    # execution for anyone who can trigger an exception. Same env
+    # signal as cookie hardening above: dev/test/testing/empty = dev.
+    debug_mode = not _is_production_env
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5001)), debug=debug_mode)
