@@ -25,6 +25,7 @@ import logging
 import secrets
 from typing import Any, Dict, List, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -78,7 +79,7 @@ from dtutils import utcnow
 
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -10230,10 +10231,43 @@ def google_callback():
             "success",
         )
 
-    next_url = request.args.get("next") or (
-        url_for("index") if user.clients else url_for("create_client")
+    # Validate `next` is same-origin before honouring it — otherwise
+    # an attacker who can get `next=https://evil.com` into the callback
+    # URL (today blocked by Google's redirect_uri allowlist + the state
+    # check, but defence in depth) would have an open redirect.
+    next_url = (
+        _safe_redirect_target(request.args.get("next"))
+        or (url_for("index") if user.clients else url_for("create_client"))
     )
     return redirect(next_url)
+
+
+def _safe_redirect_target(target: str | None) -> str | None:
+    """Validate a user-supplied redirect target is same-origin.
+
+    Returns the target if it's a relative path or absolute URL on this
+    host (so deep-link-after-login works), otherwise None — defense
+    against open-redirect attacks where an attacker crafts e.g.
+    /login?next=https://evil.com to use our login page as phishing
+    bait. Same shape as Werkzeug 1.x url_has_allowed_host_and_scheme,
+    but inlined so we don't pull in another werkzeug import.
+    """
+    if not target:
+        return None
+    target = target.strip()
+    if not target:
+        return None
+    parsed = urlparse(target)
+    # Reject anything that looks like a URL pointing somewhere else.
+    # Allowed: relative paths ("/dashboard", "?x=1"), and same-host URLs.
+    if parsed.scheme and parsed.scheme not in ("http", "https"):
+        return None
+    if parsed.netloc and parsed.netloc != urlparse(request.host_url).netloc:
+        return None
+    # Reject schemeless protocol-relative URLs ("//evil.com/foo").
+    if target.startswith("//"):
+        return None
+    return target
 
 
 @app.route("/logout")
