@@ -449,6 +449,10 @@ class User(UserMixin, db.Model):
     # source-aware copy. Nullable because earlier rows were created
     # before this column existed.
     upsell_lto_source = db.Column(db.String(60), nullable=True)
+    # When set, we already fired the one-shot LTO email — used as the
+    # idempotency guard so a user can't be re-emailed even if their
+    # row somehow gets re-qualified.
+    upsell_lto_email_sent_at = db.Column(db.DateTime, nullable=True)
 
     wallet = db.relationship(
         "Wallet",
@@ -5436,6 +5440,7 @@ def record_upsell_prompt(user, source: str = "") -> None:
         return
 
     user.upsell_prompt_count = int(user.upsell_prompt_count or 0) + 1
+    just_qualified = False
     if user.upsell_prompt_count >= UPSELL_PROMPT_THRESHOLD:
         now = utcnow()
         user.upsell_lto_status = "shown"
@@ -5446,11 +5451,92 @@ def record_upsell_prompt(user, source: str = "") -> None:
         # Truncate to the column width so a long future tag can't
         # blow up the INSERT.
         user.upsell_lto_source = (source or None) and source[:60]
+        just_qualified = True
         logger.info(
             "Upsell LTO triggered for user %s after %d prompts (source=%s)",
             user.id, user.upsell_prompt_count, source or "—",
         )
     db.session.commit()
+
+    # Best-effort email — the same offer in the user's inbox so they
+    # don't lose it by closing the tab. Fired AFTER the DB commit so a
+    # Resend outage can't roll back the qualification. Never raises:
+    # send_email is documented to return False on any failure, but we
+    # still catch defensively. Wrapping the column update in its own
+    # try/except so a transient commit error here doesn't poison the
+    # outer request's session.
+    if just_qualified and user.upsell_lto_email_sent_at is None:
+        try:
+            _send_upsell_lto_email(user)
+        except Exception:
+            logger.exception(
+                "LTO email pipeline failed for user %s — swallowed", user.id,
+            )
+
+
+def _send_upsell_lto_email(user) -> bool:
+    """Send the one-shot LTO email and set the idempotency timestamp.
+
+    Composes the source-aware subject/body via render_upsell_lto_email,
+    fires through services.email_helper.send_email (which itself never
+    raises — returns False on any failure). On success we set
+    upsell_lto_email_sent_at so we can never resend even if the
+    qualifying call is somehow re-entered.
+
+    Returns True on send, False otherwise. Callers should NOT raise
+    on False — the in-app modal is the primary surface; the email is
+    additive.
+    """
+    if not user or not user.email or "@" not in user.email:
+        return False
+    if user.upsell_lto_email_sent_at is not None:
+        return False  # idempotent — already sent
+
+    from services.email_helper import render_upsell_lto_email, send_email
+
+    headline = _upsell_headline_for_source(user.upsell_lto_source or "")
+    # External upgrade URL — uses pricing_page with the LTO source tag
+    # so the existing webhook attribution (#142) credits the conversion
+    # back to this email.
+    try:
+        upgrade_url = url_for(
+            "pricing_page", source="upsell_lto", _external=True,
+        )
+    except RuntimeError:
+        # No request context (e.g. a background sweep someday). Fall
+        # back to a relative URL — degraded but still useful in plain
+        # text. HTML render escapes either way.
+        upgrade_url = "/pricing?source=upsell_lto"
+
+    expires_at = user.upsell_lto_expires_at
+    if expires_at:
+        remaining = expires_at - utcnow()
+        hours_left = max(0, int(remaining.total_seconds() // 3600))
+    else:
+        hours_left = UPSELL_LTO_TTL_HOURS
+
+    subject, text, html = render_upsell_lto_email(
+        user_name=user.name or "",
+        headline=headline,
+        upgrade_url=upgrade_url,
+        hours_left=hours_left,
+    )
+    sent = send_email(
+        to=user.email, subject=subject, body_text=text, body_html=html,
+    )
+    if sent:
+        # Stamp the idempotency guard. Separate commit so a transient
+        # DB error here can't poison the broader request.
+        try:
+            user.upsell_lto_email_sent_at = utcnow()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            logger.warning(
+                "LTO email sent for user %s but timestamp commit failed",
+                user.id,
+            )
+    return bool(sent)
 
 
 def _mark_upsell_lto(user, status: str) -> bool:
