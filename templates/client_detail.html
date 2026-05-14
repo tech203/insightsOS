@@ -135,9 +135,9 @@
                     {% endif %}
                     <div class="workspace-logo-actions">
                         <form method="post" action="{{ url_for('upload_workspace_logo', client_id=client.db_id or client.id) }}" enctype="multipart/form-data" style="display:inline;">
-                            <label class="workspace-logo-upload-btn" title="PNG · JPG · SVG · WEBP">
+                            <label class="workspace-logo-upload-btn" title="PNG · JPG · WEBP">
                                 {% if client.logo_url %}Replace{% else %}Upload{% endif %} logo
-                                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg,.webp" onchange="this.form.submit()" style="display:none;">
+                                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" onchange="this.form.submit()" style="display:none;">
                             </label>
                         </form>
                         {% if client.logo_url %}
