@@ -156,6 +156,231 @@ def build_business_context(
     }
 
 
+def _page_spec_for_content_type(
+    content_type, client_name, industry, primary_cta, secondary_cta
+):
+    """Return per-page-type prompt fragments: label, slug, focus rule,
+    and the JSON-string section schema the model should produce.
+
+    The legacy prompt always asked for the homepage 5-section shape
+    (hero / services / value_prop / faq / cta_block) regardless of
+    page_type. For a contact page, "services" + "value_prop" are
+    wrong; for FAQ, having a "faq" section nested inside is awkward.
+    Per-type shapes give the model better guidance and let downstream
+    rendering rely on the right section list.
+    """
+    homepage_sections = f"""[
+    {{
+      "type": "hero",
+      "eyebrow": "{industry}",
+      "headline": "Specific headline for {client_name} based on its real products/services",
+      "subtext": "Specific 2-3 sentence intro based on the business context.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }},
+    {{
+      "type": "services",
+      "headline": "What We Offer",
+      "items": [
+        {{"title": "Real product/service 1", "description": "Specific description linked to {client_name}."}},
+        {{"title": "Real product/service 2", "description": "Specific description linked to {client_name}."}},
+        {{"title": "Real product/service 3", "description": "Specific description linked to {client_name}."}}
+      ]
+    }},
+    {{
+      "type": "value_prop",
+      "headline": "Why Customers Choose {client_name}",
+      "items": [
+        {{"title": "Real reason 1", "description": "Specific explanation."}},
+        {{"title": "Real reason 2", "description": "Specific explanation."}},
+        {{"title": "Real reason 3", "description": "Specific explanation."}}
+      ]
+    }},
+    {{
+      "type": "faq",
+      "headline": "Frequently Asked Questions",
+      "items": [
+        {{"question": "Question specific to this business.", "answer": "Helpful answer."}},
+        {{"question": "Question about ordering/services/enquiries.", "answer": "Helpful answer."}},
+        {{"question": "Question about location, delivery, or availability.", "answer": "Helpful answer."}}
+      ]
+    }},
+    {{
+      "type": "cta_block",
+      "headline": "Ready to explore {client_name}?",
+      "subtext": "Take the next step with {client_name}.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }}
+  ]"""
+
+    contact_sections = f"""[
+    {{
+      "type": "hero",
+      "eyebrow": "Contact",
+      "headline": "Get in touch with {client_name}",
+      "subtext": "Specific 1-2 sentence intro about why a customer would contact them.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }},
+    {{
+      "type": "contact_details",
+      "headline": "How to reach us",
+      "items": [
+        {{"title": "Phone or WhatsApp", "description": "Realistic placeholder for {client_name}."}},
+        {{"title": "Email", "description": "Realistic placeholder for {client_name}."}},
+        {{"title": "Address or location", "description": "Realistic placeholder based on {industry}."}},
+        {{"title": "Opening hours or response time", "description": "Realistic for this business type."}}
+      ]
+    }},
+    {{
+      "type": "cta_block",
+      "headline": "Looking forward to hearing from you",
+      "subtext": "Reach out and the {client_name} team will respond.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }}
+  ]"""
+
+    about_sections = f"""[
+    {{
+      "type": "hero",
+      "eyebrow": "About",
+      "headline": "Who {client_name} is and why it exists",
+      "subtext": "Brand-credibility-focused intro — what the business stands for.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }},
+    {{
+      "type": "story",
+      "headline": "The story behind {client_name}",
+      "body": "2-3 paragraphs about the origin, mission, and what makes this business credible."
+    }},
+    {{
+      "type": "value_prop",
+      "headline": "What customers can trust",
+      "items": [
+        {{"title": "Trust signal 1", "description": "Specific to this business."}},
+        {{"title": "Trust signal 2", "description": "Specific to this business."}},
+        {{"title": "Trust signal 3", "description": "Specific to this business."}}
+      ]
+    }},
+    {{
+      "type": "cta_block",
+      "headline": "Get to know {client_name}",
+      "subtext": "Take the next step.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }}
+  ]"""
+
+    faq_sections = f"""[
+    {{
+      "type": "hero",
+      "eyebrow": "FAQ",
+      "headline": "Common questions about {client_name}",
+      "subtext": "Brief intro framing the answers customers will find below.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }},
+    {{
+      "type": "faq",
+      "headline": "Frequently asked questions",
+      "items": [
+        {{"question": "Real question a customer would ask.", "answer": "Helpful, specific answer."}},
+        {{"question": "Real question a customer would ask.", "answer": "Helpful, specific answer."}},
+        {{"question": "Real question a customer would ask.", "answer": "Helpful, specific answer."}},
+        {{"question": "Real question a customer would ask.", "answer": "Helpful, specific answer."}},
+        {{"question": "Real question a customer would ask.", "answer": "Helpful, specific answer."}}
+      ]
+    }},
+    {{
+      "type": "cta_block",
+      "headline": "Still have questions?",
+      "subtext": "Reach out to {client_name}.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }}
+  ]"""
+
+    services_sections = f"""[
+    {{
+      "type": "hero",
+      "eyebrow": "Services",
+      "headline": "What {client_name} offers",
+      "subtext": "1-2 sentence intro to the offering.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }},
+    {{
+      "type": "services",
+      "headline": "Core offerings",
+      "items": [
+        {{"title": "Real offering 1", "description": "What it includes, who it's for."}},
+        {{"title": "Real offering 2", "description": "What it includes, who it's for."}},
+        {{"title": "Real offering 3", "description": "What it includes, who it's for."}}
+      ]
+    }},
+    {{
+      "type": "faq",
+      "headline": "Questions about our services",
+      "items": [
+        {{"question": "Real question.", "answer": "Helpful answer."}},
+        {{"question": "Real question.", "answer": "Helpful answer."}},
+        {{"question": "Real question.", "answer": "Helpful answer."}}
+      ]
+    }},
+    {{
+      "type": "cta_block",
+      "headline": "Ready to begin?",
+      "subtext": "Take the next step with {client_name}.",
+      "primary_cta": "{primary_cta}",
+      "secondary_cta": "{secondary_cta}"
+    }}
+  ]"""
+
+    specs = {
+        "home": {
+            "page_label": "homepage",
+            "slug": "home",
+            "page_focus_rule": "Lead with the homepage angle and product/service overview.",
+            "sections_schema": homepage_sections,
+        },
+        "landing_page": {
+            "page_label": "homepage",
+            "slug": "home",
+            "page_focus_rule": "Lead with the homepage angle and product/service overview.",
+            "sections_schema": homepage_sections,
+        },
+        "contact": {
+            "page_label": "contact page",
+            "slug": "contact",
+            "page_focus_rule": "Focus on how customers reach the business — no services/value-prop blocks.",
+            "sections_schema": contact_sections,
+        },
+        "about": {
+            "page_label": "about page",
+            "slug": "about",
+            "page_focus_rule": "Focus on credibility, story, and trust — not product listing.",
+            "sections_schema": about_sections,
+        },
+        "faq": {
+            "page_label": "FAQ page",
+            "slug": "faq",
+            "page_focus_rule": "Focus on 5+ specific question/answer pairs customers would actually ask.",
+            "sections_schema": faq_sections,
+        },
+        "services": {
+            "page_label": "services page",
+            "slug": "services",
+            "page_focus_rule": "Focus on detailed service descriptions and service-specific FAQs.",
+            "sections_schema": services_sections,
+        },
+    }
+
+    return specs.get(content_type, specs["home"])
+
+
 def generate_structured_website_page(
     client_name,
     industry,
@@ -176,10 +401,14 @@ def generate_structured_website_page(
     primary_cta = business_context.get("primary_cta", "Enquire Now")
     secondary_cta = business_context.get("secondary_cta", "View Services")
 
+    page_spec = _page_spec_for_content_type(
+        content_type, client_name, industry, primary_cta, secondary_cta
+    )
+
     prompt = f"""
 You are an expert website strategist and conversion copywriter.
 
-Create a website homepage for the actual business below.
+Create a {page_spec["page_label"]} for the actual business below.
 
 BUSINESS CONTEXT:
 {json.dumps(business_context, ensure_ascii=False, indent=2)}
@@ -200,8 +429,7 @@ STRICT RULES:
 - Do not use any of these avoided terms: {business_context.get("avoid_terms", [])}
 - Primary CTA must be: {primary_cta}
 - Secondary CTA must be: {secondary_cta}
-- Suggested sections should follow: {business_context.get("suggested_sections", [])}
-- The homepage angle is: {business_context.get("homepage_angle")}
+- {page_spec["page_focus_rule"]}
 
 Return ONLY valid JSON. No markdown. No code block.
 
@@ -209,8 +437,8 @@ Use this exact JSON structure:
 
 {{
   "page_type": "{content_type}",
-  "title": "Specific homepage title for {client_name}",
-  "slug": "home",
+  "title": "Specific {page_spec["page_label"]} title for {client_name}",
+  "slug": "{page_spec["slug"]}",
   "meta_title": "SEO title for {client_name}",
   "meta_description": "SEO description for {client_name}",
   "seo": {{
@@ -219,77 +447,7 @@ Use this exact JSON structure:
     "og_title": "Social title for {client_name}",
     "og_description": "Social description for {client_name}"
   }},
-  "sections": [
-    {{
-      "type": "hero",
-      "eyebrow": "{industry}",
-      "headline": "Specific headline for {client_name} based on its real products/services",
-      "subtext": "Specific 2-3 sentence intro based on the business context.",
-      "primary_cta": "{primary_cta}",
-      "secondary_cta": "{secondary_cta}"
-    }},
-    {{
-      "type": "services",
-      "headline": "{business_context.get("suggested_sections", ["What We Offer"])[0]}",
-      "items": [
-        {{
-          "title": "Specific product/service/offering 1",
-          "description": "Specific description linked to {client_name}."
-        }},
-        {{
-          "title": "Specific product/service/offering 2",
-          "description": "Specific description linked to {client_name}."
-        }},
-        {{
-          "title": "Specific product/service/offering 3",
-          "description": "Specific description linked to {client_name}."
-        }}
-      ]
-    }},
-    {{
-      "type": "value_prop",
-      "headline": "Why Customers Choose {client_name}",
-      "items": [
-        {{
-          "title": "Specific reason 1",
-          "description": "Specific explanation."
-        }},
-        {{
-          "title": "Specific reason 2",
-          "description": "Specific explanation."
-        }},
-        {{
-          "title": "Specific reason 3",
-          "description": "Specific explanation."
-        }}
-      ]
-    }},
-    {{
-      "type": "faq",
-      "headline": "Frequently Asked Questions",
-      "items": [
-        {{
-          "question": "Question specific to this business.",
-          "answer": "Helpful answer specific to this business."
-        }},
-        {{
-          "question": "Question specific to ordering, products, services, or enquiries.",
-          "answer": "Helpful answer specific to this business."
-        }},
-        {{
-          "question": "Question specific to location, delivery, appointment, or availability.",
-          "answer": "Helpful answer specific to this business."
-        }}
-      ]
-    }},
-    {{
-      "type": "cta_block",
-      "headline": "Ready to explore {client_name}?",
-      "subtext": "Take the next step with {client_name}.",
-      "primary_cta": "{primary_cta}",
-      "secondary_cta": "{secondary_cta}"
-    }}
-  ]
+  "sections": {page_spec["sections_schema"]}
 }}
 """
 

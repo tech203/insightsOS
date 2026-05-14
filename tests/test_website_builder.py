@@ -12,6 +12,7 @@ fields (colors, personality, visual style) for every industry path.
 from unittest.mock import patch
 
 from app import build_demo_website_blueprint, build_generated_site_page
+from website_page_builder import _page_spec_for_content_type
 
 
 # Each (industry, services) pair targets one branch in
@@ -240,3 +241,59 @@ def test_rule_based_fallback_when_ai_returns_invalid():
 
     assert page_json["sections"], "must fall back when AI returns empty"
     assert page_json["sections"][0]["type"] == "hero"
+
+
+# ---------------------------------------------------------------------------
+# Per-page-type prompt shapes
+# ---------------------------------------------------------------------------
+
+def test_page_spec_returns_correct_slug_per_content_type():
+    """Regression: the old prompt hardcoded slug="home" for every
+    page, so all 5 generated pages had the same slug. Each content
+    type must now yield its own slug."""
+    for content_type, expected_slug in [
+        ("home", "home"),
+        ("landing_page", "home"),
+        ("contact", "contact"),
+        ("about", "about"),
+        ("faq", "faq"),
+        ("services", "services"),
+    ]:
+        spec = _page_spec_for_content_type(
+            content_type, "Test Co", "SaaS", "Get Started", "Learn More"
+        )
+        assert spec["slug"] == expected_slug, content_type
+
+
+def test_page_spec_section_shape_matches_page_purpose():
+    """Contact pages must not generate a "services" or "value_prop"
+    block; FAQ pages must lead with FAQ items; about pages must lead
+    with story content."""
+    contact = _page_spec_for_content_type(
+        "contact", "Test Co", "SaaS", "Call Us", "Email"
+    )
+    assert "services" not in contact["sections_schema"]
+    assert "value_prop" not in contact["sections_schema"]
+    assert "contact_details" in contact["sections_schema"]
+
+    about = _page_spec_for_content_type(
+        "about", "Test Co", "SaaS", "Get Started", "Learn More"
+    )
+    assert '"type": "story"' in about["sections_schema"]
+
+    faq = _page_spec_for_content_type(
+        "faq", "Test Co", "SaaS", "Get Started", "Learn More"
+    )
+    # FAQ page should have at least 5 q/a placeholders to push the
+    # model toward answer-engine-friendly density.
+    assert faq["sections_schema"].count('"question"') >= 5
+
+
+def test_page_spec_unknown_content_type_falls_back_to_home():
+    """Unknown page types shouldn't break — fall back to homepage
+    shape so the generator always returns a renderable page."""
+    spec = _page_spec_for_content_type(
+        "mystery_page_type", "Test Co", "SaaS", "Buy", "Browse"
+    )
+    assert spec["slug"] == "home"
+    assert spec["page_label"] == "homepage"
