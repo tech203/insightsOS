@@ -243,12 +243,23 @@
                 {{ shot('audit-run', 'Run audit screen — confirm scope and credits before starting.') }}
                 {{ shot('workspace-overview', 'After an audit, the overview surfaces the score, priorities, and content opportunities.') }}
 
+                <h3 class="help-h3">What the result page contains</h3>
+                <p>Once an audit finishes the workspace overview is split into clear blocks:</p>
+                <ul class="help-bullets">
+                    <li><strong>Scorecard</strong> — overall score plus four sub-scores: Visibility, Content, Entity, Trust.</li>
+                    <li><strong>Opportunity level</strong> — a one-line read on how much headroom remains (Weak, Moderate, Strong).</li>
+                    <li><strong>Missed brand mentions</strong> — every tracked query where the brand did not surface, ranked by impact.</li>
+                    <li><strong>Top priority actions</strong> — three to five next steps drawn straight from the audit signals.</li>
+                    <li><strong>Question opportunities</strong> — common customer questions you do not yet answer clearly.</li>
+                    <li><strong>Competitor highlights</strong> — who is showing up instead of you, and on which prompts.</li>
+                </ul>
+
                 <h3 class="help-h3">View past audits</h3>
                 <p>Workspace → <strong>History</strong> lists every audit with date, score, and a link to the full report.</p>
                 {{ shot('workspace-history', 'Workspace history — every previous audit run.') }}
 
                 <h3 class="help-h3">Export an audit as PDF</h3>
-                <p>Open the report → click <strong>Export PDF</strong> at the top right.</p>
+                <p>Open the report → click <strong>Export PDF</strong> at the top right. The PDF mirrors the on-screen report and uses your white-label logo and brand colour if Settings → White-label is configured.</p>
             </section>
 
             {# ===========================================================
@@ -264,9 +275,23 @@
                 <p>Workspace → <strong>Visibility</strong> shows each tracked query, whether the brand appeared, and how strongly.</p>
                 {{ shot('visibility-page', 'Visibility — per-query appearance state.') }}
 
+                <p><strong>What you'll see when audits are populated:</strong></p>
+                <ul class="help-bullets">
+                    <li>A summary strip at the top: total queries tracked, queries the brand appeared in, and average rank.</li>
+                    <li>A per-query table with the prompt, whether the brand was mentioned, and a snippet of the AI answer for context.</li>
+                    <li>A filter to narrow by category, by missed mentions only, or by query that changed since the last audit.</li>
+                </ul>
+
                 <h3 class="help-h3">Competitors page</h3>
                 <p>Workspace → <strong>Competitors</strong> lists who is showing up for your tracked queries and where the gaps are.</p>
                 {{ shot('competitors-page', 'Competitors — who is showing up instead of your brand.') }}
+
+                <p><strong>What you'll see when audits are populated:</strong></p>
+                <ul class="help-bullets">
+                    <li>The top competitors ranked by how often they appeared instead of you.</li>
+                    <li>A side-by-side query column: for each prompt, you'll see whether the brand and each competitor appeared.</li>
+                    <li>An <em>Add competitor</em> button to track a specific rival, plus the auto-detect flow described below.</li>
+                </ul>
 
                 <h3 class="help-h3">Auto-detect competitors</h3>
                 <ol class="help-steps">
@@ -378,13 +403,15 @@
                 <h3 class="help-h3">AI edit a draft</h3>
                 <ol class="help-steps">
                     <li>Open the draft in the queue.</li>
-                    <li>Click <strong>AI edit</strong>; pick a section or the whole document.</li>
-                    <li>Describe the change (“shorter intro”, “add 3 FAQs”) and apply.</li>
-                    <li>Edit history lets you revert any change.</li>
+                    <li>Click <strong>AI edit</strong>; pick a section or the whole document from the dropdown.</li>
+                    <li>Describe the change (“shorter intro”, “add 3 FAQs”, “make the tone warmer”) in the instruction box and apply.</li>
+                    <li>The panel shows a side-by-side diff. Accept, refine, or revert from the history list on the right.</li>
                 </ol>
+                <p><strong>What you'll see:</strong> a section selector at the top, a prompt input below, and a two-column diff once the edit runs. Every edit is timestamped — clicking an entry in the history rolls the draft back to that state.</p>
 
                 <h3 class="help-h3">Generate a visual</h3>
-                <p>From an open draft click <strong>Generate visual</strong>. The platform uses your brand kit to produce a header image you can attach to the post.</p>
+                <p>From an open draft click <strong>Generate visual</strong>. The platform uses your brand kit (primary, secondary, and accent colours plus typography) to produce a header image you can attach to the post.</p>
+                <p><strong>What you'll see:</strong> a preview thumbnail with your colours applied, a regenerate button, and an attach action that saves the image to the draft.</p>
 
                 <h3 class="help-h3">Approve and publish</h3>
                 <ol class="help-steps">
@@ -392,6 +419,7 @@
                     <li>Pick a destination: Webflow, Wix, Framer, Squarespace, Shopify, or mark as published manually.</li>
                     <li>Publishing pushes the post to the CMS; <strong>Update on site</strong> re-syncs changes after edits.</li>
                 </ol>
+                <p><strong>What you'll see:</strong> the queue card flips to “Published” with the destination icon shown. If the push fails, the card expands to surface the underlying API error so you can fix the mapping.</p>
             </section>
 
             {# ===========================================================
@@ -448,6 +476,15 @@
                 </ol>
                 {{ shot('report-page', 'Workspace report — the snapshot you share with clients.') }}
 
+                <h3 class="help-h3">What clients see at the public link</h3>
+                <ul class="help-bullets">
+                    <li>The score and opportunity level at the top, with a plain-English summary of what it means.</li>
+                    <li>The top three to five priority actions only — no buried detail.</li>
+                    <li>Missed brand mentions and competitor highlights.</li>
+                    <li>Your white-label logo and brand colour, if Settings → White-label is configured.</li>
+                    <li>No edit buttons, no sidebar, no account information. The link is read-only and works without a DarInsights login.</li>
+                </ul>
+
                 <p>Use <strong>Export PDF</strong> on the report page to download a printable copy.</p>
 
                 <h3 class="help-h3">Presentation mode</h3>
@@ -471,24 +508,37 @@
                 <h3 class="help-h3">Webflow</h3>
                 <ol class="help-steps">
                     <li>Integrations → Webflow → <strong>Settings</strong>.</li>
-                    <li>Paste your Webflow API token; click <strong>Test connection</strong>.</li>
-                    <li>Pick the target site and collections (Blog, FAQ, Service).</li>
+                    <li>Paste your Webflow API token (found at <em>account.webflow.com → Workspace → Integrations → API tokens</em>) and click <strong>Test connection</strong>.</li>
+                    <li>Pick the target site, then map your three collection types: <strong>Blog</strong>, <strong>FAQ</strong>, <strong>Service</strong>. Each is required for the corresponding queue item to publish.</li>
                     <li>From the content queue use <em>Publish → Webflow</em> on any approved item.</li>
                 </ol>
+                <p><strong>What you'll see:</strong> a single Settings page with the token field at the top, a green “Connected” pill once verified, three collection dropdowns below, and a “Test publish” button that pushes a dummy draft to verify mappings.</p>
 
-                <h3 class="help-h3">Wix, Framer, Squarespace</h3>
-                <p>Each works the same: open the tile → click <strong>Connect</strong> → authorise the account → optionally <strong>Refresh collections</strong>. Then publish from the queue.</p>
+                <h3 class="help-h3">Wix</h3>
+                <ol class="help-steps">
+                    <li>Integrations → Wix → <strong>Connect</strong>; sign in with the Wix account that owns the site.</li>
+                    <li>Approve the requested scopes (read/write content).</li>
+                    <li>Click <strong>Refresh collections</strong> so the platform can see your blog and pages.</li>
+                    <li>Publish approved drafts from the queue with <em>Publish → Wix</em>.</li>
+                </ol>
+
+                <h3 class="help-h3">Framer</h3>
+                <p>Same flow as Wix: <strong>Connect</strong> → authorise → <strong>Refresh collections</strong>. Framer publishing creates draft pages in the matching collection so your team can review before going live.</p>
+
+                <h3 class="help-h3">Squarespace</h3>
+                <p>Connect via OAuth, then run <strong>Sync</strong>. Published items land in the matching blog. Image uploads are skipped — Squarespace does not yet expose an asset API.</p>
 
                 <h3 class="help-h3">Shopify</h3>
                 <ol class="help-steps">
                     <li>Integrations → Shopify → <strong>Connect</strong>.</li>
-                    <li>Approve access in the Shopify admin pop-up.</li>
-                    <li>Click <strong>Sync products</strong>; the platform pulls product titles and descriptions.</li>
-                    <li>Use <strong>Preview alt text fixes</strong> or <strong>Preview description rewrites</strong>, then <strong>Apply</strong> to push changes.</li>
+                    <li>Approve access in the Shopify admin pop-up. The OAuth scope is read/write products and product media.</li>
+                    <li>Click <strong>Sync products</strong>; the platform pulls product titles, descriptions, and image alt-text.</li>
+                    <li>Use <strong>Preview alt text fixes</strong> or <strong>Preview description rewrites</strong>, then <strong>Apply</strong> to push changes back to Shopify.</li>
                 </ol>
+                <p><strong>What you'll see:</strong> a product table with current vs. proposed values side by side, a per-row checkbox, and an Apply button. Nothing is changed until you confirm.</p>
 
                 <h3 class="help-h3">BigCommerce, Shopline, WooCommerce</h3>
-                <p>Connect by pasting store credentials, then run <strong>Sync</strong> to pull catalogue data.</p>
+                <p>Each works the same way: open the tile, paste the credentials it asks for (BigCommerce store hash + access token, Shopline store handle + access token, WooCommerce REST consumer key + secret), and run <strong>Sync</strong> to pull the catalogue. Disconnect any time to revoke access immediately.</p>
 
                 <h3 class="help-h3">Google Search Console</h3>
                 <ol class="help-steps">
@@ -496,12 +546,13 @@
                     <li>Pick the verified property that matches the workspace URL.</li>
                     <li>Click <strong>Sync</strong>. Recent impressions and clicks appear inside the workspace.</li>
                 </ol>
+                <p><strong>What you'll see:</strong> a property picker (only verified properties are listed), a sync status banner, and a table of the top queries with impressions/clicks/CTR once the sync completes.</p>
 
                 <h3 class="help-h3">Google Analytics</h3>
-                <p>Connect with Google, choose a GA4 property, then sync. Disconnect any time from the tile.</p>
+                <p>Connect with Google, pick a GA4 property from the dropdown, then click <strong>Sync</strong>. The integration pulls session counts, traffic channels, and top landing pages. Disconnect any time from the tile.</p>
 
                 <h3 class="help-h3">Cal.com</h3>
-                <p>Paste your Cal.com API key in the tile, click <strong>Connect</strong>, then <strong>Sync</strong> to pull bookings and event types.</p>
+                <p>Paste your Cal.com API key in the tile (find it at <em>cal.com/settings/developer/api-keys</em>), click <strong>Connect</strong>, then <strong>Sync</strong> to pull booking volume, top event types, and recent bookings into the workspace.</p>
             </section>
 
             {# ===========================================================
@@ -536,6 +587,25 @@
 
                 <h3 class="help-h3">Manage your subscription</h3>
                 <p>Settings → Billing → <strong>Open Stripe portal</strong>. Update card, change plan, or cancel from there. Cancellations apply at the end of the current period.</p>
+
+                <h3 class="help-h3">What checkout looks like</h3>
+                <p>Clicking <strong>Subscribe</strong> on a plan or <strong>Buy</strong> on a bundle redirects to <em>checkout.stripe.com</em> — a hosted page run by Stripe. You'll see:</p>
+                <ul class="help-bullets">
+                    <li>The plan or bundle name, price, and renewal interval.</li>
+                    <li>A card field (Apple Pay and Google Pay are offered automatically on supported browsers).</li>
+                    <li>A billing address field and an optional company / VAT line.</li>
+                    <li>A “Subscribe” button. After payment you are returned to DarInsights and the new entitlements are live within a few seconds.</li>
+                </ul>
+
+                <h3 class="help-h3">What the Stripe portal looks like</h3>
+                <p>The portal is also a Stripe-hosted page. Sections you'll see:</p>
+                <ul class="help-bullets">
+                    <li><strong>Current plan</strong> — with a <em>Cancel</em> button (cancels at period end) and an <em>Update plan</em> link to switch tiers.</li>
+                    <li><strong>Payment method</strong> — add, remove, or set a default card.</li>
+                    <li><strong>Billing information</strong> — name, address, tax ID.</li>
+                    <li><strong>Invoice history</strong> — download every receipt and invoice as a PDF.</li>
+                </ul>
+                <p>Any change made in the portal is reflected back into DarInsights via webhook within seconds — no need to refresh manually.</p>
             </section>
 
             {# ===========================================================
