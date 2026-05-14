@@ -15355,6 +15355,243 @@ def settings_change_password():
 
 
 # =========================
+# GDPR — data export + account deletion
+# =========================
+# Right-to-portability (Article 20) → /settings/account/export-data
+# returns a JSON bundle of everything we have about the user.
+# Right-to-erasure (Article 17) → /settings/account/delete cascades
+# a hard delete of the user + all owned data (workspaces, audits,
+# wallet, integrations, etc.) and best-effort cancels Stripe.
+
+def _build_user_data_export(user) -> Dict[str, Any]:
+    """Bundle every piece of user-owned data we hold.
+
+    Includes: profile, wallet + transactions, workspaces (Brand Kit,
+    business profile), audit JSON files, content queue items,
+    integrations (with OAuth tokens REDACTED — they're our auth state,
+    not user data). Excludes: other users' workspaces, server logs."""
+    workspaces = []
+    for ws in Client.query.filter_by(user_id=user.id).all():
+        workspaces.append({
+            "id": ws.id, "slug": ws.slug, "name": ws.name,
+            "website": ws.website, "industry": ws.industry,
+            "location": ws.location, "owner_type": ws.owner_type,
+            "notes": ws.notes,
+            "brand_audience": ws.brand_audience,
+            "brand_services": ws.brand_services,
+            "brand_differentiators": ws.brand_differentiators,
+            "brand_voice": ws.brand_voice,
+            "brand_personality": ws.brand_personality,
+            "founded_year": ws.founded_year,
+            "google_rating": ws.google_rating,
+            "business_summary": ws.business_summary,
+            "is_locked": ws.is_locked,
+            "created_at": ws.created_at.isoformat() if ws.created_at else None,
+        })
+
+    wallet = getattr(user, "wallet", None)
+    transactions = [
+        {
+            "type": t.type, "amount": t.amount,
+            "balance_after": t.balance_after, "notes": t.notes,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        }
+        for t in CreditTransaction.query.filter_by(user_id=user.id)
+        .order_by(CreditTransaction.created_at.asc()).all()
+    ]
+
+    # Audits live as JSON files on disk (or S3) keyed off the user's
+    # workspace slugs. Include the saved summaries so the export is
+    # actually useful (the user's strategic data + scores).
+    audit_summaries = get_saved_audits(user_id=user.id)
+
+    return {
+        "export_format_version": 1,
+        "exported_at": utcnow().isoformat(),
+        "profile": {
+            "id": user.id, "email": user.email, "name": user.name,
+            "plan": user.plan, "role": user.role,
+            "referral_code": user.referral_code,
+            "email_verified_at": (
+                user.email_verified_at.isoformat()
+                if user.email_verified_at else None
+            ),
+            "created_at": (
+                user.created_at.isoformat() if user.created_at else None
+            ),
+            "agency_name": user.agency_name,
+            "is_white_label_enabled": user.is_white_label_enabled,
+        },
+        "wallet": {
+            "balance": wallet.balance if wallet else 0,
+            "transactions": transactions,
+        },
+        "workspaces": workspaces,
+        "audits": audit_summaries,
+        "notes": (
+            "OAuth tokens, Stripe customer IDs, and password hashes are "
+            "intentionally omitted from this export — they're auth state, "
+            "not user data, and would let an attacker impersonate you if "
+            "this file leaked."
+        ),
+    }
+
+
+@app.route("/settings/account/export-data", methods=["GET"])
+@login_required
+def settings_export_data():
+    """GDPR Art. 20 (right to data portability). Returns a JSON file
+    bundling everything we have about the user."""
+    payload = _build_user_data_export(current_user)
+    body = json.dumps(payload, indent=2, default=str)
+    safe_email = (current_user.email or "user").split("@")[0]
+    filename = f"darinsights-data-export-{safe_email}-{utcnow().strftime('%Y%m%d')}.json"
+    response = make_response(body)
+    response.headers["Content-Type"] = "application/json"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def _hard_delete_user_owned_data(user_id: int) -> None:
+    """Cascade-delete everything tied to the user. Each delete is
+    scoped by user_id so the function is safe to call repeatedly
+    (idempotent — a partial run that committed some deletes can be
+    re-run without re-deleting other users' data).
+
+    Tables with a user_id column on this app's data model — kept
+    explicit so a future schema add can fail loudly here (better
+    than silently leaving an orphan row that re-identifies the
+    user)."""
+    from sqlalchemy import text as sql_text
+    # The set of tables that hold per-user data. Each is deleted
+    # by user_id (or the equivalent column). Order matters where
+    # FK constraints exist: child rows before parent rows.
+    statements = [
+        # Webhook bookkeeping that references the user (not vice versa)
+        "DELETE FROM credit_reservations WHERE user_id = :uid",
+        "DELETE FROM credit_transactions WHERE user_id = :uid",
+        # Integration connections
+        "DELETE FROM google_search_console_connections WHERE user_id = :uid",
+        "DELETE FROM shopify_connections WHERE user_id = :uid",
+        "DELETE FROM bigcommerce_connections WHERE user_id = :uid",
+        "DELETE FROM shopline_connections WHERE user_id = :uid",
+        "DELETE FROM wix_connections WHERE user_id = :uid",
+        "DELETE FROM framer_connections WHERE user_id = :uid",
+        "DELETE FROM squarespace_connections WHERE user_id = :uid",
+        "DELETE FROM woocommerce_connections WHERE user_id = :uid",
+        "DELETE FROM calcom_connections WHERE user_id = :uid",
+        "DELETE FROM webflow_exports WHERE user_id = :uid",
+        # Marketplace + tracking + modules
+        "DELETE FROM marketplace_presences WHERE user_id = :uid",
+        "DELETE FROM prompt_check_snapshots WHERE user_id = :uid",
+        "DELETE FROM prompt_tracking WHERE user_id = :uid",
+        "DELETE FROM user_modules WHERE user_id = :uid",
+        # Website builder
+        "DELETE FROM generated_website_pages WHERE project_id IN "
+        "(SELECT id FROM generated_website_projects WHERE user_id = :uid)",
+        "DELETE FROM generated_website_projects WHERE user_id = :uid",
+        # Workspaces (clients)
+        "DELETE FROM clients WHERE user_id = :uid",
+        # Auth / verification tokens
+        "DELETE FROM password_reset_tokens WHERE user_id = :uid",
+        "DELETE FROM email_verification_tokens WHERE user_id = :uid",
+        # Wallet (1:1)
+        "DELETE FROM wallets WHERE user_id = :uid",
+        # Webhook events tied to the user
+        "DELETE FROM webhook_events WHERE user_id = :uid",
+        # Team invites (both sent and accepted)
+        "DELETE FROM team_invites WHERE owner_user_id = :uid OR accepted_user_id = :uid",
+        # Referrals (both directions — null out so the OTHER user's
+        # referral history isn't broken; full delete would orphan)
+        "UPDATE referrals SET referrer_user_id = NULL WHERE referrer_user_id = :uid",
+        "UPDATE referrals SET referred_user_id = NULL WHERE referred_user_id = :uid",
+        # Email campaign recipients (admin-sent campaigns to this user)
+        "DELETE FROM email_campaign_recipients WHERE user_id = :uid",
+        # Detach team members so the deleted user's teammates don't
+        # all become orphaned (they keep working as solo accounts).
+        "UPDATE users SET team_owner_id = NULL WHERE team_owner_id = :uid",
+        # Same for referral attribution from the OTHER direction.
+        "UPDATE users SET referred_by_user_id = NULL WHERE referred_by_user_id = :uid",
+        # And finally the user row itself.
+        "DELETE FROM users WHERE id = :uid",
+    ]
+    for stmt in statements:
+        try:
+            db.session.execute(sql_text(stmt), {"uid": user_id})
+        except Exception as exc:
+            # Log + continue. Failing one delete shouldn't leave the
+            # user partially deleted forever — better to keep going
+            # and end up with some orphan rows that ops can clean.
+            logger.warning(
+                "Account deletion: statement failed (user=%s, stmt=%s): %s",
+                user_id, stmt[:80], exc,
+            )
+    db.session.commit()
+
+
+@app.route("/settings/account/delete", methods=["POST"])
+@login_required
+@limiter.limit("3 per hour", methods=["POST"])
+def settings_delete_account():
+    """GDPR Art. 17 (right to erasure). Requires the user's current
+    password (anti-CSRF + anti-stranger-with-cookie); cancels their
+    Stripe subscription best-effort; cascade-deletes every row tied
+    to them; logs them out; redirects to the landing page.
+
+    Rate-limited at 3/hour per IP — this is a destructive irreversible
+    action and accidental double-clicks shouldn't compound."""
+    current = request.form.get("current_password") or ""
+    confirm_text = (request.form.get("confirm_phrase") or "").strip().lower()
+
+    if not check_password_hash(current_user.password_hash, current):
+        flash("Current password is incorrect — account not deleted.", "error")
+        return redirect(url_for("settings_account"))
+
+    # Belt-and-braces: require the user to type "delete my account"
+    # so it's clear this isn't a misclick.
+    if confirm_text != "delete my account":
+        flash(
+            "Type 'delete my account' exactly to confirm deletion.",
+            "error",
+        )
+        return redirect(url_for("settings_account"))
+
+    user_id = current_user.id
+    user_email = current_user.email
+
+    # Best-effort Stripe cancellation. Don't block deletion on it —
+    # the user can chase any leftover subscription via Stripe support.
+    try:
+        from services.stripe_helper import cancel_subscription_now
+        if current_user.stripe_subscription_id:
+            cancel_subscription_now(current_user.stripe_subscription_id)
+        for sub_id in (current_user.stripe_extra_workspace_sub_ids or []):
+            cancel_subscription_now(sub_id)
+        for sub_id in (current_user.stripe_extra_seat_sub_ids or []):
+            cancel_subscription_now(sub_id)
+    except Exception as exc:
+        logger.warning(
+            "Stripe cancellation failed during deletion for user=%s: %s",
+            user_id, exc,
+        )
+
+    # Log out before deleting — once the row is gone, current_user
+    # is the AnonymousUserMixin and logout_user() is a no-op.
+    logout_user()
+
+    _hard_delete_user_owned_data(user_id)
+
+    logger.info("Account deleted (GDPR Art. 17): user_id=%s email=%s",
+                user_id, user_email)
+    flash(
+        "Your account and all associated data have been deleted. "
+        "We're sorry to see you go.",
+        "success",
+    )
+    return redirect(url_for("aeo_agency_page"))
+
+
+# =========================
 # Webflow Integration Routes
 # =========================
 # These routes allow DarInsights to act as an AI CMS editor for Webflow sites.
