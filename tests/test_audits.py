@@ -16,7 +16,6 @@ Pins the contract after migrating from outputs/*.json:
 
 from __future__ import annotations
 
-import pytest
 
 from app import Audit, db, get_saved_audits, read_full_audit_data
 from save_results import save_audit_results

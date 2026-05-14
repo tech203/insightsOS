@@ -41,7 +41,6 @@ from app import (
     Client,
     CreditReservation,
     PromptTracking,
-    Wallet,
     db,
 )
 from app import app as flask_app

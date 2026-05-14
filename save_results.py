@@ -11,7 +11,6 @@ URLs like /audit/<filename> continue to work because the audits
 table is keyed on filename.
 """
 
-import os
 from datetime import datetime
 
 

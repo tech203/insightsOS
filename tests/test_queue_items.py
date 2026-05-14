@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import pytest
 
-from app import QueueItem, db
+from app import QueueItem
 from content_queue import (
     add_queue_item,
     delete_items_for_client,
