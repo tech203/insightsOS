@@ -59,6 +59,11 @@ PAGES_WITH_AUDIT = [
     "/client/{slug}/content-brief",
     "/client/{slug}/content-draft",
     "/client/{slug}/presentation",
+    # Website builder landing — catches blueprint/queue/template
+    # regressions like the Round 1 (missing brand kit fields) and
+    # Round 7 (Jinja block-scope) bugs that previously slipped
+    # through because nothing exercised this page in CI.
+    "/client/{slug}/website-builder",
     "/settings",
     "/settings/credits",
     "/settings/team",
