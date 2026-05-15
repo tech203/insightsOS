@@ -58,6 +58,7 @@ from pricing import (
     workspace_limit_for_plan,
 )
 from query_idea_generator import generate_query_ideas
+from query_agent import generate_queries
 from flask import (
     Flask,
     render_template,
@@ -2272,6 +2273,77 @@ def regenerate_brand_kit_palette(client_id):
     blueprint["secondary_color"] = secondary
     blueprint["accent_color"] = accent
     blueprint["palette_variant"] = next_variant
+
+    session["pending_website_blueprint"] = blueprint
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+
+@app.route("/client/<client_id>/website-builder/regenerate-aeo-ideas", methods=["POST"])
+@login_required
+def regenerate_brand_kit_aeo_ideas(client_id):
+    """Refresh the AEO focus list using LLM-driven query generation
+    (generate_queries() — gpt-4o-mini with template fallback). Each
+    click advances a cursor so the user sees a different slice of
+    the generated ideas, not the same 4 strings on every press.
+
+    Like regenerate_palette, this preserves in-flight form edits so
+    the user doesn't lose typed-in changes when the page re-renders.
+
+    The LLM gets the brand's products/services + style direction as
+    grounding so generated queries are anchored to what THIS business
+    actually sells, not the generic industry category."""
+    blueprint = session.get("pending_website_blueprint")
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
+    industry = blueprint.get("business_type") or ""
+    location = blueprint.get("location") or ""
+    services = blueprint.get("products_or_services") or blueprint.get("services") or []
+    if isinstance(services, str):
+        services = [s.strip() for s in services.replace("\n", ",").split(",") if s.strip()]
+
+    # Build a brand-context blob so the LLM produces queries anchored
+    # to what THIS business actually sells, not generic category
+    # queries. Mirrors how the audit query generator passes the home-
+    # page scan as ground truth.
+    context_parts = []
+    client_name = blueprint.get("client_name")
+    if client_name:
+        context_parts.append(f"Business: {client_name}")
+    if industry:
+        context_parts.append(f"Industry: {industry}")
+    if services:
+        context_parts.append("Products/services: " + ", ".join(services[:6]))
+    if blueprint.get("style_direction"):
+        context_parts.append(f"Style: {blueprint['style_direction']}")
+    brand_context = ". ".join(context_parts) or None
+
+    # generate_queries is LLM-first (OpenAI gpt-4o-mini) with a
+    # template fallback, so a missing API key or LLM error returns
+    # something useful rather than raising or returning [].
+    topic = industry or client_name or "business"
+    all_ideas = generate_queries(
+        topic=topic,
+        location=location or None,
+        brand_context=brand_context,
+    )
+
+    if all_ideas:
+        cursor = int(blueprint.get("aeo_variant") or 0) + 1
+        # Wrap so the cursor never grows unbounded.
+        start = (cursor * 4) % max(len(all_ideas), 1)
+        # Build the slice with wrap-around so a small idea pool still
+        # produces 4 distinct entries.
+        slice_size = min(4, len(all_ideas))
+        new_focus = [
+            all_ideas[(start + i) % len(all_ideas)]
+            for i in range(slice_size)
+        ]
+        blueprint["aeo_focus"] = new_focus
+        blueprint["aeo_variant"] = cursor
 
     session["pending_website_blueprint"] = blueprint
     return redirect(url_for("preview_website_brand_kit", client_id=client_id))

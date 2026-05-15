@@ -770,6 +770,73 @@ def test_palette_variant_unknown_theme_falls_back_to_general():
     assert get_palette_variant("nonexistent", 0) == PALETTE_VARIANTS["general"][0]
 
 
+def test_regenerate_aeo_ideas_route_advances_focus_and_preserves_form(app_ctx):
+    """End-to-end-ish: POSTing to the regenerate-aeo-ideas route
+    must (a) replace blueprint.aeo_focus with a new slice of
+    generate_query_ideas output, (b) bump aeo_variant, (c) preserve
+    any in-flight form edits the user typed before clicking, and
+    (d) redirect back to the brand-kit preview."""
+    from werkzeug.security import generate_password_hash
+    from app import db, User, Wallet, Client, app as flask_app
+    from datetime import datetime, timezone
+
+    u = User(
+        email="aeo@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="AEO Test",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    u.wallet = Wallet(user_id=u.id, balance=10)
+    db.session.add(u.wallet)
+    ws = Client(
+        slug="aeoco",
+        user_id=u.id,
+        name="AEO Co",
+        website="https://aeo.example.com",
+        website_normalized="aeo.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+        s["pending_website_blueprint"] = {
+            "client_name": "AEO Co",
+            "business_type": "Marketing agency",
+            "location": "Singapore",
+            "services": ["AEO consulting"],
+            "industry_theme": "general",
+            "aeo_focus": ["original 1", "original 2"],
+            "aeo_variant": 0,
+            "personality": ["clear"],
+        }
+
+    # User typed in the personality textarea before clicking
+    # Regenerate Ideas — that edit must survive the redirect.
+    resp = c.post(
+        f"/client/{ws.slug}/website-builder/regenerate-aeo-ideas",
+        data={"personality": "bold, modern, distinctive"},
+    )
+    assert resp.status_code in (302, 303)
+    assert "brand-kit" in resp.headers["Location"]
+
+    with c.session_transaction() as s:
+        bp = s["pending_website_blueprint"]
+    new_focus = bp.get("aeo_focus")
+    assert new_focus != ["original 1", "original 2"]
+    assert len(new_focus) >= 1
+    assert bp.get("aeo_variant") == 1
+    # Personality edit was preserved through the redirect.
+    assert "bold" in (bp.get("personality") or [""])[0]
+
+
 def test_apply_brand_kit_form_edits_skip_and_add_combined():
     """Skip + Add in the same submission: existing pages are filtered,
     new pages are appended, both happen in one form post."""

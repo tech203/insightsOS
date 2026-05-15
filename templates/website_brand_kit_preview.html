@@ -444,7 +444,11 @@
                 <h2>Questions people may ask AI</h2>
             </div>
 
-            <button class="btn btn-secondary" type="button">
+            <button
+                class="btn btn-secondary"
+                type="submit"
+                formaction="{{ url_for('regenerate_brand_kit_aeo_ideas', client_id=client.id) }}"
+            >
                 Regenerate Ideas
             </button>
         </div>
