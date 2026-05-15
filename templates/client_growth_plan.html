@@ -209,7 +209,9 @@
                 {% endfor %}
             </div>
             {% else %}
+            {% from "partials/empty_state_illustrations.html" import audit_illustration %}
             <div class="empty-state-box surface-card">
+                {{ audit_illustration() }}
                 <h4>No action plan yet</h4>
                 <p>Run an audit first to generate a prioritised action list.</p>
             </div>

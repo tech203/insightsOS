@@ -106,7 +106,9 @@ custom cakes singapore"
     </section>
 
     {% if total_prompts == 0 %}
+    {% from "partials/empty_state_illustrations.html" import prompts_illustration %}
     <section class="tracking-empty">
+        {{ prompts_illustration() }}
         <span class="section-kicker">No Data Yet</span>
         <h2>No prompts tracked yet</h2>
         <p>

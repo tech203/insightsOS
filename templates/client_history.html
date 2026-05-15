@@ -226,7 +226,9 @@
         {% endif %}
 
         {% else %}
+        {% from "partials/empty_state_illustrations.html" import audit_illustration %}
         <div class="history-empty-state">
+            {{ audit_illustration() }}
             <h3>No audits yet</h3>
             <p>Run and save your first audit to start building history for this workspace.</p>
             <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run First Audit</a>

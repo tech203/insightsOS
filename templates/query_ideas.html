@@ -96,7 +96,9 @@
             </div>
         </article>
         {% else %}
+        {% from "partials/empty_state_illustrations.html" import prompts_illustration %}
         <section class="surface-card query-empty-card">
+            {{ prompts_illustration() }}
             <span class="section-kicker">No Ideas Yet</span>
             <h2>Generate query ideas first</h2>
             <p>
