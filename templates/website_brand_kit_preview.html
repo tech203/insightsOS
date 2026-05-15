@@ -373,6 +373,21 @@
                 >
 
                 <textarea name="page_goal_{{ loop.index0 }}" class="brand-kit-page-goal">{{ page.goal }}</textarea>
+
+                {# Skip this page at generation time — useful for
+                   clients that don't need an FAQ or About. Server
+                   filters by name in apply_brand_kit_form_edits. #}
+                <label
+                    class="muted"
+                    style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.8rem;cursor:pointer;"
+                >
+                    <input
+                        type="checkbox"
+                        name="page_remove_{{ loop.index0 }}"
+                        value="1"
+                    >
+                    Skip this page
+                </label>
             </div>
             {% endfor %}
         </div>

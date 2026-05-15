@@ -629,3 +629,80 @@ def test_preview_wrapper_falls_back_to_modern_ecommerce_when_visual_style_missin
                 blueprint={},  # no visual_style key
             )
     assert "style-modern_ecommerce" in html
+
+
+# ---------------------------------------------------------------------------
+# Skip-page flow — the brand-kit form's per-page "Skip this page"
+# checkbox must filter that page out of the blueprint at generation
+# time. Without this, users were locked to all 5 default pages even
+# if their business didn't need an About or FAQ.
+# ---------------------------------------------------------------------------
+
+def _sample_blueprint():
+    return build_demo_website_blueprint({
+        "name": "Test Co",
+        "industry": "Marketing agency",
+        "services": "AEO",
+        "location": "Singapore",
+    })
+
+
+def test_apply_brand_kit_form_edits_drops_skipped_pages():
+    """When page_remove_<i> is truthy, that page must not appear in
+    the resulting blueprint pages list."""
+    from app import apply_brand_kit_form_edits
+    from werkzeug.datastructures import ImmutableMultiDict
+
+    blueprint = _sample_blueprint()
+    assert len(blueprint["pages"]) == 5  # sanity
+
+    # Skip About (index 2) and FAQ (index 3).
+    form = ImmutableMultiDict(
+        [
+            ("page_remove_2", "1"),
+            ("page_remove_3", "1"),
+        ]
+    )
+    edited = apply_brand_kit_form_edits(blueprint, form)
+
+    surviving_slugs = [p["slug"] for p in edited["pages"]]
+    assert "about" not in surviving_slugs
+    assert "faq" not in surviving_slugs
+    assert "home" in surviving_slugs
+    assert "services" in surviving_slugs
+    assert "contact" in surviving_slugs
+    assert len(edited["pages"]) == 3
+
+
+def test_apply_brand_kit_form_edits_keeps_renames_when_skip_not_set():
+    """Without skip, renames/slug edits should still apply normally —
+    the skip flow must not break the existing edit logic."""
+    from app import apply_brand_kit_form_edits
+    from werkzeug.datastructures import ImmutableMultiDict
+
+    blueprint = _sample_blueprint()
+    form = ImmutableMultiDict(
+        [
+            ("page_title_0", "Welcome"),
+            ("page_slug_0", "welcome"),
+        ]
+    )
+    edited = apply_brand_kit_form_edits(blueprint, form)
+    assert edited["pages"][0]["title"] == "Welcome"
+    assert edited["pages"][0]["slug"] == "welcome"
+    assert len(edited["pages"]) == 5
+
+
+def test_apply_brand_kit_form_edits_can_drop_all_pages():
+    """Edge case: all 5 skipped → pages becomes empty. The approve
+    route then guards against this and warns the user — but the
+    helper itself must produce a valid (empty) list, not raise."""
+    from app import apply_brand_kit_form_edits
+    from werkzeug.datastructures import ImmutableMultiDict
+
+    blueprint = _sample_blueprint()
+    form = ImmutableMultiDict(
+        [(f"page_remove_{i}", "1") for i in range(5)]
+    )
+    edited = apply_brand_kit_form_edits(blueprint, form)
+    assert edited["pages"] == []

@@ -2195,6 +2195,18 @@ def approve_website_brand_kit(client_id):
 
     blueprint = apply_brand_kit_form_edits(blueprint, request.form)
 
+    # Guard against a user skipping every page — generation would
+    # succeed but produce an empty project, which surprises and
+    # wastes the AI call budget. Put the form back in session and
+    # warn instead.
+    if not blueprint.get("pages"):
+        session["pending_website_blueprint"] = blueprint
+        flash(
+            "Select at least one page to keep — every page was marked Skip.",
+            "warning",
+        )
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
     project = GeneratedWebsiteProject(
         user_id=current_user.id,
         client_id=row.id,
@@ -2270,6 +2282,12 @@ def apply_brand_kit_form_edits(blueprint, form):
 
     pages = []
     for index, page in enumerate(edited.get("pages") or []):
+        # "Skip this page" checkbox on the brand-kit form. Anything
+        # truthy drops the page from the generation loop entirely
+        # — useful for clients that don't need a stock FAQ or About.
+        if form.get(f"page_remove_{index}"):
+            continue
+
         page_copy = dict(page)
         title = (form.get(f"page_title_{index}") or "").strip()
         slug = (form.get(f"page_slug_{index}") or "").strip()
@@ -2284,8 +2302,13 @@ def apply_brand_kit_form_edits(blueprint, form):
 
         pages.append(page_copy)
 
-    if pages:
-        edited["pages"] = pages
+    # Always replace (even if empty) — user may have skipped every
+    # page from a previous edit. Empty list yields a 1-page site
+    # (just home) since the blueprint helper always seeds Home as
+    # the first entry, but if every page is skipped we should let
+    # the form re-render and warn rather than silently keep the
+    # originals. Falling back to originals would surprise the user.
+    edited["pages"] = pages
 
     return edited
 
