@@ -235,6 +235,9 @@ class TestCronEndpoint:
         assert r.status_code == 403
 
     def test_200_with_secret_via_header(self, app_ctx, monkeypatch):
+        # `app_ctx` is needed because the route hits the DB
+        # (User.query) even when there are no candidates — without
+        # the fixture the `users` table doesn't exist.
         secret = self._enable_cron(monkeypatch)
         c = flask_app.test_client()
         r = c.post(
