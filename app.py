@@ -461,6 +461,18 @@ class User(UserMixin, db.Model):
     # the user to operate their account).
     email_marketing_opt_out_at = db.Column(db.DateTime, nullable=True)
 
+    # ---- Onboarding milestone timestamps ----------------------------------
+    # Stamped on the first occurrence of each event. Backfilled for legacy
+    # rows by the j0e1f2g3h4i5 migration using min(created_at)/min(saved_at)
+    # from related tables. Live state (`get_onboarding_state`) keeps its
+    # fallback computation so a NULL here is non-fatal — these columns are
+    # primarily for admin analytics ("time to first audit") and as a future
+    # optimization to skip the live recompute once onboarding_completed_at
+    # is set.
+    first_workspace_at = db.Column(db.DateTime, nullable=True)
+    first_audit_at = db.Column(db.DateTime, nullable=True)
+    onboarding_completed_at = db.Column(db.DateTime, nullable=True)
+
     wallet = db.relationship(
         "Wallet",
         backref="user",
@@ -6139,6 +6151,59 @@ def get_onboarding_state(user_id):
     }
 
 
+def stamp_onboarding_milestone(user_id: int, kind: str) -> None:
+    """Stamp an onboarding milestone timestamp on the user row,
+    only if it isn't already set. Idempotent — calling again for
+    the same kind is a no-op.
+
+    `kind` is one of:
+      - "workspace"  → first_workspace_at
+      - "audit"      → first_audit_at + onboarding_completed_at
+                       (today, completing onboarding is defined as
+                       running the first audit — the unambiguous
+                       activation moment used by get_onboarding_state)
+
+    Caller is responsible for choosing when to call this — typically
+    right after the corresponding row lands. Never raises: any DB
+    error gets logged and swallowed so the user's happy-path action
+    isn't disrupted by an analytics-only stamp.
+    """
+    if not user_id or kind not in ("workspace", "audit"):
+        return
+    try:
+        user = db.session.get(User, user_id)
+        if not user:
+            return
+        now = utcnow()
+        changed = False
+        if kind == "workspace" and user.first_workspace_at is None:
+            user.first_workspace_at = now
+            changed = True
+        elif kind == "audit":
+            if user.first_audit_at is None:
+                user.first_audit_at = now
+                changed = True
+            # onboarding "complete" = first audit (matches the
+            # active=False condition in get_onboarding_state). Stamp
+            # both together so they stay in sync.
+            if user.onboarding_completed_at is None:
+                user.onboarding_completed_at = now
+                changed = True
+        if changed:
+            db.session.commit()
+    except Exception:
+        # Best-effort — log + swallow. The user's main action
+        # already succeeded; failing the stamp must not poison the
+        # request.
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        logger.exception(
+            "Onboarding stamp failed for user=%s kind=%s", user_id, kind,
+        )
+
+
 def get_view_mode(user):
     forced_mode = session.get("dev_view_mode")
     if forced_mode in ["single", "multi", "admin"]:
@@ -10646,6 +10711,12 @@ def create_client():
             },
             user_id=current_user.id,
         )
+
+        # Stamp first_workspace_at on the user row. Helper is idempotent
+        # (no-op after the first call) and never raises — safe to call
+        # unconditionally on every create rather than gating on
+        # is_first_workspace, which keeps the contract simple.
+        stamp_onboarding_milestone(current_user.id, "workspace")
 
         # First-workspace users get the soft brand-context step
         # before the audit. Filling it in dramatically improves every
