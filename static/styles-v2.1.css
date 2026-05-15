@@ -18708,6 +18708,28 @@ html[data-theme="dark"] .dashboard-score-label {
     color: var(--theme-text-secondary);
 }
 
+/* Score-pill dark variants — the light-mode overrides above set
+   light translucent backgrounds with dark text. Without an explicit
+   dark version, the text color stays dark and the background gets
+   washed out (or replaced by the bulk surface-flip rule), making
+   each pill unreadable against the dark canvas. Use brighter text
+   on a slightly stronger translucent fill — same hue families as
+   their light counterparts (success=aqua, danger/opportunity=coral,
+   info=teal) so the semantic meaning carries over visually. */
+html[data-theme="dark"] .score-pill-success {
+    background: rgba(62, 223, 203, 0.18);
+    color: #6FE7D5;
+}
+html[data-theme="dark"] .score-pill-danger,
+html[data-theme="dark"] .score-pill-opportunity {
+    background: rgba(232, 50, 86, 0.18);
+    color: #FFB1BD;
+}
+html[data-theme="dark"] .score-pill-info {
+    background: rgba(62, 223, 203, 0.14);
+    color: #A8E8DD;
+}
+
 /* =========================================================
    Theme toggle — move to the BOTTOM of the sidebar
    =========================================================
