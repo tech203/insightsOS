@@ -16,7 +16,6 @@ Candidate filter:
 
 from __future__ import annotations
 
-import os
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -76,8 +75,8 @@ class TestCandidateSelection:
     def test_skips_users_already_emailed(self, make_user):
         """email_sent_at NOT NULL → not a candidate. The inline send
         worked the first time; don't double-send."""
-        u = _seed(make_user, email="retry-done@x.com",
-                  offered_hours_ago=0.5, email_sent=True)
+        _seed(make_user, email="retry-done@x.com",
+              offered_hours_ago=0.5, email_sent=True)
         with patch("services.email_helper.send_email") as mock_send:
             out = sweep_upsell_lto_email_retries()
         assert out["attempted"] == 0
@@ -102,8 +101,8 @@ class TestCandidateSelection:
     def test_skips_expired_offers(self, make_user):
         """expires_at < now → don't retry. Offer's gone; emailing
         about it now would be misleading."""
-        u = _seed(make_user, email="retry-expired@x.com",
-                  offered_hours_ago=1, ttl_hours=-1)
+        _seed(make_user, email="retry-expired@x.com",
+              offered_hours_ago=1, ttl_hours=-1)
         with patch("services.email_helper.send_email") as mock_send:
             out = sweep_upsell_lto_email_retries()
         assert out["attempted"] == 0
@@ -112,8 +111,8 @@ class TestCandidateSelection:
     def test_skips_dismissed_users(self, make_user):
         """status=dismissed → user actively closed the modal. Don't
         email them about an offer they explicitly waved off."""
-        u = _seed(make_user, email="retry-dismissed@x.com",
-                  status="dismissed", offered_hours_ago=0.5)
+        _seed(make_user, email="retry-dismissed@x.com",
+              status="dismissed", offered_hours_ago=0.5)
         with patch("services.email_helper.send_email") as mock_send:
             out = sweep_upsell_lto_email_retries()
         assert out["attempted"] == 0
@@ -122,8 +121,8 @@ class TestCandidateSelection:
     def test_skips_accepted_users(self, make_user):
         """status=accepted → user already converted. Definitely don't
         send them the offer email after the fact."""
-        u = _seed(make_user, email="retry-accepted@x.com",
-                  status="accepted", offered_hours_ago=0.5)
+        _seed(make_user, email="retry-accepted@x.com",
+              status="accepted", offered_hours_ago=0.5)
         with patch("services.email_helper.send_email") as mock_send:
             out = sweep_upsell_lto_email_retries()
         assert out["attempted"] == 0
@@ -235,7 +234,7 @@ class TestCronEndpoint:
         )
         assert r.status_code == 403
 
-    def test_200_with_secret_via_header(self, monkeypatch):
+    def test_200_with_secret_via_header(self, app_ctx, monkeypatch):
         secret = self._enable_cron(monkeypatch)
         c = flask_app.test_client()
         r = c.post(
@@ -248,7 +247,7 @@ class TestCronEndpoint:
         for k in ("attempted", "succeeded", "skipped"):
             assert k in body
 
-    def test_200_with_secret_via_query_param(self, monkeypatch):
+    def test_200_with_secret_via_query_param(self, app_ctx, monkeypatch):
         """Some cron platforms can't set custom headers. Query-param
         fallback should also work."""
         secret = self._enable_cron(monkeypatch)
