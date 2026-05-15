@@ -75,7 +75,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key-not-used")
 os.environ.setdefault("CRON_SECRET", "test-cron-secret-not-for-prod")
 
 import pytest  # noqa: E402
-from dtutils import utcnow
+from dtutils import utcnow  # noqa: E402
 
 # Import after env is primed. The app module wires the DB engine at
 # import time, so this can only be done once env is set.

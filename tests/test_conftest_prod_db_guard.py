@@ -20,13 +20,10 @@ see it fire here).
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
