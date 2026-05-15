@@ -5418,6 +5418,15 @@ def user_has_unlimited_credits(user):
 # Tuning constants live here so product can A/B them in one place:
 UPSELL_PROMPT_THRESHOLD = 3   # paywall encounters before LTO triggers
 UPSELL_LTO_TTL_HOURS = 24     # how long the offer stays live once shown
+# How long after qualification we're willing to keep retrying the
+# email. After this window, give up — the user's offer is past its
+# halfway point anyway and a delayed retry isn't worth burning the
+# Resend quota. Tuned conservatively; if Resend has an outage
+# shorter than this, the retry sweep catches them.
+UPSELL_LTO_EMAIL_RETRY_WINDOW_HOURS = 2
+# Per-cron-tick cap on retries. Stops a Resend outage that lasted
+# 2 hours from causing a thundering-herd retry once the cron fires.
+UPSELL_LTO_EMAIL_RETRY_BATCH = 50
 
 
 def record_upsell_prompt(user, source: str = "") -> None:
@@ -5667,6 +5676,68 @@ def _send_upsell_lto_email(user) -> bool:
                 user.id,
             )
     return bool(sent)
+
+
+def sweep_upsell_lto_email_retries() -> Dict[str, int]:
+    """Retry the one-shot LTO email for users where the inline send
+    failed (Resend was down, transient network blip, etc.).
+
+    Targets users who:
+      - Are still in "shown" state (haven't dismissed / accepted)
+      - Have never received the email yet (email_sent_at IS NULL)
+      - Qualified within the retry window (offered_at > now - WINDOW)
+      - Still have time on the offer (expires_at > now)
+
+    The qualified-within-window filter is the key — we don't keep
+    retrying forever. If Resend has a 6-hour outage and qualifications
+    pile up, the ones older than 2 hours just get skipped; their
+    in-app modal still works.
+
+    Returns a {attempted, succeeded, skipped} dict for the cron's
+    response body — useful in logs and for ops to confirm the sweep
+    ran. Never raises; per-user failures are logged and counted.
+    """
+    now = utcnow()
+    cutoff = now - timedelta(hours=UPSELL_LTO_EMAIL_RETRY_WINDOW_HOURS)
+    candidates = (
+        User.query
+        .filter(
+            User.upsell_lto_status == "shown",
+            User.upsell_lto_email_sent_at.is_(None),
+            User.upsell_lto_offered_at > cutoff,
+            User.upsell_lto_expires_at > now,
+        )
+        .order_by(User.upsell_lto_offered_at.asc())  # oldest first — fairer
+        .limit(UPSELL_LTO_EMAIL_RETRY_BATCH)
+        .all()
+    )
+    attempted = 0
+    succeeded = 0
+    skipped = 0
+    for user in candidates:
+        attempted += 1
+        try:
+            ok = _send_upsell_lto_email(user)
+            if ok:
+                succeeded += 1
+            else:
+                # Could be: opted-out (skipped + stamped), still
+                # down, or empty email. Either way we don't retry
+                # this row again on the next sweep tick because the
+                # send helper handles its own state (opt-out path
+                # stamps the timestamp; transient failure leaves it
+                # NULL so the next tick within the window will try).
+                skipped += 1
+        except Exception:
+            logger.exception(
+                "LTO email retry pipeline raised for user %s", user.id,
+            )
+            skipped += 1
+    return {
+        "attempted": attempted,
+        "succeeded": succeeded,
+        "skipped": skipped,
+    }
 
 
 def _mark_upsell_lto(user, status: str) -> bool:
@@ -18395,6 +18466,42 @@ def gsc_disconnect(client_id):
     else:
         flash("No Google Search Console connection on this workspace.", "info")
     return redirect(url_for("client_detail", client_id=client_id))
+
+
+@app.route("/cron/upsell-lto-email-retries", methods=["POST", "GET"])
+@csrf.exempt  # Authenticated via CRON_SECRET header — not a browser session
+def cron_upsell_lto_email_retries():
+    """Scheduled sweep that retries the LTO email for users whose
+    inline send failed (Resend outage, transient network blip).
+
+    Auth: pass `CRON_SECRET` either as the `X-Cron-Secret` header or
+    `?secret=…` query param. Mismatched secrets get a 403; missing
+    server-side configuration gets a 503.
+
+    Idempotent: candidates are users in 'shown' state whose
+    `upsell_lto_email_sent_at IS NULL` and qualification was within
+    UPSELL_LTO_EMAIL_RETRY_WINDOW_HOURS — already-emailed users
+    don't appear in the candidate set. After the window passes, we
+    stop trying (their in-app modal still works regardless).
+
+    Suggested cron entry:
+        */15 * * * *  curl -fsS -X POST -H "X-Cron-Secret: $SECRET" \\
+                          https://your-host/cron/upsell-lto-email-retries
+    """
+    expected = os.getenv("CRON_SECRET")
+    if not expected:
+        return jsonify({"ok": False, "error": "CRON_SECRET not configured"}), 503
+    provided = (
+        request.headers.get("X-Cron-Secret")
+        or request.args.get("secret")
+        or ""
+    )
+    if provided != expected:
+        abort(403)
+
+    summary = sweep_upsell_lto_email_retries()
+    summary["ok"] = True
+    return jsonify(summary)
 
 
 @app.route("/cron/answer-monitor", methods=["POST", "GET"])
