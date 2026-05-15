@@ -24,6 +24,41 @@ import os
 # Env setup must happen BEFORE app is imported. app.py reads these at
 # module-import time to wire SQLAlchemy / Flask-Login / etc.
 # ---------------------------------------------------------------------------
+
+# Production-DB guard. The per-test app_ctx fixture below calls
+# db.drop_all() on teardown to give every test a clean slate. That's
+# only safe when DATABASE_URL points at a throw-away test DB.
+#
+# When a developer shell-sources .env before running pytest (common
+# pattern: `source .env && pytest`), DATABASE_URL leaks in already
+# set to the live SQLite path. The setdefault() below then becomes a
+# no-op, and the next test cycle silently wipes production data.
+# This has happened twice on the same admin account already.
+#
+# Refuse to start under any DATABASE_URL that looks like a live DB
+# unless the developer explicitly opts in via ALLOW_PROD_DB_IN_TESTS
+# (escape hatch for the rare case of running tests against a real DB
+# — e.g. a pre-deploy smoke check on a backed-up copy).
+_incoming_db = (os.environ.get("DATABASE_URL") or "").strip()
+_PROD_DB_MARKERS = ("app-prod.db", "/instance/app.db")
+if (
+    _incoming_db
+    and any(marker in _incoming_db for marker in _PROD_DB_MARKERS)
+    and not os.environ.get("ALLOW_PROD_DB_IN_TESTS")
+):
+    raise SystemExit(
+        f"\n\nREFUSING TO RUN TESTS:\n"
+        f"  DATABASE_URL points at what looks like a live database: {_incoming_db!r}\n"
+        f"  The per-test teardown would call db.drop_all() and wipe it.\n\n"
+        f"  Fix one of:\n"
+        f"    1. Unset DATABASE_URL before running tests:\n"
+        f"         unset DATABASE_URL && pytest\n"
+        f"    2. Point DATABASE_URL at a throw-away test DB:\n"
+        f"         DATABASE_URL=sqlite:///test.db pytest\n"
+        f"    3. (Last resort) export ALLOW_PROD_DB_IN_TESTS=1 to bypass this\n"
+        f"       guard. Only do this if you've taken a backup.\n"
+    )
+
 os.environ.setdefault("DATABASE_URL", "sqlite:///test.db")
 os.environ.setdefault("SECRET_KEY", "test-secret-not-for-prod")
 # Stop the import-time launch-config warning loop from spamming test
