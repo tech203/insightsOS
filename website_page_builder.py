@@ -2,8 +2,121 @@ import json
 import logging
 from openai import OpenAI
 
+from brand_kit_engine import classify_industry_theme
+
 client = OpenAI()
 logger = logging.getLogger(__name__)
+
+
+# Per-bucket shape for build_business_context. The keyword
+# classification is shared with generate_brand_kit and
+# build_demo_website_blueprint via classify_industry_theme — adding a
+# new keyword (say "physio") in brand_kit_engine.INDUSTRY_KEYWORDS
+# updates all three.
+_BUCKET_TO_CONTEXT = {
+    "food_and_beverage": {
+        "business_type": "food_and_beverage",
+        "primary_cta": "Shop Now",
+        "secondary_cta": "View Products",
+        "tone": "playful, warm, appetising, trustworthy",
+        "suggested_sections": [
+            "Featured Products",
+            "Best Sellers",
+            "Why Customers Love Us",
+            "Delivery and Ordering",
+            "FAQ",
+        ],
+        "avoid_terms": [
+            "Book a Consultation",
+            "professional services",
+            "client advisory",
+            "consulting",
+            "service consultation",
+        ],
+        "homepage_angle_template": (
+            "{name} offers nostalgic ice cream, desserts, confectionery, "
+            "and merchandise for customers in {location}."
+        ),
+    },
+    "ecommerce": {
+        "business_type": "ecommerce",
+        "primary_cta": "Shop Now",
+        "secondary_cta": "View Products",
+        "tone": "clear, product-focused, trustworthy, conversion-friendly",
+        "suggested_sections": [
+            "Featured Products",
+            "Popular Items",
+            "Why Buy From Us",
+            "Delivery Information",
+            "FAQ",
+        ],
+        "avoid_terms": [
+            "Book a Consultation",
+            "professional services",
+            "client advisory",
+            "consulting",
+            "service consultation",
+        ],
+        "homepage_angle_template": (
+            "{name} helps customers discover and buy products online "
+            "in {location}."
+        ),
+    },
+    "clinic": {
+        "business_type": "clinic",
+        "primary_cta": "Book an Appointment",
+        "secondary_cta": "View Services",
+        "tone": "professional, reassuring, clear, trustworthy",
+        "suggested_sections": [
+            "Services",
+            "Why Choose Us",
+            "Treatment Information",
+            "Patient FAQs",
+            "Contact",
+        ],
+        "avoid_terms": ["Shop Now", "Order Now", "Add to Cart"],
+        "homepage_angle_template": (
+            "{name} helps patients in {location} understand available "
+            "services and book appointments with confidence."
+        ),
+    },
+    "education": {
+        "business_type": "education",
+        "primary_cta": "Enquire Now",
+        "secondary_cta": "View Programmes",
+        "tone": "supportive, clear, parent-friendly, encouraging",
+        "suggested_sections": [
+            "Programmes",
+            "Who It Helps",
+            "Why Parents Choose Us",
+            "Learning Approach",
+            "FAQ",
+        ],
+        "avoid_terms": ["Shop Now", "Order Now", "Add to Cart"],
+        "homepage_angle_template": (
+            "{name} helps students and parents in {location} find "
+            "suitable learning support."
+        ),
+    },
+    "general": {
+        "business_type": "general_business",
+        "primary_cta": "Enquire Now",
+        "secondary_cta": "View Services",
+        "tone": "professional, clear, trustworthy",
+        "suggested_sections": [
+            "Services",
+            "Why Choose Us",
+            "How It Works",
+            "FAQ",
+            "Contact",
+        ],
+        "avoid_terms": [],
+        "homepage_angle_template": (
+            "{name} helps customers in {location} understand its "
+            "services clearly."
+        ),
+    },
+}
 
 
 def build_business_context(
@@ -15,121 +128,18 @@ def build_business_context(
     research_results=None,
 ):
     name = (business_name or "").strip()
-    industry_text = (industry or "").strip().lower()
-    services_text = (services or "").strip().lower()
-    combined = f"{industry_text} {services_text}"
+    bucket = classify_industry_theme(industry, services)
+    shape = _BUCKET_TO_CONTEXT[bucket]
 
-    if any(word in combined for word in [
-        "ice cream", "dessert", "confectionery", "food", "cafe",
-        "restaurant", "bakery", "f&b", "beverage"
-    ]):
-        business_type = "food_and_beverage"
-        primary_cta = "Shop Now"
-        secondary_cta = "View Products"
-        tone = "playful, warm, appetising, trustworthy"
-        suggested_sections = [
-            "Featured Products",
-            "Best Sellers",
-            "Why Customers Love Us",
-            "Delivery and Ordering",
-            "FAQ",
-        ]
-        avoid_terms = [
-            "Book a Consultation",
-            "professional services",
-            "client advisory",
-            "consulting",
-            "service consultation",
-        ]
-        homepage_angle = (
-            f"{name} offers nostalgic ice cream, desserts, confectionery, "
-            f"and merchandise for customers in {location or 'Singapore'}."
-        )
-
-    elif any(word in combined for word in [
-        "ecommerce", "online store", "shop", "merchandise", "products"
-    ]):
-        business_type = "ecommerce"
-        primary_cta = "Shop Now"
-        secondary_cta = "View Products"
-        tone = "clear, product-focused, trustworthy, conversion-friendly"
-        suggested_sections = [
-            "Featured Products",
-            "Popular Items",
-            "Why Buy From Us",
-            "Delivery Information",
-            "FAQ",
-        ]
-        avoid_terms = [
-            "Book a Consultation",
-            "professional services",
-            "client advisory",
-            "consulting",
-            "service consultation",
-        ]
-        homepage_angle = (
-            f"{name} helps customers discover and buy products online "
-            f"in {location or 'Singapore'}."
-        )
-
-    elif any(word in combined for word in [
-        "dental", "clinic", "doctor", "medical", "aesthetic", "health"
-    ]):
-        business_type = "clinic"
-        primary_cta = "Book an Appointment"
-        secondary_cta = "View Services"
-        tone = "professional, reassuring, clear, trustworthy"
-        suggested_sections = [
-            "Services",
-            "Why Choose Us",
-            "Treatment Information",
-            "Patient FAQs",
-            "Contact",
-        ]
-        avoid_terms = ["Shop Now", "Order Now", "Add to Cart"]
-        homepage_angle = (
-            f"{name} helps patients in {location or 'Singapore'} understand "
-            f"available services and book appointments with confidence."
-        )
-
-    elif any(word in combined for word in [
-        "tuition", "education", "enrichment", "school", "learning",
-        "psle", "math", "english"
-    ]):
-        business_type = "education"
-        primary_cta = "Enquire Now"
-        secondary_cta = "View Programmes"
-        tone = "supportive, clear, parent-friendly, encouraging"
-        suggested_sections = [
-            "Programmes",
-            "Who It Helps",
-            "Why Parents Choose Us",
-            "Learning Approach",
-            "FAQ",
-        ]
-        avoid_terms = ["Shop Now", "Order Now", "Add to Cart"]
-        homepage_angle = (
-            f"{name} helps students and parents in {location or 'Singapore'} "
-            f"find suitable learning support."
-        )
-
-    else:
-        business_type = "general_business"
-        primary_cta = "Enquire Now"
-        secondary_cta = "View Services"
-        tone = "professional, clear, trustworthy"
-        suggested_sections = [
-            "Services",
-            "Why Choose Us",
-            "How It Works",
-            "FAQ",
-            "Contact",
-        ]
-        avoid_terms = []
-        homepage_angle = (
-            f"{name} helps customers in {location or 'Singapore'} understand "
-            f"its services clearly."
-        )
+    business_type = shape["business_type"]
+    primary_cta = shape["primary_cta"]
+    secondary_cta = shape["secondary_cta"]
+    tone = shape["tone"]
+    suggested_sections = list(shape["suggested_sections"])
+    avoid_terms = list(shape["avoid_terms"])
+    homepage_angle = shape["homepage_angle_template"].format(
+        name=name, location=location or "Singapore"
+    )
 
     products_or_services = []
     if services:

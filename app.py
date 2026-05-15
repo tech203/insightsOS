@@ -81,7 +81,11 @@ from dtutils import utcnow
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
 from urllib.parse import urlencode
-from brand_kit_engine import generate_brand_kit, get_palette_variant
+from brand_kit_engine import (
+    generate_brand_kit,
+    get_palette_variant,
+    classify_industry_theme,
+)
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -3087,50 +3091,55 @@ def build_demo_website_blueprint(client, opportunities=None):
     client_name = client.get("name", "Business")
     location = client.get("location", "Singapore")
 
-    if any(word in industry for word in ["clinic", "health", "wellness", "dental", "medical", "aesthetic"]):
-        theme = "clinic_wellness"
-        style = "calm, clean, reassuring, health-focused"
-        functions = ["appointment booking", "contact form", "FAQ schema"]
-
-    elif any(word in industry for word in ["tuition", "education", "school", "enrichment", "learning"]):
-        theme = "education_centre"
-        style = "friendly, structured, parent-focused, trustworthy"
-        functions = ["enquiry form", "programme cards", "FAQ schema"]
-
-    elif any(word in industry for word in [
-        "restaurant", "cafe", "food", "f&b", "ice cream", "dessert",
-        "confectionery", "bakery", "beverage"
-    ]):
-        theme = "restaurant_cafe"
-        style = "warm, visual, product-led, lifestyle-focused"
-        functions = ["product grid", "menu/product section", "WhatsApp CTA"]
-
-    elif any(word in industry for word in [
-        "ecommerce", "e-commerce", "retail", "shop", "online store",
-        "merchandise", "products"
-    ]):
-        theme = "ecommerce_store"
-        style = "conversion-focused, product-led, clean, modern"
-        functions = ["product grid", "checkout CTA", "FAQ schema"]
-
-    else:
-        theme = "professional_services"
-        style = "premium, trustworthy, clear, professional"
-        functions = ["lead form", "consultation CTA", "FAQ schema"]
-
-    primary_cta = (
-        "Shop Now"
-        if theme in ["restaurant_cafe", "ecommerce_store"]
-        else "Book an Appointment"
-        if theme == "clinic_wellness"
-        else "Enquire Now"
-    )
-
-    secondary_cta = (
-        "View Products"
-        if theme in ["restaurant_cafe", "ecommerce_store"]
-        else "View Services"
-    )
+    # Shared classifier in brand_kit_engine. Map the canonical bucket
+    # to the demo-blueprint's theme names + per-theme style / functions
+    # / CTAs. Theme names stay as-is (referenced by .theme-* body
+    # classes and PALETTE_VARIANTS aliases) — only the classification
+    # is shared.
+    bucket = classify_industry_theme(industry)
+    bucket_to_demo = {
+        "clinic": {
+            "theme": "clinic_wellness",
+            "style": "calm, clean, reassuring, health-focused",
+            "functions": ["appointment booking", "contact form", "FAQ schema"],
+            "primary_cta": "Book an Appointment",
+            "secondary_cta": "View Services",
+        },
+        "education": {
+            "theme": "education_centre",
+            "style": "friendly, structured, parent-focused, trustworthy",
+            "functions": ["enquiry form", "programme cards", "FAQ schema"],
+            "primary_cta": "Enquire Now",
+            "secondary_cta": "View Services",
+        },
+        "food_and_beverage": {
+            "theme": "restaurant_cafe",
+            "style": "warm, visual, product-led, lifestyle-focused",
+            "functions": ["product grid", "menu/product section", "WhatsApp CTA"],
+            "primary_cta": "Shop Now",
+            "secondary_cta": "View Products",
+        },
+        "ecommerce": {
+            "theme": "ecommerce_store",
+            "style": "conversion-focused, product-led, clean, modern",
+            "functions": ["product grid", "checkout CTA", "FAQ schema"],
+            "primary_cta": "Shop Now",
+            "secondary_cta": "View Products",
+        },
+        "general": {
+            "theme": "professional_services",
+            "style": "premium, trustworthy, clear, professional",
+            "functions": ["lead form", "consultation CTA", "FAQ schema"],
+            "primary_cta": "Enquire Now",
+            "secondary_cta": "View Services",
+        },
+    }
+    demo = bucket_to_demo[bucket]
+    theme = demo["theme"]
+    style = demo["style"]
+    functions = demo["functions"]
+    primary_cta = demo["primary_cta"]
+    secondary_cta = demo["secondary_cta"]
 
     brand_kit = generate_brand_kit(
         business_name=client_name,

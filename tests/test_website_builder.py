@@ -777,6 +777,60 @@ def test_blueprint_includes_workspace_logo_url():
     assert blueprint["logo_url"] == "/static/uploads/workspace_logos/workspace-1-abc.png"
 
 
+def test_classifier_drives_all_three_call_sites_consistently():
+    """The same industry text must classify to the same canonical
+    bucket no matter which entry point is used. Previously the three
+    classifiers had subtly different keyword lists — e.g. "wellness"
+    was a clinic word in build_demo_website_blueprint but not in
+    generate_brand_kit, so a "wellness centre" got different theme
+    decisions depending on which function was called. The shared
+    classifier eliminates that drift."""
+    from brand_kit_engine import classify_industry_theme, generate_brand_kit
+    from website_page_builder import build_business_context
+    from app import build_demo_website_blueprint
+
+    cases = [
+        # (industry, expected_canonical_bucket)
+        ("Dental clinic", "clinic"),
+        ("Wellness centre", "clinic"),  # was clinic-only in app.py before
+        ("Tuition centre", "education"),
+        ("PSLE math enrichment", "education"),  # "psle" + "math" + "enrichment"
+        ("Ice cream shop", "food_and_beverage"),  # "ice cream" wins over "shop"
+        ("Online merchandise store", "ecommerce"),
+        ("Marketing agency", "general"),
+    ]
+
+    for industry, expected in cases:
+        # Direct classifier.
+        assert classify_industry_theme(industry) == expected, industry
+
+        # Brand kit's industry_theme matches (clinic / food_and_beverage
+        # / education / ecommerce / general — same canonical names).
+        kit = generate_brand_kit(business_name="X", industry=industry)
+        assert kit["industry_theme"] == expected, (industry, kit)
+
+        # Business context maps clinic → "clinic" too, but uses
+        # "general_business" for the general bucket. Match expected
+        # → context business_type via a small map.
+        context = build_business_context(business_name="X", industry=industry)
+        expected_context_type = "general_business" if expected == "general" else expected
+        assert context["business_type"] == expected_context_type, industry
+
+        # Demo blueprint uses its own theme names (clinic_wellness /
+        # restaurant_cafe etc.) — same bucket, mapped consistently.
+        blueprint = build_demo_website_blueprint({
+            "name": "X", "industry": industry, "location": "Singapore",
+        })
+        bucket_to_theme = {
+            "clinic": "clinic_wellness",
+            "food_and_beverage": "restaurant_cafe",
+            "education": "education_centre",
+            "ecommerce": "ecommerce_store",
+            "general": "professional_services",
+        }
+        assert blueprint["theme"] == bucket_to_theme[expected], industry
+
+
 def test_palette_variant_unknown_theme_falls_back_to_general():
     """Unknown industry_theme values shouldn't crash — fall back to
     the general bucket so the Regenerate button always works."""
