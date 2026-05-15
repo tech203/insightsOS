@@ -2008,9 +2008,33 @@ def website_builder_page(client_id):
         queue_items = get_queue_items(
             client_id=row.slug, user_id=current_user.id
         )
-        open_opportunities_count = sum(
-            1 for q in queue_items if q.get("status") != "published"
+        priority_rank = {"high": 0, "medium": 1, "low": 2}
+        open_opportunities = sorted(
+            (q for q in queue_items if q.get("status") != "published"),
+            key=lambda q: priority_rank.get(q.get("priority"), 1),
         )
+        open_opportunities_count = len(open_opportunities)
+        # Surface the top opportunities the user can EXPECT to feed
+        # the brand kit — not just the count. Caps at 3 so the panel
+        # stays compact, dedupes by lowercase target_query.
+        seen = set()
+        opportunity_previews = []
+        for item in open_opportunities:
+            query = (item.get("target_query") or "").strip()
+            if not query:
+                continue
+            key = query.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            opportunity_previews.append(
+                {
+                    "target_query": query,
+                    "priority": item.get("priority") or "medium",
+                }
+            )
+            if len(opportunity_previews) >= 3:
+                break
 
     return render_template(
         "website_builder.html",
@@ -2018,6 +2042,7 @@ def website_builder_page(client_id):
         projects=projects,
         project_summaries=project_summaries,
         open_opportunities_count=open_opportunities_count,
+        opportunity_previews=opportunity_previews if row else [],
     )
 
 
