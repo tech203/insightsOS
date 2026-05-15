@@ -133,7 +133,9 @@
     {% endfor %}
 
     {% elif selected_client %}
+    {% from "partials/empty_state_illustrations.html" import prompts_illustration %}
     <div class="empty-card">
+        {{ prompts_illustration() }}
         <h2>No tracked prompts yet for {{ selected_client.name }}</h2>
         <p>
             Add the questions you want to monitor — anything a prospect might ask an AI assistant about your business — then run checks here to see how often you get cited.

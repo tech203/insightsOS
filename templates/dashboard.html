@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block content %}
+{% from "partials/empty_state_illustrations.html" import audit_illustration, queue_illustration, workspaces_illustration %}
 {% set aeo_score = overall_score if overall_score is defined else 0 %}
 {% set vis_score = visibility_score if visibility_score is defined else 0 %}
 {% set cont_score = content_score if content_score is defined else 0 %}
@@ -167,6 +168,7 @@
                             {% endif %}
                         </div>
                     {% else %}
+                        {{ audit_illustration("dashboard-priority-illustration") }}
                         <h3>Run your first audit</h3>
                         <p>
                             Start with an audit to generate visibility findings, opportunity areas, and next action recommendations.
@@ -181,6 +183,7 @@
 
                 <article class="dashboard-priority-item">
                     <span class="dashboard-priority-kicker">Content Queue {{ info_tip("Briefs and drafts in flight: ideas → drafted → ready → published. Click in to triage what's blocked.") }}</span>
+                    {{ queue_illustration("dashboard-priority-illustration") }}
                     <h3>Check queued work</h3>
                     <div class="dashboard-priority-actions">
                         <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
@@ -191,6 +194,7 @@
 
                 <article class="dashboard-priority-item">
                     <span class="dashboard-priority-kicker">Workspaces {{ info_tip("Each workspace tracks one brand or website — its own audits, prompts, content queue, and integrations.") }}</span>
+                    {{ workspaces_illustration("dashboard-priority-illustration") }}
                     {% if has_clients %}
                         <h3>{{ total_clients or clients|length }} active workspace{% if (total_clients or clients|length) != 1 %}s{% endif %}</h3>
                     {% else %}
