@@ -183,17 +183,31 @@
     font-weight: 900;
 }
 
-.site-hero-card h3,
-.site-feature-card h3,
-.site-faq-card h3 {
+/* Scoped under the wrapper class so these win over the dashboard's
+   global `html[data-theme="dark"] h3` rule. Both the public site
+   (.generated-site-body on <body>) and the in-dashboard preview
+   (.generated-site-preview on a wrapper div) carry one of these
+   classes, so a single nested rule covers both. Without the
+   wrapper prefix the dashboard's dark theme makes h3s near-white
+   on the white card background, making titles invisible. */
+.generated-site-body .site-hero-card h3,
+.generated-site-body .site-feature-card h3,
+.generated-site-body .site-faq-card h3,
+.generated-site-preview .site-hero-card h3,
+.generated-site-preview .site-feature-card h3,
+.generated-site-preview .site-faq-card h3 {
     margin: 0 0 10px;
     color: var(--site-text);
 }
 
-.site-hero-card p,
-.site-feature-card p,
-.site-faq-card p,
-.site-cta p {
+.generated-site-body .site-hero-card p,
+.generated-site-body .site-feature-card p,
+.generated-site-body .site-faq-card p,
+.generated-site-body .site-cta p,
+.generated-site-preview .site-hero-card p,
+.generated-site-preview .site-feature-card p,
+.generated-site-preview .site-faq-card p,
+.generated-site-preview .site-cta p {
     margin: 0;
     color: var(--site-muted);
     line-height: 1.75;
