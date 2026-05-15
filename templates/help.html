@@ -1660,6 +1660,27 @@ html[data-theme="dark"] .meaning-item {
     border-color: var(--theme-border-subtle);
     color: var(--theme-text-primary);
 }
+/* Eyebrow / kicker accents that lose contrast on the dark canvas.
+   .popular-kicker stays on #6745f5 (saturated purple) which is hard
+   to read on the dark card surface; .help-badge-primary inherits the
+   generic .help-badge dark override above so loses its brand-purple
+   identity; .hero-side-label hardcodes #0E7C6F (dark teal) which is
+   near-invisible on the dark hero-side panel. Restore brand hues
+   with lighter foreground tones tuned for the dark canvas. */
+html[data-theme="dark"] .popular-kicker {
+    color: #C7B0F3;
+}
+html[data-theme="dark"] .help-badge-primary {
+    background: rgba(157, 124, 227, 0.18);
+    border-color: rgba(157, 124, 227, 0.40);
+    color: #C7B0F3;
+}
+html[data-theme="dark"] .hero-side-label,
+html[data-theme="dark"] .step-number {
+    background: rgba(62, 223, 203, 0.18);
+    border-color: rgba(62, 223, 203, 0.40);
+    color: #6FE7D5;
+}
 html[data-theme="dark"] .help-section h1,
 html[data-theme="dark"] .help-section h2,
 html[data-theme="dark"] .help-section h3,
