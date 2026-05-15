@@ -322,3 +322,112 @@
         width: 100%;
     }
 }
+
+/* ---------------------------------------------------------------------
+   Visual styles — chosen in the brand-kit preview (visual_style radio
+   set). The class is applied on .generated-site-body (public site) and
+   .generated-site-preview (in-dashboard page preview). Each style
+   adjusts typography, density, border radius, and button shape so the
+   four options actually look different. Brand colours stay the same
+   across all four — only the styling changes.
+--------------------------------------------------------------------- */
+
+/* Premium minimal — generous whitespace, tighter typography, thin
+   borders, smaller buttons. Reads like a high-end services brand. */
+.style-premium_minimal .site-section,
+.generated-site-preview.style-premium_minimal .site-section {
+    padding-top: 120px;
+    padding-bottom: 120px;
+}
+.style-premium_minimal h1,
+.style-premium_minimal h2,
+.generated-site-preview.style-premium_minimal h1,
+.generated-site-preview.style-premium_minimal h2 {
+    font-weight: 500;
+    letter-spacing: -0.025em;
+}
+.style-premium_minimal .site-feature-card,
+.style-premium_minimal .site-hero-card,
+.style-premium_minimal .site-faq-card,
+.generated-site-preview.style-premium_minimal .site-feature-card,
+.generated-site-preview.style-premium_minimal .site-hero-card,
+.generated-site-preview.style-premium_minimal .site-faq-card {
+    border-radius: 8px;
+    border-width: 1px;
+    box-shadow: none;
+}
+.style-premium_minimal .site-button,
+.generated-site-preview.style-premium_minimal .site-button {
+    padding: 12px 22px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* Editorial lifestyle — serif headings, generous line-height, refined,
+   reads like a magazine. Best for content-heavy brands. */
+.style-editorial_lifestyle h1,
+.style-editorial_lifestyle h2,
+.style-editorial_lifestyle h3,
+.generated-site-preview.style-editorial_lifestyle h1,
+.generated-site-preview.style-editorial_lifestyle h2,
+.generated-site-preview.style-editorial_lifestyle h3 {
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+.style-editorial_lifestyle .site-lede,
+.style-editorial_lifestyle .site-feature-card p,
+.style-editorial_lifestyle .site-faq-card p,
+.generated-site-preview.style-editorial_lifestyle .site-lede,
+.generated-site-preview.style-editorial_lifestyle .site-feature-card p,
+.generated-site-preview.style-editorial_lifestyle .site-faq-card p {
+    line-height: 1.9;
+    font-size: 1.05rem;
+}
+.style-editorial_lifestyle .site-feature-card,
+.style-editorial_lifestyle .site-hero-card,
+.style-editorial_lifestyle .site-faq-card,
+.generated-site-preview.style-editorial_lifestyle .site-feature-card,
+.generated-site-preview.style-editorial_lifestyle .site-hero-card,
+.generated-site-preview.style-editorial_lifestyle .site-faq-card {
+    border-radius: 12px;
+}
+.style-editorial_lifestyle .site-button,
+.generated-site-preview.style-editorial_lifestyle .site-button {
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+/* Playful brand — rounded everything, friendly, brand colour heavy.
+   Good for D2C food, kids, lifestyle. */
+.style-playful_brand .site-feature-card,
+.style-playful_brand .site-hero-card,
+.style-playful_brand .site-faq-card,
+.generated-site-preview.style-playful_brand .site-feature-card,
+.generated-site-preview.style-playful_brand .site-hero-card,
+.generated-site-preview.style-playful_brand .site-faq-card {
+    border-radius: 32px;
+    border-width: 0;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+.style-playful_brand .site-button,
+.generated-site-preview.style-playful_brand .site-button {
+    border-radius: 999px;
+    padding: 16px 32px;
+}
+.style-playful_brand .site-proof-pill,
+.generated-site-preview.style-playful_brand .site-proof-pill {
+    border-radius: 999px;
+    padding: 14px 22px;
+}
+.style-playful_brand .site-hero-visual,
+.style-playful_brand .site-card-visual,
+.generated-site-preview.style-playful_brand .site-hero-visual,
+.generated-site-preview.style-playful_brand .site-card-visual {
+    border-radius: 32px;
+}
+
+/* Modern ecommerce is the default look — explicit class for
+   future-proofing but no overrides needed today. */

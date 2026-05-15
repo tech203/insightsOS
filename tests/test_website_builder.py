@@ -557,3 +557,75 @@ def test_website_engine_preview_still_renders_without_blueprint():
     # Fallbacks should still produce real hex values, not empty.
     assert "--site-primary: #f97316" in html
     assert "--site-text: #0f172a" in html
+
+
+# ---------------------------------------------------------------------------
+# Visual style class — the four brand-kit radio options must surface
+# as a real CSS class on the rendered output so generated-site.css can
+# apply per-style typography / radius / density rules. Before this,
+# the radio buttons were pure decoration.
+# ---------------------------------------------------------------------------
+
+def test_preview_wrapper_carries_visual_style_class():
+    """Each of the four visual_style values must appear as a
+    style-<value> class on .generated-site-preview, so the CSS
+    rules in generated-site.css scoped under .style-* actually
+    match."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page = type(
+        "P",
+        (),
+        {
+            "id": 1,
+            "title": "Home",
+            "page_json": {"sections": [{"type": "hero", "headline": "h"}]},
+        },
+    )()
+
+    for style_value in [
+        "modern_ecommerce",
+        "premium_minimal",
+        "editorial_lifestyle",
+        "playful_brand",
+    ]:
+        blueprint = {"visual_style": style_value}
+        with flask_app.app_context():
+            with flask_app.test_request_context():
+                html = render_template(
+                    "website_engine_preview.html",
+                    page=page,
+                    page_json=page.page_json,
+                    blueprint=blueprint,
+                )
+        assert f"style-{style_value}" in html, (
+            f"visual_style={style_value!r} did not produce style-* class"
+        )
+
+
+def test_preview_wrapper_falls_back_to_modern_ecommerce_when_visual_style_missing():
+    """An old project without visual_style on its blueprint must still
+    render — the default class is style-modern_ecommerce (the same
+    look as before the per-style work)."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page = type(
+        "P",
+        (),
+        {
+            "id": 1,
+            "title": "Home",
+            "page_json": {"sections": [{"type": "hero", "headline": "h"}]},
+        },
+    )()
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_preview.html",
+                page=page,
+                page_json=page.page_json,
+                blueprint={},  # no visual_style key
+            )
+    assert "style-modern_ecommerce" in html

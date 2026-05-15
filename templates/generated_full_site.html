@@ -14,7 +14,7 @@
 </head>
 
 <body
-    class="generated-site-body theme-{{ project.theme }}"
+    class="generated-site-body theme-{{ project.theme }} style-{{ blueprint.visual_style or 'modern_ecommerce' }}"
     style="
         --site-primary: {{ blueprint.primary_color or '#f97316' }};
         {# Derive a darker variant via color-mix so hover states and the
