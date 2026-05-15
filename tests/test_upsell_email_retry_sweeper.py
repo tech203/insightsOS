@@ -235,7 +235,11 @@ class TestCronEndpoint:
         )
         assert r.status_code == 403
 
-    def test_200_with_secret_via_header(self, monkeypatch):
+    def test_200_with_secret_via_header(self, app_ctx, monkeypatch):
+        # app_ctx pulls in the conftest fixture that creates the DB
+        # schema. Without it, the sweeper inside the endpoint runs
+        # against a connection where `users` doesn't exist and the
+        # request 500s instead of 200.
         secret = self._enable_cron(monkeypatch)
         c = flask_app.test_client()
         r = c.post(
@@ -248,7 +252,7 @@ class TestCronEndpoint:
         for k in ("attempted", "succeeded", "skipped"):
             assert k in body
 
-    def test_200_with_secret_via_query_param(self, monkeypatch):
+    def test_200_with_secret_via_query_param(self, app_ctx, monkeypatch):
         """Some cron platforms can't set custom headers. Query-param
         fallback should also work."""
         secret = self._enable_cron(monkeypatch)
