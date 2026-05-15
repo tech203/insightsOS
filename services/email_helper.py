@@ -47,6 +47,7 @@ def _send_via_resend(
     body_text: str,
     body_html: Optional[str],
     reply_to: Optional[str],
+    list_unsubscribe_url: Optional[str] = None,
 ) -> bool:
     import requests
 
@@ -60,6 +61,15 @@ def _send_via_resend(
         payload["html"] = body_html
     if reply_to:
         payload["reply_to"] = reply_to
+    if list_unsubscribe_url:
+        # One-Click List-Unsubscribe (RFC 8058 + Gmail/Yahoo 2024
+        # bulk-sender requirements). Both headers must be present
+        # for Gmail to render its native "Unsubscribe" button;
+        # without it, marketing mail gets flagged as spam.
+        payload["headers"] = {
+            "List-Unsubscribe": f"<{list_unsubscribe_url}>",
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
 
     try:
         resp = requests.post(
@@ -89,6 +99,7 @@ def _send_via_smtp(
     body_text: str,
     body_html: Optional[str],
     reply_to: Optional[str],
+    list_unsubscribe_url: Optional[str] = None,
 ) -> bool:
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT") or "587")
@@ -104,6 +115,10 @@ def _send_via_smtp(
     msg["To"] = to
     if reply_to:
         msg["Reply-To"] = reply_to
+    if list_unsubscribe_url:
+        # Same RFC 8058 headers as the Resend path — see _send_via_resend.
+        msg["List-Unsubscribe"] = f"<{list_unsubscribe_url}>"
+        msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
     msg.set_content(body_text)
     if body_html:
         msg.add_alternative(body_html, subtype="html")
@@ -137,10 +152,20 @@ def send_email(
     body_text: str,
     body_html: Optional[str] = None,
     reply_to: Optional[str] = None,
+    list_unsubscribe_url: Optional[str] = None,
 ) -> bool:
     """Send a transactional email. Returns True on success, False
     when no backend is configured or the send raised. Never raises —
-    callers fall back to their in-app surface on False."""
+    callers fall back to their in-app surface on False.
+
+    `list_unsubscribe_url` — when provided, adds RFC 8058 one-click
+    unsubscribe headers (`List-Unsubscribe` + `List-Unsubscribe-Post`).
+    Required by Gmail and Yahoo bulk-sender rules (Feb 2024) for any
+    promotional/marketing mail. Transactional emails (password reset,
+    verification, invites) should NOT pass this — they're service-of-
+    account mail and the headers would mislead users into thinking
+    they can unsubscribe from account-essential notifications.
+    """
     if not to or "@" not in to:
         return False
 
@@ -148,11 +173,13 @@ def send_email(
         return _send_via_resend(
             to=to, subject=subject, body_text=body_text,
             body_html=body_html, reply_to=reply_to,
+            list_unsubscribe_url=list_unsubscribe_url,
         )
     if _smtp_configured():
         return _send_via_smtp(
             to=to, subject=subject, body_text=body_text,
             body_html=body_html, reply_to=reply_to,
+            list_unsubscribe_url=list_unsubscribe_url,
         )
     return False
 
