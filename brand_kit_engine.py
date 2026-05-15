@@ -1,3 +1,65 @@
+# Per-theme palette variants. Index 0 is the default the original
+# generate_brand_kit() returned; variants 1-3 give the "Regenerate
+# Palette" button something real to do. Each is hand-picked to fit
+# the industry while feeling visibly different from the others.
+PALETTE_VARIANTS = {
+    "food_and_beverage": [
+        # 0: warm orange (default — bakery / dessert energy)
+        ("#f97316", "#fff7ed", "#fed7aa"),
+        # 1: rose pink (premium / patisserie feel)
+        ("#e11d48", "#fff1f2", "#fecdd3"),
+        # 2: emerald (organic / artisan)
+        ("#059669", "#ecfdf5", "#a7f3d0"),
+        # 3: amber gold (caramel / nostalgic)
+        ("#d97706", "#fffbeb", "#fde68a"),
+    ],
+    "clinic": [
+        # 0: trust blue (default)
+        ("#2563eb", "#eff6ff", "#bfdbfe"),
+        # 1: teal (modern wellness)
+        ("#0d9488", "#f0fdfa", "#99f6e4"),
+        # 2: indigo (premium aesthetic)
+        ("#6366f1", "#eef2ff", "#c7d2fe"),
+        # 3: rose (gentle / patient-friendly)
+        ("#e11d48", "#fff1f2", "#fecdd3"),
+    ],
+    "education": [
+        # 0: purple (default — encouraging)
+        ("#7c3aed", "#f5f3ff", "#ddd6fe"),
+        # 1: amber gold (academic warmth)
+        ("#d97706", "#fffbeb", "#fde68a"),
+        # 2: emerald (growth / progress)
+        ("#059669", "#ecfdf5", "#a7f3d0"),
+        # 3: rose (kids / playful)
+        ("#db2777", "#fdf2f8", "#fbcfe8"),
+    ],
+    "general": [
+        # 0: indigo (default professional)
+        ("#4f46e5", "#eef2ff", "#c7d2fe"),
+        # 1: emerald (modern services)
+        ("#059669", "#ecfdf5", "#a7f3d0"),
+        # 2: rose (premium consultancy)
+        ("#be185d", "#fdf2f8", "#fbcfe8"),
+        # 3: slate (enterprise / fintech)
+        ("#0f172a", "#f1f5f9", "#cbd5e1"),
+    ],
+}
+
+
+def get_palette_variant(industry_theme, variant_index):
+    """Return (primary, secondary, accent) for the given theme +
+    variant. Falls back to the general bucket and clamps the index.
+
+    Used by the "Regenerate Palette" button to cycle through visibly
+    different palettes for the same industry, without re-running
+    generate_brand_kit and losing other state (personality, visual
+    style, etc.)."""
+    variants = PALETTE_VARIANTS.get(industry_theme) or PALETTE_VARIANTS["general"]
+    if not variants:
+        variants = PALETTE_VARIANTS["general"]
+    return variants[variant_index % len(variants)]
+
+
 def generate_brand_kit(
     business_name="",
     industry="",

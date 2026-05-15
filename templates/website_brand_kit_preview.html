@@ -182,7 +182,15 @@
                     <h2>Editable palette</h2>
                 </div>
 
-                <button class="btn btn-secondary" type="button">
+                {# formaction overrides the parent form's action just
+                   for this button — posts current edits to a route
+                   that cycles the palette variant and redirects back
+                   to this same brand-kit preview page. #}
+                <button
+                    class="btn btn-secondary"
+                    type="submit"
+                    formaction="{{ url_for('regenerate_brand_kit_palette', client_id=client.id) }}"
+                >
                     Regenerate Palette
                 </button>
             </div>

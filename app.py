@@ -80,7 +80,7 @@ from dtutils import utcnow
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
 from urllib.parse import urlencode
-from brand_kit_engine import generate_brand_kit
+from brand_kit_engine import generate_brand_kit, get_palette_variant
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -2242,6 +2242,39 @@ def approve_website_brand_kit(client_id):
 
     flash("Website draft generated from approved brand kit.", "success")
     return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+@app.route("/client/<client_id>/website-builder/regenerate-palette", methods=["POST"])
+@login_required
+def regenerate_brand_kit_palette(client_id):
+    """Cycle the brand kit through its industry's palette variants.
+    Persists the new colours into the pending session blueprint and
+    redirects back to the brand-kit preview, so the user sees the
+    refreshed palette without losing any other edits they've made.
+
+    Until this route existed, the "Regenerate Palette" button in the
+    template was a non-functional type="button" stub."""
+    blueprint = session.get("pending_website_blueprint")
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    # Apply any in-flight form edits first so the user doesn't lose
+    # them when the page re-renders post-redirect.
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
+    industry_theme = blueprint.get("industry_theme") or "general"
+    current_variant = int(blueprint.get("palette_variant") or 0)
+    next_variant = current_variant + 1
+
+    primary, secondary, accent = get_palette_variant(industry_theme, next_variant)
+    blueprint["primary_color"] = primary
+    blueprint["secondary_color"] = secondary
+    blueprint["accent_color"] = accent
+    blueprint["palette_variant"] = next_variant
+
+    session["pending_website_blueprint"] = blueprint
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
 
 
 def apply_brand_kit_form_edits(blueprint, form):

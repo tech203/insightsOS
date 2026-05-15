@@ -740,6 +740,36 @@ def test_apply_brand_kit_form_edits_appends_new_pages():
     assert process["slug"] == "how-it-works"  # custom slug honoured
 
 
+def test_palette_variant_cycles_and_clamps():
+    """get_palette_variant returns a (primary, secondary, accent)
+    triple for any non-negative index, wrapping around when the
+    index exceeds the number of variants for that theme."""
+    from brand_kit_engine import get_palette_variant, PALETTE_VARIANTS
+
+    for theme in ["food_and_beverage", "clinic", "education", "general"]:
+        variants = PALETTE_VARIANTS[theme]
+        # Sequential indices return sequentially different palettes.
+        seen = {get_palette_variant(theme, i) for i in range(len(variants))}
+        assert len(seen) == len(variants), (
+            f"{theme} should have {len(variants)} distinct palettes"
+        )
+        # Wrap: index N == index 0 for N == len(variants).
+        assert get_palette_variant(theme, len(variants)) == get_palette_variant(theme, 0)
+        # Each triple is hex.
+        for variant in variants:
+            for hex_color in variant:
+                assert hex_color.startswith("#")
+                assert len(hex_color) == 7
+
+
+def test_palette_variant_unknown_theme_falls_back_to_general():
+    """Unknown industry_theme values shouldn't crash — fall back to
+    the general bucket so the Regenerate button always works."""
+    from brand_kit_engine import get_palette_variant, PALETTE_VARIANTS
+
+    assert get_palette_variant("nonexistent", 0) == PALETTE_VARIANTS["general"][0]
+
+
 def test_apply_brand_kit_form_edits_skip_and_add_combined():
     """Skip + Add in the same submission: existing pages are filtered,
     new pages are appended, both happen in one form post."""
