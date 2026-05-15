@@ -18779,14 +18779,12 @@ html[data-theme="dark"] .queue-top-strip,
 html[data-theme="dark"] .queue-upgrade-card,
 html[data-theme="dark"] .queue-upgrade-strip,
 html[data-theme="dark"] .queue-workspace-card,
-html[data-theme="dark"] .section-kicker,
 html[data-theme="dark"] .snapshot-item,
 html[data-theme="dark"] .status-form-row,
 html[data-theme="dark"] .summary-stat-card,
 html[data-theme="dark"] .tracked-meta-item,
 html[data-theme="dark"] .tracked-prompt-action-card,
 html[data-theme="dark"] .workspace-empty-card,
-html[data-theme="dark"] .workspace-guidance-kicker,
 html[data-theme="dark"] .workspace-inline-stat,
 html[data-theme="dark"] .workspace-list-section,
 html[data-theme="dark"] .workspace-meta-chip,
@@ -18801,6 +18799,18 @@ html[data-theme="dark"] .workspace-top-strip,
 html[data-theme="dark"] .workspace-chip {
     background: var(--theme-surface) !important;
     border-color: var(--theme-border-subtle) !important;
+}
+
+/* Accent pills (.section-kicker, .workspace-guidance-kicker) are
+   eyebrow labels with a purple-soft fill — NOT card surfaces. The
+   bulk surface-flip rule above used to catch them and replace the
+   purple pill with --theme-surface, which made the pills look like
+   plain text. Restore the colored treatment using a translucent
+   tint of the brand purple so the pill identity reads on dark. */
+html[data-theme="dark"] .section-kicker,
+html[data-theme="dark"] .workspace-guidance-kicker {
+    background: rgba(157, 124, 227, 0.18);
+    color: #C7B0F3;
 }
 
 /* --- Heading / title text ---
@@ -18882,7 +18892,6 @@ html[data-theme="dark"] .score-foot,
 html[data-theme="dark"] .score-label,
 html[data-theme="dark"] .section-copy,
 html[data-theme="dark"] .section-head,
-html[data-theme="dark"] .section-kicker,
 html[data-theme="dark"] .settings-chip,
 html[data-theme="dark"] .signal-table,
 html[data-theme="dark"] .summary-copy,
@@ -18892,7 +18901,6 @@ html[data-theme="dark"] .tracked-prompt-copy,
 html[data-theme="dark"] .visibility-top-copy,
 html[data-theme="dark"] .workspace-chip,
 html[data-theme="dark"] .workspace-empty-card,
-html[data-theme="dark"] .workspace-guidance-kicker,
 html[data-theme="dark"] .workspace-inline-stat,
 html[data-theme="dark"] .workspace-list-head,
 html[data-theme="dark"] .workspace-meta-chip,
