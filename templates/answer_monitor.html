@@ -8,10 +8,6 @@
 {% block content %}
 <div class="page-shell">
     <div class="am-page-head">
-        <div>
-            <h1>AI Answer Monitor {{ info_tip("Tracks when " + (selected_client.name if selected_client else "your brand") + " is cited in AI answers. Each check writes a new snapshot — the trend graph reflects citation history, not just the most recent run.") }}</h1>
-        </div>
-
         {% if clients|length > 1 %}
         <form class="am-workspace-picker" method="get" action="{{ url_for('answer_monitor_page') }}">
             <label for="am-client">Workspace</label>
