@@ -5349,9 +5349,34 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     color: rgba(255,255,255,0.92);
 }
 
+/* Brand-aligned empty-state illustrations — see
+   templates/partials/empty_state_illustrations.html.
+   Default treatment: centred, ~320px wide, used by full-page empties
+   (clients list, answer monitor, workspace overview).
+   .dashboard-priority-illustration: left-aligned, ~140px wide, used by
+   the smaller dashboard priority cards. */
 .empty-state-illustration {
-    margin: 0 auto 18px;
-    width: min(100%, 420px);
+    margin: 4px auto 18px;
+    max-width: 320px;
+    line-height: 0;
+    display: flex;
+    justify-content: center;
+}
+.empty-state-illustration svg {
+    width: 100%;
+    height: auto;
+    max-width: 320px;
+}
+.dashboard-priority-illustration {
+    margin: 4px 0 12px;
+    line-height: 0;
+    display: flex;
+    justify-content: flex-start;
+}
+.dashboard-priority-illustration svg {
+    width: 140px;
+    height: auto;
+    max-width: 100%;
 }
 
 /* =========================
@@ -7188,10 +7213,6 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.empty-state-illustration {
-    margin: 0 auto 18px;
-    width: min(100%, 480px);
-}
 
 .upgraded-empty-state h3 {
     margin: 0;

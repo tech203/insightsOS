@@ -224,8 +224,10 @@
        full of "—" with a single inviting card explaining what the
        user will get. The new audit form is pre-filled from the
        workspace's website / industry / location. #}
+    {% from "partials/empty_state_illustrations.html" import audit_illustration %}
     <section class="workspace-empty-hero surface-card surface-card--featured">
         <div class="workspace-empty-hero-copy">
+            {{ audit_illustration() }}
             <span class="section-kicker">First audit</span>
             <h2>Run your first audit to unlock the scorecard</h2>
             <p>

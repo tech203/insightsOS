@@ -1,0 +1,107 @@
+{# ---------------------------------------------------------------------
+   Brand-aligned empty-state illustrations.
+
+   Inline SVG so there are no asset files to manage. Each macro accepts
+   a `wrapper_class` so callers can choose between the default centred
+   full-width treatment (.empty-state-illustration) and the smaller
+   left-aligned dashboard-priority-card treatment
+   (.dashboard-priority-illustration). CSS for both lives in
+   styles-v2.1.css.
+
+   Colours use the brand palette (#3EDFCB aqua, #9D7CE3 purple) and
+   the "A+" text inside audit_illustration uses fill="currentColor"
+   so it tracks the surrounding text colour in both light and dark
+   themes.
+
+   Usage:
+     {% from "partials/empty_state_illustrations.html" import audit_illustration %}
+     {{ audit_illustration() }}
+     {{ audit_illustration("dashboard-priority-illustration") }}
+   --------------------------------------------------------------------- #}
+
+{% macro audit_illustration(wrapper_class="empty-state-illustration") %}
+<div class="{{ wrapper_class }}" aria-hidden="true">
+    <svg viewBox="0 0 140 72" preserveAspectRatio="xMidYMid meet">
+        <defs>
+            <linearGradient id="empty-audit-grad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stop-color="#3EDFCB"/>
+                <stop offset="100%" stop-color="#9D7CE3"/>
+            </linearGradient>
+        </defs>
+        <rect x="6"  y="44" width="14" height="22" rx="3" fill="#9D7CE3" opacity="0.55"/>
+        <rect x="26" y="32" width="14" height="34" rx="3" fill="#9D7CE3" opacity="0.75"/>
+        <rect x="46" y="22" width="14" height="44" rx="3" fill="url(#empty-audit-grad)"/>
+        <rect x="66" y="38" width="14" height="28" rx="3" fill="#3EDFCB" opacity="0.75"/>
+        <circle cx="114" cy="26" r="16" fill="none" stroke="#9D7CE3" stroke-width="2.5" opacity="0.18"/>
+        <circle cx="114" cy="26" r="16" fill="none" stroke="url(#empty-audit-grad)" stroke-width="2.5"
+                stroke-dasharray="70 100" stroke-linecap="round" transform="rotate(-90 114 26)"/>
+        <text x="114" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="currentColor">A+</text>
+    </svg>
+</div>
+{% endmacro %}
+
+{% macro queue_illustration(wrapper_class="empty-state-illustration") %}
+<div class="{{ wrapper_class }}" aria-hidden="true">
+    <svg viewBox="0 0 140 72" preserveAspectRatio="xMidYMid meet">
+        <rect x="4"   y="14" width="40" height="48" rx="6" fill="#9D7CE3" opacity="0.10"/>
+        <rect x="50"  y="14" width="40" height="48" rx="6" fill="#3EDFCB" opacity="0.12"/>
+        <rect x="96"  y="14" width="40" height="48" rx="6" fill="#9D7CE3" opacity="0.10"/>
+        <rect x="10"  y="22" width="28" height="6" rx="2" fill="#9D7CE3"/>
+        <rect x="10"  y="34" width="22" height="6" rx="2" fill="#9D7CE3" opacity="0.45"/>
+        <rect x="56"  y="22" width="28" height="6" rx="2" fill="#3EDFCB"/>
+        <rect x="56"  y="34" width="20" height="6" rx="2" fill="#3EDFCB" opacity="0.45"/>
+        <rect x="56"  y="46" width="24" height="6" rx="2" fill="#3EDFCB" opacity="0.45"/>
+        <rect x="102" y="22" width="22" height="6" rx="2" fill="#9D7CE3" opacity="0.45"/>
+    </svg>
+</div>
+{% endmacro %}
+
+{% macro workspaces_illustration(wrapper_class="empty-state-illustration") %}
+<div class="{{ wrapper_class }}" aria-hidden="true">
+    <svg viewBox="0 0 140 72" preserveAspectRatio="xMidYMid meet">
+        <defs>
+            <linearGradient id="empty-ws-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#3EDFCB"/>
+                <stop offset="100%" stop-color="#9D7CE3"/>
+            </linearGradient>
+        </defs>
+        <rect x="10" y="8"  width="56" height="26" rx="6" fill="url(#empty-ws-grad)" opacity="0.95"/>
+        <circle cx="22" cy="21" r="6" fill="white" opacity="0.6"/>
+        <rect x="32" y="17" width="22" height="3" rx="1.5" fill="white" opacity="0.85"/>
+        <rect x="32" y="23" width="14" height="3" rx="1.5" fill="white" opacity="0.55"/>
+        <rect x="74" y="8"  width="56" height="26" rx="6" fill="#9D7CE3" opacity="0.15"/>
+        <rect x="84" y="17" width="22" height="3" rx="1.5" fill="#9D7CE3"/>
+        <rect x="84" y="23" width="14" height="3" rx="1.5" fill="#9D7CE3" opacity="0.55"/>
+        <rect x="10" y="40" width="56" height="26" rx="6" fill="#3EDFCB" opacity="0.18"/>
+        <rect x="20" y="49" width="22" height="3" rx="1.5" fill="#3EDFCB"/>
+        <rect x="20" y="55" width="14" height="3" rx="1.5" fill="#3EDFCB" opacity="0.55"/>
+        <rect x="74" y="40" width="56" height="26" rx="6" fill="#9D7CE3" opacity="0.10"/>
+        <rect x="84" y="49" width="18" height="3" rx="1.5" fill="#9D7CE3" opacity="0.6"/>
+    </svg>
+</div>
+{% endmacro %}
+
+{# Tracked prompts / Answer Monitor — list of monitored queries with
+   per-row "visibility" fill bars. Conveys "things being tracked
+   over time" without being literal speech bubbles or AI mascots. #}
+{% macro prompts_illustration(wrapper_class="empty-state-illustration") %}
+<div class="{{ wrapper_class }}" aria-hidden="true">
+    <svg viewBox="0 0 140 72" preserveAspectRatio="xMidYMid meet">
+        <circle cx="12" cy="14" r="4" fill="#3EDFCB"/>
+        <rect x="22" y="10" width="110" height="8" rx="4" fill="#3EDFCB" opacity="0.15"/>
+        <rect x="22" y="10" width="78"  height="8" rx="4" fill="#3EDFCB" opacity="0.55"/>
+
+        <circle cx="12" cy="30" r="4" fill="#9D7CE3"/>
+        <rect x="22" y="26" width="110" height="8" rx="4" fill="#9D7CE3" opacity="0.15"/>
+        <rect x="22" y="26" width="52"  height="8" rx="4" fill="#9D7CE3" opacity="0.55"/>
+
+        <circle cx="12" cy="46" r="4" fill="#3EDFCB" opacity="0.6"/>
+        <rect x="22" y="42" width="110" height="8" rx="4" fill="#3EDFCB" opacity="0.15"/>
+        <rect x="22" y="42" width="92"  height="8" rx="4" fill="#3EDFCB" opacity="0.55"/>
+
+        <circle cx="12" cy="62" r="4" fill="#9D7CE3" opacity="0.5"/>
+        <rect x="22" y="58" width="110" height="8" rx="4" fill="#9D7CE3" opacity="0.15"/>
+        <rect x="22" y="58" width="36"  height="8" rx="4" fill="#9D7CE3" opacity="0.5"/>
+    </svg>
+</div>
+{% endmacro %}

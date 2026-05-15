@@ -183,8 +183,10 @@
         </div>
     </section>
     {% else %}
+    {% from "partials/empty_state_illustrations.html" import workspaces_illustration %}
     <section class="workspace-empty-state">
         <div class="workspace-empty-card">
+            {{ workspaces_illustration() }}
             <span class="workspace-guidance-kicker">No Workspaces Yet</span>
             <h2>Create your first workspace</h2>
             <p>Start with one workspace for one client or brand. Then run audits, track visibility, and manage content from one place.</p>

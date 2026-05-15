@@ -10,21 +10,7 @@
 {% endblock %}
 
 {% block content %}
-<style>
-    /* Mock: empty-state illustrations on the three priority cards.
-       Sits between the kicker and the H3, anchored to the top of the
-       card so the actions stay vertically aligned across cards. */
-    .dashboard-priority-illustration {
-        margin: 4px 0 12px;
-        display: flex;
-        justify-content: flex-start;
-        line-height: 0;
-    }
-    .dashboard-priority-illustration svg {
-        max-width: 100%;
-        height: auto;
-    }
-</style>
+{% from "partials/empty_state_illustrations.html" import audit_illustration, queue_illustration, workspaces_illustration %}
 {% set aeo_score = overall_score if overall_score is defined else 0 %}
 {% set vis_score = visibility_score if visibility_score is defined else 0 %}
 {% set cont_score = content_score if content_score is defined else 0 %}
@@ -182,24 +168,7 @@
                             {% endif %}
                         </div>
                     {% else %}
-                        <div class="dashboard-priority-illustration" aria-hidden="true">
-                            <svg viewBox="0 0 140 72" width="140" height="72">
-                                <defs>
-                                    <linearGradient id="audit-grad" x1="0" y1="1" x2="0" y2="0">
-                                        <stop offset="0%" stop-color="#3EDFCB"/>
-                                        <stop offset="100%" stop-color="#9D7CE3"/>
-                                    </linearGradient>
-                                </defs>
-                                <rect x="6"  y="44" width="14" height="22" rx="3" fill="#9D7CE3" opacity="0.55"/>
-                                <rect x="26" y="32" width="14" height="34" rx="3" fill="#9D7CE3" opacity="0.75"/>
-                                <rect x="46" y="22" width="14" height="44" rx="3" fill="url(#audit-grad)"/>
-                                <rect x="66" y="38" width="14" height="28" rx="3" fill="#3EDFCB" opacity="0.75"/>
-                                <circle cx="114" cy="26" r="16" fill="none" stroke="#9D7CE3" stroke-width="2.5" opacity="0.18"/>
-                                <circle cx="114" cy="26" r="16" fill="none" stroke="url(#audit-grad)" stroke-width="2.5"
-                                        stroke-dasharray="70 100" stroke-linecap="round" transform="rotate(-90 114 26)"/>
-                                <text x="114" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="currentColor">A+</text>
-                            </svg>
-                        </div>
+                        {{ audit_illustration("dashboard-priority-illustration") }}
                         <h3>Run your first audit</h3>
                         <p>
                             Start with an audit to generate visibility findings, opportunity areas, and next action recommendations.
@@ -214,19 +183,7 @@
 
                 <article class="dashboard-priority-item">
                     <span class="dashboard-priority-kicker">Content Queue {{ info_tip("Briefs and drafts in flight: ideas → drafted → ready → published. Click in to triage what's blocked.") }}</span>
-                    <div class="dashboard-priority-illustration" aria-hidden="true">
-                        <svg viewBox="0 0 140 72" width="140" height="72">
-                            <rect x="4"   y="14" width="40" height="48" rx="6" fill="#9D7CE3" opacity="0.10"/>
-                            <rect x="50"  y="14" width="40" height="48" rx="6" fill="#3EDFCB" opacity="0.12"/>
-                            <rect x="96"  y="14" width="40" height="48" rx="6" fill="#9D7CE3" opacity="0.10"/>
-                            <rect x="10"  y="22" width="28" height="6" rx="2" fill="#9D7CE3"/>
-                            <rect x="10"  y="34" width="22" height="6" rx="2" fill="#9D7CE3" opacity="0.45"/>
-                            <rect x="56"  y="22" width="28" height="6" rx="2" fill="#3EDFCB"/>
-                            <rect x="56"  y="34" width="20" height="6" rx="2" fill="#3EDFCB" opacity="0.45"/>
-                            <rect x="56"  y="46" width="24" height="6" rx="2" fill="#3EDFCB" opacity="0.45"/>
-                            <rect x="102" y="22" width="22" height="6" rx="2" fill="#9D7CE3" opacity="0.45"/>
-                        </svg>
-                    </div>
+                    {{ queue_illustration("dashboard-priority-illustration") }}
                     <h3>Check queued work</h3>
                     <div class="dashboard-priority-actions">
                         <a href="{{ url_for('content_queue_page') }}" class="btn btn-secondary">
@@ -237,28 +194,7 @@
 
                 <article class="dashboard-priority-item">
                     <span class="dashboard-priority-kicker">Workspaces {{ info_tip("Each workspace tracks one brand or website — its own audits, prompts, content queue, and integrations.") }}</span>
-                    <div class="dashboard-priority-illustration" aria-hidden="true">
-                        <svg viewBox="0 0 140 72" width="140" height="72">
-                            <defs>
-                                <linearGradient id="ws-grad" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stop-color="#3EDFCB"/>
-                                    <stop offset="100%" stop-color="#9D7CE3"/>
-                                </linearGradient>
-                            </defs>
-                            <rect x="10" y="8"  width="56" height="26" rx="6" fill="url(#ws-grad)" opacity="0.95"/>
-                            <circle cx="22" cy="21" r="6" fill="white" opacity="0.6"/>
-                            <rect x="32" y="17" width="22" height="3" rx="1.5" fill="white" opacity="0.85"/>
-                            <rect x="32" y="23" width="14" height="3" rx="1.5" fill="white" opacity="0.55"/>
-                            <rect x="74" y="8"  width="56" height="26" rx="6" fill="#9D7CE3" opacity="0.15"/>
-                            <rect x="84" y="17" width="22" height="3" rx="1.5" fill="#9D7CE3"/>
-                            <rect x="84" y="23" width="14" height="3" rx="1.5" fill="#9D7CE3" opacity="0.55"/>
-                            <rect x="10" y="40" width="56" height="26" rx="6" fill="#3EDFCB" opacity="0.18"/>
-                            <rect x="20" y="49" width="22" height="3" rx="1.5" fill="#3EDFCB"/>
-                            <rect x="20" y="55" width="14" height="3" rx="1.5" fill="#3EDFCB" opacity="0.55"/>
-                            <rect x="74" y="40" width="56" height="26" rx="6" fill="#9D7CE3" opacity="0.10"/>
-                            <rect x="84" y="49" width="18" height="3" rx="1.5" fill="#9D7CE3" opacity="0.6"/>
-                        </svg>
-                    </div>
+                    {{ workspaces_illustration("dashboard-priority-illustration") }}
                     {% if has_clients %}
                         <h3>{{ total_clients or clients|length }} active workspace{% if (total_clients or clients|length) != 1 %}s{% endif %}</h3>
                     {% else %}
