@@ -3754,8 +3754,22 @@ def preview_generated_page(page_id):
     if page.user_id != current_user.id:
         abort(403)
 
+    # Pass the project's blueprint so the preview template can wire
+    # up brand-color CSS variables (--site-primary, --site-text, etc.)
+    # — without these, .site-feature-card h3 / .site-hero-card h3
+    # inherit the dashboard's dark theme and titles render invisible
+    # against the white card backgrounds.
+    blueprint = None
+    if page.project_id:
+        project = GeneratedWebsiteProject.query.get(page.project_id)
+        if project:
+            blueprint = project.blueprint_json
+
     return render_template(
-        "website_engine_preview.html", page=page, page_json=page.page_json
+        "website_engine_preview.html",
+        page=page,
+        page_json=page.page_json,
+        blueprint=blueprint,
     )
 
 

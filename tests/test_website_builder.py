@@ -470,3 +470,86 @@ def test_brand_kit_preview_color_palette_renders_with_real_values(app_ctx, monke
 
     # The colour picker inputs must carry real hex values, not blank.
     assert 'value=""' not in body or "type=\"color\" value=\"\"" not in body
+
+
+def test_website_engine_preview_sets_css_variables():
+    """The in-dashboard page preview must define --site-primary /
+    --site-text / etc. on a wrapper. Without these, the rendered card
+    titles fall back to the dashboard's dark-theme inherited colour
+    and become invisible against the white card backgrounds — the
+    issue caught via screenshot review."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page_json = {
+        "sections": [
+            {
+                "type": "contact_details",
+                "headline": "How to reach us",
+                "items": [
+                    {"title": "Phone", "description": "+65 9123 4567"},
+                ],
+            }
+        ],
+        "semantic_profile": {"entity_name": "Test", "entity_type": "Agency"},
+    }
+    page = type(
+        "P",
+        (),
+        {
+            "id": 1,
+            "title": "Contact",
+            "page_json": page_json,
+        },
+    )()
+    blueprint = {
+        "primary_color": "#4f46e5",
+        "secondary_color": "#eef2ff",
+        "accent_color": "#c7d2fe",
+        "text_color": "#0f172a",
+    }
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_preview.html",
+                page=page,
+                page_json=page_json,
+                blueprint=blueprint,
+            )
+
+    assert "--site-primary: #4f46e5" in html
+    assert "--site-text: #0f172a" in html
+    # The wrapper class is what scopes the CSS variables to the
+    # preview block.
+    assert "generated-site-preview" in html
+
+
+def test_website_engine_preview_still_renders_without_blueprint():
+    """Defensive: an old project with a missing/null blueprint_json
+    must still render without 500 — the inline-style fallbacks must
+    fire."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page = type(
+        "P",
+        (),
+        {
+            "id": 1,
+            "title": "Contact",
+            "page_json": {"sections": [{"type": "hero", "headline": "h"}]},
+        },
+    )()
+
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_preview.html",
+                page=page,
+                page_json=page.page_json,
+                blueprint=None,
+            )
+
+    # Fallbacks should still produce real hex values, not empty.
+    assert "--site-primary: #f97316" in html
+    assert "--site-text: #0f172a" in html

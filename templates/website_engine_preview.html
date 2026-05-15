@@ -5,6 +5,13 @@
 {% endblock %}
 
 {% block content %}
+{# The public site template (generated_full_site.html) sets these CSS
+   variables on <body>, but this in-dashboard preview was missing them.
+   Without them, .site-feature-card h3 { color: var(--site-text); }
+   resolves to nothing and inherits the dashboard's dark-theme grey,
+   making titles like "Phone or WhatsApp" or the hero entity_name
+   barely visible against the white card background. #}
+{% set blueprint = blueprint or {} %}
 <div class="workspace-page-shell">
 
     <section class="panel">
@@ -21,7 +28,19 @@
         </div>
     </section>
 
-    {% include "website_engine_render.html" %}
+    <div
+        class="generated-site-preview"
+        style="
+            --site-primary: {{ blueprint.primary_color or '#f97316' }};
+            --site-primary-dark: {{ blueprint.primary_color or '#ea580c' }};
+            --site-primary-soft: {{ blueprint.secondary_color or '#fff7ed' }};
+            --site-accent-soft: {{ blueprint.accent_color or '#ffedd5' }};
+            --site-text: {{ blueprint.text_color or '#0f172a' }};
+            --site-muted: #64748b;
+        "
+    >
+        {% include "website_engine_render.html" %}
+    </div>
 
 </div>
 {% endblock %}
