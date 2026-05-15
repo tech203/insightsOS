@@ -283,3 +283,95 @@ def render_team_invite_email(
   <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you didn't expect this invite, you can safely ignore this email.</p>
 </body></html>"""
     return subject, text, html
+
+
+def render_upsell_lto_email(
+    *,
+    user_name: str,
+    headline: str,
+    upgrade_url: str,
+    hours_left: int,
+    unsubscribe_url: Optional[str] = None,
+) -> tuple[str, str, str]:
+    """Subject + plain-text + HTML body for the limited-time-offer
+    email. Fired once when a Free user crosses the prompt threshold;
+    a partner to the in-app modal so users who close the tab still
+    hear about the offer within the same 24h window.
+
+    `headline` is the source-aware copy resolved by the resolver
+    (e.g. "Need more workspaces?"). Falls back to a sensible default
+    if empty.
+
+    `unsubscribe_url` is a signed-token link to /unsubscribe/<token>;
+    omitted only in legacy callers / unit tests. Including it makes
+    the email CAN-SPAM compliant: marketing emails MUST carry a
+    clear opt-out path in both plain-text and HTML bodies.
+    """
+    headline = (headline or "Ready to unlock everything?").strip()
+    # Subject mirrors the headline so users can decide at a glance
+    # whether to open it. Strip newlines defensively to avoid header
+    # injection if `headline` ever comes from a user-controlled
+    # source — today it doesn't, but cost is one cheap call.
+    safe_subject_headline = headline.replace("\n", " ").replace("\r", " ")
+    subject = f"{safe_subject_headline} (limited-time offer)"
+    text_lines = [
+        f"Hi {user_name or 'there'},",
+        "",
+        headline,
+        "",
+        "You've been bumping into our paid features. Upgrade now and unlock "
+        "every cap — more workspaces, unlimited audits, multi-engine answer "
+        "monitoring, and white-label reports.",
+        "",
+        f"Your special offer expires in about {hours_left} hour"
+        f"{'s' if hours_left != 1 else ''}.",
+        "",
+        f"See plans: {upgrade_url}",
+        "",
+        "If you'd rather stick with the free tier, no need to do anything — "
+        "the offer simply lapses on its own.",
+    ]
+    if unsubscribe_url:
+        text_lines += [
+            "",
+            "—",
+            f"Don't want these emails? Unsubscribe: {unsubscribe_url}",
+        ]
+    text = "\n".join(text_lines)
+
+    safe_name = _html.escape(user_name or "there")
+    safe_headline = _html.escape(headline)
+    safe_url = _html.escape(upgrade_url)
+    safe_unsub = _html.escape(unsubscribe_url) if unsubscribe_url else ""
+    unsubscribe_footer = (
+        f"""
+  <hr style="border:0; border-top:1px solid #eee; margin:32px 0 16px;">
+  <p style="line-height: 1.55; color: #888; font-size: 11.5px; margin: 0;">
+    Don't want these emails?
+    <a href="{safe_unsub}" style="color: #888; text-decoration: underline;">Unsubscribe</a>.
+    Account emails (password resets, receipts, team invites) are unaffected.
+  </p>"""
+        if unsubscribe_url else ""
+    )
+    html = f"""\
+<!DOCTYPE html>
+<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #191929; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
+  <p style="display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(124,92,255,0.12); color: #7c5cff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 16px;">Limited time</p>
+  <h1 style="font-size: 22px; margin: 0 0 16px;">{safe_headline}</h1>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 12px;">Hi {safe_name},</p>
+  <p style="line-height: 1.55; color: #444; margin: 0 0 24px;">
+    You've been bumping into our paid features. Upgrade now to unlock
+    every cap — more workspaces, unlimited audits, multi-engine answer
+    monitoring, and white-label reports.
+  </p>
+  <p style="line-height: 1.55; color: #92400e; background: #fef3c7; padding: 12px 14px; border-radius: 10px; margin: 0 0 24px; font-size: 14px;">
+    <strong>Your special offer expires in about {hours_left} hour{'s' if hours_left != 1 else ''}.</strong>
+  </p>
+  <p style="margin: 0 0 24px;">
+    <a href="{safe_url}" style="display: inline-block; padding: 12px 22px; background: #3EDFCB; color: #191929; text-decoration: none; border-radius: 8px; font-weight: 600;">See plans →</a>
+  </p>
+  <p style="line-height: 1.55; color: #888; font-size: 13px; margin: 0 0 6px;">Or copy this link:</p>
+  <p style="line-height: 1.45; color: #555; font-size: 12px; word-break: break-all; background: #fafafe; padding: 10px 12px; border-radius: 6px; margin: 0 0 24px;">{safe_url}</p>
+  <p style="line-height: 1.55; color: #888; font-size: 12px; margin: 0;">If you'd rather stick with the free tier, no need to do anything — the offer simply lapses on its own.</p>{unsubscribe_footer}
+</body></html>"""
+    return subject, text, html

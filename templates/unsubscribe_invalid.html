@@ -1,0 +1,36 @@
+{# Invalid unsubscribe token landing page.
+
+   Reached when /unsubscribe/<token> can't decode the token (tampered,
+   truncated, expired-style signature mismatch, or stale beyond a
+   future TTL we may add). Friendly error rather than a 400 page so
+   the user knows what to do next. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribe link invalid | DarInsights</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; margin: 0;">
+
+<main style="background: #fff; border-radius: 16px; padding: 40px 36px; max-width: 480px; width: 100%; box-shadow: 0 8px 24px rgba(15,23,42,0.06); text-align: center;">
+
+    <div style="font-size: 32px; margin-bottom: 16px;">⚠️</div>
+    <h1 style="margin: 0 0 12px; font-size: 22px; color: #191929;">
+        Unsubscribe link invalid
+    </h1>
+    <p style="line-height: 1.55; color: #475569; margin: 0 0 24px;">
+        The link you clicked doesn't match an account in our system —
+        the email may have been truncated by your client, or the link
+        was tampered with in transit.
+    </p>
+    <p style="line-height: 1.55; color: #64748b; font-size: 13px; margin: 0;">
+        Email <a href="mailto:hello@darinsights.com" style="color: #16a99a;">hello@darinsights.com</a> from the address you'd like to unsubscribe and we'll take care of it manually.
+    </p>
+
+</main>
+
+</body>
+</html>
