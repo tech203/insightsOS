@@ -5660,8 +5660,13 @@ def _send_upsell_lto_email(user) -> bool:
         hours_left=hours_left,
         unsubscribe_url=unsubscribe_url,
     )
+    # Pass the unsubscribe URL through to send_email so it adds the
+    # RFC 8058 List-Unsubscribe headers. Required for Gmail/Yahoo
+    # to render their native "Unsubscribe" button — without it,
+    # marketing mail gets demoted to spam.
     sent = send_email(
         to=user.email, subject=subject, body_text=text, body_html=html,
+        list_unsubscribe_url=unsubscribe_url,
     )
     if sent:
         # Stamp the idempotency guard. Separate commit so a transient

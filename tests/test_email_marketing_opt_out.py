@@ -222,7 +222,7 @@ class TestLTOEmailRespectsOptOut:
         u = self._qualified(make_user, email="lto-unsub-link@x.com")
         captured = {}
 
-        def _capture(*, to, subject, body_text, body_html=None, reply_to=None):
+        def _capture(*, to, subject, body_text, body_html=None, reply_to=None, list_unsubscribe_url=None):
             captured["text"] = body_text
             captured["html"] = body_html or ""
             return True

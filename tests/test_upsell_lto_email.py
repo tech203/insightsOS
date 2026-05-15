@@ -180,7 +180,7 @@ class TestSendHelper:
 
         captured = {}
 
-        def _capture(*, to, subject, body_text, body_html=None, reply_to=None):
+        def _capture(*, to, subject, body_text, body_html=None, reply_to=None, list_unsubscribe_url=None):
             captured["subject"] = subject
             captured["text"] = body_text
             return True
@@ -198,7 +198,7 @@ class TestSendHelper:
         u = self._qualified_user(make_user, email="lto-url@x.com")
         captured = {}
 
-        def _capture(*, to, subject, body_text, body_html=None, reply_to=None):
+        def _capture(*, to, subject, body_text, body_html=None, reply_to=None, list_unsubscribe_url=None):
             captured["text"] = body_text
             return True
 
