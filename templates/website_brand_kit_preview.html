@@ -223,17 +223,53 @@
             </h2>
 
             <div class="brand-kit-style-grid">
+                {# Per-style hints — each card shows a mini-preview that
+                   actually previews the rendered look (radius, font,
+                   button shape) so the user can pick by sight, not
+                   by name alone. #}
                 {% set styles = [
-                    'Modern Ecommerce',
-                    'Premium Minimal',
-                    'Editorial Lifestyle',
-                    'Playful Brand'
+                    {
+                        'label': 'Modern Ecommerce',
+                        'value': 'modern_ecommerce',
+                        'description': 'Bold sans-serif, brand-color CTAs, rounded cards.',
+                        'mock_radius': '12px',
+                        'mock_btn_radius': '8px',
+                        'mock_font': 'inherit',
+                        'mock_btn_text': 'Shop',
+                    },
+                    {
+                        'label': 'Premium Minimal',
+                        'value': 'premium_minimal',
+                        'description': 'Loose spacing, light weight, refined buttons.',
+                        'mock_radius': '4px',
+                        'mock_btn_radius': '2px',
+                        'mock_font': 'inherit',
+                        'mock_btn_text': 'Discover',
+                    },
+                    {
+                        'label': 'Editorial Lifestyle',
+                        'value': 'editorial_lifestyle',
+                        'description': 'Serif headlines, generous line-height, uppercase buttons.',
+                        'mock_radius': '8px',
+                        'mock_btn_radius': '0',
+                        'mock_font': 'Playfair Display, Georgia, serif',
+                        'mock_btn_text': 'READ MORE',
+                    },
+                    {
+                        'label': 'Playful Brand',
+                        'value': 'playful_brand',
+                        'description': 'Rounded edges, pill buttons, generous shadows.',
+                        'mock_radius': '24px',
+                        'mock_btn_radius': '999px',
+                        'mock_font': 'inherit',
+                        'mock_btn_text': 'Tap in',
+                    }
                 ] %}
 
                 {% for style in styles %}
-                {% set style_value = style|lower|replace(" ", "_") %}
-                <div class="brand-kit-style-option{% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %} selected{% endif %}" style="
-                    {% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %}
+                {% set is_selected = blueprint.visual_style == style.value or (not blueprint.visual_style and loop.first) %}
+                <div class="brand-kit-style-option{% if is_selected %} selected{% endif %}" style="
+                    {% if is_selected %}
                     border: 2px solid {{ primary_color }};
                     background: {{ secondary_color }};
                     {% endif %}
@@ -241,17 +277,55 @@
                     <input
                         type="radio"
                         name="visual_style"
-                        value="{{ style_value }}"
-                        {% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %}checked{% endif %}
+                        value="{{ style.value }}"
+                        {% if is_selected %}checked{% endif %}
                         style="margin-bottom:12px;"
                     >
 
-                    <div class="brand-kit-style-preview"></div>
+                    {# Mini-preview reflecting the actual style — uses
+                       the brand's primary color so the user sees how
+                       their colour interacts with each style. #}
+                    <div
+                        class="brand-kit-style-preview"
+                        style="
+                            background: linear-gradient(135deg, {{ secondary_color }} 0%, #ffffff 100%);
+                            border-radius: {{ style.mock_radius }};
+                            font-family: {{ style.mock_font }};
+                            padding: 14px;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            min-height: 90px;
+                            margin-bottom: 10px;
+                        "
+                    >
+                        <div style="
+                            font-weight: {% if style.value == 'premium_minimal' %}500{% else %}700{% endif %};
+                            font-size: 0.8rem;
+                            color: {{ text_color }};
+                            line-height: 1.2;
+                        ">
+                            {{ blueprint.client_name or 'Your brand' }}
+                        </div>
+                        <div style="
+                            display: inline-block;
+                            align-self: flex-start;
+                            background: {{ primary_color }};
+                            color: #ffffff;
+                            border-radius: {{ style.mock_btn_radius }};
+                            padding: 4px 10px;
+                            font-size: 0.7rem;
+                            font-weight: 600;
+                            {% if style.value == 'editorial_lifestyle' %}letter-spacing: 0.08em;{% endif %}
+                        ">
+                            {{ style.mock_btn_text }}
+                        </div>
+                    </div>
 
-                    <strong>{{ style }}</strong>
+                    <strong>{{ style.label }}</strong>
 
                     <p class="muted brand-kit-style-description">
-                        AI-generated layout and visual direction.
+                        {{ style.description }}
                     </p>
                 </div>
                 {% endfor %}
