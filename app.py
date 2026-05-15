@@ -7359,6 +7359,69 @@ def collect_interest():
     return redirect("/?interest=success#early-access")
 
 
+# Spam defence: 5 audit-start submissions per hour per IP — these
+# create a session payload + a real account on signup, so we want
+# them tighter than the interest list.
+@app.route("/landing/start-audit", methods=["POST"])
+@limiter.limit("5 per hour")
+def landing_start_audit():
+    """Capture website + name + email from the landing-page audit
+    form, stash in the session, and route to /signup.
+
+    Conversion-optimisation pattern: the visitor is mid-task (they
+    typed their website to get an audit). Instead of dropping them
+    on a generic signup page, we pre-fill the signup form and after
+    signup auto-create their workspace + redirect to brand-context
+    (matching the existing first-workspace flow). They never see
+    "set up your workspace" because we did it for them.
+
+    Logged-in users skip signup — go straight to /clients/new with
+    the form data on the query string so the workspace form is
+    pre-populated.
+    """
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    website = (request.form.get("website") or "").strip()
+    industry = (request.form.get("industry") or "").strip()
+    location = (request.form.get("location") or "").strip()
+
+    # Minimum viable: website is the audit target, email is the
+    # account identifier. Name is nice-to-have (we can derive a
+    # default from the website domain).
+    if not website:
+        flash("Please enter your website URL.", "error")
+        return redirect("/?audit=missing-website#start-audit")
+    if not email:
+        flash("Please enter your email so we can send the audit.", "error")
+        return redirect("/?audit=missing-email#start-audit")
+
+    # Stash for the signup → auto-workspace flow. Capped at the
+    # session cookie size limit; 5 short fields is well within.
+    session["landing_audit_intent"] = {
+        "name": name[:200],
+        "email": email[:200],
+        "website": website[:500],
+        "industry": industry[:120],
+        "location": location[:120],
+    }
+
+    # Already authenticated? Skip signup, jump to workspace creation
+    # with the data on the query string.
+    if current_user.is_authenticated:
+        from urllib.parse import urlencode
+        params = urlencode({
+            "name": name or website,
+            "website": website,
+            "industry": industry,
+            "location": location,
+            "from": "landing",
+        })
+        return redirect(url_for("create_client") + ("?" + params if params else ""))
+
+    # Not authenticated — pre-fill the signup form via query params.
+    return redirect(url_for("signup", from_="landing"))
+
+
 # ---------------------------------------------------------------------------
 # Interest CRM
 # ---------------------------------------------------------------------------
@@ -11059,13 +11122,61 @@ def signup():
                 "success",
             )
 
+        # Landing-page audit intent: the visitor typed their website
+        # into the hero form, then signed up. Auto-create the workspace
+        # using their stashed details and route to brand-context (the
+        # same place /clients/new sends a brand-new user). They never
+        # see "set up your workspace" because we already did it.
+        intent = session.pop("landing_audit_intent", None)
+        if isinstance(intent, dict) and intent.get("website"):
+            # Derive a friendly workspace name from the website host
+            # if the visitor didn't type one (extract "Acme" from
+            # "https://www.acme.com"). Fallback to the raw website
+            # so we never end up with an empty workspace name.
+            ws_name = (intent.get("name") or "").strip()
+            if not ws_name:
+                try:
+                    host = urlparse(intent["website"]).netloc or intent["website"]
+                    host = host.replace("www.", "").split(".")[0]
+                    ws_name = host.replace("-", " ").title() or intent["website"]
+                except Exception:
+                    ws_name = intent["website"]
+            try:
+                client = add_client({
+                    "name": ws_name,
+                    "website": intent.get("website"),
+                    "industry": intent.get("industry") or "",
+                    "location": intent.get("location") or "",
+                    "owner_type": "company",
+                }, user_id=user.id)
+                # Same redirect target as the first-workspace path in
+                # create_client() — keeps the onboarding experience
+                # identical regardless of where the user entered.
+                return redirect(url_for(
+                    "client_brand_context",
+                    client_id=client["id"],
+                ))
+            except Exception as exc:
+                # If auto-create fails for any reason, fall through to
+                # /clients/new with their data pre-filled rather than
+                # losing the conversion. They get the form already
+                # populated and just have to click "Create".
+                logger.warning(
+                    "Landing-intent workspace auto-create failed for user "
+                    "%s: %s", user.id, exc,
+                )
+
         return redirect(url_for("create_client"))
 
+    # Pre-fill from session on GET when the visitor came via the
+    # landing-page audit form. Falls back to query-string params
+    # (used by Google OAuth and the legacy referral flow).
+    landing_intent = session.get("landing_audit_intent") or {}
     return render_template(
         "signup.html",
         error=None,
-        form_name="",
-        form_email="",
+        form_name=landing_intent.get("name") or "",
+        form_email=landing_intent.get("email") or "",
         form_referral_code=request.args.get("ref", "").strip(),
     )
 
