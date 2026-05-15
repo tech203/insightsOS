@@ -239,3 +239,43 @@ def test_logged_in_visitor_skips_signup_and_goes_to_clients_new(app_ctx):
     # Query params carry the form data so /clients/new can pre-fill.
     assert "website=https" in loc
     assert "from=landing" in loc
+
+
+# ---------------------------------------------------------------------------
+# Visual elements — make sure new visuals ship + don't get refactored away
+# ---------------------------------------------------------------------------
+
+def test_landing_page_contains_engine_strip(anon):
+    """The 'tested across' AI engine strip must render in the hero —
+    visual social proof for the form's CTA."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert "aeo-engine-strip" in body
+    # Each pill explicitly named so a refactor that drops one is caught.
+    for engine in ("Google AI", "ChatGPT", "Perplexity", "Gemini"):
+        assert engine in body, f"Engine pill missing: {engine}"
+
+
+def test_landing_page_step_cards_have_icons(anon):
+    """The 'How It Works' steps render with branded SVG icons, not
+    plain numbered circles. If a refactor strips the icon class, this
+    test fails with a clear pointer."""
+    body = anon.get("/aeo-agency").data.decode()
+    # 3 step cards × 1 icon container each
+    assert body.count('class="aeo-step-icon"') == 3, (
+        "Expected 3 aeo-step-icon containers (one per step card). "
+        "The numbered-only fallback is back."
+    )
+
+
+def test_landing_page_contains_live_audit_mockup(anon):
+    """The 'live audit' mockup section must render — it's the visceral
+    conversion driver showing competitors in the AI answer."""
+    body = anon.get("/aeo-agency").data.decode()
+    # Section identifier + the three components (query, answer, takeaway)
+    assert "aeo-mockup-grid" in body
+    assert "aeo-mockup-query" in body
+    assert "aeo-mockup-answer" in body
+    assert "aeo-mockup-takeaway" in body
+    # The "your brand: not mentioned" pill is what hooks the visitor —
+    # check it's present so a copy refactor doesn't quietly delete it.
+    assert "Your brand: not mentioned" in body
