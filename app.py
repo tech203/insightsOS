@@ -2349,6 +2349,65 @@ def regenerate_brand_kit_aeo_ideas(client_id):
     return redirect(url_for("preview_website_brand_kit", client_id=client_id))
 
 
+@app.route("/client/<client_id>/website-builder/upload-logo", methods=["POST"])
+@login_required
+def upload_brand_kit_logo(client_id):
+    """Upload a logo for the brand kit. Writes to the existing
+    workspace_logos bucket — so the same file appears on the
+    dashboard, audit PDF, and generated website (one upload, many
+    surfaces). Falls back to the brand-kit preview on error so the
+    user keeps their in-flight edits."""
+    from services.storage import logo_storage
+
+    workspace = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
+    if not workspace and str(client_id).isdigit():
+        workspace = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
+    if not workspace:
+        abort(404)
+
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("No file selected.", "warning")
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    # Same SVG-block reasoning as the other two logo routes — SVG
+    # can carry <script> + event handlers that would run in the
+    # app's origin when the logo is served back.
+    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in {"png", "jpg", "jpeg", "webp"}:
+        flash("Use PNG, JPG, or WEBP for the logo.", "warning")
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    new_name = f"workspace-{workspace.id}-{secrets.token_hex(4)}.{ext}"
+    try:
+        logo_storage.save("workspace_logos", new_name, file)
+    except Exception as exc:
+        logger.warning("Brand-kit logo upload failed: %s", exc)
+        flash("Could not save the logo. Try again.", "warning")
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    # Replace the old workspace logo (best-effort delete).
+    if workspace.logo_filename:
+        logo_storage.delete("workspace_logos", workspace.logo_filename)
+    workspace.logo_filename = new_name
+    db.session.commit()
+
+    # Mirror the URL into the pending blueprint so the brand-kit
+    # preview avatar and the rendered website nav can both find it
+    # without re-querying the workspace.
+    blueprint = session.get("pending_website_blueprint")
+    if blueprint:
+        blueprint["logo_url"] = _workspace_logo_url(new_name)
+        session["pending_website_blueprint"] = blueprint
+
+    flash("Logo uploaded. It now appears on the brand kit and the website nav.", "success")
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+
 def apply_brand_kit_form_edits(blueprint, form):
     edited = dict(blueprint or {})
 
@@ -3091,6 +3150,11 @@ def build_demo_website_blueprint(client, opportunities=None):
         "primary_cta": brand_kit.get("primary_cta") or primary_cta,
         "secondary_cta": brand_kit.get("secondary_cta") or secondary_cta,
         "functions": functions,
+        # If the workspace already has a logo (uploaded via the
+        # dashboard / audit flow), surface it in the brand kit so the
+        # user doesn't have to re-upload. Can be overwritten by the
+        # /upload-logo route during brand-kit editing.
+        "logo_url": client.get("logo_url"),
         # Brand kit fields used by the brand-kit preview template.
         "personality": brand_kit.get("personality", []),
         "tone_of_voice": brand_kit.get("tone_of_voice", ""),

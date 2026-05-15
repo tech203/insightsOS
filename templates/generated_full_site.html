@@ -29,7 +29,15 @@
 >
     <nav class="generated-site-nav">
         <a href="{{ url_for('public_website_project', project_id=project.id) }}" class="generated-site-brand">
+            {% if blueprint.logo_url %}
+            <img
+                src="{{ blueprint.logo_url }}"
+                alt="{{ blueprint.client_name }}"
+                style="height:32px;width:auto;display:block;"
+            >
+            {% else %}
             {{ blueprint.client_name }}
+            {% endif %}
         </a>
 
         <div class="generated-site-nav-links">

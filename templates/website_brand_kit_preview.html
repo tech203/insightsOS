@@ -46,8 +46,13 @@
     'professional_services': '✦'
 } %}
 {% set hero_icon = theme_icons.get(blueprint.theme, '✦') %}
+{# logo_url resolution: prefer the blueprint copy (latest upload
+   propagated by the upload route), fall back to the client's
+   persisted workspace logo so existing dashboard logos appear
+   automatically without a re-upload. #}
+{% set logo_url = blueprint.logo_url or client.logo_url %}
 <div class="brand-kit-page-shell">
-<form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}">
+<form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}" enctype="multipart/form-data">
 
     <!-- HERO -->
     <section class="card brand-kit-hero">
@@ -59,14 +64,38 @@
                 <p class="eyebrow">Brand Kit Studio</p>
 
                 <div class="brand-kit-avatar-row">
-                    <div class="brand-kit-avatar" style="background: {{ primary_color }};">
+                    <div class="brand-kit-avatar" style="background: {{ primary_color }};{% if logo_url %}background-image: url('{{ logo_url }}');background-size: cover;background-position: center;{% endif %}">
+                        {% if not logo_url %}
                         {{ blueprint.client_name[:1] }}
+                        {% endif %}
                     </div>
 
-                    <div>
-                        <button class="btn btn-secondary" type="button">
-                            Upload Logo
-                        </button>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        {# File input + submit live inside the parent
+                           form. enctype was added at the form tag so
+                           multipart works. formaction routes this
+                           specific submit to the upload route while
+                           the rest of the form keeps targeting
+                           approve-brand-kit. #}
+                        <label
+                            class="btn btn-secondary"
+                            style="cursor:pointer;text-align:center;"
+                        >
+                            {% if logo_url %}Replace Logo{% else %}Upload Logo{% endif %}
+                            <input
+                                type="file"
+                                name="logo"
+                                accept="image/png,image/jpeg,image/webp"
+                                style="display:none;"
+                                onchange="this.form.querySelector('button[name=upload_logo_submit]').click();"
+                            >
+                        </label>
+                        <button
+                            type="submit"
+                            name="upload_logo_submit"
+                            formaction="{{ url_for('upload_brand_kit_logo', client_id=client.id) }}"
+                            style="display:none;"
+                        ></button>
                     </div>
                 </div>
 

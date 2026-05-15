@@ -762,6 +762,21 @@ def test_palette_variant_cycles_and_clamps():
                 assert len(hex_color) == 7
 
 
+def test_blueprint_includes_workspace_logo_url():
+    """A workspace with a logo on its dashboard should not require a
+    re-upload in the brand kit — its logo_url propagates into the
+    blueprint at build time."""
+    client = {
+        "name": "Test Co",
+        "industry": "Marketing agency",
+        "services": "AEO",
+        "location": "Singapore",
+        "logo_url": "/static/uploads/workspace_logos/workspace-1-abc.png",
+    }
+    blueprint = build_demo_website_blueprint(client)
+    assert blueprint["logo_url"] == "/static/uploads/workspace_logos/workspace-1-abc.png"
+
+
 def test_palette_variant_unknown_theme_falls_back_to_general():
     """Unknown industry_theme values shouldn't crash — fall back to
     the general bucket so the Regenerate button always works."""
