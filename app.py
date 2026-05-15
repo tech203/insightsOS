@@ -2302,6 +2302,27 @@ def apply_brand_kit_form_edits(blueprint, form):
 
         pages.append(page_copy)
 
+    # Pick up any "Add a page" slots the user filled in. We accept up
+    # to 5 to leave room for future template changes; only non-empty
+    # titles count. Slug defaults to slugify(title); page_type defaults
+    # to "landing_page" since the user gave us no other hint.
+    for index in range(5):
+        title = (form.get(f"new_page_title_{index}") or "").strip()
+        if not title:
+            continue
+        slug_raw = (form.get(f"new_page_slug_{index}") or "").strip()
+        slug = slugify(slug_raw) or slugify(title) or f"page-{index}"
+        goal = (form.get(f"new_page_goal_{index}") or "").strip()
+
+        pages.append(
+            {
+                "title": title,
+                "slug": slug,
+                "page_type": "landing_page",
+                "goal": goal or f"Page about {title} for the business.",
+            }
+        )
+
     # Always replace (even if empty) — user may have skipped every
     # page from a previous edit. Empty list yields a 1-page site
     # (just home) since the blueprint helper always seeds Home as

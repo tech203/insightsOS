@@ -343,10 +343,10 @@
                 <p class="eyebrow">Website Structure</p>
                 <h2>Generated pages</h2>
             </div>
-
-            <button class="btn btn-secondary" type="button">
-                Add Page
-            </button>
+            {# The "Add Page" button used to be a non-functional stub.
+               Pages are now added by filling in any of the empty
+               slots below the existing cards — no JS or extra route
+               needed. #}
         </div>
 
         <div class="brand-kit-pages-grid">
@@ -388,6 +388,39 @@
                     >
                     Skip this page
                 </label>
+            </div>
+            {% endfor %}
+
+            {# 3 empty "Add a page" slots. Any with a non-empty title
+               gets appended at server side (apply_brand_kit_form_edits).
+               Three is enough for the common case (Pricing / Process /
+               Testimonials) without making the form feel overwhelming. #}
+            {% for i in range(3) %}
+            <div class="brand-kit-page-card" style="opacity:0.85;border-style:dashed;">
+                <div class="brand-kit-page-icon" style="background: {{ secondary_color }};">
+                    +
+                </div>
+                <input
+                    name="new_page_title_{{ i }}"
+                    value=""
+                    placeholder="Add a page (e.g. Pricing)"
+                    class="brand-kit-page-title"
+                >
+                <p class="muted brand-kit-page-slug">
+                    /optional — leave blank to skip
+                </p>
+                <input
+                    name="new_page_slug_{{ i }}"
+                    value=""
+                    placeholder="auto-generated"
+                    aria-label="Page slug"
+                    class="brand-kit-page-slug-input"
+                >
+                <textarea
+                    name="new_page_goal_{{ i }}"
+                    placeholder="What should this page accomplish?"
+                    class="brand-kit-page-goal"
+                ></textarea>
             </div>
             {% endfor %}
         </div>

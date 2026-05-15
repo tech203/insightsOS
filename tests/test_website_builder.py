@@ -706,3 +706,55 @@ def test_apply_brand_kit_form_edits_can_drop_all_pages():
     )
     edited = apply_brand_kit_form_edits(blueprint, form)
     assert edited["pages"] == []
+
+
+def test_apply_brand_kit_form_edits_appends_new_pages():
+    """new_page_title_<i> slots, when filled, append additional pages
+    to the blueprint. Empty slots are skipped. Slug auto-generates
+    from title if not provided."""
+    from app import apply_brand_kit_form_edits
+    from werkzeug.datastructures import ImmutableMultiDict
+
+    blueprint = _sample_blueprint()
+    form = ImmutableMultiDict(
+        [
+            ("new_page_title_0", "Pricing"),
+            ("new_page_goal_0", "Explain pricing tiers"),
+            # slot 1 left blank — must NOT be appended
+            ("new_page_title_2", "Process"),
+            ("new_page_slug_2", "how-it-works"),  # custom slug
+        ]
+    )
+    edited = apply_brand_kit_form_edits(blueprint, form)
+    titles = [p["title"] for p in edited["pages"]]
+    assert "Pricing" in titles
+    assert "Process" in titles
+    assert len(edited["pages"]) == 5 + 2  # original 5 + 2 added
+
+    pricing = next(p for p in edited["pages"] if p["title"] == "Pricing")
+    assert pricing["slug"] == "pricing"  # auto-slugified from title
+    assert pricing["goal"] == "Explain pricing tiers"
+    assert pricing["page_type"] == "landing_page"
+
+    process = next(p for p in edited["pages"] if p["title"] == "Process")
+    assert process["slug"] == "how-it-works"  # custom slug honoured
+
+
+def test_apply_brand_kit_form_edits_skip_and_add_combined():
+    """Skip + Add in the same submission: existing pages are filtered,
+    new pages are appended, both happen in one form post."""
+    from app import apply_brand_kit_form_edits
+    from werkzeug.datastructures import ImmutableMultiDict
+
+    blueprint = _sample_blueprint()
+    form = ImmutableMultiDict(
+        [
+            ("page_remove_3", "1"),  # drop FAQ
+            ("new_page_title_0", "Testimonials"),
+        ]
+    )
+    edited = apply_brand_kit_form_edits(blueprint, form)
+    slugs = [p["slug"] for p in edited["pages"]]
+    assert "faq" not in slugs
+    assert "testimonials" in slugs
+    assert len(edited["pages"]) == 5 - 1 + 1  # 5 default - 1 skipped + 1 added
