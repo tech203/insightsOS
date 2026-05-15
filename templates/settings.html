@@ -1805,6 +1805,16 @@ html[data-theme="dark"] .theme-toggle-text {
 }
 
 /* ===== Dark-mode flips for peach accent surfaces ===== */
+/* Base .dev-view-btn hardcodes color: #4a586c (dark gray), which is
+   invisible on the dark-mode panel surface (--bg-card flips to a near-
+   identical dark navy). Override the base state with a readable
+   foreground + a slightly lifted background so unselected segments
+   are still legible alongside the active/hover peach treatment below. */
+html[data-theme="dark"] .dev-view-btn {
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong);
+    color: var(--theme-text-secondary);
+}
 html[data-theme="dark"] .settings-chip-primary,
 html[data-theme="dark"] .dev-view-btn.active {
     background: rgba(232, 50, 86, 0.16);
