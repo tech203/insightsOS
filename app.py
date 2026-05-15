@@ -15507,6 +15507,18 @@ def render_settings_section(section, **extra_context):
         "team_pending_invites": team_pending_invites,
         "locked_workspaces": locked_workspaces,
         "can_reactivate_more": can_reactivate_more,
+        # Marketing-email subscription state for the notifications
+        # panel. The user's row carries the opt-out timestamp; we
+        # expose both the raw field (for "you unsubscribed on X")
+        # and a friendlier boolean for template flow.
+        "marketing_emails_subscribed": (
+            current_user.is_authenticated
+            and getattr(current_user, "email_marketing_opt_out_at", None) is None
+        ),
+        "marketing_opted_out_at": (
+            getattr(current_user, "email_marketing_opt_out_at", None)
+            if current_user.is_authenticated else None
+        ),
     }
     context.update(extra_context)
 
@@ -15547,6 +15559,51 @@ def settings_referrals():
 @login_required
 def settings_preferences():
     return render_settings_section("preferences")
+
+
+@app.route("/settings/notifications")
+@login_required
+def settings_notifications():
+    """In-product email preferences panel. Lets the user see their
+    current marketing-email opt-in state and toggle it. Pairs with
+    the signed-token /unsubscribe/<token> route (one-way) — this
+    surface is the only way to re-subscribe after opting out, since
+    we never collect re-subscribe consent through marketing email
+    itself (that would be silly)."""
+    return render_settings_section("notifications")
+
+
+@app.route("/settings/notifications/update", methods=["POST"])
+@login_required
+def settings_notifications_update():
+    """Toggle marketing-email opt-in for the current user.
+
+    Form value `marketing_emails` = "on" → re-subscribe (clear the
+    opt-out timestamp). Absent → opt out (stamp it now). Same
+    one-way semantics as the unsubscribe endpoint, but lets a user
+    flip back on without us needing a separate signed-token flow.
+
+    Transactional emails (password reset, verification, invites)
+    are unaffected — those don't consult the opt-out flag at all.
+    """
+    want_marketing = request.form.get("marketing_emails") == "on"
+    if want_marketing:
+        if current_user.email_marketing_opt_out_at is not None:
+            current_user.email_marketing_opt_out_at = None
+            db.session.commit()
+            flash("You'll receive marketing emails from us again.", "success")
+        else:
+            # Already subscribed; idempotent no-op so a double-post
+            # doesn't confuse the user with a misleading flash.
+            flash("Already subscribed to marketing emails.", "info")
+    else:
+        if current_user.email_marketing_opt_out_at is None:
+            current_user.email_marketing_opt_out_at = utcnow()
+            db.session.commit()
+            flash("Unsubscribed from marketing emails. Account emails (password resets, receipts) are unaffected.", "success")
+        else:
+            flash("Already unsubscribed.", "info")
+    return redirect(url_for("settings_notifications"))
 
 
 @app.route("/settings/team")

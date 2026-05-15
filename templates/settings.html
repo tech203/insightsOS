@@ -88,6 +88,12 @@
                    title="Theme and sidebar layout">
                     Preferences
                 </a>
+
+                <a href="{{ url_for('settings_notifications') }}"
+                   class="settings-v3-tab {% if active_settings_section == 'notifications' %}active{% endif %}"
+                   title="Email notifications and marketing opt-in">
+                    Notifications
+                </a>
             </div>
         </div>
 
@@ -885,6 +891,58 @@
             });
         })();
     </script>
+    {% endif %}
+
+    {# Notifications section — marketing-email opt-in toggle. The
+       only path users have to re-subscribe after clicking unsubscribe
+       in an email (the /unsubscribe/<token> route is one-way). #}
+    {% if active_settings_section == "notifications" %}
+    <section class="settings-v3-grid">
+        <div class="settings-v3-panel surface-card">
+            <div class="settings-v3-panel-head">
+                <h2>Marketing emails</h2>
+                <p>
+                    Tips, product updates, and special offers — sent occasionally,
+                    never more than once a week. <strong>Account emails</strong>
+                    (password resets, billing receipts, team invites, security
+                    notices) are unaffected and always delivered.
+                </p>
+            </div>
+
+            <form method="POST" action="{{ url_for('settings_notifications_update') }}"
+                  style="display: flex; flex-direction: column; gap: 16px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <label class="settings-v3-toggle">
+                    <input type="checkbox"
+                           name="marketing_emails"
+                           value="on"
+                           {% if marketing_emails_subscribed %}checked{% endif %}>
+                    <span>
+                        <strong>Send me marketing emails</strong>
+                        <small style="display:block; color:var(--text-muted); font-weight:400;">
+                            {% if marketing_emails_subscribed %}
+                                You're subscribed. Uncheck to opt out.
+                            {% else %}
+                                {% if marketing_opted_out_at %}
+                                    Unsubscribed on {{ marketing_opted_out_at.strftime('%d %b %Y') }}.
+                                {% else %}
+                                    Currently unsubscribed.
+                                {% endif %}
+                                Check the box to re-subscribe.
+                            {% endif %}
+                        </small>
+                    </span>
+                </label>
+
+                <div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        Save preferences
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
     {% endif %}
 
     {% if active_settings_section == "white_label" %}
