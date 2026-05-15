@@ -32,7 +32,7 @@
         class="generated-site-preview"
         style="
             --site-primary: {{ blueprint.primary_color or '#f97316' }};
-            --site-primary-dark: {{ blueprint.primary_color or '#ea580c' }};
+            --site-primary-dark: color-mix(in srgb, {{ blueprint.primary_color or '#f97316' }}, black 18%);
             --site-primary-soft: {{ blueprint.secondary_color or '#fff7ed' }};
             --site-accent-soft: {{ blueprint.accent_color or '#ffedd5' }};
             --site-text: {{ blueprint.text_color or '#0f172a' }};

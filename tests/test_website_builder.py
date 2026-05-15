@@ -522,6 +522,10 @@ def test_website_engine_preview_sets_css_variables():
     # The wrapper class is what scopes the CSS variables to the
     # preview block.
     assert "generated-site-preview" in html
+    # Regression: --site-primary-dark used to read the same blueprint
+    # field as --site-primary, leaving them identical and flattening
+    # the hero gradient + hover states. It now derives via color-mix.
+    assert "color-mix(in srgb, #4f46e5, black" in html
 
 
 def test_website_engine_preview_still_renders_without_blueprint():
