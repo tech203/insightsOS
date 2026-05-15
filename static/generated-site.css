@@ -92,8 +92,15 @@
     text-transform: uppercase;
 }
 
-.site-hero h1,
-.site-section h2 {
+/* Scoped under the wrapper class so the dashboard's
+   `html[data-theme="dark"] h1, h2` rule doesn't win on specificity
+   and turn hero headlines near-white against the light hero gradient.
+   Same fix as the h3 rule a few lines below; missed h1/h2 in the
+   first pass. */
+.generated-site-body .site-hero h1,
+.generated-site-body .site-section h2,
+.generated-site-preview .site-hero h1,
+.generated-site-preview .site-section h2 {
     margin: 0;
     color: var(--site-text);
     line-height: 1.08;
