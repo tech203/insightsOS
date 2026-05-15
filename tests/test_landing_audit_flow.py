@@ -28,7 +28,6 @@ Tests:
     (the legacy first-time path)
 """
 import pytest
-from flask import session as flask_session
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timezone
 
