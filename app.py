@@ -11328,6 +11328,13 @@ def _user_recent_verification_token(user) -> "Optional[EmailVerificationToken]":
 
 
 @app.route("/verify-email/<token>")
+# 256-bit tokens make brute-forcing the value space infeasible, but
+# without a limit a single IP can still hammer this endpoint to DoS
+# the DB lookup, probe for timing differences on the "is this token
+# format valid" path, or scrape via enumeration if the token scheme
+# is ever weakened. 10/hour comfortably exceeds the legitimate "user
+# clicked the email link, browser preloaded" pattern.
+@limiter.limit("10 per hour")
 def verify_email(token):
     """Consume a verification token: mark the matching user's email
     as verified and the token as used.
