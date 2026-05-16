@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF token exposed to JS — the auto-injector at the bottom
+         of the body adds a hidden `csrf_token` input to every POST
+         form on the page. Without this, the /interest and
+         /landing/start-audit forms would 400 in production because
+         Flask-WTF's CSRFProtect is globally enforced. Mirrors the
+         pattern in base.html so behaviour is identical across the
+         marketing pages and the app. -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}DarInsights{% endblock %}</title>
     <script>
         // Restore theme before first paint to avoid a flash. Mirrors
@@ -23,6 +31,35 @@
 
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
+
+    <script>
+    /* Auto-inject hidden csrf_token field into every POST form on the
+       page. Mirrors the same pattern in base.html so the marketing
+       pages get CSRF protection without each <form> needing to
+       template the token explicitly. Skips forms that already have
+       a token (manual templates), and skips non-POST forms (GET
+       search boxes don't need it).
+
+       This shim runs once at page load. Forms inserted dynamically
+       after load would need to re-run this — none on the landing
+       page do that today. */
+    (function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        if (!meta) return;
+        var token = meta.content;
+        if (!token) return;
+        document.querySelectorAll('form').forEach(function (form) {
+            var method = (form.getAttribute('method') || '').toUpperCase();
+            if (method !== 'POST') return;
+            if (form.querySelector('input[name="csrf_token"]')) return;
+            var input = document.createElement('input');
+            input.type  = 'hidden';
+            input.name  = 'csrf_token';
+            input.value = token;
+            form.appendChild(input);
+        });
+    }());
+    </script>
 
 </body>
 </html>

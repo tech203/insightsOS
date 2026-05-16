@@ -241,6 +241,91 @@ def test_logged_in_visitor_skips_signup_and_goes_to_clients_new(app_ctx):
 
 
 # ---------------------------------------------------------------------------
+# CSRF — both landing forms must work with CSRF enabled
+# ---------------------------------------------------------------------------
+# The rest of the test suite disables WTF_CSRF_ENABLED (conftest), so a
+# missing csrf_token in a template would silently pass all other tests
+# and then 400 in production. These two tests RE-ENABLE CSRF locally
+# and prove that the page surfaces the token meta tag and that POSTing
+# with the templated token succeeds.
+
+import re
+
+
+@pytest.fixture
+def csrf_enabled():
+    """Flip CSRF protection back on for tests that need to prove the
+    landing-page forms actually work in production. Restore on teardown
+    so the rest of the suite stays CSRF-disabled."""
+    flask_app.config["WTF_CSRF_ENABLED"] = True
+    try:
+        yield
+    finally:
+        flask_app.config["WTF_CSRF_ENABLED"] = False
+
+
+def _extract_csrf_token(html: str) -> str:
+    """Pull the CSRF token out of the <meta name="csrf-token"> tag
+    that marketing_base.html exposes. Returns empty string if the
+    tag is missing — caller asserts on the value, so missing → fail."""
+    m = re.search(r'<meta name="csrf-token" content="([^"]+)"', html)
+    return m.group(1) if m else ""
+
+
+def test_landing_page_renders_csrf_meta_tag(anon, csrf_enabled):
+    """marketing_base.html must expose the CSRF token in a meta tag
+    so the auto-injector script can wire it into form submits.
+    Without this tag, both landing-page forms would 400 in prod."""
+    resp = anon.get("/aeo-agency")
+    assert resp.status_code == 200
+    token = _extract_csrf_token(resp.data.decode())
+    assert token, (
+        "Landing page does not expose a CSRF token meta tag. "
+        "Both /interest and /landing/start-audit will 400 in prod. "
+        "Fix: add <meta name=\"csrf-token\" content=\"{{ csrf_token() }}\"> "
+        "to marketing_base.html."
+    )
+
+
+def test_landing_start_audit_accepts_post_with_csrf_token(anon, csrf_enabled):
+    """End-to-end with CSRF enabled: GET the landing page to mint
+    a token, then POST /landing/start-audit with the token in the
+    form body. Must NOT 400."""
+    page = anon.get("/aeo-agency")
+    token = _extract_csrf_token(page.data.decode())
+    assert token, "CSRF token missing from landing page"
+
+    resp = anon.post("/landing/start-audit", data={
+        "email": "owner@acme.example.com",
+        "website": "https://acme.example.com",
+        "csrf_token": token,
+    }, follow_redirects=False)
+    # 302 redirect to /signup = CSRF passed + handler ran.
+    # 400 would mean the token wasn't accepted.
+    assert resp.status_code == 302, (
+        f"POST /landing/start-audit returned {resp.status_code} with a "
+        f"valid CSRF token. Body: {resp.data[:300]!r}"
+    )
+    assert "/signup" in resp.headers.get("Location", "")
+
+
+def test_interest_form_accepts_post_with_csrf_token(anon, csrf_enabled):
+    """The pre-existing /interest form was ALSO unguarded — it
+    would have 400'd in production. The marketing_base.html fix
+    protects both forms; this test pins it for the interest form
+    too so a future change doesn't break it."""
+    page = anon.get("/aeo-agency")
+    token = _extract_csrf_token(page.data.decode())
+    resp = anon.post("/interest", data={
+        "email": "lead@example.com",
+        "company": "Acme",
+        "csrf_token": token,
+    }, follow_redirects=False)
+    assert resp.status_code == 302
+    assert "interest=success" in resp.headers.get("Location", "")
+
+
+# ---------------------------------------------------------------------------
 # Visual elements — make sure new visuals ship + don't get refactored away
 # ---------------------------------------------------------------------------
 
