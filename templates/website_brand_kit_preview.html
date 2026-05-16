@@ -511,7 +511,30 @@
             </p>
 
             <div class="brand-kit-cta-buttons">
-                <button class="brand-kit-cta-primary-btn" type="submit" style="background: white; color: {{ primary_color }};">
+                {# Approve fires 5 sequential AI calls (one per page) so
+                   the request can take 15-25 seconds. Without this
+                   disabled+relabel handler the user sees a frozen page
+                   and is likely to double-submit. The setTimeout-wrapped
+                   form.submit() is a tiny workaround: setting disabled
+                   on the clicked button in onclick would normally
+                   prevent the form submit because disabled inputs don't
+                   POST — by yielding to the event loop, the form
+                   submits, *then* the button disables. #}
+                <button
+                    class="brand-kit-cta-primary-btn"
+                    type="submit"
+                    id="approve-website-btn"
+                    style="background: white; color: {{ primary_color }};"
+                    onclick="
+                        var b = this;
+                        setTimeout(function() {
+                            b.disabled = true;
+                            b.textContent = 'Generating 5 pages — about 20 seconds…';
+                            b.style.opacity = '0.7';
+                            b.style.cursor = 'wait';
+                        }, 50);
+                    "
+                >
                     Approve & Generate Website
                 </button>
 
