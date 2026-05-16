@@ -6482,35 +6482,49 @@ def _apply_security_headers(response):
     # PDF export is noise. The PDF is rendered server-side anyway, so
     # CSP inside the rendered HTML doesn't actually protect anything.
     if not (request.path or "").startswith("/audit/") and not (request.path or "").endswith("/pdf"):
+        csp_directives = [
+            # default-src 'self' covers iframes, fetches, etc.
+            "default-src 'self'",
+            # Allow inline scripts during the report-only phase —
+            # the dashboard has many <script> blocks. We'll narrow
+            # this once telemetry shows what's used.
+            "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+            # Same for styles — Tailwind / inline style attributes.
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            # Logos / Stripe Elements / fonts.
+            "img-src 'self' data: https:",
+            "font-src 'self' https://fonts.gstatic.com data:",
+            # Stripe iframe + our own iframes only.
+            "frame-src https://js.stripe.com https://hooks.stripe.com",
+            # Connect-src for /api/wallet polling, Stripe API, etc.
+            "connect-src 'self' https://api.stripe.com",
+            # Block legacy plugins outright.
+            "object-src 'none'",
+            # Form submissions to our own origin only.
+            "form-action 'self' https://checkout.stripe.com",
+            # Reject any base href injection.
+            "base-uri 'self'",
+            # Frame-ancestors mirrors X-Frame-Options=SAMEORIGIN
+            # but applies to descendants, not just the immediate
+            # parent — defends against nested iframe clickjacking.
+            "frame-ancestors 'self'",
+        ]
+        # Wire CSP violation reporting if CSP_REPORT_URI is configured.
+        # We emit BOTH the legacy report-uri (Chrome/Safari/Firefox still
+        # use this) AND the modern report-to + Reporting-Endpoints header
+        # (the spec-current replacement). If the env var is unset, neither
+        # is emitted — violations stay in the browser console only.
+        csp_report_uri = os.environ.get("CSP_REPORT_URI")
+        if csp_report_uri:
+            csp_directives.append(f"report-uri {csp_report_uri}")
+            csp_directives.append("report-to default")
+            response.headers.setdefault(
+                "Reporting-Endpoints",
+                f'default="{csp_report_uri}"',
+            )
         response.headers.setdefault(
             "Content-Security-Policy-Report-Only",
-            (
-                # default-src 'self' covers iframes, fetches, etc.
-                "default-src 'self'; "
-                # Allow inline scripts during the report-only phase —
-                # the dashboard has many <script> blocks. We'll narrow
-                # this once telemetry shows what's used.
-                "script-src 'self' 'unsafe-inline' https://js.stripe.com; "
-                # Same for styles — Tailwind / inline style attributes.
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                # Logos / Stripe Elements / fonts.
-                "img-src 'self' data: https:; "
-                "font-src 'self' https://fonts.gstatic.com data:; "
-                # Stripe iframe + our own iframes only.
-                "frame-src https://js.stripe.com https://hooks.stripe.com; "
-                # Connect-src for /api/wallet polling, Stripe API, etc.
-                "connect-src 'self' https://api.stripe.com; "
-                # Block legacy plugins outright.
-                "object-src 'none'; "
-                # Form submissions to our own origin only.
-                "form-action 'self' https://checkout.stripe.com; "
-                # Reject any base href injection.
-                "base-uri 'self'; "
-                # Frame-ancestors mirrors X-Frame-Options=SAMEORIGIN
-                # but applies to descendants, not just the immediate
-                # parent — defends against nested iframe clickjacking.
-                "frame-ancestors 'self'"
-            ),
+            "; ".join(csp_directives),
         )
     return response
 
