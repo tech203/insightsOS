@@ -44,7 +44,7 @@
     </section>
 
     <div
-        class="generated-site-preview style-{{ blueprint.visual_style or 'modern_ecommerce' }}"
+        class="generated-site-preview style-{{ blueprint.visual_style or 'modern_ecommerce' }} theme-{{ blueprint.theme or 'professional_services' }}"
         style="
             --site-primary: {{ blueprint.primary_color or '#f97316' }};
             --site-primary-dark: color-mix(in srgb, {{ blueprint.primary_color or '#f97316' }}, black 18%);

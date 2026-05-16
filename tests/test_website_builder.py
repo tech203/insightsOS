@@ -604,6 +604,46 @@ def test_preview_wrapper_carries_visual_style_class():
         )
 
 
+def test_preview_wrapper_carries_theme_class():
+    """The wrapper div must carry a theme-<value> class derived from
+    blueprint.theme so the industry-theme CSS accents (clinic /
+    education / ecommerce / food / professional services) actually
+    apply alongside the visual_style class."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page = type(
+        "P",
+        (),
+        {
+            "id": 1,
+            "title": "Home",
+            "page_json": {"sections": [{"type": "hero", "headline": "h"}]},
+        },
+    )()
+
+    for theme_value in [
+        "clinic_wellness",
+        "education_centre",
+        "restaurant_cafe",
+        "ecommerce_store",
+        "professional_services",
+    ]:
+        blueprint = {
+            "visual_style": "modern_ecommerce",
+            "theme": theme_value,
+        }
+        with flask_app.app_context():
+            with flask_app.test_request_context():
+                html = render_template(
+                    "website_engine_preview.html",
+                    page=page,
+                    page_json=page.page_json,
+                    blueprint=blueprint,
+                )
+        assert f"theme-{theme_value}" in html, theme_value
+
+
 def test_preview_wrapper_falls_back_to_modern_ecommerce_when_visual_style_missing():
     """An old project without visual_style on its blueprint must still
     render — the default class is style-modern_ecommerce (the same

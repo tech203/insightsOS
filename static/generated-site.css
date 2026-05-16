@@ -438,3 +438,56 @@
 
 /* Modern ecommerce is the default look — explicit class for
    future-proofing but no overrides needed today. */
+
+
+/* ---------------------------------------------------------------------
+   Industry themes — layered ON TOP of visual_style so e.g. a clinic
+   picking "Premium Minimal" still feels different from an ecommerce
+   store on "Premium Minimal". Themes adjust eyebrow case and section
+   colour tone; visual_style still drives radius / typography / button
+   shape. These rules use .generated-site-body and
+   .generated-site-preview prefixes so they win over the dashboard's
+   dark-theme cascade (same fix pattern as the h1/h2/h3 specificity
+   work earlier in this PR).
+--------------------------------------------------------------------- */
+
+/* Clinic — gentler kicker, calmer section tone. */
+.generated-site-body.theme-clinic_wellness .site-kicker,
+.generated-site-preview.theme-clinic_wellness .site-kicker {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+    color: var(--site-primary);
+}
+.generated-site-body.theme-clinic_wellness .site-section-light,
+.generated-site-preview.theme-clinic_wellness .site-section-light {
+    background: color-mix(in srgb, var(--site-primary-soft) 60%, white);
+}
+
+/* Education — friendly, mid-tone kicker with rounded mood. */
+.generated-site-body.theme-education_centre .site-kicker,
+.generated-site-preview.theme-education_centre .site-kicker {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+}
+
+/* Restaurant / cafe — warmer section background tilt. */
+.generated-site-body.theme-restaurant_cafe .site-section-light,
+.generated-site-preview.theme-restaurant_cafe .site-section-light {
+    background: color-mix(in srgb, var(--site-primary-soft) 75%, white);
+}
+
+/* Ecommerce — slightly more prominent CTA via heavier eyebrow. */
+.generated-site-body.theme-ecommerce_store .site-kicker,
+.generated-site-preview.theme-ecommerce_store .site-kicker {
+    font-weight: 850;
+    letter-spacing: 0.1em;
+}
+
+/* Professional services — default uppercase tracked kicker stays;
+   add only a subtler section background tint. */
+.generated-site-body.theme-professional_services .site-section-light,
+.generated-site-preview.theme-professional_services .site-section-light {
+    background: color-mix(in srgb, var(--site-primary-soft) 45%, white);
+}
