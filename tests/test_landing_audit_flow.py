@@ -351,6 +351,25 @@ def test_landing_page_step_cards_have_icons(anon):
     )
 
 
+def test_landing_page_contains_comparison_table(anon):
+    """The 'DIY vs DarInsights vs Consultancy' comparison table must
+    render — it's the section that answers the 'why not just use
+    ChatGPT myself / hire a consultant' objection right before the
+    pricing section. Without it, the pricing reveal lands cold."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert "aeo-compare-table" in body
+    # All 3 column titles present (any one missing = the table is
+    # broken or copy was refactored without re-balancing).
+    assert "Do it yourself" in body
+    assert "DarInsights" in body
+    assert "Hire a consultancy" in body
+    # The visual "Most picked" badge anchored to the DarInsights
+    # column — pure CSS, but the column class must be present.
+    assert "aeo-compare-col-us" in body
+    # CTA at the bottom of the table scrolls to the audit form.
+    assert 'href="#start-audit"' in body
+
+
 def test_landing_page_contains_live_audit_mockup(anon):
     """The 'live audit' mockup section must render — it's the visceral
     conversion driver showing competitors in the AI answer."""
