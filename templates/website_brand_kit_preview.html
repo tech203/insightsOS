@@ -538,6 +538,18 @@
                     Approve & Generate Website
                 </button>
 
+                {# Save without generating — same form, formaction
+                   routes this specific submit to the save-only route.
+                   No AI calls, no project created. Mirrors the
+                   Regenerate Palette / Ideas pattern. #}
+                <button
+                    class="brand-kit-cta-secondary-btn"
+                    type="submit"
+                    formaction="{{ url_for('save_website_brand_kit', client_id=client.id) }}"
+                >
+                    Save Brand Kit
+                </button>
+
                 <a
                     class="brand-kit-cta-secondary-btn"
                     href="{{ url_for('website_builder_page', client_id=client.id) }}"

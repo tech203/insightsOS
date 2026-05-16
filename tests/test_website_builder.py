@@ -1259,6 +1259,92 @@ def test_approve_persists_brand_kit_back_to_workspace(app_ctx):
     assert ws.brand_kit_approved_at is not None
 
 
+def test_save_brand_kit_route_persists_without_generating_pages(app_ctx):
+    """POSTing to /save-brand-kit must (a) write brand_* to the Client
+    row, (b) stamp brand_kit_updated_at (NOT brand_kit_approved_at —
+    that's reserved for full approve), (c) NOT create any project or
+    page rows, (d) keep the pending blueprint in session so the user
+    can keep editing."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="savekit@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Save Kit",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="savekit-co",
+        user_id=u.id,
+        name="SaveKit Co",
+        website="https://sk.example.com",
+        website_normalized="sk.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.commit()
+
+    assert ws.brand_primary_color is None
+    assert ws.brand_kit_updated_at is None
+    assert ws.brand_kit_approved_at is None
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+        s["pending_website_blueprint"] = {
+            "client_name": "SaveKit Co",
+            "business_type": "Marketing agency",
+            "industry_theme": "general",
+            "primary_color": "#10b981",
+            "secondary_color": "#ecfdf5",
+            "accent_color": "#a7f3d0",
+            "personality": ["modern", "trustworthy"],
+            "pages": [
+                {"title": "Home", "slug": "home", "page_type": "home", "goal": ""}
+            ],
+            "theme": "professional_services",
+        }
+
+    resp = c.post(f"/client/{ws.slug}/website-builder/save-brand-kit")
+    assert resp.status_code in (302, 303)
+    # Redirected back to the brand-kit preview, not the project preview.
+    assert "/website-builder/brand-kit" in resp.headers["Location"]
+
+    db.session.refresh(ws)
+    assert ws.brand_primary_color == "#10b981"
+    assert ws.brand_secondary_color == "#ecfdf5"
+    assert ws.brand_accent_color == "#a7f3d0"
+    assert ws.brand_personality == "modern, trustworthy"
+    assert ws.brand_kit_updated_at is not None
+    # save-only intentionally does NOT stamp approved_at — that's the
+    # full approve flow's signal.
+    assert ws.brand_kit_approved_at is None
+
+    # No project or page rows were created.
+    assert GeneratedWebsiteProject.query.filter_by(user_id=u.id).count() == 0
+    assert GeneratedWebsitePage.query.filter_by(user_id=u.id).count() == 0
+
+    # Session blueprint still there for further editing.
+    with c.session_transaction() as s:
+        assert s.get("pending_website_blueprint") is not None
+
+
 def test_blueprint_falls_back_to_industry_defaults_when_workspace_brand_unset():
     """A fresh workspace (no persisted brand) should still get
     sensible colours from the industry classifier."""

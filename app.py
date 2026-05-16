@@ -2370,6 +2370,63 @@ def regenerate_brand_kit_aeo_ideas(client_id):
     return redirect(url_for("preview_website_brand_kit", client_id=client_id))
 
 
+@app.route("/client/<client_id>/website-builder/save-brand-kit", methods=["POST"])
+@login_required
+def save_website_brand_kit(client_id):
+    """Persist the in-flight brand kit to the workspace WITHOUT
+    triggering page generation. Lets users tune colours / personality
+    via the website-builder form and save their work without paying
+    the 15-25s 5-page-AI-generation cost.
+
+    Mirrors the brand-fields-write block from approve_website_brand_kit
+    but stops there — doesn't create a GeneratedWebsiteProject row or
+    fire any AI calls."""
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    row = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
+    if not row:
+        abort(404)
+
+    blueprint = session.get("pending_website_blueprint")
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
+    # Same persistence block as approve_website_brand_kit.
+    if _is_hex_color(blueprint.get("primary_color")):
+        row.brand_primary_color = blueprint["primary_color"][:20]
+    if _is_hex_color(blueprint.get("secondary_color")):
+        row.brand_secondary_color = blueprint["secondary_color"][:20]
+    if _is_hex_color(blueprint.get("accent_color")):
+        row.brand_accent_color = blueprint["accent_color"][:20]
+    personality_list = blueprint.get("personality") or []
+    if isinstance(personality_list, list) and personality_list:
+        row.brand_personality = ", ".join(personality_list)[:255]
+    row.brand_kit_updated_at = utcnow()
+    # Don't set brand_kit_approved_at — that's reserved for the
+    # full approve flow where the user commits to publishing-ready
+    # pages. Saving the kit alone is a softer milestone.
+
+    db.session.commit()
+
+    # Keep the pending blueprint in session so the user can keep
+    # editing without losing context after the save.
+    session["pending_website_blueprint"] = blueprint
+
+    flash("Brand kit saved to the workspace. Generate the website when you're ready.", "success")
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+
 @app.route("/client/<client_id>/website-builder/upload-logo", methods=["POST"])
 @login_required
 def upload_brand_kit_logo(client_id):
