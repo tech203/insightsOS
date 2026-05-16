@@ -937,6 +937,149 @@ def test_regenerate_page_replaces_page_json_and_preserves_identity(app_ctx):
     assert page.page_json.get("webflow", {}).get("item_id") == "wf123"
 
 
+def test_delete_project_cascades_pages_and_redirects(app_ctx):
+    """POSTing to /website-builder/project/<id>/delete must (a) delete
+    every page row for the project, (b) delete the project row, and
+    (c) redirect back to the workspace's website-builder landing."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="delproj@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Del Proj",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="delproj-co",
+        user_id=u.id,
+        name="DelProj Co",
+        website="https://dp.example.com",
+        website_normalized="dp.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="DelProj Co Website",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "DelProj Co"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    for slug in ("home", "about", "contact"):
+        db.session.add(
+            GeneratedWebsitePage(
+                project_id=project.id,
+                user_id=u.id,
+                client_id=ws.id,
+                title=slug.title(),
+                slug=slug,
+                page_type=slug,
+                status="draft",
+                page_json={"sections": []},
+            )
+        )
+    db.session.commit()
+    project_id = project.id
+    assert GeneratedWebsitePage.query.filter_by(project_id=project_id).count() == 3
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    resp = c.post(f"/website-builder/project/{project_id}/delete")
+    assert resp.status_code in (302, 303)
+    assert f"/client/{ws.slug}/website-builder" in resp.headers["Location"]
+
+    assert GeneratedWebsiteProject.query.get(project_id) is None
+    assert GeneratedWebsitePage.query.filter_by(project_id=project_id).count() == 0
+
+
+def test_delete_project_rejects_other_users(app_ctx):
+    """Cross-user defence — a project's owner is the only one who can
+    delete it. Anyone else gets 403, not silent success."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="owner-del@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Owner Del",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="intruder-del@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Intruder Del",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+    ws = Client(
+        slug="owner-del-co",
+        user_id=owner.id,
+        name="Owner Del Co",
+        website="https://od.example.com",
+        website_normalized="od.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Don't touch",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "Owner Del Co"},
+    )
+    db.session.add(project)
+    db.session.commit()
+    project_id = project.id
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+
+    resp = c.post(f"/website-builder/project/{project_id}/delete")
+    assert resp.status_code == 403
+    # Project must still exist.
+    assert GeneratedWebsiteProject.query.get(project_id) is not None
+
+
 def test_regenerate_page_rejects_other_users_pages(app_ctx):
     """Cross-user defence: a user can't regenerate someone else's
     page. Must return 403, not silently regenerate."""

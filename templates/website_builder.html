@@ -118,6 +118,20 @@
                         View Live Site
                     </a>
                     {% endif %}
+
+                    {# Inline confirm — destructive action, but cheap
+                       compared to a modal. Avoids users tripping over
+                       a Delete button next to Preview. #}
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_website_project', project_id=project.id) }}"
+                        onsubmit="return confirm('Delete this project and its {{ summary.page_count }} page(s)? This cannot be undone.');"
+                        style="display:inline;"
+                    >
+                        <button type="submit" class="btn btn-secondary" style="opacity:0.75;">
+                            Delete
+                        </button>
+                    </form>
                 </div>
             </article>
             {% endfor %}

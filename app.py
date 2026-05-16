@@ -2568,6 +2568,42 @@ def preview_website_project(project_id):
 
 
 @app.route(
+    "/website-builder/project/<int:project_id>/delete", methods=["POST"]
+)
+@login_required
+def delete_website_project(project_id):
+    """Delete a generated-website project and its pages. Required
+    because users had no way to clean up draft projects — running
+    Generate Full Website 3× left 3 stuck drafts on the landing page
+    with no recourse short of database surgery.
+
+    Cascade-deletes pages first (they have a project_id FK without
+    cascade in the model definition), then the project. Owner check
+    + redirect to the website builder landing so the user lands
+    somewhere coherent."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        abort(403)
+
+    # Look up the client slug so we can redirect back to the right
+    # workspace's website-builder landing, even after the project
+    # row is gone.
+    client_row = Client.query.filter_by(id=project.client_id).first()
+    client_slug = client_row.slug if client_row else None
+
+    GeneratedWebsitePage.query.filter_by(project_id=project.id).delete(
+        synchronize_session=False
+    )
+    db.session.delete(project)
+    db.session.commit()
+
+    flash("Project deleted.", "success")
+    if client_slug:
+        return redirect(url_for("website_builder_page", client_id=client_slug))
+    return redirect(url_for("index"))
+
+
+@app.route(
     "/website-builder/project/<int:project_id>/publish", methods=["POST"]
 )
 @login_required
