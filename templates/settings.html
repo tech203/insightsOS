@@ -271,6 +271,112 @@
             </p>
             <a href="{{ url_for('logout') }}" class="btn btn-secondary">Sign out of this session</a>
         </div>
+
+        {# ── GDPR — right to data portability (Art. 20) ────────────────
+           Native GET form. The endpoint returns a JSON download via
+           Content-Disposition: attachment, so the browser saves the
+           file and the user stays on the settings page. No JS needed. #}
+        <div class="settings-v3-panel surface-card">
+            <div class="settings-v3-panel-head">
+                <h2>Export your data</h2>
+                <p>Download everything we hold about your account as a JSON file.</p>
+            </div>
+            <p class="panel-subtitle" style="margin:0 0 0.85rem 0;">
+                Includes your profile, wallet history, workspaces, audits, content queue items, and
+                connected integrations (with OAuth tokens redacted). Exercises your right to data
+                portability under GDPR Article 20.
+            </p>
+            <form method="get" action="{{ url_for('settings_export_data') }}">
+                <button type="submit" class="btn btn-secondary">Export account data</button>
+            </form>
+        </div>
+
+        {# ── GDPR — right to erasure (Art. 17) ─────────────────────────
+           Destructive. Requires *both* the user's current password AND
+           the literal phrase "delete my account" — the server enforces
+           both. The inline JS below also gates the submit button on
+           the confirmation phrase so a misclick can't trigger deletion. #}
+        <div class="settings-v3-panel surface-card"
+             style="border-color: var(--danger-border, #fecdd3);">
+            <div class="settings-v3-panel-head">
+                <h2 style="color: var(--danger, #b91c1c);">Delete your account</h2>
+                <p>Permanently erases your account, workspaces, wallet, audits, and integrations. This cannot be undone.</p>
+            </div>
+            <p class="panel-subtitle" style="margin:0 0 0.85rem 0;">
+                We hard-delete every row tied to your user and best-effort cancel any active Stripe
+                subscription. Teammates you invited will keep working as solo accounts. Exercises your
+                right to erasure under GDPR Article 17.
+            </p>
+
+            <form method="post"
+                  action="{{ url_for('settings_delete_account') }}"
+                  class="settings-v3-form"
+                  id="gdpr-delete-form"
+                  autocomplete="off">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <label for="gdpr-delete-password">Current password</label>
+                <input id="gdpr-delete-password"
+                       type="password"
+                       name="current_password"
+                       required
+                       autocomplete="current-password">
+
+                <label for="gdpr-delete-confirm">
+                    Type <code>delete my account</code> to confirm
+                </label>
+                <input id="gdpr-delete-confirm"
+                       type="text"
+                       name="confirm_phrase"
+                       required
+                       autocomplete="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       placeholder="delete my account">
+
+                <button type="submit"
+                        id="gdpr-delete-submit"
+                        class="btn btn-danger"
+                        style="margin-top:8px;"
+                        disabled
+                        aria-disabled="true">
+                    Permanently delete my account
+                </button>
+            </form>
+
+            <script>
+            (function () {
+                var form    = document.getElementById('gdpr-delete-form');
+                if (!form) return;
+                var confirm = document.getElementById('gdpr-delete-confirm');
+                var submit  = document.getElementById('gdpr-delete-submit');
+                if (!confirm || !submit) return;
+
+                // Mirror the server's check exactly: case-insensitive
+                // match on the literal phrase "delete my account".
+                // The button stays disabled until the input matches —
+                // a stray click on the page can't trigger deletion.
+                function refresh() {
+                    var ok = (confirm.value || '').trim().toLowerCase() === 'delete my account';
+                    submit.disabled = !ok;
+                    submit.setAttribute('aria-disabled', ok ? 'false' : 'true');
+                }
+                confirm.addEventListener('input', refresh);
+                refresh();
+
+                // Belt-and-braces: even with the button enabled, ask
+                // once more via a native confirm() before submission.
+                form.addEventListener('submit', function (e) {
+                    if (!window.confirm(
+                        'This will permanently delete your account and all data. ' +
+                        'Continue?'
+                    )) {
+                        e.preventDefault();
+                    }
+                });
+            })();
+            </script>
+        </div>
     </section>
     {% endif %}
 
