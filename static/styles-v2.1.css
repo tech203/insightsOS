@@ -18116,6 +18116,7 @@ html[data-theme="dark"] input[type="text"],
 html[data-theme="dark"] input[type="email"],
 html[data-theme="dark"] input[type="password"],
 html[data-theme="dark"] input[type="url"],
+html[data-theme="dark"] input[type="file"],
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
     background: var(--theme-surface-alt);
@@ -18125,6 +18126,25 @@ html[data-theme="dark"] select {
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
     color: var(--theme-text-muted);
+}
+/* `<input type="file">` native widget: the host element picked up
+   the dark surface from the rule above, but the "Choose File"
+   button (::file-selector-button) and the "No file chosen" status
+   text are still rendered with browser-default light styling on
+   most platforms. Theme the button explicitly and rely on
+   color-scheme: dark on :root to pull the status text in line. */
+html[data-theme="dark"] input[type="file"]::file-selector-button {
+    background: var(--theme-surface);
+    color: var(--theme-text-primary);
+    border: 1px solid var(--theme-border-strong);
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin-right: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+html[data-theme="dark"] input[type="file"]::file-selector-button:hover {
+    background: var(--theme-surface-subtle);
 }
 
 /* Topup cost list separators. */
