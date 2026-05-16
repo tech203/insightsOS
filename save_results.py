@@ -212,6 +212,22 @@ def save_audit_results(
     db.session.add(audit)
     db.session.commit()
 
+    # Stamp first_audit_at + onboarding_completed_at on the user row.
+    # save_audit_results is the single chokepoint for every audit save
+    # (CLI, audit_runner, bulk job, retry — all flow through here),
+    # so stamping here covers every path without per-route wiring.
+    # Helper is idempotent + swallows errors so a stamp failure can't
+    # poison the audit save.
+    if user_id is not None:
+        try:
+            from app import stamp_onboarding_milestone
+            stamp_onboarding_milestone(int(user_id), "audit")
+        except Exception:
+            # Should never raise (stamp helper has its own try/except),
+            # but defense in depth — the audit write succeeded; an
+            # analytics stamp must not be the failure point.
+            pass
+
     return {
         "full_file": full_filename,
         "summary_file": summary_filename,

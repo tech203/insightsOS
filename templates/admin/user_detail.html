@@ -38,6 +38,62 @@
     </div>
 </section>
 
+{# Onboarding milestones — time-to-activation analytics. Stamped on
+   the events themselves (workspace create, audit save); legacy rows
+   were backfilled by the j0e1f2g3h4i5 migration using min(created_at) /
+   min(saved_at) from related tables. NULL = the event hasn't happened. #}
+<section class="admin-card" style="margin-top:16px;">
+    <div class="admin-card-head" style="padding:14px 18px 0; display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Onboarding milestones</h2>
+        {% if u.onboarding_completed_at and u.created_at %}
+        <span style="font-size:12.5px; color:var(--text-muted);">
+            Activated in
+            {{ ((u.onboarding_completed_at - u.created_at).total_seconds() / 3600)|round(1) }}h
+            from signup
+        </span>
+        {% endif %}
+    </div>
+    <table class="admin-table">
+        <tbody>
+            <tr>
+                <td style="width:40%;">
+                    <strong>Signed up</strong>
+                    <small style="display:block; color:var(--text-muted); font-weight:400;">User row created</small>
+                </td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums;">
+                    {{ u.created_at.strftime('%d %b %Y %H:%M') if u.created_at else '—' }}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <strong>First workspace</strong>
+                    <small style="display:block; color:var(--text-muted); font-weight:400;">Earliest Client row owned</small>
+                </td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums;">
+                    {% if u.first_workspace_at %}
+                        {{ u.first_workspace_at.strftime('%d %b %Y %H:%M') }}
+                    {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <strong>First audit (activated)</strong>
+                    <small style="display:block; color:var(--text-muted); font-weight:400;">Earliest Audit row saved — onboarding "done"</small>
+                </td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums;">
+                    {% if u.first_audit_at %}
+                        {{ u.first_audit_at.strftime('%d %b %Y %H:%M') }}
+                    {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
 
     <section class="admin-card">
