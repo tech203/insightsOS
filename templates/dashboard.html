@@ -314,24 +314,50 @@
 
     <section class="dashboard-insights-v3">
         <div class="dashboard-metric-card">
+            <span class="dashboard-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="5" cy="6" r="1.5" fill="currentColor"/><path d="M10 6h11"/>
+                    <circle cx="5" cy="12" r="1.5" fill="currentColor"/><path d="M10 12h11"/>
+                    <circle cx="5" cy="18" r="1.5" fill="currentColor"/><path d="M10 18h7"/>
+                </svg>
+            </span>
             <span class="dashboard-metric-label">Tracked Prompts</span>
             <strong class="dashboard-metric-value">{{ total_prompts or 0 }}</strong>
             <p class="dashboard-metric-note">Prompt coverage currently being monitored across the account.</p>
         </div>
 
         <div class="dashboard-metric-card">
+            <span class="dashboard-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <path d="M8 10h8M8 13h5"/>
+                </svg>
+            </span>
             <span class="dashboard-metric-label">Brand Mentioned</span>
             <strong class="dashboard-metric-value">{{ mentioned_count or 0 }}</strong>
             <p class="dashboard-metric-note">Prompts where your brand is currently visible in AI answers.</p>
         </div>
 
         <div class="dashboard-metric-card">
+            <span class="dashboard-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"/>
+                    <path d="M6 21V13M11 21V9M16 21V5"/>
+                </svg>
+            </span>
             <span class="dashboard-metric-label">Total Audits</span>
             <strong class="dashboard-metric-value">{{ total_audits or 0 }}</strong>
             <p class="dashboard-metric-note">Audit runs available for review and comparison.</p>
         </div>
 
         <div class="dashboard-metric-card dashboard-metric-card-highlight">
+            <span class="dashboard-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"/>
+                    <circle cx="12" cy="12" r="5"/>
+                    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+                </svg>
+            </span>
             <span class="dashboard-metric-label">Primary Focus</span>
             <strong class="dashboard-metric-value dashboard-metric-value-small">
                 {% if total_audits and total_audits > 0 %}
