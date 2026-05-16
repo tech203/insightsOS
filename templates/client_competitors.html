@@ -105,7 +105,9 @@
     </section>
 
     {% if not has_results %}
+    {% from "partials/empty_state_illustrations.html" import audit_illustration %}
     <section class="empty-card">
+        {{ audit_illustration() }}
         <span class="section-kicker">No analysis yet</span>
         <h2>Run an analysis to see competitor gaps</h2>
         <p>
