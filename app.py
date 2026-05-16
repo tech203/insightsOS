@@ -210,6 +210,21 @@ def _check_launch_config() -> None:
         # S3_BUCKET set, no custom endpoint — fine for AWS S3 but note it.
         pass  # normal AWS S3 setup; nothing to warn
 
+    # --- Sentry: DSN unset in a production-like env ---
+    # Not a hard requirement (the app boots fine without it), but in
+    # prod you almost certainly want 500s reported somewhere. Suppress
+    # in dev / test where local stack traces are good enough.
+    _is_prod_like = (os.getenv("FLASK_ENV") or "").lower() not in (
+        "", "development", "dev", "test", "testing",
+    )
+    if _is_prod_like and not (os.getenv("SENTRY_DSN") or "").strip():
+        warns.append(
+            "SENTRY_DSN is not set — production 500s will only appear in "
+            "stdout logs. Create a project at https://sentry.io and set "
+            "SENTRY_DSN to the Flask DSN so errors are reported as they "
+            "happen. Optional but strongly recommended for live deploys."
+        )
+
     if warns:
         print("=" * 70)
         print("LAUNCH CONFIG WARNINGS — fix before going live:")
@@ -219,6 +234,29 @@ def _check_launch_config() -> None:
 
 
 _check_launch_config()
+
+
+# ----------------------------------------------------------------------
+# Sentry error monitoring — opt-in via SENTRY_DSN
+# ----------------------------------------------------------------------
+# Production 500s only show up in logs unless something forwards them.
+# When SENTRY_DSN is set we wire up the Flask integration; when it's
+# unset (local dev, CI) we skip init entirely so there's no half-init
+# state. Errors-only by default — traces_sample_rate=0 means no perf
+# sampling. send_default_pii=False keeps cookies / auth headers out of
+# event payloads.
+_sentry_dsn = (os.getenv("SENTRY_DSN") or "").strip()
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        environment=(os.getenv("FLASK_ENV") or "development"),
+        traces_sample_rate=0,
+        send_default_pii=False,
+    )
 
 
 app = Flask(__name__)
