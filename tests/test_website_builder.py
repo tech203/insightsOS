@@ -1014,6 +1014,123 @@ def test_regenerate_page_rejects_other_users_pages(app_ctx):
     assert resp.status_code == 403
 
 
+def test_blueprint_reads_persisted_workspace_brand_colors():
+    """If a workspace already has brand_primary/secondary/accent on
+    its Client row (from a prior approve or the standalone Brand
+    Kit Studio), build_demo_website_blueprint must prefer them over
+    the industry classifier's defaults — otherwise every regenerate
+    silently blows away the user's customisations."""
+    client = {
+        "name": "Test Co",
+        "industry": "Marketing agency",  # would default to indigo #4f46e5
+        "services": "AEO",
+        "location": "Singapore",
+        "brand_kit": {
+            "primary_color": "#dc2626",   # custom red
+            "secondary_color": "#fef2f2",
+            "accent_color": "#fecaca",
+            "personality": "bold, distinctive, modern",
+        },
+    }
+    blueprint = build_demo_website_blueprint(client)
+    assert blueprint["primary_color"] == "#dc2626"
+    assert blueprint["secondary_color"] == "#fef2f2"
+    assert blueprint["accent_color"] == "#fecaca"
+    # Personality string gets split on commas into a list.
+    assert blueprint["personality"] == ["bold", "distinctive", "modern"]
+
+
+def test_approve_persists_brand_kit_back_to_workspace(app_ctx):
+    """When the user approves a brand kit, the colour + personality
+    customisations must be written back to the Client row's brand_*
+    columns. Next regenerate will read them — completes the loop
+    so users don't lose their work between generations."""
+    from werkzeug.security import generate_password_hash
+    from unittest.mock import patch
+    from app import db, User, Wallet, Client, app as flask_app
+    from datetime import datetime, timezone
+
+    u = User(
+        email="brandsync@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Brand Sync",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="brandsyncco",
+        user_id=u.id,
+        name="BrandSync Co",
+        website="https://bs.example.com",
+        website_normalized="bs.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.commit()
+
+    # Fresh workspace — no brand colours persisted yet.
+    assert ws.brand_primary_color is None
+    assert ws.brand_personality is None
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+        # Plant a pending blueprint with custom colours, as if the
+        # user has just gone through the form and is hitting approve.
+        s["pending_website_blueprint"] = {
+            "client_name": "BrandSync Co",
+            "business_type": "Marketing agency",
+            "location": "Singapore",
+            "theme": "professional_services",
+            "industry_theme": "general",
+            "primary_color": "#dc2626",
+            "secondary_color": "#fef2f2",
+            "accent_color": "#fecaca",
+            "personality": ["bold", "distinctive"],
+            "pages": [
+                {"title": "Home", "slug": "home", "page_type": "home", "goal": "intro"}
+            ],
+        }
+        s["pending_website_client_id"] = ws.id
+        s["pending_website_client_slug"] = ws.slug
+
+    # Force AI to fail so the rule-based fallback fires — keeps test
+    # deterministic.
+    with patch(
+        "app.generate_structured_website_page",
+        side_effect=RuntimeError("openai disabled in test"),
+    ):
+        resp = c.post(f"/client/{ws.slug}/website-builder/approve-brand-kit")
+    assert resp.status_code in (302, 303)
+
+    db.session.refresh(ws)
+    assert ws.brand_primary_color == "#dc2626"
+    assert ws.brand_secondary_color == "#fef2f2"
+    assert ws.brand_accent_color == "#fecaca"
+    assert ws.brand_personality == "bold, distinctive"
+    assert ws.brand_kit_approved_at is not None
+
+
+def test_blueprint_falls_back_to_industry_defaults_when_workspace_brand_unset():
+    """A fresh workspace (no persisted brand) should still get
+    sensible colours from the industry classifier."""
+    client = {
+        "name": "Test Co",
+        "industry": "Marketing agency",
+        "services": "AEO",
+        "location": "Singapore",
+        # no brand_kit key
+    }
+    blueprint = build_demo_website_blueprint(client)
+    # General bucket default — indigo.
+    assert blueprint["primary_color"] == "#4f46e5"
+
+
 def test_palette_variant_unknown_theme_falls_back_to_general():
     """Unknown industry_theme values shouldn't crash — fall back to
     the general bucket so the Regenerate button always works."""

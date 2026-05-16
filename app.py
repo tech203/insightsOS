@@ -2212,6 +2212,23 @@ def approve_website_brand_kit(client_id):
         )
         return redirect(url_for("preview_website_brand_kit", client_id=client_id))
 
+    # Persist the approved brand kit onto the workspace itself —
+    # next time the user runs Generate Full Website, build_demo_
+    # website_blueprint reads these fields and the brand kit starts
+    # from the user's customisations rather than the industry default.
+    # Also keeps the Brand Kit Studio (standalone editor) in sync.
+    if _is_hex_color(blueprint.get("primary_color")):
+        row.brand_primary_color = blueprint["primary_color"][:20]
+    if _is_hex_color(blueprint.get("secondary_color")):
+        row.brand_secondary_color = blueprint["secondary_color"][:20]
+    if _is_hex_color(blueprint.get("accent_color")):
+        row.brand_accent_color = blueprint["accent_color"][:20]
+    personality_list = blueprint.get("personality") or []
+    if isinstance(personality_list, list) and personality_list:
+        row.brand_personality = ", ".join(personality_list)[:255]
+    row.brand_kit_updated_at = utcnow()
+    row.brand_kit_approved_at = utcnow()
+
     project = GeneratedWebsiteProject(
         user_id=current_user.id,
         client_id=row.id,
@@ -3150,6 +3167,18 @@ def build_demo_website_blueprint(client, opportunities=None):
 
     is_product_theme = theme in ["restaurant_cafe", "ecommerce_store"]
 
+    # Workspace brand persistence — if the user has approved a brand
+    # kit before (via this flow or the standalone Brand Kit Studio),
+    # their colour + personality choices live in client["brand_kit"]
+    # (serialize_client_row → brand_kit_dict). Prefer those over the
+    # industry defaults so a regenerate doesn't blow away the user's
+    # customisations.
+    persisted_brand = client.get("brand_kit") or {}
+    workspace_personality = persisted_brand.get("personality") or ""
+    workspace_personality_list = [
+        p.strip() for p in workspace_personality.split(",") if p.strip()
+    ] if workspace_personality else []
+
     return {
         "client_name": client_name,
         "business_type": client.get("industry", "Professional Services"),
@@ -3165,12 +3194,19 @@ def build_demo_website_blueprint(client, opportunities=None):
         # /upload-logo route during brand-kit editing.
         "logo_url": client.get("logo_url"),
         # Brand kit fields used by the brand-kit preview template.
-        "personality": brand_kit.get("personality", []),
+        # Workspace persisted values win over industry defaults.
+        "personality": workspace_personality_list or brand_kit.get("personality", []),
         "tone_of_voice": brand_kit.get("tone_of_voice", ""),
         "visual_style": brand_kit.get("visual_style", ""),
-        "primary_color": brand_kit.get("primary_color", "#4f46e5"),
-        "secondary_color": brand_kit.get("secondary_color", "#eef2ff"),
-        "accent_color": brand_kit.get("accent_color", "#c7d2fe"),
+        "primary_color": (
+            persisted_brand.get("primary_color") or brand_kit.get("primary_color", "#4f46e5")
+        ),
+        "secondary_color": (
+            persisted_brand.get("secondary_color") or brand_kit.get("secondary_color", "#eef2ff")
+        ),
+        "accent_color": (
+            persisted_brand.get("accent_color") or brand_kit.get("accent_color", "#c7d2fe")
+        ),
         "text_color": brand_kit.get("text_color", "#0f172a"),
         "background_color": brand_kit.get("background_color", "#ffffff"),
         "font_style": brand_kit.get("font_style", ""),
