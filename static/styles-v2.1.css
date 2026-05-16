@@ -18093,6 +18093,16 @@ html[data-theme="dark"] .stat-value,
 html[data-theme="dark"] .kpi-value {
     color: var(--theme-text-primary);
 }
+
+/* .pricing-logic-value is a brand-colored headline (<strong> in
+   markup) on the "How billing works" hero side card. The blanket
+   `html[data-theme="dark"] strong` rule above flips it to the
+   primary text color, stripping its #E83256 coral identity. Restore
+   the brand red — same color in both modes; it's a deliberate
+   accent, not a neutral heading. */
+html[data-theme="dark"] .pricing-logic-value {
+    color: #E83256;
+}
 html[data-theme="dark"] p,
 html[data-theme="dark"] .summary-copy,
 html[data-theme="dark"] .topup-bundle-rate,
