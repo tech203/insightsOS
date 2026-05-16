@@ -140,6 +140,11 @@ RATELIMIT_STORAGE_URI=redis://...               # else per-IP rate
                                                 # limits drift across
                                                 # replicas (PR #133)
 
+# --- Recommended: CSP violation reporting ---
+CSP_REPORT_URI=https://...                      # else violation reports
+                                                # only land in browser
+                                                # consoles (no telemetry)
+
 # --- Clear any leftover dev placeholders ---
 # Make sure SHOPIFY_REDIRECT_URI is unset OR set to your live URL
 # Make sure S3_ENDPOINT_URL is unset OR pointing at a real bucket
@@ -156,6 +161,7 @@ RATELIMIT_STORAGE_URI=redis://...               # else per-IP rate
 | `STRIPE_PRICE_*` | Maps plans/bundles to live products | Checkout fails for that specific product |
 | `RESEND_API_KEY` + `RESEND_FROM` | Transactional email | Verification / reset emails not delivered |
 | `RATELIMIT_STORAGE_URI` | Shared rate-limit counters | Multi-instance: attackers route around limits |
+| `CSP_REPORT_URI` | CSP violation collector endpoint | Without it, violation reports only hit the browser console — no telemetry to act on |
 
 ---
 
@@ -338,6 +344,10 @@ S3_REGION=...
 
 # Recommended for multi-instance prod
 RATELIMIT_STORAGE_URI=redis://...
+
+# Recommended: CSP violation reporting
+CSP_REPORT_URI=https://...                # Sentry CSP endpoint or
+                                          # self-hosted collector
 
 # Cron (only if you have scheduled jobs)
 CRON_SECRET=<32-char random>

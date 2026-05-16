@@ -88,6 +88,34 @@ def test_csp_report_only_header_is_set(client):
     assert "base-uri 'self'" in csp          # base href injection blocked
 
 
+def test_csp_report_uri_present_when_env_var_set(client, monkeypatch):
+    """When CSP_REPORT_URI is set, the CSP header gains a `report-uri`
+    directive AND a `report-to default` directive, and we emit a
+    Reporting-Endpoints header pointing at the same URL. Both
+    legacy + modern reporting forms are needed for browser coverage."""
+    monkeypatch.setenv("CSP_REPORT_URI", "https://csp.example.com/report")
+    resp = client.get("/login")
+    csp = resp.headers.get("Content-Security-Policy-Report-Only", "")
+    assert "report-uri https://csp.example.com/report" in csp
+    assert "report-to default" in csp
+    assert (
+        resp.headers.get("Reporting-Endpoints")
+        == 'default="https://csp.example.com/report"'
+    )
+
+
+def test_csp_report_uri_absent_when_env_var_unset(client, monkeypatch):
+    """When CSP_REPORT_URI is unset, the CSP header must NOT carry
+    a stray `report-uri ` (empty value) or `report-to`, and the
+    Reporting-Endpoints header must not be emitted."""
+    monkeypatch.delenv("CSP_REPORT_URI", raising=False)
+    resp = client.get("/login")
+    csp = resp.headers.get("Content-Security-Policy-Report-Only", "")
+    assert "report-uri" not in csp
+    assert "report-to" not in csp
+    assert resp.headers.get("Reporting-Endpoints") is None
+
+
 def test_csp_not_yet_in_enforcing_mode(client):
     """Sentinel: CSP is INTENTIONALLY in report-only until the
     violation telemetry shows what we'd break by enforcing. If this
