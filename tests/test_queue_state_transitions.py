@@ -175,12 +175,28 @@ class TestStatusUpdate:
 
         r = _logged_in(u).post(
             f"/content-queue/{item['id']}/status",
-            data={"status": "scheduled", "client_id": ws.slug},
+            data={"status": "in_progress", "client_id": ws.slug},
             follow_redirects=False,
         )
         assert r.status_code == 302
         refreshed = get_queue_item_by_id(item["id"], user_id=u.id)
-        assert refreshed["status"] == "scheduled"
+        assert refreshed["status"] == "in_progress"
+
+    def test_unknown_status_falls_back_to_pending(self, make_user):
+        """_normalize_status enforces a whitelist (VALID_STATUSES);
+        anything outside it falls back to 'pending'. Lock that in
+        so a UI typo can't silently set arbitrary status text."""
+        u = make_user(plan="pro", email="status-bogus@x.com")
+        ws = _workspace(u)
+        item = _queue_item(u, ws, status="draft_generated")
+
+        _logged_in(u).post(
+            f"/content-queue/{item['id']}/status",
+            data={"status": "obviously_not_a_status", "client_id": ws.slug},
+            follow_redirects=False,
+        )
+        refreshed = get_queue_item_by_id(item["id"], user_id=u.id)
+        assert refreshed["status"] == "pending"
 
     def test_unknown_item_returns_404(self, make_user):
         u = make_user(plan="pro", email="status-404@x.com")
