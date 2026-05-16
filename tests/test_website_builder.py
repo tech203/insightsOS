@@ -831,6 +831,189 @@ def test_classifier_drives_all_three_call_sites_consistently():
         assert blueprint["theme"] == bucket_to_theme[expected], industry
 
 
+def test_regenerate_page_replaces_page_json_and_preserves_identity(app_ctx):
+    """POSTing to /website-engine/page/<id>/regenerate must:
+    (a) replace the page's page_json with freshly-built content,
+    (b) preserve the existing slug + page_type so URLs don't shift,
+    (c) preserve any webflow export state attached to the old json,
+    (d) redirect back to the page preview."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+    from unittest.mock import patch
+
+    u = User(
+        email="regen@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Regen Test",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    u.wallet = Wallet(user_id=u.id, balance=10)
+    db.session.add(u.wallet)
+    ws = Client(
+        slug="regenco",
+        user_id=u.id,
+        name="Regen Co",
+        website="https://regen.example.com",
+        website_normalized="regen.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="Regen Co Website",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={
+            "client_name": "Regen Co",
+            "business_type": "Marketing agency",
+            "location": "Singapore",
+            "industry_theme": "general",
+            "primary_color": "#4f46e5",
+        },
+    )
+    db.session.add(project)
+    db.session.flush()
+
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="published",
+        page_json={
+            "page_type": "home",
+            "title": "Old Title",
+            "slug": "home",
+            "sections": [{"type": "hero", "headline": "OLD CONTENT"}],
+            "webflow": {"item_id": "wf123"},
+        },
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    # Force AI to fail so the rule-based fallback fires — keeps the
+    # test deterministic regardless of OPENAI_API_KEY state.
+    with patch(
+        "app.generate_structured_website_page",
+        side_effect=RuntimeError("openai disabled in test"),
+    ):
+        resp = c.post(f"/website-engine/page/{page.id}/regenerate")
+
+    assert resp.status_code in (302, 303)
+    assert f"/website-engine/page/{page.id}/preview" in resp.headers["Location"]
+
+    db.session.refresh(page)
+    # Identity preserved.
+    assert page.slug == "home"
+    assert page.page_type == "home"
+    # page_json was replaced with fresh content (no longer "OLD CONTENT").
+    assert page.page_json["sections"]
+    headlines = [s.get("headline") for s in page.page_json["sections"]]
+    assert "OLD CONTENT" not in headlines
+    # Webflow export state preserved on the new json.
+    assert page.page_json.get("webflow", {}).get("item_id") == "wf123"
+
+
+def test_regenerate_page_rejects_other_users_pages(app_ctx):
+    """Cross-user defence: a user can't regenerate someone else's
+    page. Must return 403, not silently regenerate."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="owner@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Owner",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="intruder@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Intruder",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+
+    ws = Client(
+        slug="owner-co",
+        user_id=owner.id,
+        name="Owner Co",
+        website="https://o.example.com",
+        website_normalized="o.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Owner site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "Owner Co"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={"sections": []},
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+
+    resp = c.post(f"/website-engine/page/{page.id}/regenerate")
+    assert resp.status_code == 403
+
+
 def test_palette_variant_unknown_theme_falls_back_to_general():
     """Unknown industry_theme values shouldn't crash — fall back to
     the general bucket so the Regenerate button always works."""

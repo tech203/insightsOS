@@ -4020,6 +4020,75 @@ def preview_generated_page(page_id):
     )
 
 
+@app.route("/website-engine/page/<int:page_id>/regenerate", methods=["POST"])
+@login_required
+def regenerate_generated_page(page_id):
+    """Re-run AI generation for a single page using the existing
+    project blueprint. Replaces the page's page_json in place,
+    preserving slug + page_type + status (so a published page stays
+    published with fresh content). Falls back to the rule-based
+    generator on AI failure, same as the initial generation path.
+
+    Until this route existed, the user got one AI shot per page at
+    approval time and had no way to iterate without restarting the
+    whole brand-kit flow."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    project = (
+        GeneratedWebsiteProject.query.get(page.project_id)
+        if page.project_id
+        else None
+    )
+    if not project:
+        flash("Cannot regenerate — project not found.", "warning")
+        return redirect(url_for("preview_generated_page", page_id=page.id))
+
+    blueprint = project.blueprint_json or {}
+
+    # Look up the client for this project so the generator has the
+    # full context (logo_url, location, etc.) it expects.
+    client = get_client_by_id(str(project.client_id))
+    if not client:
+        client_row = Client.query.filter_by(
+            id=project.client_id, user_id=current_user.id
+        ).first()
+        client = {
+            "name": getattr(client_row, "name", "Business") if client_row else "Business",
+            "industry": getattr(client_row, "industry", "") if client_row else "",
+            "location": getattr(client_row, "location", "Singapore") if client_row else "Singapore",
+        }
+
+    # Build page_config from what's persisted on the page row so we
+    # regenerate the SAME page, not a fresh one with a different slug.
+    existing = page.page_json or {}
+    page_config = {
+        "title": page.title,
+        "slug": page.slug,
+        "page_type": page.page_type,
+        "goal": (existing.get("seo") or {}).get("description") or "",
+    }
+
+    new_page_json = build_generated_site_page(client, blueprint, page_config)
+
+    # Preserve identity fields — the generator can produce a slightly
+    # different slug / page_type via its enrichment pass, but for an
+    # in-place regenerate we want to keep the row's existing identity
+    # so URLs and webflow exports don't shift under the user's feet.
+    new_page_json["slug"] = page.slug
+    new_page_json["page_type"] = page.page_type
+    if existing.get("webflow"):
+        new_page_json["webflow"] = existing["webflow"]
+
+    page.page_json = new_page_json
+    flag_modified(page, "page_json")
+    db.session.commit()
+
+    flash("Page regenerated with fresh AI content.", "success")
+    return redirect(url_for("preview_generated_page", page_id=page.id))
+
+
 @app.route("/website-engine/page/<int:page_id>/publish", methods=["POST"])
 @login_required
 def publish_generated_page(page_id):

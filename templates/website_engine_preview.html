@@ -22,9 +22,24 @@
                 <p class="muted">Draft preview generated from structured page JSON.</p>
             </div>
 
-            <form method="POST" action="{{ url_for('publish_generated_page', page_id=page.id) }}">
-                <button class="btn btn-primary" type="submit">Publish Page</button>
-            </form>
+            <div style="display:flex;gap:8px;">
+                {# Re-run AI for this single page using the project's
+                   existing blueprint. Slug, page_type, and webflow
+                   export state are preserved so URLs don't change
+                   under the user's feet. #}
+                <form
+                    method="POST"
+                    action="{{ url_for('regenerate_generated_page', page_id=page.id) }}"
+                    onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Regenerating…';"
+                >
+                    <button class="btn btn-secondary" type="submit">
+                        Regenerate Page
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('publish_generated_page', page_id=page.id) }}">
+                    <button class="btn btn-primary" type="submit">Publish Page</button>
+                </form>
+            </div>
         </div>
     </section>
 
