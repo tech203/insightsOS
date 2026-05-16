@@ -317,7 +317,10 @@ class TestRefreshProfile:
                 "google_rating": 4.7,
                 "google_review_count": 128,
                 "executive_summary": "Acme builds AEO tools.",
-                "core_services": ["audits", "content briefs"],
+                # `brand_services` is a Text column (not JSON) so the
+                # research helper returns a string. A list here would
+                # blow up with "type 'list' is not supported" on flush.
+                "core_services": "audits, content briefs",
             }
             r = _logged_in(u).post(
                 f"/client/{ws.id}/refresh-profile",
