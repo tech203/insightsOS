@@ -122,7 +122,14 @@
             <article class="premium-queue-item-card">
                 <div class="queue-item-main">
                     <h3>{{ site_page.title }}</h3>
-                    <p>/{{ site_page.slug }} · {{ site_page.page_type|title }}</p>
+                    <p>
+                        /{{ site_page.slug }} · {{ site_page.page_type|title }}
+                        {% if (site_page.page_json or {}).get("reviewed_at") %}
+                        · <span style="color:#10b981;font-weight:600;">✓ Reviewed</span>
+                        {% else %}
+                        · <span class="muted" style="font-style:italic;">Needs review</span>
+                        {% endif %}
+                    </p>
                     {% if site_page.page_json.webflow %}
                     <p class="muted">
                         Publishing sync {{ site_page.page_json.webflow.last_action or "completed" }} ·

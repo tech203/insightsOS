@@ -4214,6 +4214,10 @@ def edit_generated_page(page_id):
             page_json["seo"] = seo
 
         page_json["sections"] = sections
+        # Editing a page implies the user has reviewed it — stamp the
+        # timestamp so the project preview can surface "reviewed"
+        # badges without requiring an extra explicit click.
+        page_json["reviewed_at"] = utcnow().replace(microsecond=0).isoformat() + "Z"
         page.page_json = page_json
         flag_modified(page, "page_json")
         db.session.commit()
@@ -4243,6 +4247,30 @@ _EDITABLE_SECTION_FIELDS = {
     "cta": ["headline", "body", "subtext", "button"],
     "cta_block": ["headline", "body", "subtext", "primary_cta", "secondary_cta"],
 }
+
+
+@app.route("/website-engine/page/<int:page_id>/mark-reviewed", methods=["POST"])
+@login_required
+def mark_generated_page_reviewed(page_id):
+    """Flag a page as reviewed by the user. Sets page_json["reviewed_at"]
+    to an ISO timestamp so the project-preview page list can show a
+    badge, telling the user at a glance which AI-generated pages
+    they've already gone over.
+
+    Stored on page_json rather than a new column to avoid a migration
+    for a UX-only signal."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    page_json = dict(page.page_json or {})
+    page_json["reviewed_at"] = utcnow().replace(microsecond=0).isoformat() + "Z"
+    page.page_json = page_json
+    flag_modified(page, "page_json")
+    db.session.commit()
+
+    flash("Page marked as reviewed.", "success")
+    return redirect(url_for("preview_generated_page", page_id=page.id))
 
 
 @app.route("/website-engine/page/<int:page_id>/regenerate", methods=["POST"])

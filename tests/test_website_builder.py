@@ -1257,6 +1257,236 @@ def test_edit_page_updates_section_fields_in_place(app_ctx):
     assert faq["items"][1]["question"] == "Old q2"  # untouched
 
 
+def test_mark_reviewed_route_stamps_reviewed_at(app_ctx):
+    """POSTing to /page/<id>/mark-reviewed sets reviewed_at on the
+    page_json so the project preview can show a "Reviewed" badge."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="review@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Reviewer",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="review-co",
+        user_id=u.id,
+        name="Review Co",
+        website="https://r.example.com",
+        website_normalized="r.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="Review Co Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={"sections": []},
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    assert "reviewed_at" not in (page.page_json or {})
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    resp = c.post(f"/website-engine/page/{page.id}/mark-reviewed")
+    assert resp.status_code in (302, 303)
+    assert f"/website-engine/page/{page.id}/preview" in resp.headers["Location"]
+
+    db.session.refresh(page)
+    reviewed_at = page.page_json.get("reviewed_at")
+    assert reviewed_at
+    # ISO-ish format with the Z suffix.
+    assert reviewed_at.endswith("Z")
+    assert "T" in reviewed_at
+
+
+def test_mark_reviewed_rejects_other_users(app_ctx):
+    """Cross-user defence on the mark-reviewed route."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="o-mr@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="o",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="i-mr@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="i",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+    ws = Client(
+        slug="o-mr-co",
+        user_id=owner.id,
+        name="o",
+        website="https://o.example.com",
+        website_normalized="o.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="o",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={"sections": []},
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+    assert c.post(f"/website-engine/page/{page.id}/mark-reviewed").status_code == 403
+
+
+def test_edit_page_save_stamps_reviewed_at(app_ctx):
+    """Editing a page implies reviewing it — the /edit POST must
+    stamp reviewed_at in addition to applying field changes."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="editrev@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="ER",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="editrev-co",
+        user_id=u.id,
+        name="ER Co",
+        website="https://er.example.com",
+        website_normalized="er.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="ER Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={
+            "title": "Home",
+            "sections": [
+                {"type": "hero", "headline": "Old", "subtext": "Old"},
+            ],
+        },
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    resp = c.post(
+        f"/website-engine/page/{page.id}/edit",
+        data={"section_0_headline": "New headline"},
+    )
+    assert resp.status_code in (302, 303)
+    db.session.refresh(page)
+    assert page.page_json["sections"][0]["headline"] == "New headline"
+    assert page.page_json.get("reviewed_at")
+
+
 def test_edit_page_rejects_other_users(app_ctx):
     """Cross-user defence — only the page owner can edit."""
     from werkzeug.security import generate_password_hash
