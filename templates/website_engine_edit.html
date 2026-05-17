@@ -55,9 +55,30 @@
            would get the wrong section prefix. #}
         {% set section_idx = loop.index0 %}
         <section class="panel">
-            <h2 style="text-transform:capitalize;">
-                {{ loop.index }}. {{ section_type|replace("_", " ") }}
-            </h2>
+            <div class="section-header">
+                <h2 style="text-transform:capitalize;">
+                    {{ loop.index }}. {{ section_type|replace("_", " ") }}
+                </h2>
+                {# Re-run AI for just this section and splice it back
+                   into page_json at the same index. Other sections are
+                   left alone so the user keeps their edits elsewhere.
+                   formaction posts to the per-section route instead of
+                   the parent form's save action. #}
+                <button
+                    type="submit"
+                    class="btn btn-secondary"
+                    formaction="{{ url_for('regenerate_generated_page_section', page_id=page.id, section_index=section_idx) }}"
+                    onclick="
+                        var b = this;
+                        setTimeout(function() {
+                            b.disabled = true;
+                            b.textContent = 'Regenerating…';
+                        }, 50);
+                    "
+                >
+                    Regenerate this section
+                </button>
+            </div>
 
             {% for field in editable_fields %}
             <label for="section_{{ section_idx }}_{{ field }}" class="muted" style="display:block;font-size:0.85rem;margin-top:10px;">

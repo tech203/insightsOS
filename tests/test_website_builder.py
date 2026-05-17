@@ -1525,6 +1525,179 @@ def test_edit_route_persists_eyebrow_on_non_hero_sections(app_ctx):
     assert page.page_json["sections"][1]["eyebrow"] == "Customer questions"
 
 
+def test_regenerate_section_replaces_only_targeted_section(app_ctx):
+    """POSTing to /page/<id>/section/<i>/regenerate must (a) replace
+    the section at index i, (b) leave the other sections alone (so
+    the user's hand edits elsewhere survive), (c) only match by type
+    so we don't accidentally swap a hero for a contact_details."""
+    from werkzeug.security import generate_password_hash
+    from unittest.mock import patch
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="secregen@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="SR",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="secregen-co",
+        user_id=u.id,
+        name="SR Co",
+        website="https://sr.example.com",
+        website_normalized="sr.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="SR Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "SR Co", "industry_theme": "general"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={
+            "sections": [
+                {"type": "hero", "headline": "CUSTOM HERO — user edited", "subtext": "Custom subtext"},
+                {"type": "services", "headline": "STALE services", "items": []},
+                {"type": "faq", "headline": "FAQ", "items": []},
+            ],
+        },
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    # Force AI to fail → rule-based fallback fires deterministically.
+    with patch(
+        "app.generate_structured_website_page",
+        side_effect=RuntimeError("openai disabled in test"),
+    ):
+        resp = c.post(
+            f"/website-engine/page/{page.id}/section/1/regenerate"
+        )
+    assert resp.status_code in (302, 303)
+    # Redirect goes back to the edit view so the user sees the
+    # refreshed section in context.
+    assert f"/website-engine/page/{page.id}/edit" in resp.headers["Location"]
+
+    db.session.refresh(page)
+    sections = page.page_json["sections"]
+    # Hero and FAQ untouched — user's custom hero copy survives.
+    assert sections[0]["headline"] == "CUSTOM HERO — user edited"
+    assert sections[0]["subtext"] == "Custom subtext"
+    assert sections[2]["type"] == "faq"
+    # Services section was replaced — new headline came from the
+    # rule-based generator, not "STALE services".
+    assert sections[1]["type"] == "services"
+    assert sections[1]["headline"] != "STALE services"
+
+
+def test_regenerate_section_rejects_other_users(app_ctx):
+    """Cross-user defence on the per-section regen route."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="o-sr@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="o",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="i-sr@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="i",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+    ws = Client(
+        slug="o-sr-co",
+        user_id=owner.id,
+        name="o",
+        website="https://o.example.com",
+        website_normalized="o.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="o",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={"sections": [{"type": "hero", "headline": "h"}]},
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+    assert c.post(
+        f"/website-engine/page/{page.id}/section/0/regenerate"
+    ).status_code == 403
+
+
 def test_renderer_uses_section_eyebrow_when_set_falls_back_otherwise():
     """The renderer prefers section.eyebrow over the hardcoded kicker
     label so user-edited eyebrows actually appear on the rendered

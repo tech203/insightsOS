@@ -4319,6 +4319,97 @@ def mark_generated_page_reviewed(page_id):
     return redirect(url_for("preview_generated_page", page_id=page.id))
 
 
+@app.route(
+    "/website-engine/page/<int:page_id>/section/<int:section_index>/regenerate",
+    methods=["POST"],
+)
+@login_required
+def regenerate_generated_page_section(page_id, section_index):
+    """Regenerate JUST one section, preserving the user's edits to
+    the rest of the page. Pairs with regenerate_generated_page for
+    full-page regen and the /edit route for hand tweaks — together
+    they cover all the iteration cases.
+
+    Implementation: re-run the same page generator (AI-first with
+    rule-based fallback), then splice the fresh section at the same
+    index back into the user's existing page_json. Section type
+    mismatches abort with a flash so we don't accidentally turn a
+    hero into a contact-details block."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    existing = page.page_json or {}
+    sections = list(existing.get("sections") or [])
+    if section_index < 0 or section_index >= len(sections):
+        flash("Section index out of range.", "warning")
+        return redirect(url_for("edit_generated_page", page_id=page.id))
+
+    target_type = sections[section_index].get("type")
+
+    project = (
+        GeneratedWebsiteProject.query.get(page.project_id)
+        if page.project_id
+        else None
+    )
+    if not project:
+        flash("Cannot regenerate — project not found.", "warning")
+        return redirect(url_for("edit_generated_page", page_id=page.id))
+    blueprint = project.blueprint_json or {}
+
+    client = get_client_by_id(str(project.client_id))
+    if not client:
+        client_row = Client.query.filter_by(
+            id=project.client_id, user_id=current_user.id
+        ).first()
+        client = {
+            "name": getattr(client_row, "name", "Business") if client_row else "Business",
+            "industry": getattr(client_row, "industry", "") if client_row else "",
+            "location": getattr(client_row, "location", "Singapore") if client_row else "Singapore",
+        }
+
+    page_config = {
+        "title": page.title,
+        "slug": page.slug,
+        "page_type": page.page_type,
+        "goal": (existing.get("seo") or {}).get("description") or "",
+    }
+    new_page_json = build_generated_site_page(client, blueprint, page_config)
+    new_sections = new_page_json.get("sections") or []
+
+    # Find a section of the same type in the regenerated output. The
+    # generator emits sections in a deterministic-ish order so same-
+    # index is the first try, but for resilience scan by type.
+    replacement = None
+    if (
+        section_index < len(new_sections)
+        and new_sections[section_index].get("type") == target_type
+    ):
+        replacement = new_sections[section_index]
+    else:
+        for candidate in new_sections:
+            if candidate.get("type") == target_type:
+                replacement = candidate
+                break
+
+    if not replacement:
+        flash(
+            f"Could not regenerate the {target_type} section — the model"
+            " did not return one of that type. Try regenerating the whole page.",
+            "warning",
+        )
+        return redirect(url_for("edit_generated_page", page_id=page.id))
+
+    sections[section_index] = replacement
+    existing["sections"] = sections
+    page.page_json = existing
+    flag_modified(page, "page_json")
+    db.session.commit()
+
+    flash(f"Regenerated the {target_type} section.", "success")
+    return redirect(url_for("edit_generated_page", page_id=page.id))
+
+
 @app.route("/website-engine/page/<int:page_id>/regenerate", methods=["POST"])
 @login_required
 def regenerate_generated_page(page_id):
