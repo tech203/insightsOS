@@ -58,6 +58,7 @@ from webflow_integration import (
     is_webflow_configured,
     verify_webflow_connection,
 )
+from webflow_crypto import decrypt_token, encrypt_token
 import os
 import csv
 from dotenv import load_dotenv
@@ -436,9 +437,19 @@ class WebflowConnection(db.Model):
         db.Integer, db.ForeignKey("clients.id"), nullable=True, index=True
     )
 
-    api_token = db.Column(db.Text, nullable=False)
+    # Stored encrypted at rest; the api_token property transparently
+    # encrypts on write and decrypts on read so call sites are unchanged.
+    _api_token = db.Column("api_token", db.Text, nullable=False)
     site_id = db.Column(db.String(100), nullable=False)
     site_name = db.Column(db.String(255), nullable=True)
+
+    @property
+    def api_token(self):
+        return decrypt_token(self._api_token)
+
+    @api_token.setter
+    def api_token(self, value):
+        self._api_token = encrypt_token(value) if value else value
 
     page_collection_id = db.Column(db.String(100), nullable=True)
     blog_collection_id = db.Column(db.String(100), nullable=True)
