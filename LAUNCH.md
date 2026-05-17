@@ -295,6 +295,20 @@ These don't block ship but are worth doing in week 1:
 
 ---
 
+## Operational reminders
+
+Calendar fallback for the recurring ops items above. Tick off each
+date as you do the rotation, then pencil in the next one (+6 months).
+
+- [ ] **2026-11-01** — rotate `SECRET_KEY` (see Phase 1 for the
+      regen command). Rotation invalidates all active sessions —
+      log everyone out — so do it in a low-traffic window. The
+      new value goes in your host's env var store (Render / Heroku
+      / whatever), NOT in the repo.
+- [ ] **2027-05-01** — rotate `SECRET_KEY` (next cadence tick).
+
+---
+
 ## Reference: env-var checklist
 
 Use this as the final eyeball pass before you click "save" on the
