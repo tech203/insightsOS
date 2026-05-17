@@ -4,8 +4,29 @@
 {% block page_title %}Plans & Pricing{% endblock %}
 {% block page_subtitle %}Start free. Upgrade when you need more usage, content output, and workspace capacity.{% endblock %}
 
+{# Anonymous-vs-authenticated CTA routing. The pricing page is public
+   (no @login_required) but every paid-action endpoint is login-only.
+   Without this conditional, anon visitors clicking "Manage subscription"
+   or "Buy Credits" get bounced to /login and dropped into a settings
+   page with no context. Route them to /signup instead — the natural
+   first step before they can buy anything. #}
+{% set is_anon = not current_user.is_authenticated %}
+{% set cta_buy_url    = url_for('signup') if is_anon else url_for('settings_billing') %}
+{% set cta_credits_url = url_for('signup') if is_anon else url_for('settings_credits') %}
+{% set cta_start_url  = url_for('signup') if is_anon else '#main-plans' %}
+
 {% block content %}
 <div class="pricing-shell">
+
+    {# Anon-only "Back to landing" link so the public pricing page
+       isn't a dead end. Logged-in users have the sidebar/topbar to
+       navigate from. #}
+    {% if is_anon %}
+    <div class="pricing-anon-nav">
+        <a href="{{ url_for('aeo_agency_page') }}" class="pricing-anon-back">← Back to home</a>
+        <a href="{{ url_for('login') }}" class="pricing-anon-signin">Already have an account? Sign in</a>
+    </div>
+    {% endif %}
 
     {% if show_canceled_banner %}
     {# Stripe Checkout's cancel_url loops back here with ?canceled=1.
@@ -55,8 +76,13 @@
 </p>
 
 <div class="pricing-hero-actions">
-    <a href="#main-plans" class="btn btn-primary btn-large">Start Free</a>
-    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage subscription</a>
+    {% if is_anon %}
+    <a href="{{ url_for('signup') }}" class="btn btn-primary btn-large">Start free →</a>
+    <a href="{{ url_for('aeo_agency_page') }}#start-audit" class="btn btn-secondary">Run free audit</a>
+    {% else %}
+    <a href="#main-plans" class="btn btn-primary btn-large">Compare plans</a>
+    <a href="{{ url_for('settings_billing') }}" class="btn btn-secondary">Manage subscription</a>
+    {% endif %}
 </div>
         </div>
 
@@ -117,6 +143,12 @@
 
                 {% if plan.slug == 'free' %}
                 <a href="{{ url_for('signup') }}" class="btn btn-secondary btn-block">Get Started</a>
+                {% elif is_anon %}
+                {# Anon visitor — route to signup. They can pick the
+                   paid plan from /settings/billing once they're in. #}
+                <a href="{{ url_for('signup') }}" class="btn {% if plan.popular %}btn-primary{% else %}btn-secondary{% endif %} btn-block">
+                    Sign up for {{ plan.label }}
+                </a>
                 {% elif stripe_configured is defined and not stripe_configured %}
                 {# Stripe not configured — show a disabled button so the
                    user sees the plan exists but knows checkout is blocked. #}
@@ -171,7 +203,9 @@
                     Agency is not a separate usage tier. You still need a main plan and credits.
                     This add-on only unlocks client-facing and white-label delivery.
                 </p>
-                <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-primary btn-block">Add Agency Layer</a>
+                <a href="{{ cta_buy_url }}" class="btn btn-primary btn-block">
+                    {% if is_anon %}Sign up to add Agency{% else %}Add Agency Layer{% endif %}
+                </a>
             </div>
         </div>
     </section>
@@ -187,21 +221,27 @@
                 <span class="pricing-topup-name">Starter Pack</span>
                 <strong>10 Credits</strong>
                 <p>For occasional extra audits and content generation.</p>
-                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary btn-block">Buy Credits</a>
+                <a href="{{ cta_credits_url }}" class="btn btn-secondary btn-block">
+                    {% if is_anon %}Sign up to buy{% else %}Buy Credits{% endif %}
+                </a>
             </article>
 
             <article class="surface-card surface-card--hover pricing-topup-card featured">
                 <span class="pricing-topup-name">Growth Pack</span>
                 <strong>25 Credits</strong>
                 <p>Good for regular extra usage beyond your monthly included credits.</p>
-                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-primary btn-block">Buy Credits</a>
+                <a href="{{ cta_credits_url }}" class="btn btn-primary btn-block">
+                    {% if is_anon %}Sign up to buy{% else %}Buy Credits{% endif %}
+                </a>
             </article>
 
             <article class="surface-card surface-card--hover pricing-topup-card">
                 <span class="pricing-topup-name">Agency Pack</span>
                 <strong>75 Credits</strong>
                 <p>Best for teams, client work, and higher output volume.</p>
-                <a href="{{ url_for('settings_credits') if url_for else '#' }}" class="btn btn-secondary btn-block">Buy Credits</a>
+                <a href="{{ cta_credits_url }}" class="btn btn-secondary btn-block">
+                    {% if is_anon %}Sign up to buy{% else %}Buy Credits{% endif %}
+                </a>
             </article>
         </div>
     </section>
@@ -244,8 +284,13 @@
         </div>
 
 <div class="pricing-cta-actions">
-    <a href="#main-plans" class="btn btn-primary">Start Free</a>
-    <a href="{{ url_for('settings_billing') if url_for else '#' }}" class="btn btn-secondary">Manage subscription</a>
+    {% if is_anon %}
+    <a href="{{ url_for('signup') }}" class="btn btn-primary">Create free account →</a>
+    <a href="{{ url_for('aeo_agency_page') }}#start-audit" class="btn btn-secondary">Run free audit</a>
+    {% else %}
+    <a href="#main-plans" class="btn btn-primary">Compare plans</a>
+    <a href="{{ url_for('settings_billing') }}" class="btn btn-secondary">Manage subscription</a>
+    {% endif %}
 </div>
     </section>
 
@@ -256,6 +301,30 @@
     padding: 28px;
     display: grid;
     gap: 24px;
+}
+
+/* Anon-only nav strip at the top of /pricing so the public page
+   isn't a dead end. Logged-in users have the sidebar/topbar; anon
+   visitors get a "← Back to home" + "Sign in" pair here. */
+.pricing-anon-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0 4px;
+    font-size: 14px;
+}
+.pricing-anon-back,
+.pricing-anon-signin {
+    color: var(--text-soft, #6b7280);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s;
+}
+.pricing-anon-back:hover,
+.pricing-anon-signin:hover {
+    color: var(--text-strong, #191929);
 }
 
 .pricing-canceled-banner {
