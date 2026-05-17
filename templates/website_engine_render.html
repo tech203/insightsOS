@@ -134,10 +134,25 @@
             {% endif %}
 
             {% set cta_label = section.button or section.primary_cta %}
-            {% if cta_label %}
-            <a href="#" class="site-button site-button-inverse">
-                {{ cta_label }}
-            </a>
+            {% set secondary_label = section.secondary_cta %}
+            {% if cta_label or secondary_label %}
+            <div class="site-button-row">
+                {% if cta_label %}
+                <a href="#" class="site-button site-button-inverse">
+                    {{ cta_label }}
+                </a>
+                {% endif %}
+                {# secondary_cta only ever appears on cta_block (the
+                   AI-generator shape); cta sections from the rule-
+                   based path don't have it. Rendering it here for
+                   cta_block lets users set a real second action via
+                   /edit (was previously silently discarded). #}
+                {% if secondary_label %}
+                <a href="#" class="site-button site-button-secondary">
+                    {{ secondary_label }}
+                </a>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
     </section>

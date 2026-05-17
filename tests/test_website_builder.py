@@ -1698,6 +1698,63 @@ def test_regenerate_section_rejects_other_users(app_ctx):
     ).status_code == 403
 
 
+def test_renderer_shows_both_ctas_on_cta_block():
+    """cta_block sections from the AI generator carry primary_cta +
+    secondary_cta. The edit form lets users set both, but the
+    renderer used to only emit the primary — secondary was silently
+    discarded. Confirm both render now."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page_json = {
+        "sections": [
+            {
+                "type": "cta_block",
+                "headline": "Ready?",
+                "primary_cta": "Get Started",
+                "secondary_cta": "Learn More",
+            }
+        ],
+        "semantic_profile": {"entity_name": "x", "entity_type": "agency"},
+    }
+    page = type("P", (), {"id": 1, "title": "x", "page_json": page_json})()
+
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_render.html",
+                page=page,
+                page_json=page_json,
+            )
+
+    assert "Get Started" in html
+    assert "Learn More" in html
+
+
+def test_renderer_keeps_single_cta_render_when_only_primary_set():
+    """Backwards compat: old-style `cta` sections from the rule-based
+    generator have only `button`. The new render path must still
+    render that single button without breaking."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page_json = {
+        "sections": [
+            {"type": "cta", "headline": "Ready?", "button": "Enquire Now"}
+        ],
+        "semantic_profile": {"entity_name": "x", "entity_type": "agency"},
+    }
+    page = type("P", (), {"id": 1, "title": "x", "page_json": page_json})()
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_render.html",
+                page=page,
+                page_json=page_json,
+            )
+    assert "Enquire Now" in html
+
+
 def test_renderer_uses_section_eyebrow_when_set_falls_back_otherwise():
     """The renderer prefers section.eyebrow over the hardcoded kicker
     label so user-edited eyebrows actually appear on the rendered
