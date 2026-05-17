@@ -239,6 +239,22 @@
 
             <strong class="dashboard-score-value">{{ aeo_score|round|int }}<small class="score-unit">/100</small></strong>
 
+            {# Sparkline of this workspace's last 10 audit scores
+               (oldest → newest). Renders only when ≥2 audits exist,
+               since a 1-point trend tells no story. The macro
+               handles the "too few points" case internally. #}
+            {% if score_history and score_history|length >= 2 %}
+            {% from "partials/sparkline.html" import sparkline %}
+            <div class="dashboard-score-sparkline">
+                {{ sparkline(score_history) }}
+                <span class="dashboard-score-sparkline-label">
+                    {% set _delta = (score_history[-1] - score_history[0])|round(1) %}
+                    {% if _delta > 0 %}+{{ _delta }}{% else %}{{ _delta }}{% endif %}
+                    over last {{ score_history|length }} audits
+                </span>
+            </div>
+            {% endif %}
+
             {# Reuse the canonical score_band — even when this block
                renders without the scorecard above, we re-call to get
                a fresh band (cheap; pure function of score). #}
