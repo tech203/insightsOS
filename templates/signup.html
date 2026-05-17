@@ -34,6 +34,9 @@
             </div>
         </a>
 
+        {% from "partials/auth_hero_illustration.html" import auth_hero %}
+        {{ auth_hero() }}
+
         <div class="auth-brand-points">
             <div class="auth-point-card">
                 <div class="auth-point-title">Get started fast</div>
@@ -235,6 +238,19 @@ body.auth-page-light {
     display: grid;
     gap: 12px;
     max-width: 560px;
+}
+
+/* Hero illustration between the brand lockup and the point cards.
+   Same idiom as login.html. Signup uses tighter spacing because the
+   panel already has a 4-point list below it. */
+.auth-hero-illustration {
+    margin-top: 26px;
+    max-width: 480px;
+    line-height: 0;
+}
+.auth-hero-illustration svg {
+    width: 100%;
+    height: auto;
 }
 
 .auth-point-card {

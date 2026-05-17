@@ -34,6 +34,9 @@
             </div>
         </a>
 
+        {% from "partials/auth_hero_illustration.html" import auth_hero %}
+        {{ auth_hero() }}
+
         <div class="auth-brand-points">
             <div class="auth-point-card">
                 <div class="auth-point-title">Built for AI visibility</div>
@@ -220,6 +223,19 @@ body.auth-page-light {
     display: grid;
     gap: 16px;
     max-width: 560px;
+}
+
+/* Hero illustration between the brand lockup and the two point cards.
+   Sized to fill the column without overpowering the headline. Inline
+   SVG, so margins + width are the only knobs we need. */
+.auth-hero-illustration {
+    margin-top: 36px;
+    max-width: 480px;
+    line-height: 0;
+}
+.auth-hero-illustration svg {
+    width: 100%;
+    height: auto;
 }
 
 .auth-point-card {
