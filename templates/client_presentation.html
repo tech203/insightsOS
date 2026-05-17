@@ -169,7 +169,9 @@
                 {% endfor %}
             </div>
             {% else %}
+            {% from "partials/empty_state_illustrations.html" import queue_illustration %}
             <div class="empty-state-block">
+                {{ queue_illustration() }}
                 <h3>No actions yet</h3>
                 <p>Run or save a client audit first to generate a focused growth plan.</p>
             </div>

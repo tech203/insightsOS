@@ -121,7 +121,9 @@
         </article>
         {% endfor %}
     {% else %}
+        {% from "partials/empty_state_illustrations.html" import workspaces_illustration %}
         <section class="surface-card empty-card mp-empty">
+            {{ workspaces_illustration() }}
             <h3>Link your first marketplace shop</h3>
             <p>Use the form above to paste your storefront URL. We'll generate marketplace-specific queries and check whether your shop is one of the AI-recommended results.</p>
         </section>

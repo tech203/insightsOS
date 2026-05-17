@@ -6455,6 +6455,26 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
     border-color: var(--border-main);
 }
 
+/* Subtle decorative icon at the top of each metric tile. Uses
+   currentColor + the inherited theme text colour, then knocks
+   opacity down so it reads as decoration rather than competing
+   with the big metric value. */
+.dashboard-metric-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: rgba(157, 124, 227, 0.10);
+    color: var(--brand-secondary, #9D7CE3);
+}
+.dashboard-metric-card-highlight .dashboard-metric-icon {
+    background: rgba(62, 223, 203, 0.14);
+    color: var(--brand-primary, #3EDFCB);
+}
+
 .dashboard-metric-label {
     display: block;
     font-size: 11px;
