@@ -405,6 +405,60 @@ def test_terms_page_renders(anon):
     assert "Placeholder draft" in body or "placeholder" in body.lower()
 
 
+def test_landing_page_has_og_and_twitter_meta(anon):
+    """Open Graph + Twitter Card meta tags drive the preview when
+    someone pastes the URL into Slack / LinkedIn / X. Without them
+    the unfurl is just the URL — kills click-through."""
+    body = anon.get("/aeo-agency").data.decode()
+    # Open Graph minimum set
+    assert 'property="og:type"' in body
+    assert 'property="og:title"' in body
+    assert 'property="og:description"' in body
+    assert 'property="og:url"' in body
+    assert 'property="og:site_name"' in body
+    # Twitter card present (summary or summary_large_image — we ship
+    # `summary` today, upgrade to large_image when an OG image lands)
+    assert 'name="twitter:card"' in body
+    assert 'name="twitter:title"' in body
+    # Canonical link to dedupe ?utm_*=... and trailing-slash variants
+    assert 'rel="canonical"' in body
+
+
+def test_landing_page_has_json_ld_structured_data(anon):
+    """JSON-LD lets search + AI engines extract the entity facts
+    (what the product is, who makes it, what it costs) without
+    having to scrape and infer. Particularly relevant for an
+    AI-visibility tool."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert 'application/ld+json' in body
+    assert '"@type": "SoftwareApplication"' in body
+    # All 3 pricing offers should be advertised in the structured data
+    for plan in ('"Free"', '"Pro"', '"Growth"'):
+        assert plan in body, f"JSON-LD missing offer: {plan}"
+
+
+def test_landing_page_has_inline_svg_favicon(anon):
+    """Inline SVG favicon — no separate file to manage, scales on
+    retina. Should be present so browser tabs aren't blank."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert 'rel="icon"' in body
+    assert 'image/svg+xml' in body
+
+
+def test_legal_pages_skip_json_ld(anon):
+    """The SoftwareApplication JSON-LD shape would be inaccurate
+    on the /privacy and /terms pages (they're documents, not the
+    product). Verify they don't accidentally inherit it."""
+    privacy = anon.get("/privacy").data.decode()
+    terms = anon.get("/terms").data.decode()
+    assert "SoftwareApplication" not in privacy
+    assert "SoftwareApplication" not in terms
+    # But the OG tags + favicon should still be there (sharing a
+    # legal-page link in Slack should still unfurl nicely).
+    assert 'property="og:title"' in privacy
+    assert 'property="og:title"' in terms
+
+
 def test_robots_txt_renders_and_disallows_app_surfaces(anon):
     """/robots.txt must serve plain text, allow the marketing
     surface, and explicitly disallow every authenticated /

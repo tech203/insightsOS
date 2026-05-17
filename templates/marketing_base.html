@@ -11,7 +11,123 @@
          pattern in base.html so behaviour is identical across the
          marketing pages and the app. -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{% block title %}DarInsights{% endblock %}</title>
+
+    {# ============================================================
+       SEO + social-share meta tags. Centralised here so every page
+       that extends marketing_base.html inherits sensible defaults;
+       individual pages override `meta_title` / `meta_description` /
+       `meta_canonical_path` blocks where the defaults don't fit.
+
+       Why each set is here:
+         - title / description    → search engines + AI engines + tab
+         - canonical              → dedupe variants (?utm_*, trailing /, etc.)
+         - OG (Facebook / LinkedIn) → preview card when someone pastes
+                                       the URL into Slack, LinkedIn, etc.
+         - Twitter card           → preview card on X
+         - JSON-LD                → structured data so search/AI engines
+                                       can extract the right entity facts
+       ============================================================ #}
+    {% set _meta_title = self.meta_title() if 'meta_title' in self.__dict__ else 'DarInsights — AI Visibility Operating System' %}
+    {% set _meta_description = self.meta_description() if 'meta_description' in self.__dict__ else 'Audit how your brand appears in AI-generated answers across Google AI, ChatGPT, Perplexity, and Gemini. See which competitors are winning citations and what content actions will close the gap.' %}
+    {% set _meta_canonical = request.url_root.rstrip('/') ~ (self.meta_canonical_path() if 'meta_canonical_path' in self.__dict__ else request.path) %}
+
+    <meta name="description" content="{{ _meta_description }}">
+    <link rel="canonical" href="{{ _meta_canonical }}">
+    <meta name="theme-color" content="#0A0A12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    {# Open Graph (Facebook / LinkedIn / Slack unfurl) #}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DarInsights">
+    <meta property="og:title" content="{{ _meta_title }}">
+    <meta property="og:description" content="{{ _meta_description }}">
+    <meta property="og:url" content="{{ _meta_canonical }}">
+
+    {# Twitter / X card — 'summary_large_image' renders the wide card
+       previewed in the feed. We don't have a designed OG image yet;
+       when one ships, drop it at /static/og/og-default.png (1200×630
+       PNG) and uncomment the og:image / twitter:image tags below. #}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ _meta_title }}">
+    <meta name="twitter:description" content="{{ _meta_description }}">
+    {# Uncomment when /static/og/og-default.png exists:
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}/static/og/og-default.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/og/og-default.png">
+    #}
+
+    {# Inline-SVG favicon — modern best practice, no separate file to
+       manage, scales perfectly on retina, follows the user's light/
+       dark preference automatically via prefers-color-scheme inside
+       the SVG. Brand "A" matches the lockup used in auth + topbar. #}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
+            <defs>
+                <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+                    <stop offset='0' stop-color='%233EDFCB'/>
+                    <stop offset='1' stop-color='%239D7CE3'/>
+                </linearGradient>
+            </defs>
+            <rect width='64' height='64' rx='14' fill='url(%23g)'/>
+            <text x='50%25' y='52%25' text-anchor='middle' dominant-baseline='middle'
+                  font-family='ui-sans-serif,system-ui,-apple-system,sans-serif'
+                  font-size='38' font-weight='800' fill='%2315161e'>A</text>
+        </svg>">
+
+    {# JSON-LD structured data — search engines + AI engines parse
+       this to extract entity facts (what the product is, who makes
+       it, what it costs). Don't render on legal pages where the
+       SoftwareApplication shape would be inaccurate. #}
+    {% if request.endpoint != 'privacy_policy' and request.endpoint != 'terms_of_service' %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "DarInsights",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": {{ _meta_description | tojson }},
+        "url": "{{ request.url_root.rstrip('/') }}/",
+        "offers": [
+            {
+                "@type": "Offer",
+                "name": "Free",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            {
+                "@type": "Offer",
+                "name": "Pro",
+                "price": "29",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                    "@type": "RecurringPaymentsPriceSpecification",
+                    "billingDuration": "P1M"
+                }
+            },
+            {
+                "@type": "Offer",
+                "name": "Growth",
+                "price": "79",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                    "@type": "RecurringPaymentsPriceSpecification",
+                    "billingDuration": "P1M"
+                }
+            }
+        ],
+        "publisher": {
+            "@type": "Organization",
+            "name": "Astra Collective Asia",
+            "url": "{{ request.url_root.rstrip('/') }}/"
+        }
+    }
+    </script>
+    {% endif %}
+
+    <title>{% block title %}{{ _meta_title }}{% endblock %}</title>
     <script>
         // Restore theme before first paint to avoid a flash. Mirrors
         // the same logic in base.html so the marketing pages and the
