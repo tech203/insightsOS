@@ -139,6 +139,9 @@ RESEND_FROM=DarInsights <noreply@YOUR-DOMAIN>   # NOT @resend.dev
 RATELIMIT_STORAGE_URI=redis://...               # else per-IP rate
                                                 # limits drift across
                                                 # replicas (PR #133)
+SENTRY_DSN=https://...@sentry.io/...            # error monitoring;
+                                                # unset = 500s only
+                                                # in stdout logs
 
 # --- Recommended: CSP violation reporting ---
 CSP_REPORT_URI=https://...                      # else violation reports
@@ -162,6 +165,7 @@ CSP_REPORT_URI=https://...                      # else violation reports
 | `RESEND_API_KEY` + `RESEND_FROM` | Transactional email | Verification / reset emails not delivered |
 | `RATELIMIT_STORAGE_URI` | Shared rate-limit counters | Multi-instance: attackers route around limits |
 | `CSP_REPORT_URI` | CSP violation collector endpoint | Without it, violation reports only hit the browser console — no telemetry to act on |
+| `SENTRY_DSN` | Sends unhandled exceptions to Sentry | 500s only land in stdout logs; you won't notice live errors |
 
 ---
 
@@ -362,6 +366,9 @@ RATELIMIT_STORAGE_URI=redis://...
 # Recommended: CSP violation reporting
 CSP_REPORT_URI=https://...                # Sentry CSP endpoint or
                                           # self-hosted collector
+
+# Recommended — error monitoring (sentry.io project DSN)
+SENTRY_DSN=https://...@sentry.io/...
 
 # Cron (only if you have scheduled jobs)
 CRON_SECRET=<32-char random>
