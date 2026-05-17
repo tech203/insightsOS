@@ -65,7 +65,10 @@
     <section class="site-section site-section-light" id="details">
         <div class="site-container">
             <p class="site-kicker">
-                {% if section.type == "services" %}Offerings{% else %}Why Choose Us{% endif %}
+                {# Use the section's own eyebrow when set (user-editable
+                   via /edit), fall back to the hardcoded category
+                   label so old pages still render. #}
+                {% if section.eyebrow %}{{ section.eyebrow }}{% elif section.type == "services" %}Offerings{% else %}Why Choose Us{% endif %}
             </p>
             <h2>{{ section.headline }}</h2>
 
@@ -89,7 +92,7 @@
     {% if section.type == "proof" %}
     <section class="site-section site-proof">
         <div class="site-container site-container-narrow">
-            <p class="site-kicker">Trust Signals</p>
+            <p class="site-kicker">{{ section.eyebrow or "Trust Signals" }}</p>
             <h2>{{ section.headline }}</h2>
 
             <div class="site-proof-grid">
@@ -104,7 +107,7 @@
     {% if section.type == "faq" %}
     <section class="site-section site-section-light">
         <div class="site-container site-container-narrow">
-            <p class="site-kicker">FAQ</p>
+            <p class="site-kicker">{{ section.eyebrow or "FAQ" }}</p>
             <h2>{{ section.headline }}</h2>
 
             <div class="site-faq-list">
@@ -145,7 +148,7 @@
     {% if section.type == "contact_details" %}
     <section class="site-section site-section-light" id="contact">
         <div class="site-container site-container-narrow">
-            <p class="site-kicker">Contact</p>
+            <p class="site-kicker">{{ section.eyebrow or "Contact" }}</p>
             <h2>{{ section.headline }}</h2>
 
             <div class="site-card-grid">
@@ -168,7 +171,7 @@
     {% if section.type == "story" %}
     <section class="site-section">
         <div class="site-container site-container-narrow">
-            <p class="site-kicker">Our Story</p>
+            <p class="site-kicker">{{ section.eyebrow or "Our Story" }}</p>
             <h2>{{ section.headline }}</h2>
             {% if section.body %}
             <p class="site-lede">{{ section.body }}</p>

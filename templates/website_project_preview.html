@@ -137,6 +137,9 @@
                     <h3>{{ site_page.title }}</h3>
                     <p>
                         /{{ site_page.slug }} · {{ site_page.page_type|title }}
+                        {% if site_page.status == "published" %}
+                        · <span style="color:#2563eb;font-weight:600;">● Published</span>
+                        {% endif %}
                         {% if (site_page.page_json or {}).get("reviewed_at") %}
                         · <span style="color:#10b981;font-weight:600;">✓ Reviewed</span>
                         {% else %}

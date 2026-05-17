@@ -1442,6 +1442,120 @@ def test_mark_all_reviewed_stamps_only_unreviewed_pages(app_ctx):
     assert new2.page_json.get("reviewed_at")
 
 
+def test_edit_route_persists_eyebrow_on_non_hero_sections(app_ctx):
+    """eyebrow is now editable on services/value_prop/proof/faq/
+    contact_details/story (used to be hero-only). Posting an eyebrow
+    for a services section must persist it on page_json."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="eb@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="EB",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="eb-co",
+        user_id=u.id,
+        name="EB Co",
+        website="https://eb.example.com",
+        website_normalized="eb.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="EB Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={
+            "sections": [
+                {"type": "services", "headline": "What we do", "items": []},
+                {"type": "faq", "headline": "FAQ", "items": []},
+            ],
+        },
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    resp = c.post(
+        f"/website-engine/page/{page.id}/edit",
+        data={
+            "section_0_eyebrow": "Our offerings",
+            "section_1_eyebrow": "Customer questions",
+        },
+    )
+    assert resp.status_code in (302, 303)
+    db.session.refresh(page)
+    assert page.page_json["sections"][0]["eyebrow"] == "Our offerings"
+    assert page.page_json["sections"][1]["eyebrow"] == "Customer questions"
+
+
+def test_renderer_uses_section_eyebrow_when_set_falls_back_otherwise():
+    """The renderer prefers section.eyebrow over the hardcoded kicker
+    label so user-edited eyebrows actually appear on the rendered
+    site. Empty/missing eyebrow keeps the fallback label."""
+    from flask import render_template
+    from app import app as flask_app
+
+    page_json = {
+        "sections": [
+            {"type": "services", "headline": "h", "eyebrow": "Custom offerings", "items": []},
+            {"type": "faq", "headline": "h", "items": []},  # no eyebrow
+        ],
+        "semantic_profile": {"entity_name": "x", "entity_type": "agency"},
+    }
+    page = type("P", (), {"id": 1, "title": "x", "page_json": page_json})()
+
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "website_engine_render.html",
+                page=page,
+                page_json=page_json,
+            )
+
+    # Services section uses the user-edited eyebrow.
+    assert "Custom offerings" in html
+    assert "Offerings" not in html or html.count("Custom offerings") >= html.count("Offerings")
+    # FAQ section without eyebrow falls back to the literal "FAQ".
+    assert "FAQ" in html
+
+
 def test_mark_all_reviewed_rejects_other_users(app_ctx):
     """Cross-user defence on the bulk route."""
     from werkzeug.security import generate_password_hash

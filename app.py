@@ -4236,14 +4236,22 @@ def edit_generated_page(page_id):
 # Per-section-type editable text field whitelist. Anything not in
 # this map is left alone — keeps the route from accidentally
 # overwriting structural fields like `type` or `slug`.
+#
+# Non-hero sections also carry eyebrow kickers (rendered as the
+# small uppercase text above the section heading — see
+# website_engine_render.html's site-kicker), so include eyebrow on
+# every section type that the renderer reads it for. The AI prompt
+# templates don't currently emit eyebrows on every section, but
+# users may want to add them — having the field editable doesn't
+# create one out of thin air, it just lets the user fill in.
 _EDITABLE_SECTION_FIELDS = {
     "hero": ["eyebrow", "headline", "subtext", "primary_cta", "secondary_cta"],
-    "services": ["headline"],
-    "value_prop": ["headline"],
-    "proof": ["headline"],
-    "faq": ["headline"],
-    "contact_details": ["headline"],
-    "story": ["headline", "body"],
+    "services": ["eyebrow", "headline"],
+    "value_prop": ["eyebrow", "headline"],
+    "proof": ["eyebrow", "headline"],
+    "faq": ["eyebrow", "headline"],
+    "contact_details": ["eyebrow", "headline"],
+    "story": ["eyebrow", "headline", "body"],
     "cta": ["headline", "body", "subtext", "button"],
     "cta_block": ["headline", "body", "subtext", "primary_cta", "secondary_cta"],
 }
