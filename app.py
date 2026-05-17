@@ -15636,7 +15636,27 @@ def _static_css_version() -> str:
 
 @app.route("/aeo-agency")
 def aeo_agency_page():
-    return render_template("landing_aeo.html")
+    # Pass `now` so the footer copyright doesn't go stale on Jan 1
+    # of next year. utcnow() is the tz-naive helper from dtutils.
+    return render_template("landing_aeo.html", now=utcnow())
+
+
+# ----------------------------------------------------------------------
+# Legal pages — Privacy + Terms placeholders
+# ----------------------------------------------------------------------
+# Required by Stripe (linked from checkout), most enterprise buyers,
+# and EU/CCPA compliance. Templates ship as placeholders with the right
+# headings + structure so a lawyer-reviewed final pass is a content
+# edit, not a layout build. Both routes are public + cacheable.
+
+@app.route("/privacy")
+def privacy_policy():
+    return render_template("legal/privacy.html", now=utcnow())
+
+
+@app.route("/terms")
+def terms_of_service():
+    return render_template("legal/terms.html", now=utcnow())
 
 
 def render_settings_section(section, **extra_context):

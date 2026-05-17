@@ -1,0 +1,105 @@
+{% extends "legal/_legal_base.html" %}
+{% block legal_title %}Terms of Service{% endblock %}
+
+{% block legal_body %}
+<div class="legal-placeholder-banner">
+    <strong>Placeholder draft.</strong> This page describes the
+    real product behaviour but the legal language hasn't been
+    counsel-reviewed yet. Have a lawyer in your jurisdiction read
+    it before relying on it for enforceability.
+</div>
+
+<p>
+    These Terms of Service ("Terms") govern your use of DarInsights
+    (the "Service"). By creating an account or using the Service
+    you agree to these Terms. If you don't agree, please don't use
+    the Service.
+</p>
+
+<h2>1. The Service</h2>
+<p>
+    DarInsights helps you audit how your brand appears in AI-generated
+    answers across multiple AI search engines, identifies content gaps
+    and competitor citations, and generates briefs and drafts you can
+    publish. Specific features depend on your plan (Free, Pro, Growth).
+</p>
+
+<h2>2. Accounts</h2>
+<ul>
+    <li>You're responsible for keeping your password confidential.</li>
+    <li>One person per account; team-plan seats are separate accounts.</li>
+    <li>You must be at least 18 years old (or the age of majority in your jurisdiction).</li>
+    <li>We can suspend or terminate accounts that violate these Terms — see Section 7.</li>
+</ul>
+
+<h2>3. Plans, credits, and billing</h2>
+<ul>
+    <li><strong>Free plan</strong> — 3 starter credits, no recurring charge.</li>
+    <li><strong>Pro / Growth</strong> — recurring monthly subscriptions billed via Stripe. Cancel anytime from the customer portal.</li>
+    <li><strong>Credit topups</strong> — one-off purchases. Credits don't expire while your account is active.</li>
+    <li><strong>Refunds</strong> — pro-rated refunds available within 7 days of charge if you've used less than half of that period's allowance. Past that, the period is non-refundable. Email <a href="mailto:hello@darinsights.com">hello@darinsights.com</a>.</li>
+    <li><strong>Failed payments</strong> — Stripe retries automatically. We'll email you and surface a banner in-app. If recovery fails, the plan downgrades to Free and excess workspaces are soft-locked (data preserved; reactivate by upgrading or buying an add-on).</li>
+    <li><strong>Price changes</strong> — announced via email at least 30 days before they take effect.</li>
+</ul>
+
+<h2>4. Acceptable use</h2>
+<p>You agree not to:</p>
+<ul>
+    <li>Use the Service to audit websites you don't have permission to audit, or to scrape sites at rates that disrupt their operation.</li>
+    <li>Upload malicious content (XSS payloads, malware, illegal content).</li>
+    <li>Reverse-engineer, decompile, or attempt to extract source code from the Service.</li>
+    <li>Resell access to the Service without our written permission (agency plans permit client work; bulk-reselling does not).</li>
+    <li>Use the Service to send unsolicited bulk email or for SEO manipulation that violates the target search engine's terms.</li>
+    <li>Attempt to bypass rate limits, plan caps, or paywalls.</li>
+</ul>
+
+<h2>5. Your content + data</h2>
+<ul>
+    <li>You retain ownership of all content you upload + all audit results we generate for you.</li>
+    <li>You grant us a non-exclusive licence to process that content as required to operate the Service — render audits, generate briefs, deliver email, etc.</li>
+    <li>We will <strong>not</strong> use your content to train AI models or improve other customers' audits.</li>
+    <li>Privacy details: see <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>.</li>
+</ul>
+
+<h2>6. Service availability + warranties</h2>
+<ul>
+    <li>The Service is provided <strong>as-is</strong>. We aim for high availability but cannot guarantee uninterrupted access.</li>
+    <li>Audit results reflect what AI engines returned at audit time — those results can shift and we don't guarantee any specific outcome (e.g. "your brand will start appearing").</li>
+    <li>We're not liable for indirect, consequential, or punitive damages. Direct damages are limited to the amount you paid us in the preceding 12 months.</li>
+</ul>
+
+<h2>7. Suspension + termination</h2>
+<ul>
+    <li>You can delete your account anytime from Settings → Account. Deletion is irreversible and cascades across all owned data.</li>
+    <li>We can suspend or terminate accounts that violate these Terms, are >60 days past due on billing, or that we reasonably believe pose security / abuse risk.</li>
+    <li>On termination we'll give you 30 days to export your data before purging it, except in cases of severe abuse where we may purge immediately.</li>
+</ul>
+
+<h2>8. Intellectual property</h2>
+<ul>
+    <li>The Service, including the codebase, templates, branding, and aggregated insights, is owned by us or our licensors.</li>
+    <li>Feedback you provide may be used to improve the Service without obligation to you.</li>
+</ul>
+
+<h2>9. Changes to these Terms</h2>
+<p>
+    Material changes will be announced via in-app notice + email at
+    least 14 days before they take effect. The "Effective" date at
+    the top of the page is updated on every revision. Continued use
+    of the Service after the effective date constitutes acceptance.
+</p>
+
+<h2>10. Governing law</h2>
+<p>
+    These Terms are governed by the laws of Singapore. Disputes go
+    first through good-faith email negotiation; if unresolved within
+    60 days, to the courts of Singapore. Consumers retain any
+    statutory rights they have in their home jurisdiction.
+</p>
+
+<h2>11. Contact</h2>
+<p>
+    DarInsights — operated by Astra Collective Asia.
+    Questions about these Terms: <a href="mailto:hello@darinsights.com">hello@darinsights.com</a>.
+</p>
+{% endblock %}

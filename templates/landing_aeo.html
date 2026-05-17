@@ -871,40 +871,123 @@
                 <div class="aeo-faq-card">
                     <h3>What does DarInsights do?</h3>
                     <p>
-                        DarInsights helps teams audit AI visibility, identify missed opportunities,
-                        and turn findings into practical content actions.
+                        DarInsights audits how often your brand appears in
+                        AI-generated answers — across Google AI, ChatGPT,
+                        Perplexity, and Gemini — identifies the queries you're
+                        missing, surfaces which competitors are winning the
+                        citations instead, and turns those findings into
+                        content briefs and drafts you can ship.
                     </p>
                 </div>
 
                 <div class="aeo-faq-card">
-                    <h3>Can I sign up now?</h3>
+                    <h3>Can I sign up right now?</h3>
                     <p>
-                        Self-serve signup is not open yet. For now, you can join the interest list
-                        and we will notify you when early access is available.
+                        Yes — sign up is open and free. Type your website
+                        into the form above, complete the 30-second signup,
+                        and your first audit runs immediately. The Free
+                        plan includes 3 starter credits — enough to run
+                        your first audit with no card on file.
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>What happens to my website data?</h3>
+                    <p>
+                        We fetch only your publicly-available web pages
+                        (the same content any search engine reads) to run
+                        the audit. We never receive login credentials and
+                        never crawl private pages. Audit results are
+                        readable only by you and people you explicitly
+                        invite to your team. Full erasure available
+                        anytime from
+                        <a href="{{ url_for('login') }}">Settings → Account</a>.
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>How accurate are the AI engine results?</h3>
+                    <p>
+                        We query each engine the same way a real buyer
+                        would, then count brand mentions and ranking
+                        position in the assistant's answer. Results
+                        reflect what those engines actually returned at
+                        audit time — they can shift as the engines retrain,
+                        which is why we let you re-audit anytime to track
+                        movement (instead of treating one snapshot as truth).
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>Do I need to install anything on my site?</h3>
+                    <p>
+                        No. No scripts, no DNS changes, no analytics
+                        snippets. We work entirely from the outside — the
+                        same vantage point an AI engine has. Optional
+                        integrations (Google Search Console, Google
+                        Analytics, Shopify, Webflow) layer on extra
+                        signal but are not required to run an audit.
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>How is this different from SEO tools like Ahrefs or Semrush?</h3>
+                    <p>
+                        SEO tools measure how you rank in <em>blue-link
+                        search results</em>. DarInsights measures whether
+                        AI assistants <em>cite your brand by name</em> in
+                        their answers — a different surface that's
+                        increasingly where buyers form their shortlist.
+                        Both matter; we focus on the AI side because
+                        nobody else does.
+                    </p>
+                </div>
+
+                <div class="aeo-faq-card">
+                    <h3>What if my brand doesn't appear in any of the results?</h3>
+                    <p>
+                        That's the most common starting point — and the
+                        most useful audit. You'll get a list of the
+                        specific queries you're missing, the competitor
+                        brands appearing instead, and a prioritised set
+                        of content actions to start closing the gap. The
+                        Pro plan generates briefs + drafts in the same
+                        workflow, so you can ship the first piece the
+                        same day.
                     </p>
                 </div>
 
                 <div class="aeo-faq-card">
                     <h3>Do I need to pay now?</h3>
                     <p>
-                        No. The pricing shown is planned early access pricing. Payment is not active yet,
-                        so you can join the interest list first without subscribing.
+                        No card on signup. Your first audit runs on the
+                        3 starter credits the Free plan includes. Upgrade
+                        only when you want more audits, more workspaces,
+                        or the content-brief / draft generation in the
+                        Pro and Growth plans.
                     </p>
                 </div>
 
                 <div class="aeo-faq-card">
                     <h3>Who is it for?</h3>
                     <p>
-                        It is being built for agencies, consultants, in-house teams, local businesses,
-                        B2B brands, and service companies that want better visibility in AI answers.
+                        Agencies running AI visibility for a roster of
+                        clients, in-house teams who own their own brand's
+                        visibility, B2B companies whose buyers research
+                        in AI assistants before booking, and local
+                        service businesses showing up in "best X near me"
+                        AI answers.
                     </p>
                 </div>
 
                 <div class="aeo-faq-card">
                     <h3>Can I request a walkthrough?</h3>
                     <p>
-                        Yes. If you want to discuss agency use, client reporting, or an early pilot,
-                        you can book a strategy call.
+                        Yes — especially useful if you're an agency
+                        considering it for client reporting, or running
+                        an early pilot.
+                        <a href="https://cal.com/tech-astra-collective-4jopkb/30min" target="_blank" rel="noopener noreferrer">Book a 30-min strategy call</a>
+                        and we'll walk through your specific use case.
                     </p>
                 </div>
             </div>
@@ -950,15 +1033,71 @@
 </div>
 
 <footer class="aeo-footer">
-    <div class="aeo-container aeo-footer-inner">
-        <div>
-            <div class="aeo-footer-brand">DarInsights</div>
-            <p>AI Visibility Operating System for audits, insights, and content actions.</p>
+    <div class="aeo-container">
+
+        <!-- Main footer grid: brand block + 3 nav columns. -->
+        <div class="aeo-footer-grid">
+            <div class="aeo-footer-brand-block">
+                <div class="aeo-footer-brand">DarInsights</div>
+                <p class="aeo-footer-tagline">
+                    AI Visibility Operating System for audits,
+                    insights, and content actions.
+                </p>
+                <div class="aeo-footer-cta">
+                    <a href="#start-audit" class="aeo-btn aeo-btn-light aeo-btn-sm">
+                        Run free audit →
+                    </a>
+                </div>
+            </div>
+
+            <div class="aeo-footer-col">
+                <div class="aeo-footer-col-head">Product</div>
+                <ul>
+                    <li><a href="#start-audit">Run an audit</a></li>
+                    <li><a href="#how-it-works">How it works</a></li>
+                    <li><a href="#why-darinsights">Why DarInsights</a></li>
+                    <li><a href="#planned-pricing">Pricing</a></li>
+                    <li><a href="#faq">FAQ</a></li>
+                </ul>
+            </div>
+
+            <div class="aeo-footer-col">
+                <div class="aeo-footer-col-head">Company</div>
+                <ul>
+                    <li><a href="https://cal.com/tech-astra-collective-4jopkb/30min"
+                           target="_blank" rel="noopener noreferrer">Book a strategy call</a></li>
+                    <li><a href="mailto:hello@darinsights.com">Contact</a></li>
+                    <li><a href="#early-access">Founding access</a></li>
+                </ul>
+            </div>
+
+            <div class="aeo-footer-col">
+                <div class="aeo-footer-col-head">Account</div>
+                <ul>
+                    <li><a href="{{ url_for('login') }}">Sign in</a></li>
+                    <li><a href="{{ url_for('signup') }}">Create account</a></li>
+                    <li><a href="{{ url_for('forgot_password') }}">Reset password</a></li>
+                </ul>
+            </div>
         </div>
 
-        <div class="aeo-footer-powered">
-            Powered by <strong>Astra Collective Asia</strong>
+        {# Legal bar: copyright, "Powered by", legal links.
+           Privacy + Terms are required by Stripe and most enterprise
+           buyers; the underlying routes (privacy_policy /
+           terms_of_service) ship as placeholders with this PR. #}
+        <div class="aeo-footer-legal">
+            <div class="aeo-footer-legal-left">
+                <span>© {{ now.year if now else 2026 }} DarInsights.</span>
+                <span class="aeo-footer-legal-sep">·</span>
+                <span>Powered by <strong>Astra Collective Asia</strong></span>
+            </div>
+            <div class="aeo-footer-legal-links">
+                <a href="{{ url_for('privacy_policy') }}">Privacy</a>
+                <a href="{{ url_for('terms_of_service') }}">Terms</a>
+                <a href="mailto:hello@darinsights.com">Support</a>
+            </div>
         </div>
+
     </div>
 </footer>
 
@@ -2644,39 +2783,135 @@ html[data-theme="light"] .aeo-audit-form-foot {
     font-weight: 800;
 }
 
+/* ===========================================
+   Footer — proper SaaS footer with 4 nav cols
+   + legal bar. Replaces the bare brand-only
+   footer. Required for launch (Stripe + most
+   enterprise buyers want a real Privacy/Terms
+   link from every page).
+   =========================================== */
 .aeo-footer {
-    padding: 30px 0;
+    padding: 56px 0 28px;
     border-top: 1px solid var(--border);
     background: rgba(2, 6, 23, 0.72);
 }
 
-.aeo-footer-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
+.aeo-footer-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+    gap: 40px;
+    align-items: start;
 }
 
+.aeo-footer-brand-block {
+    max-width: 340px;
+}
 .aeo-footer-brand {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 800;
+    color: var(--text-main);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
+}
+.aeo-footer-tagline {
+    margin: 10px 0 18px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.55;
+}
+.aeo-footer-cta .aeo-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+.aeo-btn-sm {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+.aeo-footer-col-head {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-main);
+    margin-bottom: 14px;
+}
+.aeo-footer-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.aeo-footer-col a {
+    color: var(--text-soft);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.15s;
+}
+.aeo-footer-col a:hover {
     color: var(--text-main);
 }
 
-.aeo-footer p {
-    margin: 6px 0 0;
+/* Legal bar at the very bottom — copyright + powered-by + legal links. */
+.aeo-footer-legal {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 13px;
     color: var(--text-muted);
-    font-size: 14px;
 }
-
-.aeo-footer-powered {
+.aeo-footer-legal-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.aeo-footer-legal-left strong {
     color: var(--text-soft);
-    font-size: 14px;
-    text-align: right;
+    font-weight: 600;
+}
+.aeo-footer-legal-sep {
+    opacity: 0.5;
+}
+.aeo-footer-legal-links {
+    display: flex;
+    gap: 18px;
+}
+.aeo-footer-legal-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.aeo-footer-legal-links a:hover {
+    color: var(--text-main);
 }
 
-.aeo-footer-powered strong {
-    color: #ffffff;
+/* Mobile: stack the 4-column grid into 2 columns, then 1. */
+@media (max-width: 900px) {
+    .aeo-footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+    }
+    .aeo-footer-brand-block {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 560px) {
+    .aeo-footer-grid {
+        grid-template-columns: 1fr;
+    }
+    .aeo-footer-legal {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
 }
 
 /* Responsive */

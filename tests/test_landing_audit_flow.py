@@ -266,6 +266,69 @@ def test_landing_page_step_cards_have_icons(anon):
     )
 
 
+def test_landing_page_faq_includes_expanded_questions(anon):
+    """The FAQ went from 5 generic questions to 10 specific ones
+    that address buyer objections. Spot-check the new ones AND the
+    stale-answer fix (the old 'Can I sign up now?' said NO, which
+    contradicts the new audit form)."""
+    body = anon.get("/aeo-agency").data.decode()
+    # New question: data-privacy concern
+    assert "What happens to my website data" in body
+    # New question: outcome anxiety
+    assert "What if my brand doesn't appear" in body
+    # New question: positioning vs SEO tools
+    assert "Ahrefs" in body or "Semrush" in body
+    # Stale answer must be GONE — was "not open yet", must now say yes
+    assert "Self-serve signup is not open yet" not in body, (
+        "FAQ still says signup isn't open — contradicts the new audit "
+        "form. Update the answer to reflect the live signup flow."
+    )
+
+
+def test_landing_page_footer_has_nav_and_legal_links(anon):
+    """The footer was a single brand block — now a proper 4-column
+    SaaS footer with nav + legal links. Critical because Stripe + most
+    enterprise buyers want Privacy/Terms reachable from every page."""
+    body = anon.get("/aeo-agency").data.decode()
+    # Column-head classes prove the grid rendered
+    assert "aeo-footer-grid" in body
+    assert "aeo-footer-col-head" in body
+    # Legal links present
+    assert "/privacy" in body
+    assert "/terms" in body
+    # Account links present (acquisition + recovery)
+    assert "/login" in body
+    assert "/signup" in body
+    assert "/forgot-password" in body
+
+
+def test_privacy_page_renders(anon):
+    resp = anon.get("/privacy")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert "Privacy Policy" in body
+    # The placeholder-banner warning must be present so a future
+    # contributor doesn't accidentally treat the draft as final.
+    assert "Placeholder draft" in body or "placeholder" in body.lower()
+
+
+def test_terms_page_renders(anon):
+    resp = anon.get("/terms")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert "Terms of Service" in body
+    assert "Placeholder draft" in body or "placeholder" in body.lower()
+
+
+def test_legal_pages_link_to_each_other(anon):
+    """Cross-link in the legal-page footer so a user reading one
+    can flip to the other without backtracking."""
+    privacy = anon.get("/privacy").data.decode()
+    terms = anon.get("/terms").data.decode()
+    assert "/terms" in privacy
+    assert "/privacy" in terms
+
+
 def test_landing_page_contains_comparison_table(anon):
     """The 'DIY vs DarInsights vs Consultancy' comparison table must
     render — it's the section that answers the 'why not just use
