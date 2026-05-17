@@ -20,23 +20,28 @@ Usage:
 """
 
 import os
-import requests
 from typing import Dict, List, Optional, Any
 import logging
 
+# Single source of truth: reuse the integration layer's HTTP request,
+# API base, and exception types so both Webflow stacks share one error
+# hierarchy (an `except WebflowAPIError` works no matter which layer
+# raised it) and one place to maintain request behaviour.
+from webflow_integration import (
+    WEBFLOW_API_BASE,
+    WebflowAPIError,
+    WebflowConfigError,
+    _webflow_request,
+)
+
 logger = logging.getLogger(__name__)
 
-WEBFLOW_API_BASE = "https://api.webflow.com/v2"
-
-
-class WebflowConfigError(Exception):
-    """Raised when Webflow configuration is missing or invalid."""
-    pass
-
-
-class WebflowAPIError(Exception):
-    """Raised when a Webflow API call fails."""
-    pass
+__all__ = [
+    "WEBFLOW_API_BASE",
+    "WebflowAPIError",
+    "WebflowConfigError",
+    "WebflowCMSClient",
+]
 
 
 class WebflowCMSClient:
@@ -61,56 +66,23 @@ class WebflowCMSClient:
 
     def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Make a request to the Webflow API.
-        
+        Make a request to the Webflow API via the shared integration-layer
+        request function, so both Webflow stacks use one HTTP path, one
+        error format, and one timeout policy.
+
         Args:
             method: HTTP method (GET, POST, PUT, PATCH, DELETE)
             endpoint: API endpoint path
             data: Optional request body data
-            
+
         Returns:
             Response JSON as dictionary
-            
+
         Raises:
             WebflowAPIError: If the request fails
         """
         url = f"{WEBFLOW_API_BASE}{endpoint}"
-        headers = {
-            "Authorization": f"Bearer {self.api_token}",
-            "Content-Type": "application/json",
-        }
-
-        try:
-            if method == "GET":
-                response = requests.get(url, headers=headers, timeout=10)
-            elif method == "POST":
-                response = requests.post(url, headers=headers, json=data, timeout=10)
-            elif method == "PUT":
-                response = requests.put(url, headers=headers, json=data, timeout=10)
-            elif method == "PATCH":
-                response = requests.patch(url, headers=headers, json=data, timeout=10)
-            elif method == "DELETE":
-                response = requests.delete(url, headers=headers, timeout=10)
-            else:
-                raise WebflowAPIError(f"Unsupported HTTP method: {method}")
-
-            response.raise_for_status()
-            return response.json() if response.text else {}
-
-        except requests.exceptions.Timeout:
-            error_msg = f"Webflow API timeout for {method} {endpoint}"
-            logger.error(error_msg)
-            raise WebflowAPIError(error_msg)
-
-        except requests.exceptions.HTTPError as e:
-            error_msg = f"Webflow API error: {e.response.status_code} {e.response.text}"
-            logger.error(error_msg)
-            raise WebflowAPIError(error_msg)
-
-        except Exception as e:
-            error_msg = f"Webflow API request failed: {str(e)}"
-            logger.error(error_msg)
-            raise WebflowAPIError(error_msg)
+        return _webflow_request({"token": self.api_token}, method, url, data)
 
     def test_connection(self) -> bool:
         """
