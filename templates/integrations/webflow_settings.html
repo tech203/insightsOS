@@ -4,11 +4,7 @@
 
 {% block head %}
 <style>
-    .webflow-page {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
+    .webflow-page { max-width: 1100px; margin: 0 auto; padding: 2rem; }
 
     .card {
         background: white;
@@ -27,191 +23,268 @@
     }
 
     .alert {
-        padding: 1.5rem;
+        padding: 1.25rem;
         border-radius: 6px;
         margin-bottom: 1.5rem;
         border-left: 4px solid;
     }
 
-    .alert-error {
-        background-color: #ffebee;
-        border-color: #c62828;
-        color: #c62828;
-    }
-
-    .alert-success {
-        background-color: #e8f5e9;
-        border-color: #2e7d32;
-        color: #2e7d32;
-    }
-
+    .alert-error { background-color: #ffebee; border-color: #c62828; color: #c62828; }
+    .alert-success { background-color: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
+    .alert-info { background-color: #e3f2fd; border-color: #1565c0; color: #1565c0; }
     .alert strong { display: block; margin-bottom: 0.5rem; }
 
     .btn {
-        padding: 0.75rem 1.5rem;
+        padding: 0.7rem 1.4rem;
         border: none;
         border-radius: 4px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s;
     }
 
-    .btn-primary {
-        background-color: #0066cc;
-        color: white;
-    }
+    .btn-primary { background-color: #0066cc; color: white; }
+    .btn-primary:hover { background-color: #0052a3; }
+    .btn-secondary { background-color: #eef1f5; color: #333; }
+    .btn-secondary:hover { background-color: #dde3ea; }
+    .btn-danger { background-color: #fff; color: #c62828; border: 1px solid #c62828; }
+    .btn-danger:hover { background-color: #ffebee; }
 
-    .btn-primary:hover {
-        background-color: #0052a3;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-        display: block;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        color: #333;
-    }
-
-    .form-group input {
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-weight: 500; margin-bottom: 0.4rem; color: #333; }
+    .form-group input[type=text],
+    .form-group input[type=password],
+    .form-group select {
         width: 100%;
-        padding: 0.75rem;
+        padding: 0.7rem;
         border: 1px solid #ddd;
         border-radius: 4px;
-        font-size: 1rem;
-    }
-
-    .form-group input:focus {
-        outline: none;
-        border-color: #0066cc;
-        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
-    }
-
-    .form-group small {
-        display: block;
-        margin-top: 0.5rem;
-        color: #666;
-    }
-
-    .collection-id-display {
-        background-color: #f5f5f5;
-        padding: 0.75rem;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 0.9rem;
-        word-break: break-all;
-    }
-
-    .collection-id-display.missing {
-        color: #c62828;
-        background-color: #ffebee;
-    }
-
-    .instructions {
-        background-color: #f9f9f9;
-        border-left: 4px solid #ff9800;
-        padding: 1.5rem;
-        border-radius: 4px;
-        margin-bottom: 1.5rem;
-    }
-
-    .instructions h3 {
-        margin-top: 0;
-        color: #ff9800;
-    }
-
-    .instructions ol {
-        margin: 1rem 0;
-        padding-left: 1.5rem;
-    }
-
-    .instructions li {
-        margin-bottom: 0.75rem;
-        line-height: 1.6;
-    }
-
-    .code {
-        background-color: #272822;
-        color: #f8f8f2;
-        padding: 1rem;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 0.9rem;
-        overflow-x: auto;
-        margin: 1rem 0;
-    }
-
-    .config-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1.5rem;
-    }
-
-    .config-item {
-        background-color: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 1.5rem;
-    }
-
-    .config-item h3 {
-        margin-top: 0;
-        margin-bottom: 0.75rem;
-        font-size: 1rem;
-    }
-
-    .config-item p {
-        margin: 0.5rem 0;
         font-size: 0.95rem;
-        color: #666;
+    }
+    .form-group small { display: block; margin-top: 0.4rem; color: #666; }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
     }
 
     .status-badge {
         display: inline-block;
-        padding: 0.4rem 0.8rem;
+        padding: 0.35rem 0.75rem;
         border-radius: 4px;
         font-weight: 500;
         font-size: 0.85rem;
     }
+    .status-badge.connected { background-color: #e8f5e9; color: #2e7d32; }
+    .status-badge.error { background-color: #ffebee; color: #c62828; }
+    .status-badge.none { background-color: #f5f5f5; color: #666; }
 
-    .status-badge.connected {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-    }
-
-    .status-badge.error {
-        background-color: #ffebee;
-        color: #c62828;
-    }
+    .row-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    .muted { color: #666; font-size: 0.9rem; }
+    code { background:#f5f5f5; padding:0.1rem 0.35rem; border-radius:3px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="webflow-page">
     <h1>Webflow Integration</h1>
-    <p>Use DarInsights as your AI CMS editor for Webflow websites</p>
+    <p class="muted">Connect your own Webflow site so DarInsights can update its
+    content after an AI-visibility audit, or publish a new site for you.</p>
 
-    {% if config_error %}
-        <div class="card">
-            <div class="alert alert-error">
-                <strong>Configuration Required</strong>
-                {{ config_error }}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-title">Connection status</div>
+        {% if connection_status == "connected" %}
+            <span class="status-badge connected">Connected</span>
+            <p class="muted" style="margin-top:0.75rem;">
+                Site: <strong>{{ connection.site_name or connection.site_id }}</strong>
+                (<code>{{ connection.site_id }}</code>)
+            </p>
+        {% elif connection_status == "error" %}
+            <span class="status-badge error">Connection error</span>
+        {% else %}
+            <span class="status-badge none">Not connected</span>
+        {% endif %}
+
+        {% if config_error %}
+            <div class="alert alert-error" style="margin-top:1rem;">{{ config_error }}</div>
+        {% endif %}
+        {% if env_fallback %}
+            <div class="alert alert-info" style="margin-top:1rem;">
+                <strong>Using legacy shared credentials</strong>
+                This app is still falling back to global <code>WEBFLOW_*</code>
+                environment variables. Save a connection below to use your own site.
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-title">Your Webflow connection</div>
+
+        <div class="form-group">
+            <label for="api_token_probe">Webflow API token</label>
+            <input type="password" id="api_token_probe"
+                   placeholder="{% if connection %}{{ masked_token }} (saved — leave blank to keep){% else %}Paste your Webflow API token{% endif %}">
+            <small>
+                Create one at
+                <a href="https://webflow.com/account/settings/api-tokens" target="_blank" rel="noopener">Webflow API settings</a>.
+                It is stored against your account only.
+            </small>
+        </div>
+
+        <div class="row-actions" style="margin-bottom:1.5rem;">
+            <button type="button" class="btn btn-secondary" id="discoverSitesBtn">Discover sites</button>
+            <span id="discoverStatus" class="muted"></span>
+        </div>
+
+        <form method="POST" action="{{ url_for('webflow_connect_save') }}">
+            <input type="hidden" name="api_token" id="api_token_field">
+
+            <div class="form-group">
+                <label for="site_select">Webflow site</label>
+                <select id="site_select" name="site_id">
+                    {% if connection %}
+                        <option value="{{ connection.site_id }}" selected>
+                            {{ connection.site_name or connection.site_id }}
+                        </option>
+                    {% else %}
+                        <option value="">Discover sites first…</option>
+                    {% endif %}
+                </select>
+                <input type="hidden" name="site_name" id="site_name_field"
+                       value="{{ connection.site_name or '' }}">
             </div>
 
-            <div class="instructions">
-                <h3>Setup Instructions</h3>
-                <ol>
-                    <li>Go to <a href="https://webflow.com/account/settings/api-tokens" target="_blank">Webflow API Settings</a> and create/copy an API token</li>
-                    <li>Find your Site ID and Collection IDs in your Webflow site settings</li>
-                    <li>Add to your <code>.env</code> file:
-                        <div class="code">WEBFLOW_API_TOKEN=your_token_here
-WEBFLOW_SITE_ID=your_site_id
-WEBFLOW_BLOG_COLLECTION_ID=your_blog_id
-WEBFLOW_FAQ_COLLECTION_ID=your_faq_id
-WEBFLOW_SERVICE_COLLECTION_ID=your_service_id
-WEBFLOW_PUBLISH_ON_EXPORT=false
+            <p class="muted" style="margin-top:1.5rem;font-weight:600;">
+                Map CMS collections (paste collection IDs)
+            </p>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="page_collection_id">Pages collection</label>
+                    <input type="text" id="page_collection_id" name="page_collection_id"
+                           value="{{ connection.page_collection_id or '' }}"
+                           placeholder="darinsights-pages collection ID">
+                </div>
+                <div class="form-group">
+                    <label for="blog_collection_id">Blog collection</label>
+                    <input type="text" id="blog_collection_id" name="blog_collection_id"
+                           value="{{ connection.blog_collection_id or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="faq_collection_id">FAQ collection</label>
+                    <input type="text" id="faq_collection_id" name="faq_collection_id"
+                           value="{{ connection.faq_collection_id or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="service_collection_id">Service collection</label>
+                    <input type="text" id="service_collection_id" name="service_collection_id"
+                           value="{{ connection.service_collection_id or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="location_collection_id">Location collection</label>
+                    <input type="text" id="location_collection_id" name="location_collection_id"
+                           value="{{ connection.location_collection_id or '' }}">
+                </div>
+            </div>
+
+            {% if collections %}
+            <div class="alert alert-info">
+                <strong>Collections found on the connected site</strong>
+                {% for c in collections %}
+                    {{ c.displayName or c.singularName }} — <code>{{ c.id }}</code><br>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="publish_on_export" value="true"
+                           {% if connection and connection.publish_on_export %}checked{% endif %}>
+                    Publish items live on export (otherwise they stay as drafts)
+                </label>
+            </div>
+
+            <div class="row-actions">
+                <button type="submit" class="btn btn-primary">Save connection</button>
+            </div>
+        </form>
+
+        {% if connection %}
+        <form method="POST" action="{{ url_for('webflow_disconnect') }}"
+              style="margin-top:1.5rem;"
+              onsubmit="return confirm('Remove this Webflow connection?');">
+            <button type="submit" class="btn btn-danger">Disconnect</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+(function () {
+    var probe = document.getElementById('api_token_probe');
+    var tokenField = document.getElementById('api_token_field');
+    var siteSelect = document.getElementById('site_select');
+    var siteNameField = document.getElementById('site_name_field');
+    var statusEl = document.getElementById('discoverStatus');
+
+    document.getElementById('discoverSitesBtn').addEventListener('click', function () {
+        var token = probe.value.trim();
+        if (!token) {
+            statusEl.textContent = 'Paste an API token first.';
+            return;
+        }
+        statusEl.textContent = 'Discovering sites…';
+        fetch('{{ url_for("webflow_discover_sites") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_token: token })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.success) {
+                statusEl.textContent = data.message || 'Discovery failed.';
+                return;
+            }
+            tokenField.value = token;
+            siteSelect.innerHTML = '';
+            data.sites.forEach(function (s) {
+                var opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name + ' (' + s.id + ')';
+                opt.dataset.name = s.name;
+                siteSelect.appendChild(opt);
+            });
+            if (data.sites.length) {
+                siteNameField.value = data.sites[0].name;
+            }
+            statusEl.textContent = data.sites.length + ' site(s) found. Pick one and save.';
+        })
+        .catch(function () { statusEl.textContent = 'Discovery request failed.'; });
+    });
+
+    siteSelect.addEventListener('change', function () {
+        var opt = siteSelect.options[siteSelect.selectedIndex];
+        if (opt && opt.dataset.name) {
+            siteNameField.value = opt.dataset.name;
+        }
+    });
+
+    // Keep saved token if the probe is left blank.
+    var form = document.querySelector('form[action="{{ url_for("webflow_connect_save") }}"]');
+    if (form) {
+        form.addEventListener('submit', function () {
+            if (!tokenField.value && probe.value.trim()) {
+                tokenField.value = probe.value.trim();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

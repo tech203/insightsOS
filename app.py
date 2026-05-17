@@ -412,6 +412,56 @@ class WebflowExport(db.Model):
     )
 
 
+class WebflowConnection(db.Model):
+    """
+    Per-user (optionally per-client) Webflow credentials.
+
+    Lets each customer connect their own Webflow site instead of the whole
+    app sharing one site via global WEBFLOW_* env vars. A row with
+    client_id = NULL is the user's default connection; a row with a
+    client_id overrides it for that client's website/audit work.
+
+    NOTE: api_token is stored as-is. Encrypt it at rest before running
+    this in a shared production environment.
+    """
+
+    __tablename__ = "webflow_connections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("clients.id"), nullable=True, index=True
+    )
+
+    api_token = db.Column(db.Text, nullable=False)
+    site_id = db.Column(db.String(100), nullable=False)
+    site_name = db.Column(db.String(255), nullable=True)
+
+    page_collection_id = db.Column(db.String(100), nullable=True)
+    blog_collection_id = db.Column(db.String(100), nullable=True)
+    faq_collection_id = db.Column(db.String(100), nullable=True)
+    service_collection_id = db.Column(db.String(100), nullable=True)
+    location_collection_id = db.Column(db.String(100), nullable=True)
+
+    publish_on_export = db.Column(
+        db.Boolean, default=False, nullable=False
+    )
+    field_map = db.Column(db.JSON, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "client_id", name="uq_webflow_conn_user_client"
+        ),
+    )
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -1087,7 +1137,8 @@ def preview_website_project(project_id):
         .all()
     )
 
-    webflow_status = get_webflow_setup_status()
+    webflow_credentials = resolve_webflow_credentials(project.client_id)
+    webflow_status = get_webflow_setup_status(webflow_credentials)
     post_publish_tracking = build_post_publish_tracking(project)
 
     return render_template(
@@ -1095,7 +1146,7 @@ def preview_website_project(project_id):
         project=project,
         pages=pages,
         blueprint=project.blueprint_json,
-        webflow_enabled=is_webflow_configured(),
+        webflow_enabled=webflow_status["configured"],
         webflow_status=webflow_status,
         post_publish_tracking=post_publish_tracking,
         impact_report=build_post_publish_impact_report(project),
@@ -1141,7 +1192,9 @@ def verify_website_project_webflow(project_id):
         abort(403)
 
     try:
-        result = verify_webflow_connection()
+        result = verify_webflow_connection(
+            resolve_webflow_credentials(project.client_id)
+        )
     except WebflowConfigError as exc:
         flash(str(exc), "warning")
         return redirect(url_for("preview_website_project", project_id=project.id))
@@ -1483,7 +1536,11 @@ def export_website_project_to_webflow(project_id):
     )
 
     try:
-        export_result = export_project_to_webflow(project, pages)
+        export_result = export_project_to_webflow(
+            project,
+            pages,
+            credentials=resolve_webflow_credentials(project.client_id),
+        )
     except WebflowConfigError as exc:
         flash(str(exc), "warning")
         return redirect(url_for("preview_website_project", project_id=project.id))
@@ -6385,69 +6442,232 @@ def settings_team():
 # without directly editing Webflow Designer. All exports are created as drafts by default.
 
 
+def get_webflow_connection(client_id=None):
+    """Return the WebflowConnection for the current user, preferring a
+    client-scoped row and falling back to the user's default (client_id NULL)."""
+    if client_id is not None:
+        scoped = WebflowConnection.query.filter_by(
+            user_id=current_user.id, client_id=client_id
+        ).first()
+        if scoped:
+            return scoped
+
+    return WebflowConnection.query.filter_by(
+        user_id=current_user.id, client_id=None
+    ).first()
+
+
+def resolve_webflow_credentials(client_id=None):
+    """Build the credentials dict consumed by webflow_integration.
+
+    Returns None when the user has no stored connection, which makes the
+    integration layer transparently fall back to the legacy WEBFLOW_* env
+    vars (kept for backward compatibility / single-tenant deployments)."""
+    conn = get_webflow_connection(client_id)
+    if conn is None:
+        return None
+
+    return {
+        "token": conn.api_token,
+        "site_id": conn.site_id,
+        "collection_id": conn.page_collection_id,
+        "blog_collection_id": conn.blog_collection_id,
+        "faq_collection_id": conn.faq_collection_id,
+        "service_collection_id": conn.service_collection_id,
+        "location_collection_id": conn.location_collection_id,
+        "publish_on_export": conn.publish_on_export,
+        "field_map": conn.field_map or None,
+    }
+
+
+def webflow_collection_id_for(content_type, client_id=None):
+    """Resolve a collection id for blog/faq/service/location exports,
+    preferring the stored connection and falling back to env vars."""
+    conn = get_webflow_connection(client_id)
+    if conn is not None:
+        mapped = {
+            "blog": conn.blog_collection_id,
+            "faq": conn.faq_collection_id,
+            "service": conn.service_collection_id,
+            "location": conn.location_collection_id,
+        }.get(content_type)
+        if mapped:
+            return mapped
+
+    return os.getenv(f"WEBFLOW_{content_type.upper()}_COLLECTION_ID")
+
+
+def build_webflow_cms_client(client_id=None):
+    """Instantiate the services.webflow_client.WebflowCMSClient using the
+    current user's stored connection, falling back to env credentials."""
+    from services.webflow_client import WebflowCMSClient
+
+    conn = get_webflow_connection(client_id)
+    if conn is not None:
+        client = WebflowCMSClient(
+            api_token=conn.api_token, site_id=conn.site_id
+        )
+        client.publish_on_export = conn.publish_on_export
+        return client
+
+    return WebflowCMSClient()
+
+
+def _mask_token(token):
+    if not token:
+        return ""
+    token = str(token)
+    if len(token) <= 8:
+        return "****"
+    return f"{token[:4]}…{token[-4:]}"
+
+
 @app.route("/integrations/webflow/settings")
 @login_required
 def webflow_settings():
+    """Display the current user's Webflow connection and let them edit it.
+
+    Each user connects their own Webflow site here; credentials are stored
+    per-user in WebflowConnection rather than shared via global env vars.
     """
-    Display Webflow integration settings and connection status.
-    
-    Shows:
-    - Whether Webflow is configured
-    - Available collections
-    - Connection status and test result
-    - Instructions for setup
-    """
-    try:
-        from services.webflow_client import WebflowCMSClient, WebflowConfigError
-        
-        config_error = None
-        client = None
-        collections = []
-        connection_status = None
-        
+    conn = get_webflow_connection(client_id=None)
+
+    connection_status = None
+    config_error = None
+    collections = []
+
+    if conn is not None:
         try:
-            client = WebflowCMSClient()
+            client = build_webflow_cms_client(client_id=None)
             client.test_connection()
             connection_status = "connected"
             collections = client.list_collections()
-        except WebflowConfigError as e:
-            config_error = str(e)
         except Exception as e:
-            connection_status = f"error: {str(e)}"
-            config_error = "Unable to connect to Webflow"
-        
-        # Get collection IDs from env
-        blog_collection_id = os.getenv("WEBFLOW_BLOG_COLLECTION_ID")
-        faq_collection_id = os.getenv("WEBFLOW_FAQ_COLLECTION_ID")
-        service_collection_id = os.getenv("WEBFLOW_SERVICE_COLLECTION_ID")
-        location_collection_id = os.getenv("WEBFLOW_LOCATION_COLLECTION_ID")
-        
-        return render_template(
-            "integrations/webflow_settings.html",
-            config_error=config_error,
-            connection_status=connection_status,
-            collections=collections,
-            blog_collection_id=blog_collection_id,
-            faq_collection_id=faq_collection_id,
-            service_collection_id=service_collection_id,
-            location_collection_id=location_collection_id,
-            publish_on_export=os.getenv("WEBFLOW_PUBLISH_ON_EXPORT", "false").lower() in {"true", "1", "yes"},
+            connection_status = "error"
+            config_error = f"Stored credentials did not connect: {e}"
+    elif not os.getenv("WEBFLOW_API_TOKEN"):
+        config_error = (
+            "No Webflow site connected yet. Paste an API token below to start."
         )
-    except Exception as e:
-        flash(f"Error loading Webflow settings: {str(e)}", "error")
-        return redirect(url_for("index"))
+
+    return render_template(
+        "integrations/webflow_settings.html",
+        connection=conn,
+        masked_token=_mask_token(conn.api_token) if conn else "",
+        connection_status=connection_status,
+        config_error=config_error,
+        collections=collections,
+        env_fallback=bool(os.getenv("WEBFLOW_API_TOKEN")) and conn is None,
+    )
+
+
+@app.route("/integrations/webflow/discover-sites", methods=["POST"])
+@login_required
+def webflow_discover_sites():
+    """List the Webflow sites a pasted API token can access (pre-save)."""
+    from webflow_integration import (
+        WEBFLOW_API_BASE,
+        WebflowAPIError,
+        _webflow_request,
+    )
+
+    data = request.get_json(silent=True) or request.form
+    token = (data.get("api_token") or "").strip()
+    if not token:
+        return jsonify({"success": False, "message": "Paste an API token first."}), 400
+
+    try:
+        result = _webflow_request(
+            {"token": token}, "GET", f"{WEBFLOW_API_BASE}/sites"
+        )
+    except WebflowAPIError as e:
+        return jsonify({"success": False, "message": str(e)}), 400
+
+    sites = [
+        {
+            "id": s.get("id"),
+            "name": s.get("displayName") or s.get("shortName") or "Untitled site",
+        }
+        for s in (result.get("sites") or [])
+    ]
+    return jsonify({"success": True, "sites": sites})
+
+
+@app.route("/integrations/webflow/connect", methods=["POST"])
+@login_required
+def webflow_connect_save():
+    """Create or update the current user's Webflow connection."""
+    from services.webflow_client import WebflowCMSClient, WebflowAPIError
+
+    api_token = (request.form.get("api_token") or "").strip()
+    site_id = (request.form.get("site_id") or "").strip()
+    site_name = (request.form.get("site_name") or "").strip() or None
+
+    conn = get_webflow_connection(client_id=None)
+
+    # Allow keeping the saved token without re-pasting it.
+    if not api_token and conn is not None:
+        api_token = conn.api_token
+
+    if not api_token or not site_id:
+        flash("API token and a selected site are required.", "error")
+        return redirect(url_for("webflow_settings"))
+
+    try:
+        WebflowCMSClient(api_token=api_token, site_id=site_id).test_connection()
+    except (WebflowAPIError, Exception) as e:
+        flash(f"Could not connect to Webflow with those details: {e}", "error")
+        return redirect(url_for("webflow_settings"))
+
+    def _clean(field):
+        return (request.form.get(field) or "").strip() or None
+
+    if conn is None:
+        conn = WebflowConnection(user_id=current_user.id, client_id=None)
+        db.session.add(conn)
+
+    conn.api_token = api_token
+    conn.site_id = site_id
+    conn.site_name = site_name
+    conn.page_collection_id = _clean("page_collection_id")
+    conn.blog_collection_id = _clean("blog_collection_id")
+    conn.faq_collection_id = _clean("faq_collection_id")
+    conn.service_collection_id = _clean("service_collection_id")
+    conn.location_collection_id = _clean("location_collection_id")
+    conn.publish_on_export = request.form.get("publish_on_export") in {
+        "1",
+        "true",
+        "on",
+        "yes",
+    }
+    db.session.commit()
+
+    flash("Webflow connection saved.", "success")
+    return redirect(url_for("webflow_settings"))
+
+
+@app.route("/integrations/webflow/disconnect", methods=["POST"])
+@login_required
+def webflow_disconnect():
+    """Remove the current user's stored Webflow connection."""
+    conn = get_webflow_connection(client_id=None)
+    if conn is not None:
+        db.session.delete(conn)
+        db.session.commit()
+        flash("Webflow connection removed.", "success")
+    return redirect(url_for("webflow_settings"))
 
 
 @app.route("/integrations/webflow/test", methods=["POST"])
 @login_required
 def webflow_test_connection():
-    """Test Webflow API connection and return status."""
+    """Test the current user's stored Webflow connection."""
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
-        
-        client = WebflowCMSClient()
+        from services.webflow_client import WebflowAPIError, WebflowConfigError
+
+        client = build_webflow_cms_client(client_id=None)
         client.test_connection()
-        
+
         return jsonify({
             "success": True,
             "message": "Successfully connected to Webflow API"
@@ -6468,13 +6688,13 @@ def webflow_test_connection():
 @app.route("/integrations/webflow/collections")
 @login_required
 def webflow_collections():
-    """List all Webflow collections for the site."""
+    """List all Webflow collections for the connected site."""
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
-        
-        client = WebflowCMSClient()
+        from services.webflow_client import WebflowAPIError, WebflowConfigError
+
+        client = build_webflow_cms_client(client_id=None)
         collections = client.list_collections()
-        
+
         return jsonify({
             "success": True,
             "collections": collections
@@ -6509,17 +6729,17 @@ def webflow_export_blog(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
-        
-        blog_collection_id = os.getenv("WEBFLOW_BLOG_COLLECTION_ID")
+        from services.webflow_client import WebflowAPIError, WebflowConfigError
+
+        blog_collection_id = webflow_collection_id_for("blog")
         if not blog_collection_id or blog_collection_id.startswith("your_"):
             return jsonify({
                 "success": False,
-                "message": "Webflow blog collection not configured. Set WEBFLOW_BLOG_COLLECTION_ID in .env"
+                "message": "Webflow blog collection not configured. Connect Webflow and map a blog collection in Integration settings."
             }), 400
-        
+
         data = request.get_json() or {}
-        client = WebflowCMSClient()
+        client = build_webflow_cms_client()
         
         # Build field data for Webflow
         field_data = {
@@ -6566,7 +6786,7 @@ def webflow_export_blog(item_id):
                     content_type="blog",
                     local_source_type="content_brief",
                     local_source_id=item_id,
-                    webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                    webflow_site_id=client.site_id,
                     webflow_collection_id=blog_collection_id,
                     webflow_item_id=webflow_item_id,
                     status="exported",
@@ -6592,7 +6812,7 @@ def webflow_export_blog(item_id):
                 content_type="blog",
                 local_source_type="content_brief",
                 local_source_id=item_id,
-                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_site_id=client.site_id,
                 webflow_collection_id=blog_collection_id,
                 status="failed",
                 error_message=str(e),
@@ -6629,17 +6849,17 @@ def webflow_export_faq(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
-        
-        faq_collection_id = os.getenv("WEBFLOW_FAQ_COLLECTION_ID")
+        from services.webflow_client import WebflowAPIError, WebflowConfigError
+
+        faq_collection_id = webflow_collection_id_for("faq")
         if not faq_collection_id or faq_collection_id.startswith("your_"):
             return jsonify({
                 "success": False,
-                "message": "Webflow FAQ collection not configured. Set WEBFLOW_FAQ_COLLECTION_ID in .env"
+                "message": "Webflow FAQ collection not configured. Connect Webflow and map an FAQ collection in Integration settings."
             }), 400
-        
+
         data = request.get_json() or {}
-        client = WebflowCMSClient()
+        client = build_webflow_cms_client()
         
         field_data = {
             "name": data.get("question", f"FAQ Item {item_id}"),
@@ -6676,7 +6896,7 @@ def webflow_export_faq(item_id):
                     content_type="faq",
                     local_source_type="faq_item",
                     local_source_id=item_id,
-                    webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                    webflow_site_id=client.site_id,
                     webflow_collection_id=faq_collection_id,
                     webflow_item_id=webflow_item_id,
                     status="exported",
@@ -6701,7 +6921,7 @@ def webflow_export_faq(item_id):
                 content_type="faq",
                 local_source_type="faq_item",
                 local_source_id=item_id,
-                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_site_id=client.site_id,
                 webflow_collection_id=faq_collection_id,
                 status="failed",
                 error_message=str(e),
@@ -6739,17 +6959,17 @@ def webflow_export_service(item_id):
     }
     """
     try:
-        from services.webflow_client import WebflowCMSClient, WebflowAPIError, WebflowConfigError
-        
-        service_collection_id = os.getenv("WEBFLOW_SERVICE_COLLECTION_ID")
+        from services.webflow_client import WebflowAPIError, WebflowConfigError
+
+        service_collection_id = webflow_collection_id_for("service")
         if not service_collection_id or service_collection_id.startswith("your_"):
             return jsonify({
                 "success": False,
-                "message": "Webflow service collection not configured. Set WEBFLOW_SERVICE_COLLECTION_ID in .env"
+                "message": "Webflow service collection not configured. Connect Webflow and map a service collection in Integration settings."
             }), 400
-        
+
         data = request.get_json() or {}
-        client = WebflowCMSClient()
+        client = build_webflow_cms_client()
         
         field_data = {
             "name": data.get("title", f"Service {item_id}"),
@@ -6787,7 +7007,7 @@ def webflow_export_service(item_id):
                     content_type="service",
                     local_source_type="service_item",
                     local_source_id=item_id,
-                    webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                    webflow_site_id=client.site_id,
                     webflow_collection_id=service_collection_id,
                     webflow_item_id=webflow_item_id,
                     status="exported",
@@ -6812,7 +7032,7 @@ def webflow_export_service(item_id):
                 content_type="service",
                 local_source_type="service_item",
                 local_source_id=item_id,
-                webflow_site_id=os.getenv("WEBFLOW_SITE_ID"),
+                webflow_site_id=client.site_id,
                 webflow_collection_id=service_collection_id,
                 status="failed",
                 error_message=str(e),

@@ -38,67 +38,27 @@ class WebflowAPIError(RuntimeError):
     pass
 
 
-def is_webflow_configured():
-    return get_webflow_setup_status()["configured"]
-
-
-def get_webflow_setup_status():
-    required_values = {
-        "WEBFLOW_API_TOKEN": os.getenv("WEBFLOW_API_TOKEN"),
-        "WEBFLOW_SITE_ID": os.getenv("WEBFLOW_SITE_ID"),
-        "WEBFLOW_COLLECTION_ID": os.getenv("WEBFLOW_COLLECTION_ID"),
-    }
-    missing = [
-        name
-        for name, value in required_values.items()
-        if not _has_real_value(value)
-    ]
-
+def _credentials_from_env():
     return {
-        "configured": not missing,
-        "missing": missing,
+        "token": os.getenv("WEBFLOW_API_TOKEN"),
+        "site_id": os.getenv("WEBFLOW_SITE_ID"),
+        "collection_id": os.getenv("WEBFLOW_COLLECTION_ID"),
         "publish_on_export": os.getenv("WEBFLOW_PUBLISH_ON_EXPORT", "false")
         .strip()
         .lower()
         in {"1", "true", "yes"},
-        "field_map": get_field_map() if not missing else DEFAULT_FIELD_MAP,
+        "field_map_raw": os.getenv("WEBFLOW_PAGE_FIELD_MAP"),
     }
 
 
-def get_webflow_config():
-    token = os.getenv("WEBFLOW_API_TOKEN")
-    site_id = os.getenv("WEBFLOW_SITE_ID")
-    collection_id = os.getenv("WEBFLOW_COLLECTION_ID")
+def _resolve_field_map(source):
+    explicit_map = source.get("field_map")
+    if isinstance(explicit_map, dict) and explicit_map:
+        field_map = DEFAULT_FIELD_MAP.copy()
+        field_map.update({k: v for k, v in explicit_map.items() if v})
+        return field_map
 
-    missing = [
-        name
-        for name, value in {
-            "WEBFLOW_API_TOKEN": token,
-            "WEBFLOW_SITE_ID": site_id,
-            "WEBFLOW_COLLECTION_ID": collection_id,
-        }.items()
-        if not _has_real_value(value)
-    ]
-
-    if missing:
-        raise WebflowConfigError(
-            "Set real Webflow values for: " + ", ".join(missing) + "."
-        )
-
-    return {
-        "token": token,
-        "site_id": site_id,
-        "collection_id": collection_id,
-        "publish_on_export": os.getenv("WEBFLOW_PUBLISH_ON_EXPORT", "false")
-        .strip()
-        .lower()
-        in {"1", "true", "yes"},
-        "field_map": get_field_map(),
-    }
-
-
-def get_field_map():
-    raw_map = os.getenv("WEBFLOW_PAGE_FIELD_MAP")
+    raw_map = source.get("field_map_raw")
     if not raw_map:
         return DEFAULT_FIELD_MAP
 
@@ -112,8 +72,71 @@ def get_field_map():
     return field_map
 
 
-def export_project_to_webflow(project, pages, publish=None):
-    config = get_webflow_config()
+def is_webflow_configured(credentials=None):
+    return get_webflow_setup_status(credentials)["configured"]
+
+
+def get_webflow_setup_status(credentials=None):
+    source = credentials or _credentials_from_env()
+    label = "" if credentials else "WEBFLOW_"
+    required_values = {
+        f"{label}API_TOKEN" if label else "API token": source.get("token"),
+        f"{label}SITE_ID" if label else "site ID": source.get("site_id"),
+        f"{label}COLLECTION_ID" if label else "page collection ID": source.get(
+            "collection_id"
+        ),
+    }
+    missing = [
+        name
+        for name, value in required_values.items()
+        if not _has_real_value(value)
+    ]
+
+    return {
+        "configured": not missing,
+        "missing": missing,
+        "source": "connection" if credentials else "env",
+        "publish_on_export": bool(source.get("publish_on_export")),
+        "field_map": _resolve_field_map(source) if not missing else DEFAULT_FIELD_MAP,
+    }
+
+
+def get_webflow_config(credentials=None):
+    source = credentials or _credentials_from_env()
+    token = source.get("token")
+    site_id = source.get("site_id")
+    collection_id = source.get("collection_id")
+
+    missing = [
+        name
+        for name, value in {
+            "API token": token,
+            "site ID": site_id,
+            "page collection ID": collection_id,
+        }.items()
+        if not _has_real_value(value)
+    ]
+
+    if missing:
+        raise WebflowConfigError(
+            "Set real Webflow values for: " + ", ".join(missing) + "."
+        )
+
+    return {
+        "token": token,
+        "site_id": site_id,
+        "collection_id": collection_id,
+        "publish_on_export": bool(source.get("publish_on_export")),
+        "field_map": _resolve_field_map(source),
+    }
+
+
+def get_field_map(credentials=None):
+    return _resolve_field_map(credentials or _credentials_from_env())
+
+
+def export_project_to_webflow(project, pages, publish=None, credentials=None):
+    config = get_webflow_config(credentials)
     schema_result = validate_webflow_collection_schema(config)
     if not schema_result["valid"]:
         raise WebflowConfigError(
@@ -185,8 +208,8 @@ def export_project_to_webflow(project, pages, publish=None):
     }
 
 
-def verify_webflow_connection():
-    config = get_webflow_config()
+def verify_webflow_connection(credentials=None):
+    config = get_webflow_config(credentials)
     url = f"{WEBFLOW_API_BASE}/sites/{config['site_id']}/collections"
     result = _webflow_request(config, "GET", url)
     collections = result.get("collections") or []
