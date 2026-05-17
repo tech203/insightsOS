@@ -405,6 +405,57 @@ def test_terms_page_renders(anon):
     assert "Placeholder draft" in body or "placeholder" in body.lower()
 
 
+def test_robots_txt_renders_and_disallows_app_surfaces(anon):
+    """/robots.txt must serve plain text, allow the marketing
+    surface, and explicitly disallow every authenticated /
+    per-tenant path so crawlers don't try to index dashboards
+    they'd just get a login redirect from anyway."""
+    resp = anon.get("/robots.txt")
+    assert resp.status_code == 200
+    assert resp.headers.get("Content-Type", "").startswith("text/plain")
+    body = resp.data.decode()
+    # Marketing surface allowed
+    assert "User-agent: *" in body
+    assert "Allow: /" in body
+    # Per-tenant + auth paths disallowed (sample check)
+    for path in ("/admin/", "/api/", "/settings/", "/audit/",
+                 "/client/", "/dashboard"):
+        assert f"Disallow: {path}" in body, f"Missing disallow for {path}"
+    # Sitemap pointer present so crawlers can find the URL list
+    assert "Sitemap:" in body
+    assert "/sitemap.xml" in body
+
+
+def test_sitemap_xml_renders_and_lists_public_routes(anon):
+    """/sitemap.xml must serve valid XML listing the public marketing
+    URLs. Routes that build URLs off the live request host so the
+    same code works in dev / staging / prod without hardcoded URLs."""
+    resp = anon.get("/sitemap.xml")
+    assert resp.status_code == 200
+    assert resp.headers.get("Content-Type", "").startswith("application/xml")
+    body = resp.data.decode()
+    # Valid XML preamble + urlset wrapper
+    assert body.startswith('<?xml version="1.0" encoding="UTF-8"?>')
+    assert "<urlset" in body
+    assert "</urlset>" in body
+    # Each canonical public page is in the sitemap
+    for path in ("/aeo-agency", "/pricing", "/login", "/signup",
+                 "/privacy", "/terms"):
+        assert path in body, f"Sitemap missing public URL: {path}"
+
+
+def test_robots_txt_includes_today_in_sitemap_lastmod(anon):
+    """Lastmod on each sitemap URL should be today's date —
+    keeps crawlers re-checking, fine for a small public site."""
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    body = anon.get("/sitemap.xml").data.decode()
+    assert f"<lastmod>{today}</lastmod>" in body, (
+        f"sitemap.xml lastmod doesn't include today's date ({today}). "
+        f"Crawlers may skip the re-fetch and miss new content."
+    )
+
+
 def test_legal_pages_link_to_each_other(anon):
     """Cross-link in the legal-page footer so a user reading one
     can flip to the other without backtracking."""
