@@ -117,17 +117,62 @@
     <section class="panel">
         <div class="section-header">
             <h2>Generated Pages</h2>
-            {# Count unreviewed pages — only surface the bulk button
-               when there's actually something to do. Idempotent on
-               server side too. #}
-            {% set unreviewed_count = pages|selectattr("page_json")|rejectattr("page_json.reviewed_at")|list|length %}
-            {% if unreviewed_count %}
-            <form method="POST" action="{{ url_for('mark_all_project_pages_reviewed', project_id=project.id) }}">
-                <button type="submit" class="btn btn-secondary">
-                    Mark all {{ unreviewed_count }} reviewed
-                </button>
-            </form>
-            {% endif %}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                {# Bulk regenerate fires N AI calls (one per page) so
+                   the request takes 15-25s. Same setTimeout-disable
+                   pattern as the brand-kit approve button so the form
+                   actually submits before the button goes inert. #}
+                <form
+                    method="POST"
+                    action="{{ url_for('regenerate_all_project_pages', project_id=project.id) }}"
+                    onsubmit="
+                        var b = this.querySelector('button');
+                        setTimeout(function() {
+                            b.disabled = true;
+                            b.textContent = 'Regenerating {{ page_counts.all }} pages…';
+                        }, 50);
+                        return confirm('Regenerate all {{ page_counts.all }} pages? Existing review state will be cleared.');
+                    "
+                >
+                    <button type="submit" class="btn btn-secondary">
+                        Regenerate All
+                    </button>
+                </form>
+                {% if page_counts.unreviewed %}
+                <form method="POST" action="{{ url_for('mark_all_project_pages_reviewed', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-secondary">
+                        Mark all {{ page_counts.unreviewed }} reviewed
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Filter bar — let users narrow to what they have to do. The
+           counts come from all_pages so they don't flicker as the
+           user clicks between filters. #}
+        <div style="display:flex;gap:6px;margin:12px 0 18px;font-size:0.9rem;">
+            {% set filter_options = [
+                ("all", "All", page_counts.all),
+                ("unreviewed", "Needs review", page_counts.unreviewed),
+                ("unpublished", "Draft", page_counts.unpublished),
+            ] %}
+            {% for value, label, count in filter_options %}
+            <a
+                href="{{ url_for('preview_website_project', project_id=project.id, filter=value) }}"
+                class="btn btn-secondary"
+                style="
+                    padding:4px 12px;
+                    {% if filter_mode == value %}
+                    opacity:1;font-weight:600;
+                    {% else %}
+                    opacity:0.65;
+                    {% endif %}
+                "
+            >
+                {{ label }} ({{ count }})
+            </a>
+            {% endfor %}
         </div>
 
         <div class="premium-queue-list">

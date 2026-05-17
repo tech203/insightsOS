@@ -2596,13 +2596,50 @@ def preview_website_project(project_id):
     if project.user_id != current_user.id:
         abort(403)
 
-    pages = (
+    all_pages = (
         GeneratedWebsitePage.query.filter_by(
             project_id=project.id, user_id=current_user.id
         )
         .order_by(GeneratedWebsitePage.id.asc())
         .all()
     )
+
+    # ?filter=unreviewed shows only pages the user hasn't yet
+    # reviewed; ?filter=unpublished shows pages still in draft.
+    # Default (no param / "all") shows every page. The filter
+    # operates AFTER the sort so the list is consistent.
+    filter_mode = (request.args.get("filter") or "all").lower()
+    if filter_mode == "unreviewed":
+        pages = [p for p in all_pages if not (p.page_json or {}).get("reviewed_at")]
+    elif filter_mode == "unpublished":
+        pages = [p for p in all_pages if p.status != "published"]
+    else:
+        filter_mode = "all"
+        pages = all_pages
+
+    # Within the filtered set, sort so "Needs review" pages float to
+    # the top — gives the user a clear todo at a glance. Already-
+    # reviewed pages keep their relative id order (page generation
+    # order, e.g. home → services → about) below the unreviewed ones.
+    pages = sorted(
+        pages,
+        key=lambda p: (
+            1 if (p.page_json or {}).get("reviewed_at") else 0,
+            p.id,
+        ),
+    )
+
+    # Counts for filter-bar badges. Computed off all_pages so the
+    # numbers don't change as the user toggles filters.
+    page_counts = {
+        "all": len(all_pages),
+        "unreviewed": sum(
+            1 for p in all_pages if not (p.page_json or {}).get("reviewed_at")
+        ),
+        "unpublished": sum(
+            1 for p in all_pages if p.status != "published"
+        ),
+    }
 
     webflow_status = get_webflow_setup_status()
     post_publish_tracking = build_post_publish_tracking(project)
@@ -2611,6 +2648,8 @@ def preview_website_project(project_id):
         "website_project_preview.html",
         project=project,
         pages=pages,
+        filter_mode=filter_mode,
+        page_counts=page_counts,
         blueprint=project.blueprint_json,
         webflow_enabled=is_webflow_configured(),
         webflow_status=webflow_status,
@@ -2618,7 +2657,7 @@ def preview_website_project(project_id):
         impact_report=build_post_publish_impact_report(project),
         mvp_readiness=build_website_mvp_readiness(
             project,
-            pages,
+            all_pages,  # readiness is a project-wide signal, not filtered
             webflow_status,
         ),
     )
@@ -4255,6 +4294,66 @@ _EDITABLE_SECTION_FIELDS = {
     "cta": ["headline", "body", "subtext", "button"],
     "cta_block": ["headline", "body", "subtext", "primary_cta", "secondary_cta"],
 }
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/regenerate-all",
+    methods=["POST"],
+)
+@login_required
+def regenerate_all_project_pages(project_id):
+    """Bulk-regenerate every page in the project. Useful when the
+    user has changed the brand kit and wants the whole site to
+    reflect it, without clicking Regenerate on each page card.
+
+    Costs N AI calls (one per page), so this is a heavier action
+    than the per-page version. We clear reviewed_at on each page
+    since the content is fresh and the user should re-review.
+    Preserves slug + page_type + webflow export state per page so
+    URLs and CMS bindings don't shift."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        abort(403)
+
+    blueprint = project.blueprint_json or {}
+
+    client = get_client_by_id(str(project.client_id))
+    if not client:
+        client_row = Client.query.filter_by(
+            id=project.client_id, user_id=current_user.id
+        ).first()
+        client = {
+            "name": getattr(client_row, "name", "Business") if client_row else "Business",
+            "industry": getattr(client_row, "industry", "") if client_row else "",
+            "location": getattr(client_row, "location", "Singapore") if client_row else "Singapore",
+        }
+
+    pages = GeneratedWebsitePage.query.filter_by(project_id=project.id).all()
+    regenerated = 0
+    for page in pages:
+        existing = page.page_json or {}
+        page_config = {
+            "title": page.title,
+            "slug": page.slug,
+            "page_type": page.page_type,
+            "goal": (existing.get("seo") or {}).get("description") or "",
+        }
+        new_page_json = build_generated_site_page(client, blueprint, page_config)
+        new_page_json["slug"] = page.slug
+        new_page_json["page_type"] = page.page_type
+        if existing.get("webflow"):
+            new_page_json["webflow"] = existing["webflow"]
+        # Fresh content needs fresh review — drop the prior
+        # reviewed_at so the project preview surfaces the new pages
+        # as "Needs review" again.
+        new_page_json.pop("reviewed_at", None)
+        page.page_json = new_page_json
+        flag_modified(page, "page_json")
+        regenerated += 1
+
+    db.session.commit()
+    flash(f"Regenerated {regenerated} page(s) with fresh AI content.", "success")
+    return redirect(url_for("preview_website_project", project_id=project.id))
 
 
 @app.route(

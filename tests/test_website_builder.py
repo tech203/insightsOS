@@ -1623,6 +1623,282 @@ def test_regenerate_section_replaces_only_targeted_section(app_ctx):
     assert sections[1]["headline"] != "STALE services"
 
 
+def test_regenerate_all_pages_rebuilds_each_and_clears_reviewed_at(app_ctx):
+    """POSTing to /project/<id>/regenerate-all must (a) rebuild
+    page_json for every page, (b) preserve slug + page_type +
+    webflow state per page, (c) clear reviewed_at so the project
+    preview surfaces the fresh content as 'Needs review' again."""
+    from werkzeug.security import generate_password_hash
+    from unittest.mock import patch
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="regenall@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="RA",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="regenall-co",
+        user_id=u.id,
+        name="RA Co",
+        website="https://ra.example.com",
+        website_normalized="ra.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="RA Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "RA Co"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    home = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="published",  # ensure status preserved
+        page_json={
+            "title": "old",
+            "sections": [{"type": "hero", "headline": "OLD"}],
+            "reviewed_at": "2020-01-01T00:00:00Z",  # gets cleared
+            "webflow": {"item_id": "wf-home"},  # gets preserved
+        },
+    )
+    about = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="About",
+        slug="about",
+        page_type="about",
+        status="draft",
+        page_json={"title": "old", "sections": [{"type": "hero", "headline": "OLD"}]},
+    )
+    db.session.add_all([home, about])
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    with patch(
+        "app.generate_structured_website_page",
+        side_effect=RuntimeError("openai disabled in test"),
+    ):
+        resp = c.post(
+            f"/website-builder/project/{project.id}/regenerate-all"
+        )
+    assert resp.status_code in (302, 303)
+
+    db.session.refresh(home)
+    db.session.refresh(about)
+    # New content (rule-based fallback fires).
+    headlines = [s.get("headline") for s in home.page_json["sections"]]
+    assert "OLD" not in headlines
+    # Identity preserved.
+    assert home.slug == "home"
+    assert home.page_type == "home"
+    assert home.status == "published"  # not touched
+    # Webflow export state preserved.
+    assert home.page_json.get("webflow", {}).get("item_id") == "wf-home"
+    # reviewed_at cleared (fresh content needs fresh review).
+    assert "reviewed_at" not in home.page_json
+    # About also rebuilt.
+    assert "OLD" not in [s.get("headline") for s in about.page_json["sections"]]
+
+
+def test_regenerate_all_rejects_other_users(app_ctx):
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="o-ra@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="o",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="i-ra@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="i",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+    ws = Client(
+        slug="o-ra-co",
+        user_id=owner.id,
+        name="o",
+        website="https://o.example.com",
+        website_normalized="o.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="o",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+    assert c.post(
+        f"/website-builder/project/{project.id}/regenerate-all"
+    ).status_code == 403
+
+
+def test_project_preview_filter_and_sort_needs_review_first(app_ctx):
+    """Project preview applies ?filter= and sorts unreviewed pages
+    above reviewed ones within the selected filter."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="filter@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="F",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="filter-co",
+        user_id=u.id,
+        name="F Co",
+        website="https://f.example.com",
+        website_normalized="f.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="F Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    # Mix: home is reviewed + published, about is reviewed (not
+    # published), contact is fresh (not reviewed, not published).
+    home = GeneratedWebsitePage(
+        project_id=project.id, user_id=u.id, client_id=ws.id,
+        title="Home", slug="home", page_type="home", status="published",
+        page_json={"sections": [], "reviewed_at": "2024-01-01T00:00:00Z"},
+    )
+    about = GeneratedWebsitePage(
+        project_id=project.id, user_id=u.id, client_id=ws.id,
+        title="About", slug="about", page_type="about", status="draft",
+        page_json={"sections": [], "reviewed_at": "2024-01-02T00:00:00Z"},
+    )
+    contact = GeneratedWebsitePage(
+        project_id=project.id, user_id=u.id, client_id=ws.id,
+        title="Contact", slug="contact", page_type="contact", status="draft",
+        page_json={"sections": []},
+    )
+    db.session.add_all([home, about, contact])
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    # All filter — unreviewed (contact) floats above reviewed pair.
+    body = c.get(f"/website-builder/project/{project.id}/preview").data.decode()
+    pos_contact = body.find("/contact")
+    pos_home = body.find("/home")
+    pos_about = body.find("/about")
+    assert pos_contact > 0 and pos_home > 0 and pos_about > 0
+    assert pos_contact < pos_home  # unreviewed before reviewed
+    assert pos_contact < pos_about
+
+    # Filter=unreviewed — only contact is in the page list.
+    body = c.get(
+        f"/website-builder/project/{project.id}/preview?filter=unreviewed"
+    ).data.decode()
+    assert "/contact" in body
+    # The reviewed pages should not appear as page cards. But the
+    # nav / blueprint sections elsewhere may still mention "home"
+    # generically — scope to the "Generated Pages" section text
+    # by checking the /home slug pattern.
+    pages_section_start = body.find("Generated Pages")
+    pages_section_end = body.find("Blueprint", pages_section_start)
+    pages_section = body[pages_section_start:pages_section_end]
+    assert "/home" not in pages_section
+    assert "/about" not in pages_section
+
+    # Filter=unpublished — about + contact (home is published).
+    body = c.get(
+        f"/website-builder/project/{project.id}/preview?filter=unpublished"
+    ).data.decode()
+    pages_section_start = body.find("Generated Pages")
+    pages_section_end = body.find("Blueprint", pages_section_start)
+    pages_section = body[pages_section_start:pages_section_end]
+    assert "/about" in pages_section
+    assert "/contact" in pages_section
+    assert "/home" not in pages_section
+
+
 def test_regenerate_section_rejects_other_users(app_ctx):
     """Cross-user defence on the per-section regen route."""
     from werkzeug.security import generate_password_hash
