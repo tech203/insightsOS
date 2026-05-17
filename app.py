@@ -8442,8 +8442,12 @@ def client_query_ideas(client_id):
 
 
 @app.route("/help")
-@login_required
 def help_page():
+    """Public help center. Made public (was @login_required) because
+    help docs are valuable SEO content — same questions that drive
+    Google + AI-engine queries — and letting prospects skim them
+    lowers conversion friction. Page renders without sidebar for
+    anonymous visitors (base.html handles that case)."""
     return render_template("help.html", glossary=HELP_GLOSSARY)
 
 

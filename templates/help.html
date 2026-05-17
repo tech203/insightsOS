@@ -4,12 +4,49 @@
 {% block page_title %}Help Center{% endblock %}
 {% block page_subtitle %}Step-by-step guides, screenshots, and answers to the questions people ask most.{% endblock %}
 
+{# Anon-vs-auth CTA routing — same pattern as pricing.html. The
+   help page is public (see help_page() docstring) but the original
+   topbar CTAs ("Back to Dashboard", "Open Workspaces") were both
+   login-required → dead-end for anon visitors. Route to /signup
+   and /aeo-agency for anon, keep dashboard links for auth. #}
+{% set is_anon = not current_user.is_authenticated %}
+
 {% block topbar_actions %}
+{% if is_anon %}
+<a href="{{ url_for('aeo_agency_page') }}#start-audit" class="btn btn-primary">Run free audit →</a>
+<a href="{{ url_for('signup') }}" class="btn btn-secondary">Sign up</a>
+{% else %}
 <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Dashboard</a>
 <a href="{{ url_for('clients_page') }}" class="btn btn-secondary">Open Workspaces</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
+
+{# Anon-only back-nav strip at the top. base.html doesn't render a
+   sidebar for unauthenticated users, so without this the page has
+   no way back to landing — same dead-end fix as /pricing. #}
+{% if is_anon %}
+<div class="help-anon-nav">
+    <a href="{{ url_for('aeo_agency_page') }}" class="help-anon-back">← Back to home</a>
+    <a href="{{ url_for('login') }}" class="help-anon-signin">Already have an account? Sign in</a>
+</div>
+<style>
+.help-anon-nav {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: 12px;
+    padding: 12px 28px 4px; font-size: 14px;
+    max-width: 1240px; margin: 0 auto;
+}
+.help-anon-back, .help-anon-signin {
+    color: var(--text-soft, #6b7280); text-decoration: none;
+    font-weight: 600; transition: color 0.15s;
+}
+.help-anon-back:hover, .help-anon-signin:hover {
+    color: var(--text-strong, #191929);
+}
+</style>
+{% endif %}
 
 {# Macro: render a screenshot. Files live at static/images/help/<name>.webp
    (PNG captures converted by scripts/compress_help_screenshots.py for a
