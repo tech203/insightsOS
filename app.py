@@ -4149,6 +4149,102 @@ def preview_generated_page(page_id):
     )
 
 
+@app.route("/website-engine/page/<int:page_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_generated_page(page_id):
+    """Hand-edit the AI-generated copy on a single page.
+
+    Until this route existed, the only way to change a generated
+    page's copy was to regenerate it (lose precision) or export to
+    Webflow and edit there. Now users can tweak headlines, subtext,
+    CTAs, FAQ items, and contact details directly without an extra
+    AI round-trip.
+
+    The form mirrors the section shape produced by build_generated_
+    site_page: hero / services / value_prop / proof / faq /
+    contact_details / story / cta / cta_block. Editable text fields
+    per section_type are listed in _EDITABLE_SECTION_FIELDS below."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    if request.method == "POST":
+        page_json = dict(page.page_json or {})
+        sections = list(page_json.get("sections") or [])
+
+        for idx, section in enumerate(sections):
+            if not isinstance(section, dict):
+                continue
+            section_type = section.get("type") or ""
+            editable = _EDITABLE_SECTION_FIELDS.get(section_type, [])
+            for field in editable:
+                form_name = f"section_{idx}_{field}"
+                value = (request.form.get(form_name) or "").strip()
+                if value:
+                    section[field] = value
+
+            # Items (services, value_prop, faq, contact_details). Each
+            # item has its own indexed fields per the section type.
+            for item_idx, item in enumerate(section.get("items") or []):
+                if not isinstance(item, dict):
+                    continue
+                item_fields = (
+                    ["question", "answer"]
+                    if section_type == "faq"
+                    else ["title", "description"]
+                )
+                for field in item_fields:
+                    form_name = f"section_{idx}_item_{item_idx}_{field}"
+                    value = (request.form.get(form_name) or "").strip()
+                    if value:
+                        item[field] = value
+
+        # Page-level title + SEO description, which the public site
+        # uses for the nav label + meta description.
+        new_title = (request.form.get("page_title") or "").strip()
+        if new_title:
+            page.title = new_title[:200]
+            page_json["title"] = new_title
+
+        seo = dict(page_json.get("seo") or {})
+        new_desc = (request.form.get("seo_description") or "").strip()
+        if new_desc:
+            seo["meta_description"] = new_desc
+            seo["description"] = new_desc
+            page_json["seo"] = seo
+
+        page_json["sections"] = sections
+        page.page_json = page_json
+        flag_modified(page, "page_json")
+        db.session.commit()
+
+        flash("Page content saved.", "success")
+        return redirect(url_for("preview_generated_page", page_id=page.id))
+
+    return render_template(
+        "website_engine_edit.html",
+        page=page,
+        page_json=page.page_json or {},
+        editable_section_fields=_EDITABLE_SECTION_FIELDS,
+    )
+
+
+# Per-section-type editable text field whitelist. Anything not in
+# this map is left alone — keeps the route from accidentally
+# overwriting structural fields like `type` or `slug`.
+_EDITABLE_SECTION_FIELDS = {
+    "hero": ["eyebrow", "headline", "subtext", "primary_cta", "secondary_cta"],
+    "services": ["headline"],
+    "value_prop": ["headline"],
+    "proof": ["headline"],
+    "faq": ["headline"],
+    "contact_details": ["headline"],
+    "story": ["headline", "body"],
+    "cta": ["headline", "body", "subtext", "button"],
+    "cta_block": ["headline", "body", "subtext", "primary_cta", "secondary_cta"],
+}
+
+
 @app.route("/website-engine/page/<int:page_id>/regenerate", methods=["POST"])
 @login_required
 def regenerate_generated_page(page_id):

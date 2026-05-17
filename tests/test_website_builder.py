@@ -1054,6 +1054,212 @@ def test_delete_project_cascades_pages_and_redirects(app_ctx):
     assert GeneratedWebsitePage.query.filter_by(project_id=project_id).count() == 0
 
 
+def test_edit_page_updates_section_fields_in_place(app_ctx):
+    """POSTing to /page/<id>/edit must update hero headline / subtext
+    / CTAs, page title, SEO description, and FAQ item q/a pairs in
+    place — keeping section structure (types, order, items count)
+    unchanged. Editable fields are whitelisted per section type."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="edit@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Edit",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="edit-co",
+        user_id=u.id,
+        name="Edit Co",
+        website="https://e.example.com",
+        website_normalized="e.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="Edit Co Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "Edit Co"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Old Title",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={
+            "title": "Old Title",
+            "slug": "home",
+            "page_type": "home",
+            "seo": {"meta_description": "old desc"},
+            "sections": [
+                {
+                    "type": "hero",
+                    "eyebrow": "Old eyebrow",
+                    "headline": "Old headline",
+                    "subtext": "Old subtext",
+                    "primary_cta": "Old CTA",
+                },
+                {
+                    "type": "faq",
+                    "headline": "FAQ",
+                    "items": [
+                        {"question": "Old q1", "answer": "Old a1"},
+                        {"question": "Old q2", "answer": "Old a2"},
+                    ],
+                },
+            ],
+        },
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    # GET must render without 500.
+    resp = c.get(f"/website-engine/page/{page.id}/edit")
+    assert resp.status_code == 200
+    assert b"Old headline" in resp.data
+
+    # POST with edits.
+    resp = c.post(
+        f"/website-engine/page/{page.id}/edit",
+        data={
+            "page_title": "New Title",
+            "seo_description": "New desc",
+            "section_0_headline": "New headline",
+            "section_0_subtext": "New subtext",
+            "section_0_primary_cta": "Get started",
+            "section_1_item_0_question": "New q1",
+            "section_1_item_1_answer": "New a2",
+        },
+    )
+    assert resp.status_code in (302, 303)
+    assert f"/website-engine/page/{page.id}/preview" in resp.headers["Location"]
+
+    db.session.refresh(page)
+    assert page.title == "New Title"
+    assert page.page_json["title"] == "New Title"
+    assert page.page_json["seo"]["meta_description"] == "New desc"
+    hero = page.page_json["sections"][0]
+    assert hero["headline"] == "New headline"
+    assert hero["subtext"] == "New subtext"
+    assert hero["primary_cta"] == "Get started"
+    # Untouched fields preserved.
+    assert hero["eyebrow"] == "Old eyebrow"
+    assert hero["type"] == "hero"
+    faq = page.page_json["sections"][1]
+    assert faq["items"][0]["question"] == "New q1"
+    assert faq["items"][0]["answer"] == "Old a1"  # untouched
+    assert faq["items"][1]["answer"] == "New a2"
+    assert faq["items"][1]["question"] == "Old q2"  # untouched
+
+
+def test_edit_page_rejects_other_users(app_ctx):
+    """Cross-user defence — only the page owner can edit."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="o-edit@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="o",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="i-edit@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="i",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+    ws = Client(
+        slug="o-edit-co",
+        user_id=owner.id,
+        name="o",
+        website="https://o.example.com",
+        website_normalized="o.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Owner Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+    page = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=owner.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={"sections": []},
+    )
+    db.session.add(page)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+
+    resp = c.get(f"/website-engine/page/{page.id}/edit")
+    assert resp.status_code == 403
+    resp = c.post(
+        f"/website-engine/page/{page.id}/edit", data={"page_title": "Hacked"}
+    )
+    assert resp.status_code == 403
+
+
 def test_delete_project_rejects_other_users(app_ctx):
     """Cross-user defence — a project's owner is the only one who can
     delete it. Anyone else gets 403, not silent success."""
