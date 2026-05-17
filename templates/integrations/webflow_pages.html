@@ -116,10 +116,10 @@
                                 <button class="btn btn-secondary" type="submit">Audit</button>
                             </form>
                             {% if a.suggested_fields %}
-                            <form method="POST" action="{{ url_for('webflow_apply_imported_page', row_id=it.id) }}"
-                                  onsubmit="return confirm('Apply these rewrites to the live Webflow item?');">
-                                <button class="btn btn-apply" type="submit">Apply to Webflow</button>
-                            </form>
+                            <a class="btn btn-apply"
+                               href="{{ url_for('webflow_preview_imported_page', row_id=it.id) }}">
+                                Review &amp; apply
+                            </a>
                             {% endif %}
                         </td>
                     </tr>

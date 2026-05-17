@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Review Webflow changes - DarInsights{% endblock %}
+
+{% block head %}
+<style>
+    .wf-page { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+    .card {
+        background:#fff; border:1px solid #ddd; border-radius:8px;
+        padding:1.5rem; margin-bottom:1.5rem;
+    }
+    .muted { color:#666; font-size:0.9rem; }
+    .btn {
+        padding:0.6rem 1.2rem; border:none; border-radius:4px;
+        font-size:0.92rem; font-weight:500; cursor:pointer; text-decoration:none;
+        display:inline-block;
+    }
+    .btn-apply { background:#1b8a5a; color:#fff; }
+    .btn-secondary { background:#eef1f5; color:#333; }
+    .diff-field { margin-bottom:1.5rem; }
+    .diff-field h4 { margin:0 0 0.5rem; font-family:monospace; font-size:0.9rem; color:#445; }
+    .diff-cols { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .diff-box {
+        border:1px solid #e3e3e3; border-radius:6px; padding:0.85rem;
+        font-size:0.88rem; white-space:pre-wrap; word-break:break-word;
+        max-height:320px; overflow:auto;
+    }
+    .diff-box.before { background:#fff5f5; border-color:#f3c2c2; }
+    .diff-box.after  { background:#f1faf4; border-color:#bfe3cd; }
+    .diff-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:#888; margin-bottom:0.3rem; }
+    .issues { padding-left:1.1rem; }
+    .publish-choice { margin:1rem 0; }
+    .publish-choice label { display:block; margin:0.4rem 0; }
+    .warn { background:#fff8e1; border-left:4px solid #ef6c00; padding:0.9rem; border-radius:4px; font-size:0.88rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wf-page">
+    <p><a href="{{ url_for('webflow_imported_pages') }}" class="muted">&larr; Back to content audit</a></p>
+    <h1>Review changes</h1>
+    <p class="muted">
+        <strong>{{ row.name or row.slug or row.webflow_item_id }}</strong>
+        &nbsp;·&nbsp; /{{ row.slug }} &nbsp;·&nbsp;
+        {{ 'draft' if row.is_draft else 'live' }} on Webflow
+    </p>
+
+    <div class="card">
+        <h3 style="margin-top:0;">AI-visibility assessment</h3>
+        {% if row.visibility_score is not none %}
+            <p>Current score: <strong>{{ '%.1f'|format(row.visibility_score) }}/10</strong></p>
+        {% endif %}
+        {% if analysis.summary %}<p>{{ analysis.summary }}</p>{% endif %}
+        {% if analysis.issues %}
+            <ul class="issues">
+                {% for issue in analysis.issues %}<li>{{ issue }}</li>{% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Proposed field changes ({{ diffs|length }})</h3>
+        {% if not diffs %}
+            <p class="muted">No field rewrites were proposed.</p>
+        {% else %}
+            {% for d in diffs %}
+            <div class="diff-field">
+                <h4>{{ d.field }}{% if not d.changed %} <span class="muted">(unchanged)</span>{% endif %}</h4>
+                <div class="diff-cols">
+                    <div>
+                        <div class="diff-label">Current (live)</div>
+                        <div class="diff-box before">{{ d.before }}</div>
+                    </div>
+                    <div>
+                        <div class="diff-label">Proposed</div>
+                        <div class="diff-box after">{{ d.after }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    {% if diffs %}
+    <div class="card">
+        <form method="POST" action="{{ url_for('webflow_apply_imported_page', row_id=row.id) }}"
+              onsubmit="return confirm('Apply these changes to the Webflow item now?');">
+            <div class="publish-choice">
+                <strong>How should this be applied?</strong>
+                <label>
+                    <input type="radio" name="publish_mode" value="draft"
+                           {% if not publish_default %}checked{% endif %}>
+                    Update as a <strong>draft</strong> — review and publish inside Webflow (safer)
+                </label>
+                <label>
+                    <input type="radio" name="publish_mode" value="live"
+                           {% if publish_default %}checked{% endif %}>
+                    Apply and <strong>publish live</strong> immediately
+                </label>
+            </div>
+            <p class="warn">
+                This edits the customer's existing Webflow item in place
+                (matched by item id). It does not create a duplicate page.
+            </p>
+            <button type="submit" class="btn btn-apply">Apply to Webflow</button>
+            <a href="{{ url_for('webflow_imported_pages') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -6978,6 +6978,39 @@ def webflow_audit_imported_page(row_id):
     return redirect(url_for("webflow_imported_pages"))
 
 
+@app.route("/integrations/webflow/pages/<int:row_id>/preview")
+@login_required
+def webflow_preview_imported_page(row_id):
+    """Show a field-by-field before/after of the proposed AI-visibility
+    rewrites so the user reviews changes before they hit a live site."""
+    row = WebflowImportedItem.query.get_or_404(row_id)
+    if row.user_id != current_user.id:
+        abort(403)
+
+    analysis = row.analysis_json or {}
+    suggested = analysis.get("suggested_fields") or {}
+    current = row.fields_json or {}
+
+    diffs = [
+        {
+            "field": slug,
+            "before": current.get(slug) or "(empty)",
+            "after": new_value,
+            "changed": (current.get(slug) or "") != new_value,
+        }
+        for slug, new_value in suggested.items()
+    ]
+
+    conn = get_webflow_connection(client_id=None)
+    return render_template(
+        "integrations/webflow_preview.html",
+        row=row,
+        analysis=analysis,
+        diffs=diffs,
+        publish_default=bool(conn and conn.publish_on_export),
+    )
+
+
 @app.route("/integrations/webflow/pages/<int:row_id>/apply", methods=["POST"])
 @login_required
 def webflow_apply_imported_page(row_id):
@@ -6995,12 +7028,16 @@ def webflow_apply_imported_page(row_id):
         flash("No suggested rewrites to apply. Run an audit first.", "error")
         return redirect(url_for("webflow_imported_pages"))
 
+    # Per-action choice: live editing of a customer's site is deliberate,
+    # so default to a draft update unless the user explicitly asks to publish.
+    publish_live = request.form.get("publish_mode") == "live"
+
     try:
         client = build_webflow_cms_client(client_id=None)
         client.update_item(row.collection_id, row.webflow_item_id, suggested)
 
         published_live = False
-        if client.publish_on_export:
+        if publish_live:
             client.publish_items([row.webflow_item_id], row.collection_id)
             published_live = True
     except WebflowAPIError as exc:
