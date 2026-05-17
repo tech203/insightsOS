@@ -59,6 +59,12 @@
                     ({{ connection.site_name or connection.site_id }}).
                 </span>
             </form>
+            <p class="muted" style="margin-top:0.85rem;">
+                Note: only content stored in Webflow <strong>CMS collections</strong>
+                can be audited and updated here. Static pages built directly in
+                Webflow Designer aren’t editable via the Webflow API — move that
+                copy into a CMS collection to manage it with DarInsights.
+            </p>
         </div>
 
         {% if not items %}
