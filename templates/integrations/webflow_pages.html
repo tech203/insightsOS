@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Webflow Content Audit - DarInsights{% endblock %}
+
+{% block head %}
+<style>
+    .wf-page { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    .card {
+        background: white; border: 1px solid #ddd; border-radius: 8px;
+        padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .muted { color: #666; font-size: 0.9rem; }
+    .btn {
+        padding: 0.55rem 1.1rem; border: none; border-radius: 4px;
+        font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    }
+    .btn-primary { background:#0066cc; color:#fff; }
+    .btn-secondary { background:#eef1f5; color:#333; }
+    .btn-apply { background:#1b8a5a; color:#fff; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:0.7rem 0.6rem; border-bottom:1px solid #eee; vertical-align:top; }
+    th { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.03em; color:#888; }
+    .score { font-weight:700; }
+    .score.low { color:#c62828; }
+    .score.mid { color:#ef6c00; }
+    .score.high { color:#1b8a5a; }
+    .pill { display:inline-block; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; background:#eef1f5; color:#445; }
+    .issues { margin:0.4rem 0 0; padding-left:1.1rem; font-size:0.85rem; color:#555; }
+    .alert { padding:1rem; border-radius:6px; margin-bottom:1rem; border-left:4px solid; }
+    .alert-success { background:#e8f5e9; border-color:#2e7d32; color:#2e7d32; }
+    .alert-error { background:#ffebee; border-color:#c62828; color:#c62828; }
+    .actions form { display:inline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wf-page">
+    <h1>Webflow content audit</h1>
+    <p class="muted">Pull your existing Webflow pages in, score them for AI
+    visibility, and push improved copy back to the same page.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if not connection %}
+        <div class="card">
+            <p>No Webflow site connected.
+            <a href="{{ url_for('webflow_settings') }}">Connect one first</a>.</p>
+        </div>
+    {% else %}
+        <div class="card">
+            <form method="POST" action="{{ url_for('webflow_import_existing') }}">
+                <button type="submit" class="btn btn-primary">Import / refresh from Webflow</button>
+                <span class="muted" style="margin-left:0.75rem;">
+                    Pulls items from your mapped collections
+                    ({{ connection.site_name or connection.site_id }}).
+                </span>
+            </form>
+        </div>
+
+        {% if not items %}
+            <div class="card"><p class="muted">No imported items yet. Click
+            “Import / refresh from Webflow” to begin.</p></div>
+        {% else %}
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Page</th><th>Type</th><th>AI score</th>
+                        <th>Findings</th><th>Status</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for it in items %}
+                    {% set a = it.analysis_json or {} %}
+                    <tr>
+                        <td>
+                            <strong>{{ it.name or it.slug or it.webflow_item_id }}</strong><br>
+                            <span class="muted">/{{ it.slug }}</span>
+                        </td>
+                        <td><span class="pill">{{ it.collection_kind }}</span></td>
+                        <td>
+                            {% if it.visibility_score is not none %}
+                                {% set s = it.visibility_score %}
+                                <span class="score {{ 'low' if s < 4 else ('mid' if s < 7 else 'high') }}">
+                                    {{ '%.1f'|format(s) }}/10
+                                </span>
+                            {% else %}
+                                <span class="muted">not audited</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if a.summary %}<div>{{ a.summary }}</div>{% endif %}
+                            {% if a.issues %}
+                            <ul class="issues">
+                                {% for issue in a.issues[:4] %}<li>{{ issue }}</li>{% endfor %}
+                            </ul>
+                            {% endif %}
+                            {% if a.suggested_fields %}
+                            <div class="muted" style="margin-top:0.3rem;">
+                                {{ a.suggested_fields|length }} field rewrite(s) ready
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if it.last_action %}
+                                <span class="pill">{{ it.last_action }}</span><br>
+                            {% endif %}
+                            {% if it.is_draft %}<span class="muted">draft</span>{% else %}<span class="muted">live</span>{% endif %}
+                        </td>
+                        <td class="actions">
+                            <form method="POST" action="{{ url_for('webflow_audit_imported_page', row_id=it.id) }}">
+                                <button class="btn btn-secondary" type="submit">Audit</button>
+                            </form>
+                            {% if a.suggested_fields %}
+                            <form method="POST" action="{{ url_for('webflow_apply_imported_page', row_id=it.id) }}"
+                                  onsubmit="return confirm('Apply these rewrites to the live Webflow item?');">
+                                <button class="btn btn-apply" type="submit">Apply to Webflow</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

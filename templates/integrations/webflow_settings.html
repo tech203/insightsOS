@@ -92,6 +92,10 @@
     <h1>Webflow Integration</h1>
     <p class="muted">Connect your own Webflow site so DarInsights can update its
     content after an AI-visibility audit, or publish a new site for you.</p>
+    {% if connection %}
+    <p><a class="btn btn-secondary" href="{{ url_for('webflow_imported_pages') }}">
+        Audit existing Webflow pages →</a></p>
+    {% endif %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}

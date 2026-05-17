@@ -463,6 +463,56 @@ class WebflowConnection(db.Model):
     )
 
 
+class WebflowImportedItem(db.Model):
+    """
+    A snapshot of an existing Webflow CMS item the user pulled in so it can
+    be audited for AI visibility and updated in place.
+
+    Updates are pushed back by webflow_item_id (never by slug), so an
+    existing customer's live pages are edited rather than duplicated.
+    """
+
+    __tablename__ = "webflow_imported_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    connection_id = db.Column(
+        db.Integer,
+        db.ForeignKey("webflow_connections.id"),
+        nullable=False,
+        index=True,
+    )
+
+    collection_id = db.Column(db.String(100), nullable=False)
+    collection_kind = db.Column(db.String(40), nullable=False, default="pages")
+    webflow_item_id = db.Column(db.String(100), nullable=False, index=True)
+
+    name = db.Column(db.String(300), nullable=True)
+    slug = db.Column(db.String(300), nullable=True)
+    is_draft = db.Column(db.Boolean, default=False)
+
+    fields_json = db.Column(db.JSON, nullable=True)
+    analysis_json = db.Column(db.JSON, nullable=True)
+    visibility_score = db.Column(db.Float, nullable=True)
+
+    analyzed_at = db.Column(db.DateTime, nullable=True)
+    last_applied_at = db.Column(db.DateTime, nullable=True)
+    last_action = db.Column(db.String(40), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "webflow_item_id", name="uq_webflow_item_user_item"
+        ),
+    )
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -6791,6 +6841,191 @@ def webflow_collections():
             "success": False,
             "message": "Failed to list collections"
         }), 500
+
+
+@app.route("/integrations/webflow/pages")
+@login_required
+def webflow_imported_pages():
+    """List existing Webflow CMS items the user has imported for AI-visibility
+    auditing, plus their latest analysis."""
+    conn = get_webflow_connection(client_id=None)
+    items = (
+        WebflowImportedItem.query.filter_by(user_id=current_user.id)
+        .order_by(
+            WebflowImportedItem.visibility_score.is_(None),
+            WebflowImportedItem.visibility_score.asc(),
+            WebflowImportedItem.name.asc(),
+        )
+        .all()
+        if conn is not None
+        else []
+    )
+    return render_template(
+        "integrations/webflow_pages.html",
+        connection=conn,
+        items=items,
+    )
+
+
+@app.route("/integrations/webflow/import", methods=["POST"])
+@login_required
+def webflow_import_existing():
+    """Pull live CMS items from the connected site's mapped collections into
+    WebflowImportedItem so existing pages can be audited and updated."""
+    from services.webflow_client import WebflowAPIError
+
+    conn = get_webflow_connection(client_id=None)
+    if conn is None:
+        flash("Connect a Webflow site before importing content.", "error")
+        return redirect(url_for("webflow_settings"))
+
+    mapped = [
+        ("pages", conn.page_collection_id),
+        ("blog", conn.blog_collection_id),
+        ("faq", conn.faq_collection_id),
+        ("service", conn.service_collection_id),
+        ("location", conn.location_collection_id),
+    ]
+    collections = [(kind, cid) for kind, cid in mapped if cid]
+    if not collections:
+        flash(
+            "Map at least one CMS collection in settings before importing.",
+            "error",
+        )
+        return redirect(url_for("webflow_settings"))
+
+    try:
+        client = build_webflow_cms_client(client_id=None)
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Could not connect to Webflow: {exc}", "error")
+        return redirect(url_for("webflow_settings"))
+
+    imported, updated = 0, 0
+    for kind, collection_id in collections:
+        try:
+            cms_items = client.list_items(collection_id)
+        except WebflowAPIError as exc:
+            flash(f"Failed to list {kind} items: {exc}", "warning")
+            continue
+
+        for cms_item in cms_items:
+            webflow_item_id = cms_item.get("id")
+            if not webflow_item_id:
+                continue
+            field_data = cms_item.get("fieldData") or {}
+
+            row = WebflowImportedItem.query.filter_by(
+                user_id=current_user.id, webflow_item_id=webflow_item_id
+            ).first()
+            if row is None:
+                row = WebflowImportedItem(
+                    user_id=current_user.id,
+                    connection_id=conn.id,
+                    webflow_item_id=webflow_item_id,
+                )
+                db.session.add(row)
+                imported += 1
+            else:
+                updated += 1
+
+            row.connection_id = conn.id
+            row.collection_id = collection_id
+            row.collection_kind = kind
+            row.name = field_data.get("name") or row.name
+            row.slug = field_data.get("slug") or row.slug
+            row.is_draft = bool(cms_item.get("isDraft"))
+            row.fields_json = field_data
+
+    db.session.commit()
+    flash(
+        f"Imported {imported} new and refreshed {updated} existing Webflow item(s).",
+        "success",
+    )
+    return redirect(url_for("webflow_imported_pages"))
+
+
+@app.route("/integrations/webflow/pages/<int:row_id>/audit", methods=["POST"])
+@login_required
+def webflow_audit_imported_page(row_id):
+    """Run an AI-visibility analysis on an imported item's current content."""
+    from webflow_visibility import analyze_item_for_ai_visibility
+
+    row = WebflowImportedItem.query.get_or_404(row_id)
+    if row.user_id != current_user.id:
+        abort(403)
+
+    try:
+        analysis = analyze_item_for_ai_visibility(
+            row.name or "",
+            row.slug or "",
+            row.fields_json or {},
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"Webflow item analysis failed: {exc}")
+        flash(f"Analysis failed: {exc}", "error")
+        return redirect(url_for("webflow_imported_pages"))
+
+    row.analysis_json = analysis
+    row.visibility_score = analysis.get("score")
+    row.analyzed_at = datetime.utcnow()
+    db.session.commit()
+
+    n = len(analysis.get("suggested_fields") or {})
+    flash(
+        f"Analyzed. {n} field rewrite(s) suggested — review and apply below.",
+        "success",
+    )
+    return redirect(url_for("webflow_imported_pages"))
+
+
+@app.route("/integrations/webflow/pages/<int:row_id>/apply", methods=["POST"])
+@login_required
+def webflow_apply_imported_page(row_id):
+    """Push the approved AI-visibility rewrites back to the exact Webflow
+    item (matched by id, so the live page is updated, not duplicated)."""
+    from services.webflow_client import WebflowAPIError
+
+    row = WebflowImportedItem.query.get_or_404(row_id)
+    if row.user_id != current_user.id:
+        abort(403)
+
+    analysis = row.analysis_json or {}
+    suggested = analysis.get("suggested_fields") or {}
+    if not suggested:
+        flash("No suggested rewrites to apply. Run an audit first.", "error")
+        return redirect(url_for("webflow_imported_pages"))
+
+    try:
+        client = build_webflow_cms_client(client_id=None)
+        client.update_item(row.collection_id, row.webflow_item_id, suggested)
+
+        published_live = False
+        if client.publish_on_export:
+            client.publish_items([row.webflow_item_id], row.collection_id)
+            published_live = True
+    except WebflowAPIError as exc:
+        flash(f"Could not apply changes to Webflow: {exc}", "error")
+        return redirect(url_for("webflow_imported_pages"))
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"Webflow apply failed: {exc}")
+        flash(f"Could not apply changes to Webflow: {exc}", "error")
+        return redirect(url_for("webflow_imported_pages"))
+
+    merged = dict(row.fields_json or {})
+    merged.update(suggested)
+    row.fields_json = merged
+    row.last_applied_at = datetime.utcnow()
+    row.last_action = "published" if published_live else "draft-updated"
+    db.session.commit()
+
+    if published_live:
+        flash("AI-visibility rewrites applied and published live on Webflow.", "success")
+    else:
+        flash(
+            "AI-visibility rewrites applied to Webflow as a draft. Review and publish in Webflow.",
+            "success",
+        )
+    return redirect(url_for("webflow_imported_pages"))
 
 
 @app.route("/integrations/webflow/export/blog/<int:item_id>", methods=["POST"])
