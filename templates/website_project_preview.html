@@ -115,7 +115,20 @@
     </section>
 
     <section class="panel">
-        <h2>Generated Pages</h2>
+        <div class="section-header">
+            <h2>Generated Pages</h2>
+            {# Count unreviewed pages — only surface the bulk button
+               when there's actually something to do. Idempotent on
+               server side too. #}
+            {% set unreviewed_count = pages|selectattr("page_json")|rejectattr("page_json.reviewed_at")|list|length %}
+            {% if unreviewed_count %}
+            <form method="POST" action="{{ url_for('mark_all_project_pages_reviewed', project_id=project.id) }}">
+                <button type="submit" class="btn btn-secondary">
+                    Mark all {{ unreviewed_count }} reviewed
+                </button>
+            </form>
+            {% endif %}
+        </div>
 
         <div class="premium-queue-list">
             {% for site_page in pages %}
@@ -128,6 +141,9 @@
                         · <span style="color:#10b981;font-weight:600;">✓ Reviewed</span>
                         {% else %}
                         · <span class="muted" style="font-style:italic;">Needs review</span>
+                        {% endif %}
+                        {% if site_page.updated_at %}
+                        · <span class="muted">Edited {{ site_page.updated_at.strftime("%b %d, %Y") }}</span>
                         {% endif %}
                     </p>
                     {% if site_page.page_json.webflow %}

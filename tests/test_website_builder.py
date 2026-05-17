@@ -1335,6 +1335,175 @@ def test_mark_reviewed_route_stamps_reviewed_at(app_ctx):
     assert "T" in reviewed_at
 
 
+def test_mark_all_reviewed_stamps_only_unreviewed_pages(app_ctx):
+    """POSTing to /project/<id>/mark-all-reviewed stamps reviewed_at
+    on every page that doesn't already have it, leaving previously-
+    reviewed pages' timestamps intact (so re-clicking doesn't bump
+    everything to 'now')."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="bulkrev@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="Bulk",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="bulkrev-co",
+        user_id=u.id,
+        name="Bulk Co",
+        website="https://b.example.com",
+        website_normalized="b.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="Bulk Co Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.flush()
+
+    # 3 pages: one already reviewed with a known timestamp, two not.
+    OLD_TS = "2020-01-01T00:00:00Z"
+    already_reviewed = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Home",
+        slug="home",
+        page_type="home",
+        status="draft",
+        page_json={"sections": [], "reviewed_at": OLD_TS},
+    )
+    new1 = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="About",
+        slug="about",
+        page_type="about",
+        status="draft",
+        page_json={"sections": []},
+    )
+    new2 = GeneratedWebsitePage(
+        project_id=project.id,
+        user_id=u.id,
+        client_id=ws.id,
+        title="Contact",
+        slug="contact",
+        page_type="contact",
+        status="draft",
+        page_json={"sections": []},
+    )
+    db.session.add_all([already_reviewed, new1, new2])
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    resp = c.post(
+        f"/website-builder/project/{project.id}/mark-all-reviewed"
+    )
+    assert resp.status_code in (302, 303)
+    assert f"/website-builder/project/{project.id}/preview" in resp.headers["Location"]
+
+    db.session.refresh(already_reviewed)
+    db.session.refresh(new1)
+    db.session.refresh(new2)
+
+    # Already-reviewed page kept its original timestamp (idempotent).
+    assert already_reviewed.page_json["reviewed_at"] == OLD_TS
+    # Previously-unreviewed pages now have fresh timestamps.
+    assert new1.page_json.get("reviewed_at")
+    assert new1.page_json["reviewed_at"].endswith("Z")
+    assert new2.page_json.get("reviewed_at")
+
+
+def test_mark_all_reviewed_rejects_other_users(app_ctx):
+    """Cross-user defence on the bulk route."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    owner = User(
+        email="o-bulk@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="o",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    intruder = User(
+        email="i-bulk@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="i",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add_all([owner, intruder])
+    db.session.flush()
+    db.session.add(Wallet(user_id=owner.id, balance=10))
+    db.session.add(Wallet(user_id=intruder.id, balance=10))
+    ws = Client(
+        slug="o-bulk-co",
+        user_id=owner.id,
+        name="o",
+        website="https://o.example.com",
+        website_normalized="o.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=owner.id,
+        client_id=ws.id,
+        title="o",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={},
+    )
+    db.session.add(project)
+    db.session.commit()
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(intruder.id)
+        s["_fresh"] = True
+    assert c.post(
+        f"/website-builder/project/{project.id}/mark-all-reviewed"
+    ).status_code == 403
+
+
 def test_mark_reviewed_rejects_other_users(app_ctx):
     """Cross-user defence on the mark-reviewed route."""
     from werkzeug.security import generate_password_hash

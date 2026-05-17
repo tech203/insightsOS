@@ -4249,6 +4249,44 @@ _EDITABLE_SECTION_FIELDS = {
 }
 
 
+@app.route(
+    "/website-builder/project/<int:project_id>/mark-all-reviewed",
+    methods=["POST"],
+)
+@login_required
+def mark_all_project_pages_reviewed(project_id):
+    """Bulk-mark every page in the project as reviewed. Convenient
+    when the user does a once-over of all pages and accepts the AI
+    output rather than clicking Mark Reviewed on each one
+    individually.
+
+    Like the per-page route, stores the timestamp on each page's
+    page_json["reviewed_at"]. Skips pages already reviewed so this
+    is idempotent — re-clicking doesn't bump everything to "now"."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        abort(403)
+
+    now_iso = utcnow().replace(microsecond=0).isoformat() + "Z"
+    pages = GeneratedWebsitePage.query.filter_by(project_id=project.id).all()
+    marked = 0
+    for page in pages:
+        page_json = dict(page.page_json or {})
+        if page_json.get("reviewed_at"):
+            continue
+        page_json["reviewed_at"] = now_iso
+        page.page_json = page_json
+        flag_modified(page, "page_json")
+        marked += 1
+
+    db.session.commit()
+    if marked:
+        flash(f"Marked {marked} page(s) as reviewed.", "success")
+    else:
+        flash("All pages were already marked reviewed.", "info")
+    return redirect(url_for("preview_website_project", project_id=project.id))
+
+
 @app.route("/website-engine/page/<int:page_id>/mark-reviewed", methods=["POST"])
 @login_required
 def mark_generated_page_reviewed(page_id):
