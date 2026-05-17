@@ -83,18 +83,37 @@
     {% if audit %}
     <section class="presentation-stats">
         <article class="stat-card">
+            <span class="stat-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </span>
             <span class="stat-label">Visibility</span>
             <strong class="stat-value">{{ visibility }}</strong>
             <p class="stat-note">How often the brand is being surfaced.</p>
         </article>
 
         <article class="stat-card">
+            <span class="stat-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M8 13h8M8 17h6"/>
+                </svg>
+            </span>
             <span class="stat-label">Content</span>
             <strong class="stat-value">{{ content }}</strong>
             <p class="stat-note">Whether the site covers useful customer questions.</p>
         </article>
 
         <article class="stat-card">
+            <span class="stat-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 4 4 12 9 20"/>
+                    <polyline points="15 4 20 12 15 20"/>
+                </svg>
+            </span>
             <span class="stat-label">Schema</span>
             <strong class="stat-value">{{ schema }}</strong>
             <p class="stat-note">Technical clarity for machines and search systems.</p>
@@ -373,6 +392,23 @@
 
 .stat-card {
     padding: 16px;
+}
+
+/* Decorative icon at the top of each stat card. Mirrors the same
+   .stat-card-icon idiom in audit_summary.html — 36x36 rounded square,
+   brand-secondary purple at 10% bg, currentColor stroke so it
+   theme-tracks. Duplicated here because client_presentation.html
+   keeps its own scoped <style> block. */
+.stat-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: rgba(157, 124, 227, 0.10);
+    color: var(--brand-secondary, #9D7CE3);
 }
 
 .stat-value {

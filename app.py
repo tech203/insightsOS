@@ -8876,6 +8876,12 @@ def index():
     entity_score = 0
     trust_score = 0
 
+    # Score history for the snapshot card's sparkline. Take this
+    # workspace's last 10 audits (oldest first so the sparkline reads
+    # left-to-right like a timeline). Only built when we actually have
+    # ≥2 points, since a 1-point sparkline is meaningless.
+    score_history = []
+
     if spotlight_client:
         latest_audit = spotlight_client.get("latest_audit") or {}
 
@@ -8884,6 +8890,21 @@ def index():
         content_score = latest_audit.get("content_score", 0) or 0
         entity_score = latest_audit.get("entity_score", 0) or 0
         trust_score = latest_audit.get("trust_score", 0) or 0
+
+        # all_audits is already newest-first per get_saved_audits().
+        # Filter to this client's audits, slice to most recent 10,
+        # then reverse so the sparkline goes oldest → newest.
+        sid = str(spotlight_client.get("id") or "")
+        if sid:
+            client_audits = [
+                a for a in all_audits
+                if str(a.get("client_id") or "") == sid
+            ]
+            recent_ten = client_audits[:10]
+            score_history = [
+                float(a.get("normalized_score") or 0)
+                for a in reversed(recent_ten)
+            ]
 
     # Account-wide average kept for the portfolio sub-stat in
     # multi-mode (shown alongside the spotlight scorecard, no
@@ -8937,6 +8958,7 @@ def index():
         content_score=content_score,
         entity_score=entity_score,
         trust_score=trust_score,
+        score_history=score_history,
         total_clients=len(clients),
         total_audits=len(all_audits),
         total_prompts=total_prompts,

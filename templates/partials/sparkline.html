@@ -1,0 +1,55 @@
+{# ---------------------------------------------------------------------
+   Inline SVG sparkline for score trends.
+
+   Takes a series of values (0-100) and renders a polyline + dot for the
+   latest point. Used on the dashboard's snapshot card to show how the
+   spotlight workspace's score has moved over recent audits.
+
+   Renders nothing (and the caller's surrounding markup absorbs it) if
+   the series has fewer than 2 points — a sparkline of 1 point is just
+   a dot with no story.
+
+   Usage:
+     {% from "partials/sparkline.html" import sparkline %}
+     {{ sparkline(score_history) }}
+
+   Optional kwargs:
+     width / height — viewBox dimensions (default 120x32)
+     stroke_color   — hex/var() colour (default brand-secondary purple,
+                      falls back to currentColor)
+   --------------------------------------------------------------------- #}
+
+{% macro sparkline(series, width=120, height=32, stroke_color="#9D7CE3") %}
+{% if series and series|length >= 2 %}
+{# Clamp values to [0,100] then map to SVG coordinates. The lowest score
+   sits near the bottom edge with 4px padding; highest near the top. #}
+{% set padded_h = height - 8 %}
+{% set max_v = 100 %}
+{% set step = (width - 8) / (series|length - 1) %}
+{% set points = [] %}
+{% for v in series %}
+    {% set clamped = (v|float) %}
+    {% if clamped < 0 %}{% set clamped = 0 %}{% endif %}
+    {% if clamped > max_v %}{% set clamped = max_v %}{% endif %}
+    {% set x = 4 + loop.index0 * step %}
+    {% set y = 4 + (padded_h - (clamped / max_v) * padded_h) %}
+    {% set _ = points.append(x|round(2)|string ~ "," ~ y|round(2)|string) %}
+{% endfor %}
+{% set last_x = 4 + (series|length - 1) * step %}
+{% set last_v = series[-1]|float %}
+{% if last_v < 0 %}{% set last_v = 0 %}{% endif %}
+{% if last_v > max_v %}{% set last_v = max_v %}{% endif %}
+{% set last_y = 4 + (padded_h - (last_v / max_v) * padded_h) %}
+<svg class="sparkline" viewBox="0 0 {{ width }} {{ height }}" width="{{ width }}" height="{{ height }}" aria-hidden="true">
+    {# Faint fill under the line for at-a-glance trend volume. #}
+    <polyline
+        points="4,{{ (height - 4)|round(2) }} {{ points|join(' ') }} {{ last_x|round(2) }},{{ (height - 4)|round(2) }}"
+        fill="{{ stroke_color }}" fill-opacity="0.10" stroke="none"/>
+    <polyline
+        points="{{ points|join(' ') }}"
+        fill="none" stroke="{{ stroke_color }}" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="{{ last_x|round(2) }}" cy="{{ last_y|round(2) }}" r="2.5" fill="{{ stroke_color }}"/>
+</svg>
+{% endif %}
+{% endmacro %}
