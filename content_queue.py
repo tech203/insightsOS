@@ -112,6 +112,7 @@ def _normalize_item(raw):
         ),
         "source_action_title": _normalize_text(raw.get("source_action_title")),
         "user_id": raw.get("user_id"),
+        "webflow": raw.get("webflow") or None,
         "created_at": created_at,
         "updated_at": raw.get("updated_at", created_at),
     }
@@ -295,6 +296,30 @@ def update_queue_item_content(
         if source_action_title is not None:
             item["source_action_title"] = _normalize_text(source_action_title)
 
+        item["updated_at"] = _now_iso()
+        updated_item = item
+        break
+
+    if not updated_item:
+        return None
+
+    save_queue_items(items)
+    return updated_item
+
+
+def set_queue_item_webflow(item_id, webflow, user_id=None):
+    """Attach Webflow sync metadata (item id, action, live url, timestamp)
+    to a queue item so subsequent publishes update instead of duplicate."""
+    items = load_queue_items()
+    updated_item = None
+
+    for item in items:
+        if item.get("id") != item_id:
+            continue
+        if user_id is not None and item.get("user_id") != user_id:
+            continue
+
+        item["webflow"] = webflow
         item["updated_at"] = _now_iso()
         updated_item = item
         break

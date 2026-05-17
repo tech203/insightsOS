@@ -9,6 +9,7 @@ from content_queue import (
     update_queue_item_details,
     delete_queue_item,
     transition_queue_item,
+    set_queue_item_webflow,
 )
 from help_content import HELP_GLOSSARY
 from content_draft_generator import generate_content_draft
@@ -5880,6 +5881,16 @@ def publish_content_queue_item(item_id):
 
     if error:
         flash(error, "error")
+        return _redirect_to_queue(client_id)
+
+    state, message = push_content_queue_item_to_webflow(item)
+    if state == "synced":
+        flash(f"Published. {message}", "success")
+    elif state == "failed":
+        flash(
+            f"Item marked as published, but {message} You can retry from the queue.",
+            "warning",
+        )
     else:
         flash("Item marked as published.", "success")
 
@@ -6520,6 +6531,76 @@ def _mask_token(token):
     if len(token) <= 8:
         return "****"
     return f"{token[:4]}…{token[-4:]}"
+
+
+def push_content_queue_item_to_webflow(item):
+    """Push an approved content-queue item to the user's connected Webflow
+    blog collection. Returns (state, message) where state is one of
+    'synced', 'skipped' or 'failed'. 'skipped' means the user has no
+    Webflow connection / blog collection mapped — publishing stays local.
+    """
+    from services.webflow_client import WebflowAPIError
+
+    blog_collection_id = webflow_collection_id_for("blog")
+    if not blog_collection_id or blog_collection_id.startswith("your_"):
+        return "skipped", "No Webflow blog collection mapped — published locally only."
+
+    content = (item.get("content") or "").strip()
+    if not content:
+        return "skipped", "Item has no content to sync to Webflow."
+
+    existing = item.get("webflow") or {}
+    title = item.get("title") or item.get("target_query") or "Untitled"
+    slug = existing.get("slug") or slugify(title) or f"queue-{str(item.get('id'))[:8]}"
+    summary = " ".join(content.split())[:155]
+
+    field_data = {
+        "name": title,
+        "slug": slug,
+        "summary": summary,
+        "content": content,
+        "meta-description": summary,
+    }
+
+    try:
+        client = build_webflow_cms_client()
+        existing_item_id = existing.get("item_id")
+        if existing_item_id:
+            client.update_item(blog_collection_id, existing_item_id, field_data)
+            webflow_item_id = existing_item_id
+            action = "updated"
+        else:
+            webflow_item_id = client.create_item(
+                blog_collection_id, field_data, is_draft=True
+            )
+            action = "created"
+
+        published_live = False
+        if client.publish_on_export:
+            client.publish_items([webflow_item_id], blog_collection_id)
+            published_live = True
+
+        set_queue_item_webflow(
+            item.get("id"),
+            {
+                "item_id": webflow_item_id,
+                "collection_id": blog_collection_id,
+                "slug": slug,
+                "last_action": action,
+                "published_live": published_live,
+                "synced_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            },
+            user_id=current_user.id,
+        )
+
+        if published_live:
+            return "synced", f"Published live to Webflow ({action})."
+        return "synced", f"Synced to Webflow as a draft ({action}). Review and publish in Webflow."
+    except WebflowAPIError as exc:
+        return "failed", f"Webflow sync failed: {exc}"
+    except Exception as exc:  # noqa: BLE001 - surface any client error to the user
+        logger.error(f"Webflow queue push failed: {exc}")
+        return "failed", f"Webflow sync failed: {exc}"
 
 
 @app.route("/integrations/webflow/settings")
