@@ -42,8 +42,17 @@
 
         <div class="generated-site-nav-links">
             {% for nav_page in pages %}
+                {# Label derives from the slug, not page_type — user-
+                   added pages get page_type=landing_page so a
+                   "Pricing" page would otherwise show in nav as
+                   "Landing Page". Slug-based label handles default
+                   pages (home/about/faq/contact) and user-named ones
+                   (pricing/how-it-works) consistently. FAQ stays
+                   uppercase because "Faq" reads wrong. #}
+                {% set nav_label = nav_page.slug|replace("-", " ")|title %}
+                {% if nav_page.slug == "faq" %}{% set nav_label = "FAQ" %}{% endif %}
                 <a href="{{ url_for('public_website_page', project_id=project.id, slug=nav_page.slug) if nav_page.slug != 'home' else url_for('public_website_project', project_id=project.id) }}">
-                    {{ nav_page.page_type|replace("_", " ")|title }}
+                    {{ nav_label }}
                 </a>
             {% endfor %}
         </div>

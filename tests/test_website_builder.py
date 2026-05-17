@@ -604,6 +604,82 @@ def test_preview_wrapper_carries_visual_style_class():
         )
 
 
+def test_public_site_nav_label_handles_user_added_pages():
+    """User-added pages get page_type="landing_page" (the default in
+    apply_brand_kit_form_edits), so the nav previously labelled them
+    all as "Landing Page" regardless of what the user named them. The
+    fix derives the nav label from the slug instead — handles default
+    pages (home/about/faq/contact) and user-added ones (pricing/how-
+    it-works) consistently."""
+    from flask import render_template
+    from app import app as flask_app
+
+    # GeneratedWebsiteProject + GeneratedWebsitePage are model rows;
+    # build lightweight stand-ins for template rendering only.
+    project = type(
+        "Proj",
+        (),
+        {
+            "id": 1,
+            "theme": "professional_services",
+            "status": "draft",
+            "blueprint_json": {"client_name": "Test"},
+        },
+    )()
+
+    def _page(slug, page_type):
+        return type(
+            "Pg",
+            (),
+            {
+                "id": 1,
+                "title": "x",
+                "slug": slug,
+                "page_type": page_type,
+                "status": "draft",
+                "page_json": {"sections": [], "seo": {}},
+            },
+        )()
+
+    pages = [
+        _page("home", "home"),
+        _page("about", "about"),
+        _page("faq", "faq"),
+        _page("pricing", "landing_page"),  # user-added page
+        _page("how-it-works", "landing_page"),  # user-added, hyphenated
+    ]
+    page_for_render = pages[0]
+
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "generated_full_site.html",
+                project=project,
+                pages=pages,
+                page=page_for_render,
+                page_json=page_for_render.page_json,
+                blueprint=project.blueprint_json,
+            )
+
+    # Isolate the nav so an assertion on "Home" doesn't false-match
+    # the brand text elsewhere on the page.
+    import re
+    nav_match = re.search(r"<nav.*?</nav>", html, re.DOTALL)
+    assert nav_match, "expected a nav element"
+    nav = nav_match.group(0)
+
+    # User-added pages now show their slug-derived label, not the
+    # generic "Landing Page".
+    assert "Pricing" in nav
+    assert "How It Works" in nav
+    assert "Landing Page" not in nav
+    # FAQ gets the uppercase special-case.
+    assert "FAQ" in nav
+    # Defaults still work.
+    assert "Home" in nav
+    assert "About" in nav
+
+
 def test_preview_wrapper_carries_theme_class():
     """The wrapper div must carry a theme-<value> class derived from
     blueprint.theme so the industry-theme CSS accents (clinic /
