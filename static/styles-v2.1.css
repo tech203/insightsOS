@@ -22102,3 +22102,61 @@ html[data-theme="dark"] .workspace-logo-image {
         width: 100%;
     }
 }
+
+/* =========================================================
+   Featured-card accent treatment
+   =========================================================
+   Selective: only CTA / hero cards get a brand-coloured outline
+   at rest and a coloured glow on hover. Neutral data cards keep
+   their quiet grey border so the eye can pick out the actionable
+   surfaces at a glance.
+
+   Tiers:
+     Accent → .dashboard-priority-main-card  (dashboard hero)
+              .next-action-card              (action shortcuts)
+              .workspace-module-card         (workspace feature tiles)
+     Neutral (untouched, current grey border) → metric / ops / list
+              rows / settings panels / queue items.
+
+   Light mode → mint outline (#3EDFCB) + mint glow.
+   Dark mode  → brighter neon variant (#4FFFE5) so the outline
+                still reads on the #1B1B2E surface. */
+
+.dashboard-priority-main-card,
+.next-action-card,
+.workspace-module-card {
+    border-color: var(--brand-primary);
+}
+
+.dashboard-priority-main-card:hover,
+.next-action-card:hover,
+.workspace-module-card:hover {
+    border-color: var(--brand-primary);
+    box-shadow:
+        0 0 0 1px var(--brand-primary),
+        0 10px 32px var(--brand-primary-shadow);
+}
+
+html[data-theme="dark"] {
+    --brand-primary-neon: #4FFFE5;
+    --brand-primary-neon-glow: rgba(79, 255, 229, 0.32);
+}
+
+/* !important required to win over the bulk dark-mode surface
+   rules that pin .workspace-module-card border-color to
+   --theme-border-subtle. */
+html[data-theme="dark"] .dashboard-priority-main-card,
+html[data-theme="dark"] .next-action-card,
+html[data-theme="dark"] .workspace-module-card {
+    border-color: var(--brand-primary-neon) !important;
+}
+
+html[data-theme="dark"] .dashboard-priority-main-card:hover,
+html[data-theme="dark"] .next-action-card:hover,
+html[data-theme="dark"] .workspace-module-card:hover {
+    border-color: var(--brand-primary-neon) !important;
+    box-shadow:
+        0 0 0 1px var(--brand-primary-neon),
+        0 0 28px var(--brand-primary-neon-glow),
+        0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
