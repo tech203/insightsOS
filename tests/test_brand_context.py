@@ -328,7 +328,10 @@ class TestRefreshProfile:
             )
         assert r.status_code == 302
         db.session.refresh(ws)
-        assert ws.founded_year == 2020
+        # founded_year is String(10), so SQLite stores the int as "2020".
+        # Compare loosely so the test doesn't depend on the source int
+        # vs string distinction.
+        assert str(ws.founded_year) == "2020"
         assert ws.google_review_count == 128
         assert ws.business_summary == "Acme builds AEO tools."
         # business_profile_updated_at stamped.
