@@ -343,7 +343,9 @@
             </div>
         </div>
         {% else %}
+        {% from "partials/empty_state_illustrations.html" import prompts_illustration %}
         <div class="empty-state-card">
+            {{ prompts_illustration() }}
             <h3>No query comparison data yet</h3>
             <p>Run and save another audit later to unlock stronger query-level comparison and movement tracking.</p>
         </div>

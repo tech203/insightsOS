@@ -134,7 +134,9 @@
     {% endif %}
 
     {% if total_items == 0 %}
+    {% from "partials/empty_state_illustrations.html" import queue_illustration %}
     <section class="queue-empty-main-card">
+        {{ queue_illustration() }}
         <span class="section-kicker">Queue Empty</span>
         <h2>No content opportunities yet</h2>
         <p>
