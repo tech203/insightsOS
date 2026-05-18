@@ -394,22 +394,8 @@
     padding: 16px;
 }
 
-/* Decorative icon at the top of each stat card. Mirrors the same
-   .stat-card-icon idiom in audit_summary.html — 36x36 rounded square,
-   brand-secondary purple at 10% bg, currentColor stroke so it
-   theme-tracks. Duplicated here because client_presentation.html
-   keeps its own scoped <style> block. */
-.stat-card-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    margin-bottom: 10px;
-    border-radius: 10px;
-    background: rgba(157, 124, 227, 0.10);
-    color: var(--brand-secondary, #9D7CE3);
-}
+/* .stat-card-icon styling moved to styles-v2.1.css (shared with
+   .dashboard-metric-icon — single source of truth). */
 
 .stat-value {
     display: block;
