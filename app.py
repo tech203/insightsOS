@@ -46,6 +46,7 @@ from pricing import (
     ACTION_CREDIT_COSTS,
     EXTRA_WORKSPACE_ADDON_PRICE_USD,
     PLAN_CATALOG,
+    SIGNUP_STARTER_CREDITS,
     active_queue_limit_for_plan,
     baseline_credit_price,
     get_action_cost,
@@ -12120,14 +12121,14 @@ def signup():
 
         user.referral_code = generate_referral_code(name, user.id)
 
-        wallet = Wallet(user_id=user.id, balance=3)
+        wallet = Wallet(user_id=user.id, balance=SIGNUP_STARTER_CREDITS)
         db.session.add(wallet)
 
         tx = CreditTransaction(
             user_id=user.id,
             type="signup_bonus",
-            amount=3,
-            balance_after=3,
+            amount=SIGNUP_STARTER_CREDITS,
+            balance_after=SIGNUP_STARTER_CREDITS,
             notes="Starter credits on signup",
         )
         db.session.add(tx)
@@ -12157,45 +12158,30 @@ def signup():
             if delivered:
                 flash(
                     f"Welcome! Check {user.email} for a verification link — "
-                    "you'll need to verify before upgrading. You can use "
-                    "the free tier right now with your 3 starter credits.",
+                    "you'll need to verify before upgrading. Your "
+                    f"{SIGNUP_STARTER_CREDITS} starter credits cover a full "
+                    "audit, content brief, and draft right now on the free tier.",
                     "success",
                 )
             else:
-                # Dev fallback when email isn't configured: surface the URL
-                # so the flow can still be walked end-to-end.
-                from services.email_helper import is_email_configured
-                if not is_email_configured():
-                    record = _user_recent_verification_token(user)
-                    if record:
-                        verify_url = url_for(
-                            "verify_email", token=record.token, _external=True
-                        )
-                        flash(
-                            f"Welcome! Email isn't configured here, "
-                            f"so use this verify link directly: {verify_url}",
-                            "info",
-                        )
-                    else:
-                        flash(
-                            "Welcome! You have 3 starter credits — enough for your "
-                            "first audit. Set up your workspace to begin.",
-                            "success",
-                        )
-                else:
-                    flash(
-                        "Welcome! We tried to send a verification email but it "
-                        "didn't go through — you can resend it from settings later. "
-                        "You have 3 starter credits to get started.",
-                        "warning",
-                    )
+                # Delivery failed (unconfigured email, sandbox sender, or
+                # a transient provider error). Don't strand the user —
+                # point them at the in-app verify-help escape hatch
+                # rather than a raw URL in a one-shot flash.
+                flash(
+                    f"Welcome! Your {SIGNUP_STARTER_CREDITS} starter credits "
+                    "cover a full audit + brief + draft. We couldn't deliver "
+                    "the verification email — verify directly from the banner "
+                    "(\"Didn't get it?\") when you're ready to upgrade.",
+                    "warning",
+                )
         except Exception as exc:
             logger.warning(
                 "Verification email step failed for new user %s: %s", user.id, exc,
             )
             flash(
-                "Welcome! You have 3 starter credits — enough for your first audit. "
-                "Set up your workspace to begin.",
+                f"Welcome! Your {SIGNUP_STARTER_CREDITS} starter credits cover "
+                "a full audit, brief, and draft. Set up your workspace to begin.",
                 "success",
             )
 
@@ -12501,18 +12487,59 @@ def resend_verification_email():
             "success",
         )
     else:
-        # Email not configured — show the URL inline so dev / staging
-        # environments can still walk the flow.
-        record = _user_recent_verification_token(current_user)
-        if record:
-            verify_url = url_for("verify_email", token=record.token, _external=True)
-            flash(
-                f"Email isn't configured on this server. Copy this verify link: {verify_url}",
-                "info",
-            )
-        else:
-            flash("Could not generate a verification link — try again in a moment.", "error")
+        # Delivery failed. This is NOT necessarily "email not
+        # configured" — the most common cause in practice is a
+        # sandbox sender domain (Resend's @resend.dev only delivers
+        # to the account owner) or a transient provider error. Either
+        # way, a paying customer must never be permanently locked out
+        # of billing because OUR email infra couldn't reach them.
+        # Send them to the in-app verify-help page where the link is
+        # a real button, not a raw URL buried in a transient flash.
+        flash(
+            "We couldn't deliver the verification email just now. "
+            "You can verify directly instead — no email needed.",
+            "warning",
+        )
+        return redirect(url_for("verify_email_help"))
     return redirect(url_for("settings_page"))
+
+
+@app.route("/verify-email/help")
+@login_required
+def verify_email_help():
+    """In-app email-verification escape hatch.
+
+    Why this exists: verification gates billing, and email delivery
+    can fail for reasons the user can't fix — a sandbox sender
+    domain (Resend @resend.dev only delivers to the account owner),
+    a hard bounce, a transient provider outage. Without an in-app
+    path, that user is permanently unable to upgrade — they'd type
+    their card in and never get to. A paying customer blocked by our
+    infra is the worst possible failure.
+
+    Security trade-off: reaching this page requires being logged in
+    to the exact account (the email is the login identifier). Email
+    verification here is a soft anti-fraud signal for billing, not a
+    hard security boundary, so an authenticated self-verify is an
+    acceptable exchange for never hard-locking a real customer.
+    Already-verified users are bounced to settings.
+    """
+    if current_user.email_verified_at is not None:
+        flash("Your email is already verified.", "info")
+        return redirect(url_for("settings_page"))
+
+    # Reuse the most recent unexpired token, or mint a fresh one so
+    # the button always works even if prior tokens expired.
+    record = _user_recent_verification_token(current_user)
+    if record is None:
+        record = issue_email_verification_token(current_user)
+
+    verify_url = url_for("verify_email", token=record.token)
+    return render_template(
+        "verify_email_help.html",
+        verify_url=verify_url,
+        user_email=current_user.email,
+    )
 
 
 # Token-guess defence: 10 attempts per hour per IP. The token is 256
@@ -12642,8 +12669,9 @@ def google_callback():
     """Exchange the authorization code for user info and sign the user in.
 
     Creates a new account automatically on first sign-in (same flow as
-    email signup, including 3 starter credits). Subsequent sign-ins just
-    log the existing user in — Google email is the stable identifier.
+    email signup, including the SIGNUP_STARTER_CREDITS grant).
+    Subsequent sign-ins just log the existing user in — Google email
+    is the stable identifier.
     """
     if current_user.is_authenticated:
         return redirect(url_for("index"))
@@ -12727,14 +12755,14 @@ def google_callback():
 
         user.referral_code = generate_referral_code(user.name, user.id)
 
-        wallet = Wallet(user_id=user.id, balance=3)
+        wallet = Wallet(user_id=user.id, balance=SIGNUP_STARTER_CREDITS)
         db.session.add(wallet)
 
         tx = CreditTransaction(
             user_id=user.id,
             type="signup_bonus",
-            amount=3,
-            balance_after=3,
+            amount=SIGNUP_STARTER_CREDITS,
+            balance_after=SIGNUP_STARTER_CREDITS,
             notes="Starter credits on Google signup",
         )
         db.session.add(tx)
@@ -12742,7 +12770,8 @@ def google_callback():
 
         login_user(user)
         flash(
-            "Welcome! Your account is ready — you have 3 starter credits. "
+            f"Welcome! Your account is ready — {SIGNUP_STARTER_CREDITS} "
+            "starter credits, enough for a full audit + brief + draft. "
             "Set up your first workspace to begin.",
             "success",
         )

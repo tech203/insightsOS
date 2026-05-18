@@ -63,6 +63,17 @@ def get_action_cost(action_key: str) -> int:
     return int(ACTION_CREDIT_COSTS.get(action_key, 1))
 
 
+# Credits granted on signup (free tier). Sized so a brand-new user —
+# or an agency evaluating the product — can complete ONE full value
+# loop without paying: audit_run (1) + content_brief (1) +
+# content_draft (2) = 4, plus 1 credit of headroom so a mistimed
+# click or a single retry doesn't strand them one credit short of
+# the draft (the previous grant of 3 did exactly that — you could
+# audit + brief but never see a finished draft, so the trial never
+# demonstrated the core deliverable).
+SIGNUP_STARTER_CREDITS = 5
+
+
 # ---------------------------------------------------------------------------
 # Plan tiers
 # ---------------------------------------------------------------------------
