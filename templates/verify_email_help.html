@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Verify your email | DarInsights{% endblock %}
+{% block page_title %}Verify your email{% endblock %}
+{% block page_subtitle %}One click and billing + paid features unlock.{% endblock %}
+
+{# This page is the email-independent escape hatch. Don't show the
+   onboarding stepper here — it's a focused single-action screen. #}
+{% set hide_onboarding = True %}
+
+{% block content %}
+<div class="page-shell">
+    <section class="verify-help-card surface-card">
+        <div class="verify-help-icon" aria-hidden="true">✉</div>
+
+        <h2>Verify <code>{{ user_email }}</code></h2>
+
+        <p class="verify-help-lead">
+            We tried to email you a verification link but it may not
+            have arrived (spam filter, a typo in the address, or a
+            delay on our side). You don't need the email — verify
+            directly with the button below.
+        </p>
+
+        <a href="{{ verify_url }}" class="btn btn-primary btn-large verify-help-cta">
+            Verify my email now →
+        </a>
+
+        <p class="verify-help-note">
+            Wrong address? Update it in
+            <a href="{{ url_for('settings_account') }}">Settings → Security</a>
+            then come back here.
+            You can also
+            <form method="POST" action="{{ url_for('resend_verification_email') }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="verify-help-linkbtn">try the email again</button>
+            </form>.
+        </p>
+
+        <p class="verify-help-fineprint">
+            Free-tier features (workspaces, audits) work without
+            verifying — this is only needed to buy credits or upgrade.
+        </p>
+    </section>
+</div>
+
+<style>
+.verify-help-card {
+    max-width: 560px;
+    margin: 40px auto;
+    padding: 40px 36px;
+    text-align: center;
+    border-radius: 24px;
+}
+.verify-help-icon {
+    font-size: 42px;
+    line-height: 1;
+    margin-bottom: 16px;
+}
+.verify-help-card h2 {
+    margin: 0 0 14px;
+    font-size: 24px;
+}
+.verify-help-card h2 code {
+    font-size: 18px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.06);
+}
+html[data-theme="dark"] .verify-help-card h2 code {
+    background: rgba(255, 255, 255, 0.08);
+}
+.verify-help-lead {
+    color: var(--text-soft, #6b7280);
+    line-height: 1.65;
+    margin: 0 0 26px;
+}
+.verify-help-cta {
+    display: inline-block;
+    margin-bottom: 22px;
+}
+.verify-help-note {
+    font-size: 14px;
+    color: var(--text-soft, #6b7280);
+    line-height: 1.6;
+    margin: 0 0 18px;
+}
+.verify-help-note a { font-weight: 600; }
+.verify-help-linkbtn {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--accent, #2BCBB7);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+}
+.verify-help-fineprint {
+    font-size: 12.5px;
+    color: var(--text-muted, #9ca3af);
+    margin: 0;
+}
+</style>
+{% endblock %}

@@ -623,6 +623,11 @@
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="alert-banner__inline-btn">Resend email</button>
                             </form>
+                            {# Email-independent escape hatch — discoverable
+                               so a user whose email never arrives (sandbox
+                               sender, bounce, spam) is never permanently
+                               locked out of billing. #}
+                            <a href="{{ url_for('verify_email_help') }}" class="alert-banner__inline-btn" style="margin-left:6px;">Didn't get it?</a>
                         </div>
                     </div>
                 {% endif %}
