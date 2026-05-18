@@ -22177,6 +22177,10 @@ html[data-theme="dark"] .workspace-logo-image {
 html[data-theme="dark"] {
     --brand-primary-neon: #4FFFE5;
     --brand-primary-neon-glow: rgba(79, 255, 229, 0.32);
+    /* Neon-mint → purple, for the gradient consumers (progress bars,
+       buy button, active-nav stripe). Mirrors --gradient-brand but
+       swaps the dull mint end for the neon so it reads on dark. */
+    --gradient-brand-neon: linear-gradient(135deg, #4FFFE5 0%, var(--brand-secondary) 100%);
 }
 
 /* !important required to win over the bulk dark-mode surface
@@ -22202,4 +22206,53 @@ html[data-theme="dark"] .visibility-score-card:hover {
         0 0 0 1px var(--brand-primary-neon),
         0 0 28px var(--brand-primary-neon-glow),
         0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* =========================================================
+   Dark-mode brand vibrancy — beyond cards
+   =========================================================
+   The mint --brand-primary (#3EDFCB) reads muddy on the dark
+   #1B1B2E surface (same problem the card accent solved). Promote
+   the neon variant to the FOCAL / PRIMARY brand elements only —
+   primary CTA, active nav, progress indicators, the buy button.
+   Secondary/ghost button hovers, decorative card stripes, success
+   ticks, and inline links deliberately stay on mint so the
+   primary↔secondary hierarchy is preserved (not a neon overload). */
+
+/* Primary CTA — solid fill + glow shadow. */
+html[data-theme="dark"] .btn-primary {
+    background: var(--brand-primary-neon);
+    border-color: var(--brand-primary-neon);
+    box-shadow: 0 6px 16px var(--brand-primary-neon-glow);
+}
+html[data-theme="dark"] .btn-primary:hover {
+    background: #6BFFEB;
+    border-color: #6BFFEB;
+    box-shadow: 0 8px 22px var(--brand-primary-neon-glow);
+}
+html[data-theme="dark"] .btn-primary:focus-visible {
+    box-shadow: 0 6px 16px var(--brand-primary-neon-glow),
+                0 0 0 3px rgba(79, 255, 229, 0.45);
+}
+
+/* Active sidebar nav — persistent per-page orientation cue. */
+html[data-theme="dark"] .nav-item.active {
+    background: rgba(79, 255, 229, 0.14);
+    color: var(--brand-primary-neon);
+    border-color: rgba(79, 255, 229, 0.38);
+    box-shadow: 0 6px 18px rgba(79, 255, 229, 0.18);
+}
+html[data-theme="dark"] .nav-item.active .nav-text,
+html[data-theme="dark"] .nav-item.active .nav-icon {
+    color: var(--brand-primary-neon);
+}
+html[data-theme="dark"] .nav-item.active::before {
+    background: linear-gradient(180deg, #4FFFE5 0%, var(--brand-secondary) 100%);
+}
+
+/* Focal progress indicators + primary buy CTA — gradient swap. */
+html[data-theme="dark"] .gen-progress-fill,
+html[data-theme="dark"] .score-progress-fill,
+html[data-theme="dark"] .sidebar-buy-btn {
+    background: var(--gradient-brand-neon);
 }
