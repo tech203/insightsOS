@@ -4349,9 +4349,19 @@ def regenerate_all_project_pages(project_id):
         new_page_json.pop("reviewed_at", None)
         page.page_json = new_page_json
         flag_modified(page, "page_json")
+        # Commit per page rather than once after the whole loop.
+        # This route makes N sequential AI calls (3-8s each); on a
+        # strict proxy/gunicorn timeout the request can die mid-loop.
+        # A trailing single commit would mean a timeout at page 4
+        # discards pages 1-3 too — the user's site ends up fully
+        # stale despite minutes of AI work. Per-page commits make
+        # progress durable: a timeout leaves the already-regenerated
+        # pages saved, and re-running picks up where it left off.
+        # (Background-job rearchitecture is the real fix for the
+        # latency itself — tracked separately.)
+        db.session.commit()
         regenerated += 1
 
-    db.session.commit()
     flash(f"Regenerated {regenerated} page(s) with fresh AI content.", "success")
     return redirect(url_for("preview_website_project", project_id=project.id))
 

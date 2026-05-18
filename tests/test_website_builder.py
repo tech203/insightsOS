@@ -1731,6 +1731,112 @@ def test_regenerate_all_pages_rebuilds_each_and_clears_reviewed_at(app_ctx):
     assert "OLD" not in [s.get("headline") for s in about.page_json["sections"]]
 
 
+def test_regenerate_all_persists_progress_before_a_mid_loop_failure(app_ctx):
+    """Per-page commit durability: if regeneration blows up partway
+    through the loop, the pages already processed must stay saved.
+    A trailing single commit would roll all of them back, wasting
+    the AI work and leaving the whole site stale.
+
+    Simulate by making build_generated_site_page succeed for the
+    first page then raise on the second."""
+    from werkzeug.security import generate_password_hash
+    from unittest.mock import patch
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email="partial@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="P",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug="partial-co",
+        user_id=u.id,
+        name="P Co",
+        website="https://p.example.com",
+        website_normalized="p.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="P Site",
+        theme="professional_services",
+        status="draft",
+        blueprint_json={"client_name": "P Co"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    p1 = GeneratedWebsitePage(
+        project_id=project.id, user_id=u.id, client_id=ws.id,
+        title="Home", slug="home", page_type="home", status="draft",
+        page_json={"sections": [{"type": "hero", "headline": "STALE-1"}]},
+    )
+    p2 = GeneratedWebsitePage(
+        project_id=project.id, user_id=u.id, client_id=ws.id,
+        title="About", slug="about", page_type="about", status="draft",
+        page_json={"sections": [{"type": "hero", "headline": "STALE-2"}]},
+    )
+    db.session.add_all([p1, p2])
+    db.session.commit()
+    p1_id, p2_id = p1.id, p2.id
+
+    c = flask_app.test_client()
+    with c.session_transaction() as s:
+        s["_user_id"] = str(u.id)
+        s["_fresh"] = True
+
+    calls = {"n": 0}
+
+    def _flaky_builder(client, blueprint, page_config):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return {
+                "title": "regenerated",
+                "slug": page_config["slug"],
+                "page_type": page_config["page_type"],
+                "sections": [{"type": "hero", "headline": "FRESH-1"}],
+            }
+        raise RuntimeError("AI blew up on page 2")
+
+    with patch("app.build_generated_site_page", side_effect=_flaky_builder):
+        # The route doesn't catch the RuntimeError, so the request
+        # 500s — mirroring a mid-loop timeout/crash.
+        try:
+            c.post(
+                f"/website-builder/project/{project.id}/regenerate-all"
+            )
+        except RuntimeError:
+            pass
+
+    # Page 1 was committed before page 2 failed — its fresh content
+    # must have survived. With a trailing single commit this would
+    # still read "STALE-1".
+    db.session.expire_all()
+    refreshed_p1 = GeneratedWebsitePage.query.get(p1_id)
+    refreshed_p2 = GeneratedWebsitePage.query.get(p2_id)
+    assert refreshed_p1.page_json["sections"][0]["headline"] == "FRESH-1"
+    # Page 2 never got rebuilt — still stale, which is fine: re-running
+    # the route will pick it up.
+    assert refreshed_p2.page_json["sections"][0]["headline"] == "STALE-2"
+
+
 def test_regenerate_all_rejects_other_users(app_ctx):
     from werkzeug.security import generate_password_hash
     from app import (
