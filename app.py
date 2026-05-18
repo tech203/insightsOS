@@ -12586,7 +12586,11 @@ def audit_summary_pdf(summary_filename):
 @app.route("/audit/<summary_filename>/full")
 @login_required
 def audit_full(summary_filename):
-    require_internal_access()  # 👈 ADD THIS LINE
+    # Admin / dev_unlimited only — the /full payload is an internal
+    # debug view (link hidden from non-internal users in
+    # audit_summary.html). Customer-facing routes use
+    # _audit_belongs_to_current_user; see PR #120.
+    require_internal_access()
 
     full_path = get_full_path(summary_filename)
     if not full_path:
