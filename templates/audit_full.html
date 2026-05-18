@@ -26,7 +26,19 @@
 {% set content = data.scores.content_score if data.scores and data.scores.content_score is not none else "—" %}
 {% set schema = data.scores.schema_score if data.scores and data.scores.schema_score is not none else "—" %}
 
-<div class="audit-full-shell">
+{# Mobile (<=768px): the raw-payload inspection view is unusable on a
+   phone. Show a read-only nudge that routes to the cleaner summary
+   instead of dead-ending. Desktop renders .audit-full-shell as normal. #}
+{% from "partials/desktop_nudge.html" import desktop_nudge %}
+{{ desktop_nudge(
+     title=(data.client_name ~ " · Full Audit") if data.client_name else "Full Audit",
+     blurb="The full audit inspection view is built for a larger screen — it's a QA / debugging surface with the complete raw payload. The summary report is the cleaner read on mobile.",
+     summary_url=url_for('audit_summary', summary_filename=summary_filename),
+     summary_label="View summary report",
+     stat_value=normalized,
+     stat_label="AEO score") }}
+
+<div class="audit-full-shell desktop-only-content">
 
     {% set report_action_kicker = "Deep Inspection" %}
     {% set report_action_title = "Validate details, then return to the client-ready report" %}
