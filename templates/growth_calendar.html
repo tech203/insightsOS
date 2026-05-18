@@ -40,7 +40,9 @@
     </section>
 
     {% if not selected_client %}
+        {% from "partials/empty_state_illustrations.html" import workspaces_illustration %}
         <section class="growth-calendar-empty">
+            {{ workspaces_illustration() }}
             {% if clients|length > 0 %}
             <h2>Select a workspace to view its growth plan</h2>
             <p>Pick a workspace from the dropdown above to see weekly growth recommendations based on your latest audit.</p>
