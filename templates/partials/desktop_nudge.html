@@ -1,0 +1,55 @@
+{# ---------------------------------------------------------------------
+   "Best on desktop" mobile nudge.
+
+   Heavy workflow pages (audit run, brief/draft editors, content queue,
+   full-audit JSON, competitor analysis) are desktop-best. On phones
+   (<=768px) we hide the dense UI and show this instead: the page's
+   key read-only info + one primary CTA + a copy-link, so a mobile
+   visitor isn't dead-ended.
+
+   Pairing contract: the page wraps its heavy content in an element
+   with class `desktop-only-content`. CSS in styles-v2.1.css hides
+   .desktop-only-content and shows .desktop-nudge below 768px, and
+   the reverse above it. No JS, no user-agent sniffing.
+
+   Usage:
+     {% from "partials/desktop_nudge.html" import desktop_nudge %}
+     {{ desktop_nudge(
+          title="Stripe · Full Audit",
+          blurb="The full audit inspection view is built for a larger screen.",
+          summary_url=url_for('audit_summary', summary_filename=fn),
+          summary_label="View summary",
+          stat_value=96, stat_label="AEO score") }}
+   --------------------------------------------------------------------- #}
+
+{% macro desktop_nudge(title, blurb, summary_url=None, summary_label="View summary", stat_value=None, stat_label=None) %}
+<div class="desktop-nudge" role="note" aria-label="Best viewed on a larger screen">
+    <span class="desktop-nudge-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="13" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+        </svg>
+    </span>
+
+    <h2 class="desktop-nudge-title">{{ title }}</h2>
+
+    {% if stat_value is not none %}
+    <div class="desktop-nudge-stat">
+        <strong>{{ stat_value }}</strong>
+        {% if stat_label %}<span>{{ stat_label }}</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <p class="desktop-nudge-copy">{{ blurb }}</p>
+
+    <div class="desktop-nudge-actions">
+        {% if summary_url %}
+        <a href="{{ summary_url }}" class="btn btn-primary">{{ summary_label }}</a>
+        {% endif %}
+        <button type="button" class="btn btn-secondary desktop-nudge-link-btn"
+                onclick="navigator.clipboard.writeText(window.location.href).then(function(){var b=event.target;b.textContent='Link copied';setTimeout(function(){b.textContent='Copy link';},2000);});">
+            Copy link
+        </button>
+    </div>
+</div>
+{% endmacro %}

@@ -5436,6 +5436,84 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
 }
 
 /* =========================
+   MOBILE "BEST ON DESKTOP" NUDGE
+   =========================
+   Heavy workflow pages render their dense UI inside an element with
+   class .desktop-only-content and drop in the desktop_nudge() macro
+   (partials/desktop_nudge.html). Below 768px the dense UI is hidden
+   and the nudge shows; at/above 769px the reverse. Pure CSS — no JS,
+   no user-agent sniffing. Pattern decided with the user: phones get
+   read + one CTA, desktop does the heavy work. */
+.desktop-nudge { display: none; }
+
+@media (max-width: 768px) {
+    .desktop-only-content { display: none !important; }
+
+    .desktop-nudge {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        margin: 16px;
+        padding: 24px 20px;
+        border-radius: 18px;
+        background: var(--shell-surface, #ffffff);
+        border: 1px solid var(--shell-line-soft, #eef2f7);
+    }
+    .desktop-nudge-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: rgba(157, 124, 227, 0.12);
+        color: var(--brand-secondary, #9D7CE3);
+    }
+    .desktop-nudge-title {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.25;
+        color: var(--shell-text, #16243c);
+    }
+    .desktop-nudge-stat {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .desktop-nudge-stat strong {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--shell-text, #16243c);
+    }
+    .desktop-nudge-stat span {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--shell-text-soft, #64748b);
+    }
+    .desktop-nudge-copy {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--shell-text-soft, #64748b);
+    }
+    .desktop-nudge-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+    }
+    .desktop-nudge-actions .btn {
+        flex: 1 1 auto;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* =========================
    NEW AUDIT PAGE UPGRADE
    ========================= */
 
