@@ -115,14 +115,85 @@
     </section>
 
     <section class="panel">
-        <h2>Generated Pages</h2>
+        <div class="section-header">
+            <h2>Generated Pages</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                {# Bulk regenerate fires N AI calls (one per page) so
+                   the request takes 15-25s. Same setTimeout-disable
+                   pattern as the brand-kit approve button so the form
+                   actually submits before the button goes inert. #}
+                <form
+                    method="POST"
+                    action="{{ url_for('regenerate_all_project_pages', project_id=project.id) }}"
+                    onsubmit="
+                        var b = this.querySelector('button');
+                        setTimeout(function() {
+                            b.disabled = true;
+                            b.textContent = 'Regenerating {{ page_counts.all }} pages…';
+                        }, 50);
+                        return confirm('Regenerate all {{ page_counts.all }} pages? Existing review state will be cleared.');
+                    "
+                >
+                    <button type="submit" class="btn btn-secondary">
+                        Regenerate All
+                    </button>
+                </form>
+                {% if page_counts.unreviewed %}
+                <form method="POST" action="{{ url_for('mark_all_project_pages_reviewed', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-secondary">
+                        Mark all {{ page_counts.unreviewed }} reviewed
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Filter bar — let users narrow to what they have to do. The
+           counts come from all_pages so they don't flicker as the
+           user clicks between filters. #}
+        <div style="display:flex;gap:6px;margin:12px 0 18px;font-size:0.9rem;">
+            {% set filter_options = [
+                ("all", "All", page_counts.all),
+                ("unreviewed", "Needs review", page_counts.unreviewed),
+                ("unpublished", "Draft", page_counts.unpublished),
+            ] %}
+            {% for value, label, count in filter_options %}
+            <a
+                href="{{ url_for('preview_website_project', project_id=project.id, filter=value) }}"
+                class="btn btn-secondary"
+                style="
+                    padding:4px 12px;
+                    {% if filter_mode == value %}
+                    opacity:1;font-weight:600;
+                    {% else %}
+                    opacity:0.65;
+                    {% endif %}
+                "
+            >
+                {{ label }} ({{ count }})
+            </a>
+            {% endfor %}
+        </div>
 
         <div class="premium-queue-list">
             {% for site_page in pages %}
             <article class="premium-queue-item-card">
                 <div class="queue-item-main">
                     <h3>{{ site_page.title }}</h3>
-                    <p>/{{ site_page.slug }} · {{ site_page.page_type|title }}</p>
+                    <p>
+                        /{{ site_page.slug }} · {{ site_page.page_type|title }}
+                        {% if site_page.status == "published" %}
+                        · <span style="color:#2563eb;font-weight:600;">● Published</span>
+                        {% endif %}
+                        {% if (site_page.page_json or {}).get("reviewed_at") %}
+                        · <span style="color:#10b981;font-weight:600;">✓ Reviewed</span>
+                        {% else %}
+                        · <span class="muted" style="font-style:italic;">Needs review</span>
+                        {% endif %}
+                        {% if site_page.updated_at %}
+                        · <span class="muted">Edited {{ site_page.updated_at.strftime("%b %d, %Y") }}</span>
+                        {% endif %}
+                    </p>
                     {% if site_page.page_json.webflow %}
                     <p class="muted">
                         Publishing sync {{ site_page.page_json.webflow.last_action or "completed" }} ·

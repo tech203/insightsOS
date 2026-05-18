@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+{# Plain form-driven editor for an AI-generated page. Avoids JS so
+   it works without any client-side runtime — submit posts back to
+   the same route and the page_json is updated in place. Section
+   types map to per-type field whitelists in app.py's
+   _EDITABLE_SECTION_FIELDS. #}
+<div class="workspace-page-shell">
+
+    <section class="panel">
+        <div class="section-header">
+            <div>
+                <p class="section-kicker">Website Engine</p>
+                <h1>Edit content — {{ page.title }}</h1>
+                <p class="muted">
+                    Hand-tweak the AI-generated copy on this page. Only text fields are editable —
+                    section structure stays as the generator built it. Regenerate the page if you
+                    want a fresh shape.
+                </p>
+            </div>
+            <a class="btn btn-secondary" href="{{ url_for('preview_generated_page', page_id=page.id) }}">
+                Cancel
+            </a>
+        </div>
+    </section>
+
+    <form method="POST" action="{{ url_for('edit_generated_page', page_id=page.id) }}">
+
+        <section class="panel">
+            <h2>Page metadata</h2>
+            <label for="page_title" class="muted" style="display:block;font-size:0.85rem;">Page title</label>
+            <input
+                type="text"
+                id="page_title"
+                name="page_title"
+                value="{{ page.title }}"
+                style="width:100%;padding:8px;margin-bottom:14px;"
+            >
+
+            <label for="seo_description" class="muted" style="display:block;font-size:0.85rem;">SEO description</label>
+            <textarea
+                id="seo_description"
+                name="seo_description"
+                rows="2"
+                style="width:100%;padding:8px;"
+            >{{ (page_json.get("seo") or {}).get("meta_description") or (page_json.get("seo") or {}).get("description") or "" }}</textarea>
+        </section>
+
+        {% for section in page_json.sections or [] %}
+        {% set section_type = section.type or "" %}
+        {% set editable_fields = editable_section_fields.get(section_type, []) %}
+        {# Capture the outer index up front — the inner item loop's
+           loop.index0 would otherwise shadow it and every item input
+           would get the wrong section prefix. #}
+        {% set section_idx = loop.index0 %}
+        <section class="panel">
+            <div class="section-header">
+                <h2 style="text-transform:capitalize;">
+                    {{ loop.index }}. {{ section_type|replace("_", " ") }}
+                </h2>
+                {# Re-run AI for just this section and splice it back
+                   into page_json at the same index. Other sections are
+                   left alone so the user keeps their edits elsewhere.
+                   formaction posts to the per-section route instead of
+                   the parent form's save action. #}
+                <button
+                    type="submit"
+                    class="btn btn-secondary"
+                    formaction="{{ url_for('regenerate_generated_page_section', page_id=page.id, section_index=section_idx) }}"
+                    onclick="
+                        var b = this;
+                        setTimeout(function() {
+                            b.disabled = true;
+                            b.textContent = 'Regenerating…';
+                        }, 50);
+                    "
+                >
+                    Regenerate this section
+                </button>
+            </div>
+
+            {% for field in editable_fields %}
+            <label for="section_{{ section_idx }}_{{ field }}" class="muted" style="display:block;font-size:0.85rem;margin-top:10px;">
+                {{ field|replace("_", " ")|title }}
+            </label>
+            {% if field in ["subtext", "body"] %}
+            <textarea
+                id="section_{{ section_idx }}_{{ field }}"
+                name="section_{{ section_idx }}_{{ field }}"
+                rows="3"
+                style="width:100%;padding:8px;"
+            >{{ section.get(field) or "" }}</textarea>
+            {% else %}
+            <input
+                type="text"
+                id="section_{{ section_idx }}_{{ field }}"
+                name="section_{{ section_idx }}_{{ field }}"
+                value="{{ section.get(field) or '' }}"
+                style="width:100%;padding:8px;"
+            >
+            {% endif %}
+            {% endfor %}
+
+            {% if section.get("items") %}
+            <div style="margin-top:18px;">
+                <p class="muted" style="font-size:0.85rem;">
+                    Items ({{ section_type == "faq" and "question / answer" or "title / description" }})
+                </p>
+                {% for item in section.get("items") or [] %}
+                {% set item_idx = loop.index0 %}
+                <div style="border:1px solid var(--border, #2a2a40);padding:10px;border-radius:6px;margin-bottom:10px;">
+                    {% if section_type == "faq" %}
+                    <input
+                        type="text"
+                        name="section_{{ section_idx }}_item_{{ item_idx }}_question"
+                        value="{{ item.get('question') or '' }}"
+                        placeholder="Question"
+                        style="width:100%;padding:8px;margin-bottom:6px;"
+                    >
+                    <textarea
+                        name="section_{{ section_idx }}_item_{{ item_idx }}_answer"
+                        rows="2"
+                        placeholder="Answer"
+                        style="width:100%;padding:8px;"
+                    >{{ item.get("answer") or "" }}</textarea>
+                    {% else %}
+                    <input
+                        type="text"
+                        name="section_{{ section_idx }}_item_{{ item_idx }}_title"
+                        value="{{ item.get('title') or '' }}"
+                        placeholder="Title"
+                        style="width:100%;padding:8px;margin-bottom:6px;"
+                    >
+                    <textarea
+                        name="section_{{ section_idx }}_item_{{ item_idx }}_description"
+                        rows="2"
+                        placeholder="Description"
+                        style="width:100%;padding:8px;"
+                    >{{ item.get("description") or "" }}</textarea>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </section>
+        {% endfor %}
+
+        <section class="panel">
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-primary" type="submit">Save Changes</button>
+                <a class="btn btn-secondary" href="{{ url_for('preview_generated_page', page_id=page.id) }}">
+                    Cancel
+                </a>
+            </div>
+        </section>
+
+    </form>
+</div>
+{% endblock %}

@@ -58,6 +58,7 @@ from pricing import (
     workspace_limit_for_plan,
 )
 from query_idea_generator import generate_query_ideas
+from query_agent import generate_queries
 from flask import (
     Flask,
     render_template,
@@ -69,7 +70,9 @@ from flask import (
     flash,
     session,
     make_response,
+    Response,
 )
+from markupsafe import escape
 from datetime import datetime, timedelta
 
 # Drop-in replacement for the deprecated utcnow() — returns
@@ -80,7 +83,11 @@ from dtutils import utcnow
 import requests as requests_lib  # used for Google OAuth token exchange
 from tavily import TavilyClient
 from urllib.parse import urlencode
-from brand_kit_engine import generate_brand_kit
+from brand_kit_engine import (
+    generate_brand_kit,
+    get_palette_variant,
+    classify_industry_theme,
+)
 from website_page_builder import generate_structured_website_page
 from webflow_integration import (
     WebflowAPIError,
@@ -2149,9 +2156,33 @@ def website_builder_page(client_id):
         queue_items = get_queue_items(
             client_id=row.slug, user_id=current_user.id
         )
-        open_opportunities_count = sum(
-            1 for q in queue_items if q.get("status") != "published"
+        priority_rank = {"high": 0, "medium": 1, "low": 2}
+        open_opportunities = sorted(
+            (q for q in queue_items if q.get("status") != "published"),
+            key=lambda q: priority_rank.get(q.get("priority"), 1),
         )
+        open_opportunities_count = len(open_opportunities)
+        # Surface the top opportunities the user can EXPECT to feed
+        # the brand kit — not just the count. Caps at 3 so the panel
+        # stays compact, dedupes by lowercase target_query.
+        seen = set()
+        opportunity_previews = []
+        for item in open_opportunities:
+            query = (item.get("target_query") or "").strip()
+            if not query:
+                continue
+            key = query.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            opportunity_previews.append(
+                {
+                    "target_query": query,
+                    "priority": item.get("priority") or "medium",
+                }
+            )
+            if len(opportunity_previews) >= 3:
+                break
 
     return render_template(
         "website_builder.html",
@@ -2159,6 +2190,7 @@ def website_builder_page(client_id):
         projects=projects,
         project_summaries=project_summaries,
         open_opportunities_count=open_opportunities_count,
+        opportunity_previews=opportunity_previews if row else [],
     )
 
 
@@ -2311,6 +2343,35 @@ def approve_website_brand_kit(client_id):
 
     blueprint = apply_brand_kit_form_edits(blueprint, request.form)
 
+    # Guard against a user skipping every page — generation would
+    # succeed but produce an empty project, which surprises and
+    # wastes the AI call budget. Put the form back in session and
+    # warn instead.
+    if not blueprint.get("pages"):
+        session["pending_website_blueprint"] = blueprint
+        flash(
+            "Select at least one page to keep — every page was marked Skip.",
+            "warning",
+        )
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    # Persist the approved brand kit onto the workspace itself —
+    # next time the user runs Generate Full Website, build_demo_
+    # website_blueprint reads these fields and the brand kit starts
+    # from the user's customisations rather than the industry default.
+    # Also keeps the Brand Kit Studio (standalone editor) in sync.
+    if _is_hex_color(blueprint.get("primary_color")):
+        row.brand_primary_color = blueprint["primary_color"][:20]
+    if _is_hex_color(blueprint.get("secondary_color")):
+        row.brand_secondary_color = blueprint["secondary_color"][:20]
+    if _is_hex_color(blueprint.get("accent_color")):
+        row.brand_accent_color = blueprint["accent_color"][:20]
+    personality_list = blueprint.get("personality") or []
+    if isinstance(personality_list, list) and personality_list:
+        row.brand_personality = ", ".join(personality_list)[:255]
+    row.brand_kit_updated_at = utcnow()
+    row.brand_kit_approved_at = utcnow()
+
     project = GeneratedWebsiteProject(
         user_id=current_user.id,
         client_id=row.id,
@@ -2346,6 +2407,226 @@ def approve_website_brand_kit(client_id):
 
     flash("Website draft generated from approved brand kit.", "success")
     return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+@app.route("/client/<client_id>/website-builder/regenerate-palette", methods=["POST"])
+@login_required
+def regenerate_brand_kit_palette(client_id):
+    """Cycle the brand kit through its industry's palette variants.
+    Persists the new colours into the pending session blueprint and
+    redirects back to the brand-kit preview, so the user sees the
+    refreshed palette without losing any other edits they've made.
+
+    Until this route existed, the "Regenerate Palette" button in the
+    template was a non-functional type="button" stub."""
+    blueprint = session.get("pending_website_blueprint")
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    # Apply any in-flight form edits first so the user doesn't lose
+    # them when the page re-renders post-redirect.
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
+    industry_theme = blueprint.get("industry_theme") or "general"
+    current_variant = int(blueprint.get("palette_variant") or 0)
+    next_variant = current_variant + 1
+
+    primary, secondary, accent = get_palette_variant(industry_theme, next_variant)
+    blueprint["primary_color"] = primary
+    blueprint["secondary_color"] = secondary
+    blueprint["accent_color"] = accent
+    blueprint["palette_variant"] = next_variant
+
+    session["pending_website_blueprint"] = blueprint
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+
+@app.route("/client/<client_id>/website-builder/regenerate-aeo-ideas", methods=["POST"])
+@login_required
+def regenerate_brand_kit_aeo_ideas(client_id):
+    """Refresh the AEO focus list using LLM-driven query generation
+    (generate_queries() — gpt-4o-mini with template fallback). Each
+    click advances a cursor so the user sees a different slice of
+    the generated ideas, not the same 4 strings on every press.
+
+    Like regenerate_palette, this preserves in-flight form edits so
+    the user doesn't lose typed-in changes when the page re-renders.
+
+    The LLM gets the brand's products/services + style direction as
+    grounding so generated queries are anchored to what THIS business
+    actually sells, not the generic industry category."""
+    blueprint = session.get("pending_website_blueprint")
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
+    industry = blueprint.get("business_type") or ""
+    location = blueprint.get("location") or ""
+    services = blueprint.get("products_or_services") or blueprint.get("services") or []
+    if isinstance(services, str):
+        services = [s.strip() for s in services.replace("\n", ",").split(",") if s.strip()]
+
+    # Build a brand-context blob so the LLM produces queries anchored
+    # to what THIS business actually sells, not generic category
+    # queries. Mirrors how the audit query generator passes the home-
+    # page scan as ground truth.
+    context_parts = []
+    client_name = blueprint.get("client_name")
+    if client_name:
+        context_parts.append(f"Business: {client_name}")
+    if industry:
+        context_parts.append(f"Industry: {industry}")
+    if services:
+        context_parts.append("Products/services: " + ", ".join(services[:6]))
+    if blueprint.get("style_direction"):
+        context_parts.append(f"Style: {blueprint['style_direction']}")
+    brand_context = ". ".join(context_parts) or None
+
+    # generate_queries is LLM-first (OpenAI gpt-4o-mini) with a
+    # template fallback, so a missing API key or LLM error returns
+    # something useful rather than raising or returning [].
+    topic = industry or client_name or "business"
+    all_ideas = generate_queries(
+        topic=topic,
+        location=location or None,
+        brand_context=brand_context,
+    )
+
+    if all_ideas:
+        cursor = int(blueprint.get("aeo_variant") or 0) + 1
+        # Wrap so the cursor never grows unbounded.
+        start = (cursor * 4) % max(len(all_ideas), 1)
+        # Build the slice with wrap-around so a small idea pool still
+        # produces 4 distinct entries.
+        slice_size = min(4, len(all_ideas))
+        new_focus = [
+            all_ideas[(start + i) % len(all_ideas)]
+            for i in range(slice_size)
+        ]
+        blueprint["aeo_focus"] = new_focus
+        blueprint["aeo_variant"] = cursor
+
+    session["pending_website_blueprint"] = blueprint
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+
+@app.route("/client/<client_id>/website-builder/save-brand-kit", methods=["POST"])
+@login_required
+def save_website_brand_kit(client_id):
+    """Persist the in-flight brand kit to the workspace WITHOUT
+    triggering page generation. Lets users tune colours / personality
+    via the website-builder form and save their work without paying
+    the 15-25s 5-page-AI-generation cost.
+
+    Mirrors the brand-fields-write block from approve_website_brand_kit
+    but stops there — doesn't create a GeneratedWebsiteProject row or
+    fire any AI calls."""
+    client = get_client_by_id(client_id)
+    if not client:
+        abort(404)
+
+    row = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
+    if not row and str(client_id).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
+    if not row:
+        abort(404)
+
+    blueprint = session.get("pending_website_blueprint")
+    if not blueprint:
+        flash("Brand kit expired. Please generate it again.", "warning")
+        return redirect(url_for("website_builder_page", client_id=client_id))
+
+    blueprint = apply_brand_kit_form_edits(blueprint, request.form)
+
+    # Same persistence block as approve_website_brand_kit.
+    if _is_hex_color(blueprint.get("primary_color")):
+        row.brand_primary_color = blueprint["primary_color"][:20]
+    if _is_hex_color(blueprint.get("secondary_color")):
+        row.brand_secondary_color = blueprint["secondary_color"][:20]
+    if _is_hex_color(blueprint.get("accent_color")):
+        row.brand_accent_color = blueprint["accent_color"][:20]
+    personality_list = blueprint.get("personality") or []
+    if isinstance(personality_list, list) and personality_list:
+        row.brand_personality = ", ".join(personality_list)[:255]
+    row.brand_kit_updated_at = utcnow()
+    # Don't set brand_kit_approved_at — that's reserved for the
+    # full approve flow where the user commits to publishing-ready
+    # pages. Saving the kit alone is a softer milestone.
+
+    db.session.commit()
+
+    # Keep the pending blueprint in session so the user can keep
+    # editing without losing context after the save.
+    session["pending_website_blueprint"] = blueprint
+
+    flash("Brand kit saved to the workspace. Generate the website when you're ready.", "success")
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+
+@app.route("/client/<client_id>/website-builder/upload-logo", methods=["POST"])
+@login_required
+def upload_brand_kit_logo(client_id):
+    """Upload a logo for the brand kit. Writes to the existing
+    workspace_logos bucket — so the same file appears on the
+    dashboard, audit PDF, and generated website (one upload, many
+    surfaces). Falls back to the brand-kit preview on error so the
+    user keeps their in-flight edits."""
+    from services.storage import logo_storage
+
+    workspace = Client.query.filter_by(
+        slug=str(client_id), user_id=current_user.id
+    ).first()
+    if not workspace and str(client_id).isdigit():
+        workspace = Client.query.filter_by(
+            id=int(client_id), user_id=current_user.id
+        ).first()
+    if not workspace:
+        abort(404)
+
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("No file selected.", "warning")
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    # Same SVG-block reasoning as the other two logo routes — SVG
+    # can carry <script> + event handlers that would run in the
+    # app's origin when the logo is served back.
+    ext = (file.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in {"png", "jpg", "jpeg", "webp"}:
+        flash("Use PNG, JPG, or WEBP for the logo.", "warning")
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    new_name = f"workspace-{workspace.id}-{secrets.token_hex(4)}.{ext}"
+    try:
+        logo_storage.save("workspace_logos", new_name, file)
+    except Exception as exc:
+        logger.warning("Brand-kit logo upload failed: %s", exc)
+        flash("Could not save the logo. Try again.", "warning")
+        return redirect(url_for("preview_website_brand_kit", client_id=client_id))
+
+    # Replace the old workspace logo (best-effort delete).
+    if workspace.logo_filename:
+        logo_storage.delete("workspace_logos", workspace.logo_filename)
+    workspace.logo_filename = new_name
+    db.session.commit()
+
+    # Mirror the URL into the pending blueprint so the brand-kit
+    # preview avatar and the rendered website nav can both find it
+    # without re-querying the workspace.
+    blueprint = session.get("pending_website_blueprint")
+    if blueprint:
+        blueprint["logo_url"] = _workspace_logo_url(new_name)
+        session["pending_website_blueprint"] = blueprint
+
+    flash("Logo uploaded. It now appears on the brand kit and the website nav.", "success")
+    return redirect(url_for("preview_website_brand_kit", client_id=client_id))
 
 
 def apply_brand_kit_form_edits(blueprint, form):
@@ -2386,6 +2667,12 @@ def apply_brand_kit_form_edits(blueprint, form):
 
     pages = []
     for index, page in enumerate(edited.get("pages") or []):
+        # "Skip this page" checkbox on the brand-kit form. Anything
+        # truthy drops the page from the generation loop entirely
+        # — useful for clients that don't need a stock FAQ or About.
+        if form.get(f"page_remove_{index}"):
+            continue
+
         page_copy = dict(page)
         title = (form.get(f"page_title_{index}") or "").strip()
         slug = (form.get(f"page_slug_{index}") or "").strip()
@@ -2400,8 +2687,34 @@ def apply_brand_kit_form_edits(blueprint, form):
 
         pages.append(page_copy)
 
-    if pages:
-        edited["pages"] = pages
+    # Pick up any "Add a page" slots the user filled in. We accept up
+    # to 5 to leave room for future template changes; only non-empty
+    # titles count. Slug defaults to slugify(title); page_type defaults
+    # to "landing_page" since the user gave us no other hint.
+    for index in range(5):
+        title = (form.get(f"new_page_title_{index}") or "").strip()
+        if not title:
+            continue
+        slug_raw = (form.get(f"new_page_slug_{index}") or "").strip()
+        slug = slugify(slug_raw) or slugify(title) or f"page-{index}"
+        goal = (form.get(f"new_page_goal_{index}") or "").strip()
+
+        pages.append(
+            {
+                "title": title,
+                "slug": slug,
+                "page_type": "landing_page",
+                "goal": goal or f"Page about {title} for the business.",
+            }
+        )
+
+    # Always replace (even if empty) — user may have skipped every
+    # page from a previous edit. Empty list yields a 1-page site
+    # (just home) since the blueprint helper always seeds Home as
+    # the first entry, but if every page is skipped we should let
+    # the form re-render and warn rather than silently keep the
+    # originals. Falling back to originals would surprise the user.
+    edited["pages"] = pages
 
     return edited
 
@@ -2426,13 +2739,50 @@ def preview_website_project(project_id):
     if project.user_id != current_user.id:
         abort(403)
 
-    pages = (
+    all_pages = (
         GeneratedWebsitePage.query.filter_by(
             project_id=project.id, user_id=current_user.id
         )
         .order_by(GeneratedWebsitePage.id.asc())
         .all()
     )
+
+    # ?filter=unreviewed shows only pages the user hasn't yet
+    # reviewed; ?filter=unpublished shows pages still in draft.
+    # Default (no param / "all") shows every page. The filter
+    # operates AFTER the sort so the list is consistent.
+    filter_mode = (request.args.get("filter") or "all").lower()
+    if filter_mode == "unreviewed":
+        pages = [p for p in all_pages if not (p.page_json or {}).get("reviewed_at")]
+    elif filter_mode == "unpublished":
+        pages = [p for p in all_pages if p.status != "published"]
+    else:
+        filter_mode = "all"
+        pages = all_pages
+
+    # Within the filtered set, sort so "Needs review" pages float to
+    # the top — gives the user a clear todo at a glance. Already-
+    # reviewed pages keep their relative id order (page generation
+    # order, e.g. home → services → about) below the unreviewed ones.
+    pages = sorted(
+        pages,
+        key=lambda p: (
+            1 if (p.page_json or {}).get("reviewed_at") else 0,
+            p.id,
+        ),
+    )
+
+    # Counts for filter-bar badges. Computed off all_pages so the
+    # numbers don't change as the user toggles filters.
+    page_counts = {
+        "all": len(all_pages),
+        "unreviewed": sum(
+            1 for p in all_pages if not (p.page_json or {}).get("reviewed_at")
+        ),
+        "unpublished": sum(
+            1 for p in all_pages if p.status != "published"
+        ),
+    }
 
     webflow_status = get_webflow_setup_status()
     post_publish_tracking = build_post_publish_tracking(project)
@@ -2441,6 +2791,8 @@ def preview_website_project(project_id):
         "website_project_preview.html",
         project=project,
         pages=pages,
+        filter_mode=filter_mode,
+        page_counts=page_counts,
         blueprint=project.blueprint_json,
         webflow_enabled=is_webflow_configured(),
         webflow_status=webflow_status,
@@ -2448,10 +2800,46 @@ def preview_website_project(project_id):
         impact_report=build_post_publish_impact_report(project),
         mvp_readiness=build_website_mvp_readiness(
             project,
-            pages,
+            all_pages,  # readiness is a project-wide signal, not filtered
             webflow_status,
         ),
     )
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/delete", methods=["POST"]
+)
+@login_required
+def delete_website_project(project_id):
+    """Delete a generated-website project and its pages. Required
+    because users had no way to clean up draft projects — running
+    Generate Full Website 3× left 3 stuck drafts on the landing page
+    with no recourse short of database surgery.
+
+    Cascade-deletes pages first (they have a project_id FK without
+    cascade in the model definition), then the project. Owner check
+    + redirect to the website builder landing so the user lands
+    somewhere coherent."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        abort(403)
+
+    # Look up the client slug so we can redirect back to the right
+    # workspace's website-builder landing, even after the project
+    # row is gone.
+    client_row = Client.query.filter_by(id=project.client_id).first()
+    client_slug = client_row.slug if client_row else None
+
+    GeneratedWebsitePage.query.filter_by(project_id=project.id).delete(
+        synchronize_session=False
+    )
+    db.session.delete(project)
+    db.session.commit()
+
+    flash("Project deleted.", "success")
+    if client_slug:
+        return redirect(url_for("website_builder_page", client_id=client_slug))
+    return redirect(url_for("index"))
 
 
 @app.route(
@@ -2951,6 +3339,15 @@ def public_website_project(project_id):
         pages=pages,
         page_json=page.page_json,
         blueprint=project.blueprint_json,
+        # Canonical/og:url built via url_for(_external=True) — the
+        # same external-URL mechanism the Stripe success/cancel URLs
+        # rely on, so scheme/host stay consistent with the sitemap
+        # (which also uses _external=True). request.base_url would
+        # derive the scheme from the WSGI environ instead and could
+        # diverge behind a TLS-terminating proxy.
+        canonical_url=url_for(
+            "public_website_project", project_id=project.id, _external=True
+        ),
     )
 
 
@@ -2980,7 +3377,78 @@ def public_website_page(project_id, slug):
         pages=pages,
         page_json=page.page_json,
         blueprint=project.blueprint_json,
+        canonical_url=url_for(
+            "public_website_page",
+            project_id=project.id,
+            slug=page.slug,
+            _external=True,
+        ),
     )
+
+
+@app.route("/site/<int:project_id>/sitemap.xml")
+def public_website_sitemap(project_id):
+    """XML sitemap for a published project. Crawler discovery is the
+    whole point of an AEO product — a multi-page generated site with
+    no sitemap leaves answer engines to find pages by luck. 404s for
+    unpublished projects (same gate as the page routes) so drafts
+    aren't enumerable.
+
+    Home is emitted at /site/<id> (the canonical home URL the page
+    template also uses), other pages at /site/<id>/<slug>. lastmod
+    comes from each page's updated_at."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.status != "published":
+        abort(404)
+
+    pages = (
+        GeneratedWebsitePage.query.filter_by(
+            project_id=project.id, status="published"
+        )
+        .order_by(GeneratedWebsitePage.id.asc())
+        .all()
+    )
+
+    urls = []
+    for p in pages:
+        if p.slug == "home":
+            loc = url_for(
+                "public_website_project", project_id=project.id, _external=True
+            )
+        else:
+            loc = url_for(
+                "public_website_page",
+                project_id=project.id,
+                slug=p.slug,
+                _external=True,
+            )
+        lastmod = ""
+        if p.updated_at:
+            lastmod = f"<lastmod>{p.updated_at.strftime('%Y-%m-%d')}</lastmod>"
+        # escape() guards against a slug or URL that somehow carries
+        # an XML metacharacter — defensive, slugs are slugified but
+        # the loc is still user-influenced via the slug.
+        urls.append(
+            f"  <url><loc>{escape(loc)}</loc>{lastmod}</url>"
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>\n"
+    )
+    return Response(xml, mimetype="application/xml")
+
+
+# NOTE: deliberately NOT serving a per-project robots.txt. The
+# robots.txt spec only honours the file at the HOST root
+# (/robots.txt), and every generated site shares one host under
+# /site/<id>/, so a /site/<id>/robots.txt would never be fetched
+# by a crawler — shipping it would imply discovery behaviour that
+# doesn't actually work. The sitemap is instead surfaced via a
+# <link rel="sitemap"> in the page <head> (added in
+# generated_full_site.html) and is submittable directly.
 
 
 def build_demo_website_blueprint(client, opportunities=None):
@@ -2995,50 +3463,76 @@ def build_demo_website_blueprint(client, opportunities=None):
     client_name = client.get("name", "Business")
     location = client.get("location", "Singapore")
 
-    if any(word in industry for word in ["clinic", "health", "wellness", "dental", "medical", "aesthetic"]):
-        theme = "clinic_wellness"
-        style = "calm, clean, reassuring, health-focused"
-        functions = ["appointment booking", "contact form", "FAQ schema"]
+    # Shared classifier in brand_kit_engine. Map the canonical bucket
+    # to the demo-blueprint's theme names + per-theme style / functions
+    # / CTAs. Theme names stay as-is (referenced by .theme-* body
+    # classes and PALETTE_VARIANTS aliases) — only the classification
+    # is shared.
+    bucket = classify_industry_theme(industry)
+    bucket_to_demo = {
+        "clinic": {
+            "theme": "clinic_wellness",
+            "style": "calm, clean, reassuring, health-focused",
+            "functions": ["appointment booking", "contact form", "FAQ schema"],
+            "primary_cta": "Book an Appointment",
+            "secondary_cta": "View Services",
+        },
+        "education": {
+            "theme": "education_centre",
+            "style": "friendly, structured, parent-focused, trustworthy",
+            "functions": ["enquiry form", "programme cards", "FAQ schema"],
+            "primary_cta": "Enquire Now",
+            "secondary_cta": "View Services",
+        },
+        "food_and_beverage": {
+            "theme": "restaurant_cafe",
+            "style": "warm, visual, product-led, lifestyle-focused",
+            "functions": ["product grid", "menu/product section", "WhatsApp CTA"],
+            "primary_cta": "Shop Now",
+            "secondary_cta": "View Products",
+        },
+        "ecommerce": {
+            "theme": "ecommerce_store",
+            "style": "conversion-focused, product-led, clean, modern",
+            "functions": ["product grid", "checkout CTA", "FAQ schema"],
+            "primary_cta": "Shop Now",
+            "secondary_cta": "View Products",
+        },
+        "general": {
+            "theme": "professional_services",
+            "style": "premium, trustworthy, clear, professional",
+            "functions": ["lead form", "consultation CTA", "FAQ schema"],
+            "primary_cta": "Enquire Now",
+            "secondary_cta": "View Services",
+        },
+    }
+    demo = bucket_to_demo[bucket]
+    theme = demo["theme"]
+    style = demo["style"]
+    functions = demo["functions"]
+    primary_cta = demo["primary_cta"]
+    secondary_cta = demo["secondary_cta"]
 
-    elif any(word in industry for word in ["tuition", "education", "school", "enrichment", "learning"]):
-        theme = "education_centre"
-        style = "friendly, structured, parent-focused, trustworthy"
-        functions = ["enquiry form", "programme cards", "FAQ schema"]
-
-    elif any(word in industry for word in [
-        "restaurant", "cafe", "food", "f&b", "ice cream", "dessert",
-        "confectionery", "bakery", "beverage"
-    ]):
-        theme = "restaurant_cafe"
-        style = "warm, visual, product-led, lifestyle-focused"
-        functions = ["product grid", "menu/product section", "WhatsApp CTA"]
-
-    elif any(word in industry for word in [
-        "ecommerce", "e-commerce", "retail", "shop", "online store",
-        "merchandise", "products"
-    ]):
-        theme = "ecommerce_store"
-        style = "conversion-focused, product-led, clean, modern"
-        functions = ["product grid", "checkout CTA", "FAQ schema"]
-
-    else:
-        theme = "professional_services"
-        style = "premium, trustworthy, clear, professional"
-        functions = ["lead form", "consultation CTA", "FAQ schema"]
-
-    primary_cta = (
-        "Shop Now"
-        if theme in ["restaurant_cafe", "ecommerce_store"]
-        else "Book an Appointment"
-        if theme == "clinic_wellness"
-        else "Enquire Now"
+    brand_kit = generate_brand_kit(
+        business_name=client_name,
+        industry=client.get("industry", ""),
+        location=location,
+        services=client.get("services", "") or client.get("industry", ""),
     )
 
-    secondary_cta = (
-        "View Products"
-        if theme in ["restaurant_cafe", "ecommerce_store"]
-        else "View Services"
-    )
+    is_product_theme = theme in ["restaurant_cafe", "ecommerce_store"]
+
+    # Workspace brand persistence — if the user has approved a brand
+    # kit before (via this flow or the standalone Brand Kit Studio),
+    # their colour + personality choices live in client["brand_kit"]
+    # (serialize_client_row → brand_kit_dict). Prefer those over the
+    # industry defaults so a regenerate doesn't blow away the user's
+    # customisations.
+    persisted_brand = client.get("brand_kit") or {}
+    workspace_personality = persisted_brand.get("personality") or ""
+    workspace_personality_list = [
+        p.strip() for p in workspace_personality.split(",") if p.strip()
+    ] if workspace_personality else []
 
     brand_kit = generate_brand_kit(
         business_name=client_name,
@@ -3058,13 +3552,25 @@ def build_demo_website_blueprint(client, opportunities=None):
         "primary_cta": brand_kit.get("primary_cta") or primary_cta,
         "secondary_cta": brand_kit.get("secondary_cta") or secondary_cta,
         "functions": functions,
+        # If the workspace already has a logo (uploaded via the
+        # dashboard / audit flow), surface it in the brand kit so the
+        # user doesn't have to re-upload. Can be overwritten by the
+        # /upload-logo route during brand-kit editing.
+        "logo_url": client.get("logo_url"),
         # Brand kit fields used by the brand-kit preview template.
-        "personality": brand_kit.get("personality", []),
+        # Workspace persisted values win over industry defaults.
+        "personality": workspace_personality_list or brand_kit.get("personality", []),
         "tone_of_voice": brand_kit.get("tone_of_voice", ""),
         "visual_style": brand_kit.get("visual_style", ""),
-        "primary_color": brand_kit.get("primary_color", "#4f46e5"),
-        "secondary_color": brand_kit.get("secondary_color", "#eef2ff"),
-        "accent_color": brand_kit.get("accent_color", "#c7d2fe"),
+        "primary_color": (
+            persisted_brand.get("primary_color") or brand_kit.get("primary_color", "#4f46e5")
+        ),
+        "secondary_color": (
+            persisted_brand.get("secondary_color") or brand_kit.get("secondary_color", "#eef2ff")
+        ),
+        "accent_color": (
+            persisted_brand.get("accent_color") or brand_kit.get("accent_color", "#c7d2fe")
+        ),
         "text_color": brand_kit.get("text_color", "#0f172a"),
         "background_color": brand_kit.get("background_color", "#ffffff"),
         "font_style": brand_kit.get("font_style", ""),
@@ -3895,9 +4401,423 @@ def preview_generated_page(page_id):
     if page.user_id != current_user.id:
         abort(403)
 
+    # Pass the project's blueprint so the preview template can wire
+    # up brand-color CSS variables (--site-primary, --site-text, etc.)
+    # — without these, .site-feature-card h3 / .site-hero-card h3
+    # inherit the dashboard's dark theme and titles render invisible
+    # against the white card backgrounds.
+    blueprint = None
+    if page.project_id:
+        project = GeneratedWebsiteProject.query.get(page.project_id)
+        if project:
+            blueprint = project.blueprint_json
+
     return render_template(
-        "website_engine_preview.html", page=page, page_json=page.page_json
+        "website_engine_preview.html",
+        page=page,
+        page_json=page.page_json,
+        blueprint=blueprint,
     )
+
+
+@app.route("/website-engine/page/<int:page_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_generated_page(page_id):
+    """Hand-edit the AI-generated copy on a single page.
+
+    Until this route existed, the only way to change a generated
+    page's copy was to regenerate it (lose precision) or export to
+    Webflow and edit there. Now users can tweak headlines, subtext,
+    CTAs, FAQ items, and contact details directly without an extra
+    AI round-trip.
+
+    The form mirrors the section shape produced by build_generated_
+    site_page: hero / services / value_prop / proof / faq /
+    contact_details / story / cta / cta_block. Editable text fields
+    per section_type are listed in _EDITABLE_SECTION_FIELDS below."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    if request.method == "POST":
+        page_json = dict(page.page_json or {})
+        sections = list(page_json.get("sections") or [])
+
+        for idx, section in enumerate(sections):
+            if not isinstance(section, dict):
+                continue
+            section_type = section.get("type") or ""
+            editable = _EDITABLE_SECTION_FIELDS.get(section_type, [])
+            for field in editable:
+                form_name = f"section_{idx}_{field}"
+                value = (request.form.get(form_name) or "").strip()
+                if value:
+                    section[field] = value
+
+            # Items (services, value_prop, faq, contact_details). Each
+            # item has its own indexed fields per the section type.
+            for item_idx, item in enumerate(section.get("items") or []):
+                if not isinstance(item, dict):
+                    continue
+                item_fields = (
+                    ["question", "answer"]
+                    if section_type == "faq"
+                    else ["title", "description"]
+                )
+                for field in item_fields:
+                    form_name = f"section_{idx}_item_{item_idx}_{field}"
+                    value = (request.form.get(form_name) or "").strip()
+                    if value:
+                        item[field] = value
+
+        # Page-level title + SEO description, which the public site
+        # uses for the nav label + meta description.
+        new_title = (request.form.get("page_title") or "").strip()
+        if new_title:
+            page.title = new_title[:200]
+            page_json["title"] = new_title
+
+        seo = dict(page_json.get("seo") or {})
+        new_desc = (request.form.get("seo_description") or "").strip()
+        if new_desc:
+            seo["meta_description"] = new_desc
+            seo["description"] = new_desc
+            page_json["seo"] = seo
+
+        page_json["sections"] = sections
+        # Editing a page implies the user has reviewed it — stamp the
+        # timestamp so the project preview can surface "reviewed"
+        # badges without requiring an extra explicit click.
+        page_json["reviewed_at"] = utcnow().replace(microsecond=0).isoformat() + "Z"
+        page.page_json = page_json
+        flag_modified(page, "page_json")
+        db.session.commit()
+
+        flash("Page content saved.", "success")
+        return redirect(url_for("preview_generated_page", page_id=page.id))
+
+    return render_template(
+        "website_engine_edit.html",
+        page=page,
+        page_json=page.page_json or {},
+        editable_section_fields=_EDITABLE_SECTION_FIELDS,
+    )
+
+
+# Per-section-type editable text field whitelist. Anything not in
+# this map is left alone — keeps the route from accidentally
+# overwriting structural fields like `type` or `slug`.
+#
+# Non-hero sections also carry eyebrow kickers (rendered as the
+# small uppercase text above the section heading — see
+# website_engine_render.html's site-kicker), so include eyebrow on
+# every section type that the renderer reads it for. The AI prompt
+# templates don't currently emit eyebrows on every section, but
+# users may want to add them — having the field editable doesn't
+# create one out of thin air, it just lets the user fill in.
+_EDITABLE_SECTION_FIELDS = {
+    "hero": ["eyebrow", "headline", "subtext", "primary_cta", "secondary_cta"],
+    "services": ["eyebrow", "headline"],
+    "value_prop": ["eyebrow", "headline"],
+    "proof": ["eyebrow", "headline"],
+    "faq": ["eyebrow", "headline"],
+    "contact_details": ["eyebrow", "headline"],
+    "story": ["eyebrow", "headline", "body"],
+    "cta": ["headline", "body", "subtext", "button"],
+    "cta_block": ["headline", "body", "subtext", "primary_cta", "secondary_cta"],
+}
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/regenerate-all",
+    methods=["POST"],
+)
+@login_required
+def regenerate_all_project_pages(project_id):
+    """Bulk-regenerate every page in the project. Useful when the
+    user has changed the brand kit and wants the whole site to
+    reflect it, without clicking Regenerate on each page card.
+
+    Costs N AI calls (one per page), so this is a heavier action
+    than the per-page version. We clear reviewed_at on each page
+    since the content is fresh and the user should re-review.
+    Preserves slug + page_type + webflow export state per page so
+    URLs and CMS bindings don't shift."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        abort(403)
+
+    blueprint = project.blueprint_json or {}
+
+    client = get_client_by_id(str(project.client_id))
+    if not client:
+        client_row = Client.query.filter_by(
+            id=project.client_id, user_id=current_user.id
+        ).first()
+        client = {
+            "name": getattr(client_row, "name", "Business") if client_row else "Business",
+            "industry": getattr(client_row, "industry", "") if client_row else "",
+            "location": getattr(client_row, "location", "Singapore") if client_row else "Singapore",
+        }
+
+    pages = GeneratedWebsitePage.query.filter_by(project_id=project.id).all()
+    regenerated = 0
+    for page in pages:
+        existing = page.page_json or {}
+        page_config = {
+            "title": page.title,
+            "slug": page.slug,
+            "page_type": page.page_type,
+            "goal": (existing.get("seo") or {}).get("description") or "",
+        }
+        new_page_json = build_generated_site_page(client, blueprint, page_config)
+        new_page_json["slug"] = page.slug
+        new_page_json["page_type"] = page.page_type
+        if existing.get("webflow"):
+            new_page_json["webflow"] = existing["webflow"]
+        # Fresh content needs fresh review — drop the prior
+        # reviewed_at so the project preview surfaces the new pages
+        # as "Needs review" again.
+        new_page_json.pop("reviewed_at", None)
+        page.page_json = new_page_json
+        flag_modified(page, "page_json")
+        # Commit per page rather than once after the whole loop.
+        # This route makes N sequential AI calls (3-8s each); on a
+        # strict proxy/gunicorn timeout the request can die mid-loop.
+        # A trailing single commit would mean a timeout at page 4
+        # discards pages 1-3 too — the user's site ends up fully
+        # stale despite minutes of AI work. Per-page commits make
+        # progress durable: a timeout leaves the already-regenerated
+        # pages saved, and re-running picks up where it left off.
+        # (Background-job rearchitecture is the real fix for the
+        # latency itself — tracked separately.)
+        db.session.commit()
+        regenerated += 1
+
+    flash(f"Regenerated {regenerated} page(s) with fresh AI content.", "success")
+    return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+@app.route(
+    "/website-builder/project/<int:project_id>/mark-all-reviewed",
+    methods=["POST"],
+)
+@login_required
+def mark_all_project_pages_reviewed(project_id):
+    """Bulk-mark every page in the project as reviewed. Convenient
+    when the user does a once-over of all pages and accepts the AI
+    output rather than clicking Mark Reviewed on each one
+    individually.
+
+    Like the per-page route, stores the timestamp on each page's
+    page_json["reviewed_at"]. Skips pages already reviewed so this
+    is idempotent — re-clicking doesn't bump everything to "now"."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        abort(403)
+
+    now_iso = utcnow().replace(microsecond=0).isoformat() + "Z"
+    pages = GeneratedWebsitePage.query.filter_by(project_id=project.id).all()
+    marked = 0
+    for page in pages:
+        page_json = dict(page.page_json or {})
+        if page_json.get("reviewed_at"):
+            continue
+        page_json["reviewed_at"] = now_iso
+        page.page_json = page_json
+        flag_modified(page, "page_json")
+        marked += 1
+
+    db.session.commit()
+    if marked:
+        flash(f"Marked {marked} page(s) as reviewed.", "success")
+    else:
+        flash("All pages were already marked reviewed.", "info")
+    return redirect(url_for("preview_website_project", project_id=project.id))
+
+
+@app.route("/website-engine/page/<int:page_id>/mark-reviewed", methods=["POST"])
+@login_required
+def mark_generated_page_reviewed(page_id):
+    """Flag a page as reviewed by the user. Sets page_json["reviewed_at"]
+    to an ISO timestamp so the project-preview page list can show a
+    badge, telling the user at a glance which AI-generated pages
+    they've already gone over.
+
+    Stored on page_json rather than a new column to avoid a migration
+    for a UX-only signal."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    page_json = dict(page.page_json or {})
+    page_json["reviewed_at"] = utcnow().replace(microsecond=0).isoformat() + "Z"
+    page.page_json = page_json
+    flag_modified(page, "page_json")
+    db.session.commit()
+
+    flash("Page marked as reviewed.", "success")
+    return redirect(url_for("preview_generated_page", page_id=page.id))
+
+
+@app.route(
+    "/website-engine/page/<int:page_id>/section/<int:section_index>/regenerate",
+    methods=["POST"],
+)
+@login_required
+def regenerate_generated_page_section(page_id, section_index):
+    """Regenerate JUST one section, preserving the user's edits to
+    the rest of the page. Pairs with regenerate_generated_page for
+    full-page regen and the /edit route for hand tweaks — together
+    they cover all the iteration cases.
+
+    Implementation: re-run the same page generator (AI-first with
+    rule-based fallback), then splice the fresh section at the same
+    index back into the user's existing page_json. Section type
+    mismatches abort with a flash so we don't accidentally turn a
+    hero into a contact-details block."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    existing = page.page_json or {}
+    sections = list(existing.get("sections") or [])
+    if section_index < 0 or section_index >= len(sections):
+        flash("Section index out of range.", "warning")
+        return redirect(url_for("edit_generated_page", page_id=page.id))
+
+    target_type = sections[section_index].get("type")
+
+    project = (
+        GeneratedWebsiteProject.query.get(page.project_id)
+        if page.project_id
+        else None
+    )
+    if not project:
+        flash("Cannot regenerate — project not found.", "warning")
+        return redirect(url_for("edit_generated_page", page_id=page.id))
+    blueprint = project.blueprint_json or {}
+
+    client = get_client_by_id(str(project.client_id))
+    if not client:
+        client_row = Client.query.filter_by(
+            id=project.client_id, user_id=current_user.id
+        ).first()
+        client = {
+            "name": getattr(client_row, "name", "Business") if client_row else "Business",
+            "industry": getattr(client_row, "industry", "") if client_row else "",
+            "location": getattr(client_row, "location", "Singapore") if client_row else "Singapore",
+        }
+
+    page_config = {
+        "title": page.title,
+        "slug": page.slug,
+        "page_type": page.page_type,
+        "goal": (existing.get("seo") or {}).get("description") or "",
+    }
+    new_page_json = build_generated_site_page(client, blueprint, page_config)
+    new_sections = new_page_json.get("sections") or []
+
+    # Find a section of the same type in the regenerated output. The
+    # generator emits sections in a deterministic-ish order so same-
+    # index is the first try, but for resilience scan by type.
+    replacement = None
+    if (
+        section_index < len(new_sections)
+        and new_sections[section_index].get("type") == target_type
+    ):
+        replacement = new_sections[section_index]
+    else:
+        for candidate in new_sections:
+            if candidate.get("type") == target_type:
+                replacement = candidate
+                break
+
+    if not replacement:
+        flash(
+            f"Could not regenerate the {target_type} section — the model"
+            " did not return one of that type. Try regenerating the whole page.",
+            "warning",
+        )
+        return redirect(url_for("edit_generated_page", page_id=page.id))
+
+    sections[section_index] = replacement
+    existing["sections"] = sections
+    page.page_json = existing
+    flag_modified(page, "page_json")
+    db.session.commit()
+
+    flash(f"Regenerated the {target_type} section.", "success")
+    return redirect(url_for("edit_generated_page", page_id=page.id))
+
+
+@app.route("/website-engine/page/<int:page_id>/regenerate", methods=["POST"])
+@login_required
+def regenerate_generated_page(page_id):
+    """Re-run AI generation for a single page using the existing
+    project blueprint. Replaces the page's page_json in place,
+    preserving slug + page_type + status (so a published page stays
+    published with fresh content). Falls back to the rule-based
+    generator on AI failure, same as the initial generation path.
+
+    Until this route existed, the user got one AI shot per page at
+    approval time and had no way to iterate without restarting the
+    whole brand-kit flow."""
+    page = GeneratedWebsitePage.query.get_or_404(page_id)
+    if page.user_id != current_user.id:
+        abort(403)
+
+    project = (
+        GeneratedWebsiteProject.query.get(page.project_id)
+        if page.project_id
+        else None
+    )
+    if not project:
+        flash("Cannot regenerate — project not found.", "warning")
+        return redirect(url_for("preview_generated_page", page_id=page.id))
+
+    blueprint = project.blueprint_json or {}
+
+    # Look up the client for this project so the generator has the
+    # full context (logo_url, location, etc.) it expects.
+    client = get_client_by_id(str(project.client_id))
+    if not client:
+        client_row = Client.query.filter_by(
+            id=project.client_id, user_id=current_user.id
+        ).first()
+        client = {
+            "name": getattr(client_row, "name", "Business") if client_row else "Business",
+            "industry": getattr(client_row, "industry", "") if client_row else "",
+            "location": getattr(client_row, "location", "Singapore") if client_row else "Singapore",
+        }
+
+    # Build page_config from what's persisted on the page row so we
+    # regenerate the SAME page, not a fresh one with a different slug.
+    existing = page.page_json or {}
+    page_config = {
+        "title": page.title,
+        "slug": page.slug,
+        "page_type": page.page_type,
+        "goal": (existing.get("seo") or {}).get("description") or "",
+    }
+
+    new_page_json = build_generated_site_page(client, blueprint, page_config)
+
+    # Preserve identity fields — the generator can produce a slightly
+    # different slug / page_type via its enrichment pass, but for an
+    # in-place regenerate we want to keep the row's existing identity
+    # so URLs and webflow exports don't shift under the user's feet.
+    new_page_json["slug"] = page.slug
+    new_page_json["page_type"] = page.page_type
+    if existing.get("webflow"):
+        new_page_json["webflow"] = existing["webflow"]
+
+    page.page_json = new_page_json
+    flag_modified(page, "page_json")
+    db.session.commit()
+
+    flash("Page regenerated with fresh AI content.", "success")
+    return redirect(url_for("preview_generated_page", page_id=page.id))
 
 
 @app.route("/website-engine/page/<int:page_id>/publish", methods=["POST"])
@@ -3925,7 +4845,15 @@ def public_generated_page(page_id, slug):
         abort(404)
 
     return render_template(
-        "website_engine_public.html", page=page, page_json=page.page_json
+        "website_engine_public.html",
+        page=page,
+        page_json=page.page_json,
+        canonical_url=url_for(
+            "public_generated_page",
+            page_id=page.id,
+            slug=page.slug,
+            _external=True,
+        ),
     )
 
 

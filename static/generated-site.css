@@ -92,8 +92,15 @@
     text-transform: uppercase;
 }
 
-.site-hero h1,
-.site-section h2 {
+/* Scoped under the wrapper class so the dashboard's
+   `html[data-theme="dark"] h1, h2` rule doesn't win on specificity
+   and turn hero headlines near-white against the light hero gradient.
+   Same fix as the h3 rule a few lines below; missed h1/h2 in the
+   first pass. */
+.generated-site-body .site-hero h1,
+.generated-site-body .site-section h2,
+.generated-site-preview .site-hero h1,
+.generated-site-preview .site-section h2 {
     margin: 0;
     color: var(--site-text);
     line-height: 1.08;
@@ -183,17 +190,31 @@
     font-weight: 900;
 }
 
-.site-hero-card h3,
-.site-feature-card h3,
-.site-faq-card h3 {
+/* Scoped under the wrapper class so these win over the dashboard's
+   global `html[data-theme="dark"] h3` rule. Both the public site
+   (.generated-site-body on <body>) and the in-dashboard preview
+   (.generated-site-preview on a wrapper div) carry one of these
+   classes, so a single nested rule covers both. Without the
+   wrapper prefix the dashboard's dark theme makes h3s near-white
+   on the white card background, making titles invisible. */
+.generated-site-body .site-hero-card h3,
+.generated-site-body .site-feature-card h3,
+.generated-site-body .site-faq-card h3,
+.generated-site-preview .site-hero-card h3,
+.generated-site-preview .site-feature-card h3,
+.generated-site-preview .site-faq-card h3 {
     margin: 0 0 10px;
     color: var(--site-text);
 }
 
-.site-hero-card p,
-.site-feature-card p,
-.site-faq-card p,
-.site-cta p {
+.generated-site-body .site-hero-card p,
+.generated-site-body .site-feature-card p,
+.generated-site-body .site-faq-card p,
+.generated-site-body .site-cta p,
+.generated-site-preview .site-hero-card p,
+.generated-site-preview .site-feature-card p,
+.generated-site-preview .site-faq-card p,
+.generated-site-preview .site-cta p {
     margin: 0;
     color: var(--site-muted);
     line-height: 1.75;
@@ -307,4 +328,185 @@
     .site-button {
         width: 100%;
     }
+}
+
+/* ---------------------------------------------------------------------
+   Visual styles — chosen in the brand-kit preview (visual_style radio
+   set). The class is applied on .generated-site-body (public site) and
+   .generated-site-preview (in-dashboard page preview). Each style
+   adjusts typography, density, border radius, and button shape so the
+   four options actually look different. Brand colours stay the same
+   across all four — only the styling changes.
+--------------------------------------------------------------------- */
+
+/* Premium minimal — generous whitespace, tighter typography, thin
+   borders, smaller buttons. Reads like a high-end services brand. */
+.style-premium_minimal .site-section,
+.generated-site-preview.style-premium_minimal .site-section {
+    padding-top: 120px;
+    padding-bottom: 120px;
+}
+.style-premium_minimal h1,
+.style-premium_minimal h2,
+.generated-site-preview.style-premium_minimal h1,
+.generated-site-preview.style-premium_minimal h2 {
+    font-weight: 500;
+    letter-spacing: -0.025em;
+}
+.style-premium_minimal .site-feature-card,
+.style-premium_minimal .site-hero-card,
+.style-premium_minimal .site-faq-card,
+.generated-site-preview.style-premium_minimal .site-feature-card,
+.generated-site-preview.style-premium_minimal .site-hero-card,
+.generated-site-preview.style-premium_minimal .site-faq-card {
+    border-radius: 8px;
+    border-width: 1px;
+    box-shadow: none;
+}
+.style-premium_minimal .site-button,
+.generated-site-preview.style-premium_minimal .site-button {
+    padding: 12px 22px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* Editorial lifestyle — serif headings, generous line-height, refined,
+   reads like a magazine. Best for content-heavy brands. */
+.style-editorial_lifestyle h1,
+.style-editorial_lifestyle h2,
+.style-editorial_lifestyle h3,
+.generated-site-preview.style-editorial_lifestyle h1,
+.generated-site-preview.style-editorial_lifestyle h2,
+.generated-site-preview.style-editorial_lifestyle h3 {
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+.style-editorial_lifestyle .site-lede,
+.style-editorial_lifestyle .site-feature-card p,
+.style-editorial_lifestyle .site-faq-card p,
+.generated-site-preview.style-editorial_lifestyle .site-lede,
+.generated-site-preview.style-editorial_lifestyle .site-feature-card p,
+.generated-site-preview.style-editorial_lifestyle .site-faq-card p {
+    line-height: 1.9;
+    font-size: 1.05rem;
+}
+.style-editorial_lifestyle .site-feature-card,
+.style-editorial_lifestyle .site-hero-card,
+.style-editorial_lifestyle .site-faq-card,
+.generated-site-preview.style-editorial_lifestyle .site-feature-card,
+.generated-site-preview.style-editorial_lifestyle .site-hero-card,
+.generated-site-preview.style-editorial_lifestyle .site-faq-card {
+    border-radius: 12px;
+}
+.style-editorial_lifestyle .site-button,
+.generated-site-preview.style-editorial_lifestyle .site-button {
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+/* Playful brand — rounded everything, friendly, brand colour heavy.
+   Good for D2C food, kids, lifestyle. */
+.style-playful_brand .site-feature-card,
+.style-playful_brand .site-hero-card,
+.style-playful_brand .site-faq-card,
+.generated-site-preview.style-playful_brand .site-feature-card,
+.generated-site-preview.style-playful_brand .site-hero-card,
+.generated-site-preview.style-playful_brand .site-faq-card {
+    border-radius: 32px;
+    border-width: 0;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+.style-playful_brand .site-button,
+.generated-site-preview.style-playful_brand .site-button {
+    border-radius: 999px;
+    padding: 16px 32px;
+}
+.style-playful_brand .site-proof-pill,
+.generated-site-preview.style-playful_brand .site-proof-pill {
+    border-radius: 999px;
+    padding: 14px 22px;
+}
+.style-playful_brand .site-hero-visual,
+.style-playful_brand .site-card-visual,
+.generated-site-preview.style-playful_brand .site-hero-visual,
+.generated-site-preview.style-playful_brand .site-card-visual {
+    border-radius: 32px;
+}
+
+/* Modern ecommerce is the default look — explicit class for
+   future-proofing but no overrides needed today. */
+
+
+/* ---------------------------------------------------------------------
+   Industry themes — layered ON TOP of visual_style so e.g. a clinic
+   picking "Premium Minimal" still feels different from an ecommerce
+   store on "Premium Minimal". Themes adjust eyebrow case and section
+   colour tone; visual_style still drives radius / typography / button
+   shape. These rules use .generated-site-body and
+   .generated-site-preview prefixes so they win over the dashboard's
+   dark-theme cascade (same fix pattern as the h1/h2/h3 specificity
+   work earlier in this PR).
+--------------------------------------------------------------------- */
+
+/* Clinic — gentler kicker, calmer section tone. */
+.generated-site-body.theme-clinic_wellness .site-kicker,
+.generated-site-preview.theme-clinic_wellness .site-kicker {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+    color: var(--site-primary);
+}
+.generated-site-body.theme-clinic_wellness .site-section-light,
+.generated-site-preview.theme-clinic_wellness .site-section-light {
+    background: color-mix(in srgb, var(--site-primary-soft) 60%, white);
+}
+
+/* Education — friendly, mid-tone kicker with rounded mood. */
+.generated-site-body.theme-education_centre .site-kicker,
+.generated-site-preview.theme-education_centre .site-kicker {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+}
+
+/* Restaurant / cafe — warmer section background tilt. */
+.generated-site-body.theme-restaurant_cafe .site-section-light,
+.generated-site-preview.theme-restaurant_cafe .site-section-light {
+    background: color-mix(in srgb, var(--site-primary-soft) 75%, white);
+}
+
+/* Ecommerce — slightly more prominent CTA via heavier eyebrow. */
+.generated-site-body.theme-ecommerce_store .site-kicker,
+.generated-site-preview.theme-ecommerce_store .site-kicker {
+    font-weight: 850;
+    letter-spacing: 0.1em;
+}
+
+/* Professional services — default uppercase tracked kicker stays;
+   add only a subtler section background tint. */
+.generated-site-body.theme-professional_services .site-section-light,
+.generated-site-preview.theme-professional_services .site-section-light {
+    background: color-mix(in srgb, var(--site-primary-soft) 45%, white);
+}
+
+
+/* Visually-hidden but in the accessibility tree + document outline.
+   Used for the fallback <h1> emitted on hero-less pages so the
+   document always has exactly one top-level heading without
+   showing a redundant title above the first visible section.
+   Standard clip pattern (not display:none, which would remove it
+   from the outline and defeat the purpose). */
+.site-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
