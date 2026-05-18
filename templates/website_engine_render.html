@@ -15,6 +15,23 @@
     {% set hero_badge = "✦" %}
 {% endif %}
 
+{# Hero-CTA anchor resolution. The hero's primary button targeted
+   #contact and secondary #details unconditionally, but those ids
+   only exist on certain section types:
+     #contact  ← cta / cta_block / contact_details
+     #details  ← services / value_prop
+   On a FAQ or Contact page (hero + faq/contact_details + cta_block,
+   no services/value_prop) the secondary CTA was a dead anchor — a
+   button that invites a click and silently scrolls to top. Same if
+   a user skips the cta section. Resolve each hero CTA to an anchor
+   that actually exists on THIS page; fall back to the other anchor,
+   then to "#" only if the page is hero-only (nothing to link to). #}
+{% set _types = page_json.sections | map(attribute="type") | list %}
+{% set _has_contact = ("cta" in _types) or ("cta_block" in _types) or ("contact_details" in _types) %}
+{% set _has_details = ("services" in _types) or ("value_prop" in _types) %}
+{% set hero_primary_href = "#contact" if _has_contact else ("#details" if _has_details else "#") %}
+{% set hero_secondary_href = "#details" if _has_details else ("#contact" if _has_contact else "#") %}
+
 {% for section in page_json.sections %}
 
     {% if section.type == "hero" %}
@@ -33,13 +50,13 @@
 
                 <div class="site-button-row">
                     {% if section.primary_cta %}
-                    <a href="#contact" class="site-button site-button-primary">
+                    <a href="{{ hero_primary_href }}" class="site-button site-button-primary">
                         {{ section.primary_cta }}
                     </a>
                     {% endif %}
 
                     {% if section.secondary_cta %}
-                    <a href="#details" class="site-button site-button-secondary">
+                    <a href="{{ hero_secondary_href }}" class="site-button site-button-secondary">
                         {{ section.secondary_cta }}
                     </a>
                     {% endif %}

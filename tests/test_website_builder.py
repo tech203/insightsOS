@@ -2306,6 +2306,70 @@ def test_regenerate_section_rejects_other_users(app_ctx):
     ).status_code == 403
 
 
+def _render_engine(sections):
+    from flask import render_template
+    from app import app as flask_app
+    pj = {
+        "sections": sections,
+        "semantic_profile": {"entity_name": "x", "entity_type": "agency"},
+    }
+    page = type("P", (), {"id": 1, "title": "x", "page_json": pj})()
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            return render_template(
+                "website_engine_render.html", page=page, page_json=pj
+            )
+
+
+def test_hero_ctas_resolve_to_existing_anchors_per_page_shape():
+    """The hero primary/secondary CTAs must point at an anchor that
+    actually exists on the page. Regression: #details was hardcoded
+    even on FAQ/Contact pages (no services/value_prop section) so
+    the secondary CTA was a dead scroll-to-top link."""
+    HERO = {
+        "type": "hero", "headline": "h",
+        "primary_cta": "Get Started", "secondary_cta": "Learn More",
+    }
+
+    # Home-style: has services (#details) and cta_block (#contact).
+    html = _render_engine([
+        HERO,
+        {"type": "services", "headline": "S", "items": []},
+        {"type": "cta_block", "headline": "C", "primary_cta": "Go"},
+    ])
+    assert 'href="#contact" class="site-button site-button-primary"' in html
+    assert 'href="#details" class="site-button site-button-secondary"' in html
+
+    # FAQ-style: hero + faq + cta_block. No services/value_prop, so
+    # #details doesn't exist — secondary must fall back to #contact,
+    # never emit a dead #details.
+    html = _render_engine([
+        HERO,
+        {"type": "faq", "headline": "F", "items": []},
+        {"type": "cta_block", "headline": "C", "primary_cta": "Go"},
+    ])
+    assert 'href="#contact" class="site-button site-button-primary"' in html
+    assert 'href="#contact" class="site-button site-button-secondary"' in html
+    assert 'href="#details"' not in html  # no dead anchor
+
+    # Contact-style: hero + contact_details (#contact) + cta_block.
+    html = _render_engine([
+        HERO,
+        {"type": "contact_details", "headline": "Reach us", "items": []},
+        {"type": "cta_block", "headline": "C", "primary_cta": "Go"},
+    ])
+    assert 'href="#details"' not in html
+    assert html.count('href="#contact"') >= 2  # both hero CTAs
+
+    # Hero-only page: nothing to link to → both fall back to "#"
+    # (current behaviour, no dead in-page anchor).
+    html = _render_engine([HERO])
+    assert 'href="#" class="site-button site-button-primary"' in html
+    assert 'href="#" class="site-button site-button-secondary"' in html
+    assert 'href="#contact"' not in html
+    assert 'href="#details"' not in html
+
+
 def test_renderer_shows_both_ctas_on_cta_block():
     """cta_block sections from the AI generator carry primary_cta +
     secondary_cta. The edit form lets users set both, but the
