@@ -282,27 +282,33 @@ Keep the test-mode env values in your notepad. Recovery sequence:
 
 These don't block ship but are worth doing in week 1:
 
-- [ ] **Sentry / error monitoring** connected so you see 500s as
+- [x] **Sentry / error monitoring** connected so you see 500s as
       they happen. The `_apply_security_headers` already strips the
       `Server` header so scanners can't fingerprint your stack —
       Sentry tells you what's actually breaking.
+      ✅ Shipped in PR #183 (`SENTRY_DSN` wires `sentry_sdk`). Still
+      needs the env var set with a real project DSN in prod.
 - [ ] **CSP cutover from report-only to enforcing.** PR #141
       shipped CSP in report-only mode. After a few days of telemetry,
       flip the header name in `app.py` (`Content-Security-Policy-
       Report-Only` → `Content-Security-Policy`) and delete the
       sentinel test in `tests/test_security_headers.py::
       test_csp_not_yet_in_enforcing_mode`.
-- [ ] **GDPR UI forms** wired into `/settings/account` template.
+- [x] **GDPR UI forms** wired into `/settings/account` template.
       The endpoints exist (PR #149: `/settings/account/delete` +
       `/settings/account/export-data`) — they just need form HTML.
+      ✅ Form HTML shipped in PR #181.
 - [ ] **Audit log review** for past IDOR exploitation. PR #120
       fixed the audit-file IDOR. Worth checking access logs for
       requests like `GET /audit/<filename>` where the requesting
       user's ID didn't match the audit file's `user_id`. Anyone
       who scraped data before the fix won't show up post-fix.
-- [ ] **Add CSP `report-uri`** pointing at a violation collector
+- [x] **Add CSP `report-uri`** pointing at a violation collector
       (Sentry has one, or self-host with `csp-violation-handler`).
       Without it, violation reports go to the browser console only.
+      ✅ Wired in PR #183 — `app.py` emits `report-uri`/`report-to`
+      when `CSP_REPORT_URI` is configured. Still needs the env var
+      pointed at a real collector in prod.
 - [ ] **Regenerate `SECRET_KEY` periodically** (every 6-12 months).
       All sessions are invalidated on rotation — annoying for users,
       but limits the blast radius of a hypothetical key compromise.
