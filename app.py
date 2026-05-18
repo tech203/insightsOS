@@ -6520,12 +6520,34 @@ def settings_team():
 # without directly editing Webflow Designer. All exports are created as drafts by default.
 
 
+def _resolve_client_db_id(client_ref):
+    """Map a client slug or numeric id (the forms used across routes and
+    content-queue items) to the integer clients.id that
+    WebflowConnection.client_id references. Returns None when it can't be
+    resolved, so the caller falls back to the user's default connection.
+    Idempotent for the clients.id integers the project-export path passes."""
+    if client_ref in (None, ""):
+        return None
+    row = Client.query.filter_by(
+        slug=str(client_ref), user_id=current_user.id
+    ).first()
+    if row is None and str(client_ref).isdigit():
+        row = Client.query.filter_by(
+            id=int(client_ref), user_id=current_user.id
+        ).first()
+    return row.id if row else None
+
+
 def get_webflow_connection(client_id=None):
     """Return the WebflowConnection for the current user, preferring a
-    client-scoped row and falling back to the user's default (client_id NULL)."""
-    if client_id is not None:
+    client-scoped row and falling back to the user's default (client_id NULL).
+
+    client_id may be a clients.id integer (project-export path) or a client
+    slug (content-queue / export-API path); both resolve to the right row."""
+    db_client_id = _resolve_client_db_id(client_id)
+    if db_client_id is not None:
         scoped = WebflowConnection.query.filter_by(
-            user_id=current_user.id, client_id=client_id
+            user_id=current_user.id, client_id=db_client_id
         ).first()
         if scoped:
             return scoped
@@ -6608,7 +6630,8 @@ def push_content_queue_item_to_webflow(item):
     """
     from services.webflow_client import WebflowAPIError
 
-    blog_collection_id = webflow_collection_id_for("blog")
+    client_ref = item.get("client_id")
+    blog_collection_id = webflow_collection_id_for("blog", client_ref)
     if not blog_collection_id or blog_collection_id.startswith("your_"):
         return "skipped", "No Webflow blog collection mapped — published locally only."
 
@@ -6630,7 +6653,7 @@ def push_content_queue_item_to_webflow(item):
     }
 
     try:
-        client = build_webflow_cms_client()
+        client = build_webflow_cms_client(client_ref)
         existing_item_id = existing.get("item_id")
         if existing_item_id:
             client.update_item(blog_collection_id, existing_item_id, field_data)
@@ -7101,15 +7124,16 @@ def webflow_export_blog(item_id):
     try:
         from services.webflow_client import WebflowAPIError, WebflowConfigError
 
-        blog_collection_id = webflow_collection_id_for("blog")
+        data = request.get_json() or {}
+        client_ref = data.get("client_id")
+        blog_collection_id = webflow_collection_id_for("blog", client_ref)
         if not blog_collection_id or blog_collection_id.startswith("your_"):
             return jsonify({
                 "success": False,
                 "message": "Webflow blog collection not configured. Connect Webflow and map a blog collection in Integration settings."
             }), 400
 
-        data = request.get_json() or {}
-        client = build_webflow_cms_client()
+        client = build_webflow_cms_client(client_ref)
         
         # Build field data for Webflow
         field_data = {
@@ -7221,15 +7245,16 @@ def webflow_export_faq(item_id):
     try:
         from services.webflow_client import WebflowAPIError, WebflowConfigError
 
-        faq_collection_id = webflow_collection_id_for("faq")
+        data = request.get_json() or {}
+        client_ref = data.get("client_id")
+        faq_collection_id = webflow_collection_id_for("faq", client_ref)
         if not faq_collection_id or faq_collection_id.startswith("your_"):
             return jsonify({
                 "success": False,
                 "message": "Webflow FAQ collection not configured. Connect Webflow and map an FAQ collection in Integration settings."
             }), 400
 
-        data = request.get_json() or {}
-        client = build_webflow_cms_client()
+        client = build_webflow_cms_client(client_ref)
         
         field_data = {
             "name": data.get("question", f"FAQ Item {item_id}"),
@@ -7331,15 +7356,16 @@ def webflow_export_service(item_id):
     try:
         from services.webflow_client import WebflowAPIError, WebflowConfigError
 
-        service_collection_id = webflow_collection_id_for("service")
+        data = request.get_json() or {}
+        client_ref = data.get("client_id")
+        service_collection_id = webflow_collection_id_for("service", client_ref)
         if not service_collection_id or service_collection_id.startswith("your_"):
             return jsonify({
                 "success": False,
                 "message": "Webflow service collection not configured. Connect Webflow and map a service collection in Integration settings."
             }), 400
 
-        data = request.get_json() or {}
-        client = build_webflow_cms_client()
+        client = build_webflow_cms_client(client_ref)
         
         field_data = {
             "name": data.get("title", f"Service {item_id}"),
