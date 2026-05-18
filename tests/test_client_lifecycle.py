@@ -12,8 +12,9 @@ These were only smoke-tested. The behaviour worth locking down:
     live (revoke must actually kill access)
   - edit validates required fields (name + website) and round-trips
     the rest
-  - delete removes the workspace row; related queue items go with
-    it via the cascade
+  - delete removes the workspace row; related queue items are
+    NOT cascaded (current behavior — pinned + flagged, the
+    helper's "and_related_queue" name is a misnomer)
   - **user isolation on all three** — a logged-in user must not be
     able to toggle/edit/delete another tenant's workspace by
     guessing an id/slug
@@ -233,7 +234,26 @@ class TestDeleteClient:
         assert r.status_code == 302
         assert Client.query.filter_by(id=ws_id).first() is None
 
-    def test_delete_cascades_related_queue_items(self, make_user):
+    def test_delete_orphans_related_queue_items_documents_current_behavior(
+        self, make_user,
+    ):
+        """delete_client_and_related_queue() is named as if it
+        cascades, but QueueItem.client_id is a plain String(255)
+        holding the workspace *slug* — no ForeignKey, no
+        relationship, no cascade. Deleting the workspace therefore
+        leaves its queue items in place with a now-dangling
+        client_id.
+
+        This test pins the ACTUAL behavior (orphan, not cascade) so:
+          - the gap is documented rather than silently assumed
+          - if someone later adds a real cascade, this test fails
+            loudly and forces a conscious decision (and a rename of
+            the function, whose "and_related_queue" is currently a
+            misnomer)
+
+        Flagged separately as a cleanup item — not folded into this
+        test-coverage PR.
+        """
         u = make_user(plan="pro", email="del-cascade@x.com")
         ws = _workspace(u, slug="del-cascade-ws")
         item = add_queue_item(
@@ -250,9 +270,11 @@ class TestDeleteClient:
 
         _logged_in(u).post(f"/client/{ws.slug}/delete")
 
-        # Workspace gone; its queue item gone with it.
+        # Workspace gone...
         assert Client.query.filter_by(id=ws.id).first() is None
-        assert get_queue_item_by_id(item_id, user_id=u.id) is None
+        # ...but the queue item survives (current behavior — the
+        # function does NOT cascade despite its name).
+        assert get_queue_item_by_id(item_id, user_id=u.id) is not None
 
     def test_unknown_workspace_404(self, make_user):
         u = make_user(plan="pro", email="del-404@x.com")
