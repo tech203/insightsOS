@@ -8559,8 +8559,12 @@ def client_query_ideas(client_id):
 
 
 @app.route("/help")
-@login_required
 def help_page():
+    """Public help center. Made public (was @login_required) because
+    help docs are valuable SEO content — same questions that drive
+    Google + AI-engine queries — and letting prospects skim them
+    lowers conversion friction. Page renders without sidebar for
+    anonymous visitors (base.html handles that case)."""
     return render_template("help.html", glossary=HELP_GLOSSARY)
 
 
@@ -15636,7 +15640,115 @@ def _static_css_version() -> str:
 
 @app.route("/aeo-agency")
 def aeo_agency_page():
-    return render_template("landing_aeo.html")
+    # Pass `now` so the footer copyright doesn't go stale on Jan 1
+    # of next year. utcnow() is the tz-naive helper from dtutils.
+    return render_template("landing_aeo.html", now=utcnow())
+
+
+# ----------------------------------------------------------------------
+# Legal pages — Privacy + Terms placeholders
+# ----------------------------------------------------------------------
+# Required by Stripe (linked from checkout), most enterprise buyers,
+# and EU/CCPA compliance. Templates ship as placeholders with the right
+# headings + structure so a lawyer-reviewed final pass is a content
+# edit, not a layout build. Both routes are public + cacheable.
+
+@app.route("/privacy")
+def privacy_policy():
+    return render_template("legal/privacy.html", now=utcnow())
+
+
+@app.route("/terms")
+def terms_of_service():
+    return render_template("legal/terms.html", now=utcnow())
+
+
+# ----------------------------------------------------------------------
+# SEO essentials — robots.txt + sitemap.xml
+# ----------------------------------------------------------------------
+# Particularly ironic to skip for an AI-visibility tool. Both routes
+# serve from the live request host so they Just Work whether we're on
+# dev, staging, or the production domain — no hardcoded URLs to drift.
+
+_PUBLIC_SITEMAP_ENDPOINTS = [
+    # (endpoint name, change frequency, priority)
+    # Landing is the canonical entry; everything else is supporting.
+    ("aeo_agency_page",     "weekly",  "1.0"),
+    ("pricing_page",        "monthly", "0.8"),
+    ("help_page",           "monthly", "0.6"),
+    ("login",               "yearly",  "0.4"),
+    ("signup",              "monthly", "0.7"),
+    ("forgot_password",     "yearly",  "0.3"),
+    ("privacy_policy",      "yearly",  "0.3"),
+    ("terms_of_service",    "yearly",  "0.3"),
+]
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    """Allow crawlers on the public marketing surface; explicitly
+    block the authenticated app + admin + per-tenant data paths.
+    Points at the sitemap so well-behaved crawlers (Google, Bing,
+    GPTBot, Perplexity, etc.) discover the canonical URL list."""
+    sitemap_url = url_for("sitemap_xml", _external=True)
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin/\n"
+        "Disallow: /api/\n"
+        "Disallow: /settings/\n"
+        "Disallow: /audit/\n"
+        "Disallow: /client/\n"
+        "Disallow: /content-queue\n"
+        "Disallow: /dashboard\n"
+        "Disallow: /clients\n"
+        "Disallow: /cron/\n"
+        "Disallow: /integrations/\n"
+        "Disallow: /stripe/\n"
+        "Disallow: /report/\n"
+        "Disallow: /reset-password/\n"
+        "Disallow: /verify-email/\n"
+        "\n"
+        f"Sitemap: {sitemap_url}\n"
+    )
+    response = make_response(body)
+    response.headers["Content-Type"] = "text/plain; charset=utf-8"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    """XML sitemap of the indexable public URLs. URLs build off the
+    live request host so the same code serves dev, staging, and
+    production without a hardcoded canonical domain."""
+    today = utcnow().strftime("%Y-%m-%d")
+    urls_xml = []
+    for endpoint, changefreq, priority in _PUBLIC_SITEMAP_ENDPOINTS:
+        try:
+            loc = url_for(endpoint, _external=True)
+        except Exception:
+            # Endpoint not registered in this build — skip rather
+            # than 500 the whole sitemap.
+            continue
+        urls_xml.append(
+            "  <url>\n"
+            f"    <loc>{loc}</loc>\n"
+            f"    <lastmod>{today}</lastmod>\n"
+            f"    <changefreq>{changefreq}</changefreq>\n"
+            f"    <priority>{priority}</priority>\n"
+            "  </url>"
+        )
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls_xml)
+        + "\n</urlset>\n"
+    )
+    response = make_response(body)
+    response.headers["Content-Type"] = "application/xml; charset=utf-8"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 def render_settings_section(section, **extra_context):

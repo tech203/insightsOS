@@ -266,6 +266,193 @@ def test_landing_page_step_cards_have_icons(anon):
     )
 
 
+def test_landing_page_faq_includes_expanded_questions(anon):
+    """The FAQ went from 5 generic questions to 10 specific ones
+    that address buyer objections. Spot-check the new ones AND the
+    stale-answer fix (the old 'Can I sign up now?' said NO, which
+    contradicts the new audit form)."""
+    body = anon.get("/aeo-agency").data.decode()
+    # New question: data-privacy concern
+    assert "What happens to my website data" in body
+    # New question: outcome anxiety
+    assert "What if my brand doesn't appear" in body
+    # New question: positioning vs SEO tools
+    assert "Ahrefs" in body or "Semrush" in body
+    # Stale answer must be GONE — was "not open yet", must now say yes
+    assert "Self-serve signup is not open yet" not in body, (
+        "FAQ still says signup isn't open — contradicts the new audit "
+        "form. Update the answer to reflect the live signup flow."
+    )
+
+
+def test_landing_page_footer_has_nav_and_legal_links(anon):
+    """The footer was a single brand block — now a proper 4-column
+    SaaS footer with nav + legal links. Critical because Stripe + most
+    enterprise buyers want Privacy/Terms reachable from every page."""
+    body = anon.get("/aeo-agency").data.decode()
+    # Column-head classes prove the grid rendered
+    assert "aeo-footer-grid" in body
+    assert "aeo-footer-col-head" in body
+    # Legal links present
+    assert "/privacy" in body
+    assert "/terms" in body
+    # Account links present (acquisition + recovery)
+    assert "/login" in body
+    assert "/signup" in body
+    assert "/forgot-password" in body
+
+
+def test_privacy_page_renders(anon):
+    resp = anon.get("/privacy")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert "Privacy Policy" in body
+    # The placeholder-banner warning must be present so a future
+    # contributor doesn't accidentally treat the draft as final.
+    assert "Placeholder draft" in body or "placeholder" in body.lower()
+
+
+def test_terms_page_renders(anon):
+    resp = anon.get("/terms")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert "Terms of Service" in body
+    assert "Placeholder draft" in body or "placeholder" in body.lower()
+
+
+def test_landing_page_has_og_and_twitter_meta(anon):
+    """Open Graph + Twitter Card meta tags drive the preview when
+    someone pastes the URL into Slack / LinkedIn / X. Without them
+    the unfurl is just the URL — kills click-through."""
+    body = anon.get("/aeo-agency").data.decode()
+    # Open Graph minimum set
+    assert 'property="og:type"' in body
+    assert 'property="og:title"' in body
+    assert 'property="og:description"' in body
+    assert 'property="og:url"' in body
+    assert 'property="og:site_name"' in body
+    # Twitter card present (summary or summary_large_image — we ship
+    # `summary` today, upgrade to large_image when an OG image lands)
+    assert 'name="twitter:card"' in body
+    assert 'name="twitter:title"' in body
+    # Canonical link to dedupe ?utm_*=... and trailing-slash variants
+    assert 'rel="canonical"' in body
+
+
+def test_landing_page_has_json_ld_structured_data(anon):
+    """JSON-LD lets search + AI engines extract the entity facts
+    (what the product is, who makes it, what it costs) without
+    having to scrape and infer. Particularly relevant for an
+    AI-visibility tool."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert 'application/ld+json' in body
+    assert '"@type": "SoftwareApplication"' in body
+    # All 3 pricing offers should be advertised in the structured data
+    for plan in ('"Free"', '"Pro"', '"Growth"'):
+        assert plan in body, f"JSON-LD missing offer: {plan}"
+
+
+def test_landing_page_has_inline_svg_favicon(anon):
+    """Inline SVG favicon — no separate file to manage, scales on
+    retina. Should be present so browser tabs aren't blank."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert 'rel="icon"' in body
+    assert 'image/svg+xml' in body
+
+
+def test_legal_pages_skip_json_ld(anon):
+    """The SoftwareApplication JSON-LD shape would be inaccurate
+    on the /privacy and /terms pages (they're documents, not the
+    product). Verify they don't accidentally inherit it."""
+    privacy = anon.get("/privacy").data.decode()
+    terms = anon.get("/terms").data.decode()
+    assert "SoftwareApplication" not in privacy
+    assert "SoftwareApplication" not in terms
+    # But the OG tags + favicon should still be there (sharing a
+    # legal-page link in Slack should still unfurl nicely).
+    assert 'property="og:title"' in privacy
+    assert 'property="og:title"' in terms
+
+
+def test_robots_txt_renders_and_disallows_app_surfaces(anon):
+    """/robots.txt must serve plain text, allow the marketing
+    surface, and explicitly disallow every authenticated /
+    per-tenant path so crawlers don't try to index dashboards
+    they'd just get a login redirect from anyway."""
+    resp = anon.get("/robots.txt")
+    assert resp.status_code == 200
+    assert resp.headers.get("Content-Type", "").startswith("text/plain")
+    body = resp.data.decode()
+    # Marketing surface allowed
+    assert "User-agent: *" in body
+    assert "Allow: /" in body
+    # Per-tenant + auth paths disallowed (sample check)
+    for path in ("/admin/", "/api/", "/settings/", "/audit/",
+                 "/client/", "/dashboard"):
+        assert f"Disallow: {path}" in body, f"Missing disallow for {path}"
+    # Sitemap pointer present so crawlers can find the URL list
+    assert "Sitemap:" in body
+    assert "/sitemap.xml" in body
+
+
+def test_sitemap_xml_renders_and_lists_public_routes(anon):
+    """/sitemap.xml must serve valid XML listing the public marketing
+    URLs. Routes that build URLs off the live request host so the
+    same code works in dev / staging / prod without hardcoded URLs."""
+    resp = anon.get("/sitemap.xml")
+    assert resp.status_code == 200
+    assert resp.headers.get("Content-Type", "").startswith("application/xml")
+    body = resp.data.decode()
+    # Valid XML preamble + urlset wrapper
+    assert body.startswith('<?xml version="1.0" encoding="UTF-8"?>')
+    assert "<urlset" in body
+    assert "</urlset>" in body
+    # Each canonical public page is in the sitemap
+    for path in ("/aeo-agency", "/pricing", "/login", "/signup",
+                 "/privacy", "/terms"):
+        assert path in body, f"Sitemap missing public URL: {path}"
+
+
+def test_robots_txt_includes_today_in_sitemap_lastmod(anon):
+    """Lastmod on each sitemap URL should be today's date —
+    keeps crawlers re-checking, fine for a small public site."""
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    body = anon.get("/sitemap.xml").data.decode()
+    assert f"<lastmod>{today}</lastmod>" in body, (
+        f"sitemap.xml lastmod doesn't include today's date ({today}). "
+        f"Crawlers may skip the re-fetch and miss new content."
+    )
+
+
+def test_legal_pages_link_to_each_other(anon):
+    """Cross-link in the legal-page footer so a user reading one
+    can flip to the other without backtracking."""
+    privacy = anon.get("/privacy").data.decode()
+    terms = anon.get("/terms").data.decode()
+    assert "/terms" in privacy
+    assert "/privacy" in terms
+
+
+def test_landing_page_contains_comparison_table(anon):
+    """The 'DIY vs DarInsights vs Consultancy' comparison table must
+    render — it's the section that answers the 'why not just use
+    ChatGPT myself / hire a consultant' objection right before the
+    pricing section. Without it, the pricing reveal lands cold."""
+    body = anon.get("/aeo-agency").data.decode()
+    assert "aeo-compare-table" in body
+    # All 3 column titles present (any one missing = the table is
+    # broken or copy was refactored without re-balancing).
+    assert "Do it yourself" in body
+    assert "DarInsights" in body
+    assert "Hire a consultancy" in body
+    # The visual "Most picked" badge anchored to the DarInsights
+    # column — pure CSS, but the column class must be present.
+    assert "aeo-compare-col-us" in body
+    # CTA at the bottom of the table scrolls to the audit form.
+    assert 'href="#start-audit"' in body
+
+
 def test_landing_page_contains_live_audit_mockup(anon):
     """The 'live audit' mockup section must render — it's the visceral
     conversion driver showing competitors in the AI answer."""

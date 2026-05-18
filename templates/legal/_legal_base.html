@@ -1,0 +1,160 @@
+{% extends "marketing_base.html" %}
+
+{# Shared layout for /privacy and /terms — keeps the marketing-base
+   theme + CSRF auto-injector while giving legal pages their own
+   readable typography (max-width text column, generous line-height,
+   headings hierarchy). Both pages override `legal_title` and
+   `legal_body`. #}
+
+{% block title %}{% block legal_title %}Legal{% endblock %} | DarInsights{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <div class="legal-shell">
+        <header class="legal-head">
+            <a href="{{ url_for('aeo_agency_page') }}" class="legal-back">← DarInsights</a>
+            <h1>{{ self.legal_title() }}</h1>
+            <div class="legal-meta">
+                Effective: {{ now.strftime("%B %Y") if now else "May 2026" }}
+            </div>
+        </header>
+
+        <article class="legal-body">
+            {% block legal_body %}{% endblock %}
+        </article>
+
+        <footer class="legal-foot">
+            <a href="{{ url_for('aeo_agency_page') }}">← Back to home</a>
+            <span class="legal-foot-sep">·</span>
+            <a href="{{ url_for('privacy_policy') }}">Privacy</a>
+            <span class="legal-foot-sep">·</span>
+            <a href="{{ url_for('terms_of_service') }}">Terms</a>
+            <span class="legal-foot-sep">·</span>
+            <a href="mailto:hello@darinsights.com">Contact</a>
+        </footer>
+    </div>
+</div>
+
+<style>
+.legal-page {
+    min-height: 100vh;
+    padding: 48px 24px;
+    background:
+        radial-gradient(circle at top right, rgba(62, 223, 203, 0.06), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(157, 124, 227, 0.05), transparent 30%),
+        #f7f9fc;
+    color: #191929;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+html[data-theme="dark"] .legal-page {
+    background: #0A0A12;
+    color: #f8fafc;
+}
+.legal-shell {
+    max-width: 720px;
+    margin: 0 auto;
+}
+.legal-head {
+    margin-bottom: 36px;
+}
+.legal-back {
+    display: inline-block;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #6b7280;
+    text-decoration: none;
+    font-weight: 600;
+}
+.legal-back:hover { color: #191929; }
+html[data-theme="dark"] .legal-back { color: #94a3b8; }
+html[data-theme="dark"] .legal-back:hover { color: #f8fafc; }
+
+.legal-head h1 {
+    margin: 0 0 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 38px;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+.legal-meta {
+    color: #6b7280;
+    font-size: 14px;
+}
+html[data-theme="dark"] .legal-meta { color: #94a3b8; }
+
+.legal-body {
+    font-size: 16px;
+    line-height: 1.75;
+}
+.legal-body h2 {
+    margin: 36px 0 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+.legal-body h3 {
+    margin: 24px 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+}
+.legal-body p { margin: 0 0 14px; }
+.legal-body ul, .legal-body ol { padding-left: 22px; margin: 0 0 14px; }
+.legal-body li { margin-bottom: 6px; }
+.legal-body strong { color: inherit; }
+.legal-body a {
+    color: #2BCBB7;
+    text-decoration: none;
+    font-weight: 500;
+}
+.legal-body a:hover { text-decoration: underline; }
+.legal-body code {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.06);
+    font-size: 14px;
+}
+html[data-theme="dark"] .legal-body code {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.legal-placeholder-banner {
+    margin: 0 0 28px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(202, 138, 4, 0.30);
+    color: #a16207;
+    font-size: 14px;
+    line-height: 1.5;
+}
+html[data-theme="dark"] .legal-placeholder-banner {
+    background: rgba(250, 204, 21, 0.10);
+    color: #facc15;
+}
+
+.legal-foot {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+    color: #6b7280;
+}
+.legal-foot a {
+    color: #6b7280;
+    text-decoration: none;
+}
+.legal-foot a:hover { color: #191929; }
+.legal-foot-sep { opacity: 0.5; }
+html[data-theme="dark"] .legal-foot {
+    border-top-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+html[data-theme="dark"] .legal-foot a { color: #94a3b8; }
+html[data-theme="dark"] .legal-foot a:hover { color: #f8fafc; }
+</style>
+{% endblock %}

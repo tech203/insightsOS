@@ -1,0 +1,134 @@
+{% extends "legal/_legal_base.html" %}
+{% block legal_title %}Privacy Policy{% endblock %}
+
+{% block legal_body %}
+<div class="legal-placeholder-banner">
+    <strong>Placeholder draft.</strong> This page covers the
+    actual technical reality of how DarInsights handles your data,
+    but has not yet been reviewed by counsel. Have a lawyer in your
+    jurisdiction read it before relying on it for compliance
+    representations. Email <a href="mailto:hello@darinsights.com">hello@darinsights.com</a>
+    with questions.
+</div>
+
+<p>
+    This Privacy Policy describes what data DarInsights ("we", "us")
+    collects when you use our service, how we use it, who we share
+    it with, and how you can ask us to delete it. We try to keep
+    this short and honest.
+</p>
+
+<h2>What we collect</h2>
+<h3>Account data you provide</h3>
+<ul>
+    <li><strong>Email + display name</strong> — used as your login identifier and to address you in product communication.</li>
+    <li><strong>Password (hashed)</strong> — we never store your plaintext password. Hashes use scrypt with a per-user salt.</li>
+    <li><strong>Workspace fields</strong> you enter (website URL, industry, location, Brand Kit details, business profile).</li>
+</ul>
+
+<h3>Public website content we crawl</h3>
+<p>
+    To run an audit we fetch your publicly-available web pages — the
+    same content any search engine reads. We never receive login
+    credentials and never crawl private pages. Audited content stays
+    associated with your account only.
+</p>
+
+<h3>Payment information</h3>
+<p>
+    Card details are entered directly into Stripe's hosted checkout
+    and never touch our servers. We store only the Stripe customer
+    ID + subscription ID needed to look up your plan and process
+    cancellations.
+</p>
+
+<h3>Operational data</h3>
+<ul>
+    <li>IP address + user-agent for rate limiting and security event logging.</li>
+    <li>Request timestamps and route paths for performance monitoring.</li>
+    <li>Email-delivery records (sent / bounced / unsubscribed).</li>
+</ul>
+
+<h2>How we use it</h2>
+<ul>
+    <li><strong>Operate the product</strong> — generate audits, render dashboards, send transactional email (verification, password reset, team invites).</li>
+    <li><strong>Bill paid plans</strong> — pass invoice events to Stripe for processing.</li>
+    <li><strong>Protect against abuse</strong> — rate limiting, security event review, fraud detection.</li>
+    <li><strong>Improve the product</strong> — aggregate usage patterns (never identifying individual workspaces) inform what we build next.</li>
+</ul>
+<p>
+    We do <strong>not</strong> sell your data, do <strong>not</strong>
+    train AI models on your audit results, and do <strong>not</strong>
+    use your workspace content to improve someone else's audits.
+</p>
+
+<h2>Who we share it with</h2>
+<p>
+    A small number of sub-processors execute parts of the service on
+    our behalf. Each operates under a Data Processing Agreement that
+    binds them to the same protections this policy describes.
+</p>
+<ul>
+    <li><strong>Stripe</strong> — payment processing.</li>
+    <li><strong>OpenAI</strong> — language-model inference for audit scoring + content generation. Audit content is sent as untrusted data with prompt-injection fencing; OpenAI's API terms prohibit training on customer data.</li>
+    <li><strong>Resend</strong> — transactional email delivery.</li>
+    <li><strong>AWS / cloud host</strong> — application hosting + file storage.</li>
+    <li><strong>Google APIs</strong> (Search Console, Analytics) — only when you connect those integrations.</li>
+</ul>
+
+<h2>Your rights</h2>
+<p>You can, at any time, from <a href="{{ url_for('login') }}">Settings → Account</a>:</p>
+<ul>
+    <li><strong>Export your data</strong> — download a JSON bundle of everything we hold about you (profile, wallet, workspaces, audit summaries).</li>
+    <li><strong>Delete your account</strong> — irreversibly remove your account + all owned data, with best-effort Stripe subscription cancellation. The deletion cascades across ~20 tables; see the source for the exact list.</li>
+    <li><strong>Update your display name</strong>.</li>
+    <li><strong>Change your password</strong> — all existing sessions are invalidated immediately, including ones on other devices.</li>
+</ul>
+<p>
+    For requests we can't surface in-app (data correction, sub-processor
+    inquiries, GDPR/CCPA subject access), email
+    <a href="mailto:hello@darinsights.com">hello@darinsights.com</a> and
+    we'll respond within 30 days.
+</p>
+
+<h2>Retention</h2>
+<ul>
+    <li><strong>Active accounts</strong> — data is kept for the life of the account.</li>
+    <li><strong>Deleted accounts</strong> — purged within 7 days. Backups containing residual data are overwritten within 30 days.</li>
+    <li><strong>Email-delivery logs</strong> — kept for 90 days for deliverability debugging, then purged.</li>
+    <li><strong>Stripe records</strong> — Stripe retains payment records per its own retention policy (required for tax + dispute reasons); we don't control this.</li>
+</ul>
+
+<h2>Security</h2>
+<ul>
+    <li>HTTPS-only with HSTS for all traffic to our domain.</li>
+    <li>Passwords hashed with scrypt + per-user salts.</li>
+    <li>Sessions invalidated automatically on password change.</li>
+    <li>Rate limiting on all auth + email-sending endpoints.</li>
+    <li>Cross-tenant isolation enforced at every workspace boundary; regression-tested.</li>
+    <li>Security-incident contact: <a href="mailto:security@darinsights.com">security@darinsights.com</a>.</li>
+</ul>
+
+<h2>Cookies</h2>
+<p>
+    We use a single first-party session cookie to keep you logged in.
+    It's HttpOnly, SameSite=Lax, and Secure in production. We do not
+    use third-party tracking cookies on the marketing pages.
+</p>
+
+<h2>Changes</h2>
+<p>
+    Material changes to this policy will be announced via in-app
+    notice + email at least 14 days before they take effect. The
+    "Effective" date at the top of the page is updated on every
+    revision; previous versions are available on request.
+</p>
+
+<h2>Contact</h2>
+<p>
+    DarInsights — operated by Astra Collective Asia.
+    Questions: <a href="mailto:hello@darinsights.com">hello@darinsights.com</a>.
+    Privacy / data requests: <a href="mailto:privacy@darinsights.com">privacy@darinsights.com</a>.
+    Security incidents: <a href="mailto:security@darinsights.com">security@darinsights.com</a>.
+</p>
+{% endblock %}
