@@ -203,23 +203,39 @@ def search_competitors(business_name, industry, location=None, services=None, ma
     """
     Finds likely competitors across multiple discovery queries.
     Returns up to 5 results for each query.
+
+    Queries are derived from the workspace's own industry / services
+    (same `services or industry` precedence the other research
+    functions use). Previously these were hardcoded to ice-cream /
+    Singapore from an early demo client, which meant EVERY audit —
+    regardless of the client's actual industry — got ice-cream
+    competitor analysis. (See research_engine search_comparison_queries
+    for the same fix.)
     """
-    if location:
+    service_text = (services or industry or "").strip()
+    loc_suffix = f" {location}".rstrip() if location else ""
+
+    if service_text:
         queries = [
-            f"ice cream delivery {location}",
-            f"ice cream party package {location}",
-            f"ice cream catering {location}",
-            f"unique food gifts {location}",
-            f"nostalgic candy gifts {location}",
+            f"best {service_text}{loc_suffix}",
+            f"top {service_text} companies{loc_suffix}",
+            f"{service_text} providers{loc_suffix}",
+            f"{service_text} alternatives",
+        ]
+        if business_name:
+            queries.append(f"{business_name} competitors")
+    elif business_name:
+        # No industry/services signal — fall back to brand-relative
+        # discovery rather than an unrelated hardcoded vertical.
+        queries = [
+            f"{business_name} competitors",
+            f"{business_name} alternatives",
+            f"companies like {business_name}",
         ]
     else:
-        queries = [
-            "ice cream delivery",
-            "ice cream party package",
-            "ice cream catering",
-            "unique food gifts",
-            "nostalgic candy gifts",
-        ]
+        # Nothing to go on — return empty rather than fabricate
+        # off-topic competitor results.
+        return []
 
     all_results = []
 
@@ -250,25 +266,25 @@ def search_customer_questions(industry, location=None, services=None, max_result
 
 def search_comparison_queries(industry, location=None, services=None, max_results=5):
     """
-    Finds comparison/listicle pages.
-    Returns up to 5 results for each query.
+    Finds comparison/listicle pages ("best X", "top X", "X vs Y")
+    in the workspace's own category.
+
+    Was hardcoded to ice-cream/Singapore from an early demo client —
+    same bug as search_competitors. Now derived from services/industry.
     """
-    if location:
-        queries = [
-            f"best ice cream delivery {location}",
-            f"best dessert delivery {location}",
-            f"best ice cream catering {location}",
-            f"best party snacks {location}",
-            f"best food gifts {location}",
-        ]
-    else:
-        queries = [
-            "best ice cream delivery",
-            "best dessert delivery",
-            "best ice cream catering",
-            "best party snacks",
-            "best food gifts",
-        ]
+    service_text = (services or industry or "").strip()
+    if not service_text:
+        # No category signal — nothing meaningful to compare; return
+        # empty rather than seed off-topic listicle queries.
+        return []
+
+    loc_suffix = f" {location}".rstrip() if location else ""
+    queries = [
+        f"best {service_text}{loc_suffix}",
+        f"top {service_text}{loc_suffix}",
+        f"{service_text} comparison",
+        f"{service_text} reviews{loc_suffix}",
+    ]
 
     all_results = []
 
