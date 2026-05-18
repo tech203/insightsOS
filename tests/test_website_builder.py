@@ -2447,6 +2447,101 @@ def test_hero_ctas_resolve_to_existing_anchors_per_page_shape():
     assert 'href="#details"' not in html
 
 
+def test_webflow_export_includes_faq_qa_from_items():
+    """Regression: build_rich_text_page_content read section["questions"]
+    for FAQ Q&A, but the AI generator / renderer / edit form all
+    write section["items"]. Result: every Webflow-exported page lost
+    its entire FAQ body. Confirm Q&A from `items` now appears in the
+    exported rich text."""
+    from webflow_integration import build_rich_text_page_content
+
+    page_json = {
+        "sections": [
+            {"type": "hero", "headline": "H", "subtext": "S"},
+            {
+                "type": "faq",
+                "headline": "Frequently asked questions",
+                "items": [
+                    {"question": "Do you ship to SG?", "answer": "Yes, 2 days."},
+                    {"question": "Refunds?", "answer": "30-day policy."},
+                ],
+            },
+        ]
+    }
+    html = build_rich_text_page_content(page_json)
+    assert "Do you ship to SG?" in html
+    assert "Yes, 2 days." in html
+    assert "Refunds?" in html
+    assert "30-day policy." in html
+    # Hero is intentionally skipped from the rich-text body.
+    assert "<h2>" in html  # the faq headline still renders
+
+
+def test_webflow_export_faq_back_compat_questions_key():
+    """Legacy/defensive: a section that still uses the old
+    `questions` key must keep exporting (mirrors build_faq_schema's
+    `items or questions` fallback)."""
+    from webflow_integration import build_rich_text_page_content
+
+    html = build_rich_text_page_content({
+        "sections": [
+            {
+                "type": "faq",
+                "headline": "FAQ",
+                "questions": [
+                    {"question": "Legacy Q?", "answer": "Legacy A."},
+                ],
+            }
+        ]
+    })
+    assert "Legacy Q?" in html
+    assert "Legacy A." in html
+
+
+def test_webflow_export_faq_tolerates_malformed_items():
+    """The isinstance guard must stop a non-dict item (bad AI output
+    or hand-edit) from raising AttributeError mid-export."""
+    from webflow_integration import build_rich_text_page_content
+
+    html = build_rich_text_page_content({
+        "sections": [
+            {
+                "type": "faq",
+                "headline": "FAQ",
+                "items": [
+                    "not-a-dict",
+                    {"question": "Real Q?", "answer": "Real A."},
+                ],
+            }
+        ]
+    })
+    assert "Real Q?" in html
+    assert "Real A." in html
+
+
+def test_webflow_faq_schema_reads_items():
+    """build_faq_schema was already correct (items-first) — pin it so
+    a future refactor can't reintroduce the questions-only bug on the
+    AEO-critical FAQPage structured data path."""
+    import json as _json
+    from webflow_integration import build_faq_schema
+
+    raw = build_faq_schema({
+        "sections": [
+            {
+                "type": "faq",
+                "items": [
+                    {"question": "Q1?", "answer": "A1."},
+                ],
+            }
+        ]
+    })
+    data = _json.loads(raw)
+    assert data["@type"] == "FAQPage"
+    assert data["mainEntity"][0]["name"] == "Q1?"
+    assert data["mainEntity"][0]["acceptedAnswer"]["text"] == "A1."
+
+
 def test_renderer_shows_both_ctas_on_cta_block():
     """cta_block sections from the AI generator carry primary_cta +
     secondary_cta. The edit form lets users set both, but the

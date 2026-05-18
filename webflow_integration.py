@@ -466,7 +466,19 @@ def build_rich_text_page_content(page_json):
 
         if section_type == "faq":
             faq_parts = []
-            for item in section.get("questions") or []:
+            # FAQ Q&A pairs live in section["items"] — that's what the
+            # AI generator, the renderer, and the in-app edit form all
+            # write. This used to read section["questions"], a key that
+            # is never populated, so EVERY Webflow-exported page lost
+            # all its FAQ content from the body (the FAQPage JSON-LD in
+            # build_faq_schema was unaffected — it already reads
+            # `items or questions` — so structured data survived but
+            # the human-visible Q&A did not). `questions` kept only as
+            # a defensive back-compat fallback, mirroring
+            # build_faq_schema.
+            for item in section.get("items") or section.get("questions") or []:
+                if not isinstance(item, dict):
+                    continue
                 question = item.get("question")
                 answer = item.get("answer")
                 if question and answer:
