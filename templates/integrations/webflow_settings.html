@@ -104,6 +104,29 @@
     {% endwith %}
 
     <div class="card">
+        <div class="card-title">Connection scope</div>
+        <form method="GET" action="{{ url_for('webflow_settings') }}">
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="scope_select">Manage the connection for</label>
+                <select id="scope_select" name="client" onchange="this.form.submit()">
+                    <option value="" {% if not current_scope %}selected{% endif %}>Default (all clients)</option>
+                    {% for c in clients %}
+                    <option value="{{ c.slug }}" {% if c.slug == current_scope %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+                <small>The default applies to every client unless that client has its own connection below.</small>
+            </div>
+        </form>
+        {% if falls_back_to_default %}
+        <div class="alert alert-info" style="margin-top:1rem;">
+            <strong>{{ selected_client_name }} has no dedicated connection</strong>
+            Exports for this client currently use your default connection.
+            Save details below to give it its own Webflow site.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
         <div class="card-title">Connection status</div>
         {% if connection_status == "connected" %}
             <span class="status-badge connected">Connected</span>
@@ -130,7 +153,9 @@
     </div>
 
     <div class="card">
-        <div class="card-title">Your Webflow connection</div>
+        <div class="card-title">
+            {% if selected_client_name %}Connection for {{ selected_client_name }}{% else %}Default connection (all clients){% endif %}
+        </div>
 
         <div class="form-group">
             <label for="api_token_probe">Webflow API token</label>
@@ -150,6 +175,7 @@
 
         <form method="POST" action="{{ url_for('webflow_connect_save') }}">
             <input type="hidden" name="api_token" id="api_token_field">
+            <input type="hidden" name="client" value="{{ current_scope }}">
 
             <div class="form-group">
                 <label for="site_select">Webflow site</label>
@@ -223,8 +249,11 @@
         {% if connection %}
         <form method="POST" action="{{ url_for('webflow_disconnect') }}"
               style="margin-top:1.5rem;"
-              onsubmit="return confirm('Remove this Webflow connection?');">
-            <button type="submit" class="btn btn-danger">Disconnect</button>
+              onsubmit="return confirm('Remove the Webflow connection for {{ selected_client_name or 'all clients (default)' }}?');">
+            <input type="hidden" name="client" value="{{ current_scope }}">
+            <button type="submit" class="btn btn-danger">
+                Disconnect {% if selected_client_name %}{{ selected_client_name }}{% else %}default{% endif %}
+            </button>
         </form>
         {% endif %}
     </div>

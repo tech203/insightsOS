@@ -6520,12 +6520,9 @@ def settings_team():
 # without directly editing Webflow Designer. All exports are created as drafts by default.
 
 
-def _resolve_client_db_id(client_ref):
-    """Map a client slug or numeric id (the forms used across routes and
-    content-queue items) to the integer clients.id that
-    WebflowConnection.client_id references. Returns None when it can't be
-    resolved, so the caller falls back to the user's default connection.
-    Idempotent for the clients.id integers the project-export path passes."""
+def _client_row(client_ref):
+    """Resolve a client slug or numeric id (the forms used across routes
+    and content-queue items) to the current user's Client row, or None."""
     if client_ref in (None, ""):
         return None
     row = Client.query.filter_by(
@@ -6535,6 +6532,15 @@ def _resolve_client_db_id(client_ref):
         row = Client.query.filter_by(
             id=int(client_ref), user_id=current_user.id
         ).first()
+    return row
+
+
+def _resolve_client_db_id(client_ref):
+    """Map a client slug or numeric id to the integer clients.id that
+    WebflowConnection.client_id references. Returns None when it can't be
+    resolved, so the caller falls back to the user's default connection.
+    Idempotent for the clients.id integers the project-export path passes."""
+    row = _client_row(client_ref)
     return row.id if row else None
 
 
@@ -6554,6 +6560,16 @@ def get_webflow_connection(client_id=None):
 
     return WebflowConnection.query.filter_by(
         user_id=current_user.id, client_id=None
+    ).first()
+
+
+def _scoped_webflow_connection(db_client_id):
+    """The WebflowConnection row that exactly matches this scope, with NO
+    fallback to the user-default. The settings screens use this so they
+    show / edit / delete the precise row for the selected scope rather
+    than masking it with the default connection."""
+    return WebflowConnection.query.filter_by(
+        user_id=current_user.id, client_id=db_client_id
     ).first()
 
 
@@ -6696,18 +6712,50 @@ def push_content_queue_item_to_webflow(item):
 @app.route("/integrations/webflow/settings")
 @login_required
 def webflow_settings():
-    """Display the current user's Webflow connection and let them edit it.
+    """Display and edit Webflow connections, scoped to the user-default
+    or a specific client.
 
-    Each user connects their own Webflow site here; credentials are stored
-    per-user in WebflowConnection rather than shared via global env vars.
+    A WebflowConnection with client_id=NULL is the user's default; a row
+    with a client_id overrides it for that client's audit/export work.
+    The ?client=<slug> query param selects which scope is shown.
     """
-    conn = get_webflow_connection(client_id=None)
+    scope = (request.args.get("client") or "").strip()
+    selected_client = _client_row(scope)
+    if scope and selected_client is None:
+        flash(
+            "That client was not found — showing your default connection.",
+            "error",
+        )
+        scope = ""
+
+    db_client_id = selected_client.id if selected_client else None
+    conn = _scoped_webflow_connection(db_client_id)
+
+    # A client scope with no dedicated row currently exports via the default.
+    default_conn = (
+        _scoped_webflow_connection(None) if db_client_id is not None else None
+    )
+    falls_back_to_default = conn is None and default_conn is not None
 
     connection_status = None
     config_error = None
     collections = []
 
     if conn is not None:
+        try:
+            from services.webflow_client import WebflowCMSClient
+
+            client = WebflowCMSClient(
+                api_token=conn.api_token, site_id=conn.site_id
+            )
+            client.test_connection()
+            connection_status = "connected"
+            collections = client.list_collections()
+        except Exception as e:
+            connection_status = "error"
+            config_error = f"Stored credentials did not connect: {e}"
+    elif db_client_id is None and os.getenv("WEBFLOW_API_TOKEN"):
+        # Legacy single-tenant env fallback applies only to the default scope.
         try:
             client = build_webflow_cms_client(client_id=None)
             client.test_connection()
@@ -6716,10 +6764,16 @@ def webflow_settings():
         except Exception as e:
             connection_status = "error"
             config_error = f"Stored credentials did not connect: {e}"
-    elif not os.getenv("WEBFLOW_API_TOKEN"):
+    elif db_client_id is None:
         config_error = (
             "No Webflow site connected yet. Paste an API token below to start."
         )
+
+    clients = (
+        Client.query.filter_by(user_id=current_user.id)
+        .order_by(Client.name.asc())
+        .all()
+    )
 
     return render_template(
         "integrations/webflow_settings.html",
@@ -6728,7 +6782,17 @@ def webflow_settings():
         connection_status=connection_status,
         config_error=config_error,
         collections=collections,
-        env_fallback=bool(os.getenv("WEBFLOW_API_TOKEN")) and conn is None,
+        env_fallback=(
+            db_client_id is None
+            and bool(os.getenv("WEBFLOW_API_TOKEN"))
+            and conn is None
+        ),
+        clients=[{"slug": c.slug, "name": c.name} for c in clients],
+        current_scope=scope,
+        selected_client_name=(
+            selected_client.name if selected_client else None
+        ),
+        falls_back_to_default=falls_back_to_default,
     )
 
 
@@ -6767,14 +6831,22 @@ def webflow_discover_sites():
 @app.route("/integrations/webflow/connect", methods=["POST"])
 @login_required
 def webflow_connect_save():
-    """Create or update the current user's Webflow connection."""
+    """Create or update a Webflow connection for the selected scope
+    (the user-default, or a specific client when 'client' is given)."""
     from services.webflow_client import WebflowCMSClient, WebflowAPIError
+
+    scope = (request.form.get("client") or "").strip()
+    selected_client = _client_row(scope)
+    if scope and selected_client is None:
+        flash("That client was not found.", "error")
+        return redirect(url_for("webflow_settings"))
+    db_client_id = selected_client.id if selected_client else None
 
     api_token = (request.form.get("api_token") or "").strip()
     site_id = (request.form.get("site_id") or "").strip()
     site_name = (request.form.get("site_name") or "").strip() or None
 
-    conn = get_webflow_connection(client_id=None)
+    conn = _scoped_webflow_connection(db_client_id)
 
     # Allow keeping the saved token without re-pasting it.
     if not api_token and conn is not None:
@@ -6782,19 +6854,21 @@ def webflow_connect_save():
 
     if not api_token or not site_id:
         flash("API token and a selected site are required.", "error")
-        return redirect(url_for("webflow_settings"))
+        return redirect(url_for("webflow_settings", client=scope or None))
 
     try:
         WebflowCMSClient(api_token=api_token, site_id=site_id).test_connection()
     except (WebflowAPIError, Exception) as e:
         flash(f"Could not connect to Webflow with those details: {e}", "error")
-        return redirect(url_for("webflow_settings"))
+        return redirect(url_for("webflow_settings", client=scope or None))
 
     def _clean(field):
         return (request.form.get(field) or "").strip() or None
 
     if conn is None:
-        conn = WebflowConnection(user_id=current_user.id, client_id=None)
+        conn = WebflowConnection(
+            user_id=current_user.id, client_id=db_client_id
+        )
         db.session.add(conn)
 
     conn.api_token = api_token
@@ -6813,30 +6887,43 @@ def webflow_connect_save():
     }
     db.session.commit()
 
-    flash("Webflow connection saved.", "success")
-    return redirect(url_for("webflow_settings"))
+    if selected_client is not None:
+        flash(
+            f"Webflow connection saved for {selected_client.name}.", "success"
+        )
+    else:
+        flash("Default Webflow connection saved.", "success")
+    return redirect(url_for("webflow_settings", client=scope or None))
 
 
 @app.route("/integrations/webflow/disconnect", methods=["POST"])
 @login_required
 def webflow_disconnect():
-    """Remove the current user's stored Webflow connection."""
-    conn = get_webflow_connection(client_id=None)
+    """Remove the Webflow connection for the selected scope only."""
+    scope = (request.form.get("client") or "").strip()
+    selected_client = _client_row(scope)
+    if scope and selected_client is None:
+        flash("That client was not found.", "error")
+        return redirect(url_for("webflow_settings"))
+    db_client_id = selected_client.id if selected_client else None
+
+    conn = _scoped_webflow_connection(db_client_id)
     if conn is not None:
         db.session.delete(conn)
         db.session.commit()
         flash("Webflow connection removed.", "success")
-    return redirect(url_for("webflow_settings"))
+    return redirect(url_for("webflow_settings", client=scope or None))
 
 
 @app.route("/integrations/webflow/test", methods=["POST"])
 @login_required
 def webflow_test_connection():
-    """Test the current user's stored Webflow connection."""
+    """Test the stored Webflow connection for the selected scope."""
     try:
         from services.webflow_client import WebflowAPIError, WebflowConfigError
 
-        client = build_webflow_cms_client(client_id=None)
+        data = request.get_json(silent=True) or request.form
+        client = build_webflow_cms_client((data.get("client") or "").strip())
         client.test_connection()
 
         return jsonify({

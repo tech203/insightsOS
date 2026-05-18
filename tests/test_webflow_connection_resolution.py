@@ -123,3 +123,33 @@ def test_returns_none_when_no_connection_at_all(ctx):
     db.session.commit()
     assert app_module.get_webflow_connection("acme") is None
     assert app_module.get_webflow_connection(None) is None
+
+
+def test_scoped_lookup_does_not_fall_back(ctx):
+    # The settings screens must see the exact row for a scope, never the
+    # default masquerading as the client's connection.
+    c = _client("acme")
+    _conn(None, "DEFAULT")  # only a default exists; acme has no own row
+    db.session.commit()
+
+    assert app_module._scoped_webflow_connection(None).site_name == "DEFAULT"
+    assert app_module._scoped_webflow_connection(c.id) is None
+
+
+def test_scoped_lookup_returns_exact_client_row(ctx):
+    c = _client("acme")
+    _conn(c.id, "ACME")
+    _conn(None, "DEFAULT")
+    db.session.commit()
+
+    assert app_module._scoped_webflow_connection(c.id).site_name == "ACME"
+    assert app_module._scoped_webflow_connection(None).site_name == "DEFAULT"
+
+
+def test_client_row_resolves_slug_and_id(ctx):
+    c = _client("acme")
+    db.session.commit()
+    assert app_module._client_row("acme").id == c.id
+    assert app_module._client_row(c.id).id == c.id
+    assert app_module._client_row("nope") is None
+    assert app_module._client_row(None) is None
