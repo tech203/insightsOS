@@ -5,6 +5,16 @@ Treat as a checklist — work top to bottom, no skipping. Designed
 to be done in **one sitting** once your domain is bought, with
 **~45 min** of focused time.
 
+> # ⏰ RECURRING OPS — DO NOT MISS
+> **Next `SECRET_KEY` rotation due: `2026-11-01`** (then every ~6 mo).
+> This file is passive — it cannot notify you. **Right now, put
+> `2026-11-01` and `2027-05-01` "rotate SECRET_KEY — see LAUNCH.md"
+> in your phone/calendar as real alerts.** Full instructions and the
+> running tick-list are in [Operational reminders](#operational-reminders)
+> at the bottom of this runbook. (An automated reminder was attempted
+> but the scheduler is unavailable in this environment — the calendar
+> entry is the real safety net.)
+
 ## Why this exists
 
 Going partially live is the most dangerous state. Common failure modes
@@ -301,15 +311,27 @@ These don't block ship but are worth doing in week 1:
 
 ## Operational reminders
 
+> ### 🔴 NEXT ACTION DUE: `2026-11-01` — rotate `SECRET_KEY`
+> A markdown file can't page you. **If you have not already put this
+> in your phone/calendar as a real alert, stop and do it now** —
+> title it "rotate SECRET_KEY — LAUNCH.md", set it for `2026-11-01`,
+> and add a second for `2027-05-01`. That external alert is the only
+> thing that will actually reach you on the day; everything below is
+> just the how-to once it does.
+
 Calendar fallback for the recurring ops items above. Tick off each
-date as you do the rotation, then pencil in the next one (+6 months).
+date as you do the rotation, then pencil in the next one (+6 months)
+**and add the new calendar alert immediately** — don't rely on
+remembering to re-read this file.
 
 - [ ] **2026-11-01** — rotate `SECRET_KEY` (see Phase 1 for the
       regen command). Rotation invalidates all active sessions —
       log everyone out — so do it in a low-traffic window. The
       new value goes in your host's env var store (Render / Heroku
-      / whatever), NOT in the repo.
+      / whatever), NOT in the repo. ➜ After doing it, tick this box
+      and set the next calendar alert for 2027-05-01.
 - [ ] **2027-05-01** — rotate `SECRET_KEY` (next cadence tick).
+      ➜ After doing it, set the next alert for ~2027-11-01.
 
 ---
 

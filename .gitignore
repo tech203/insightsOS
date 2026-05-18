@@ -9,3 +9,7 @@ outputs/
 # Test artifacts
 .pytest_cache/
 test.db
+
+# Local dev queue snapshot — queue is SQL-backed now (see content_queue.py);
+# this stale JSON is dev cruft and must not ship in the public repo.
+data/content_queue.json
