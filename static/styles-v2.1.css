@@ -17858,8 +17858,15 @@ html[data-theme="dark"] .workspace-logo-remove-btn {
     html[data-sidebar-rail] .nav-group-items {
         gap: 4px;
     }
+    /* Group headers are display:none in the rail, so without a real
+       separator ~24 icons read as one undifferentiated stack ("too
+       many icons"). Tight within-group gap (4px above) + a clear
+       divider and generous space between groups makes the 5 clusters
+       legible via proximity alone — no labels, no nav removed. */
     html[data-sidebar-rail] .nav-group + .nav-group {
-        margin-top: 14px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
     }
 
     /* Active-state left bar would float off the edge of the rail; tuck it. */
