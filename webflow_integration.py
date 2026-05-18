@@ -491,6 +491,27 @@ def build_rich_text_page_content(page_json):
             if faq_parts:
                 section_parts.extend(faq_parts)
 
+        # cta / cta_block: the call-to-action label lives in
+        # button / primary_cta / secondary_cta. The generic loop
+        # above exports the headline + body but never the CTA text
+        # itself, so an exported "Ready to get started?" block had
+        # no actual call to action. Webflow CMS rich text has no
+        # button element, so emit the label(s) as an emphasised
+        # paragraph — preserves the content; the user wires a real
+        # button element in Webflow post-export. Mirrors the
+        # renderer's `button or primary_cta` + secondary_cta.
+        if section_type in ("cta", "cta_block"):
+            primary_label = section.get("button") or section.get("primary_cta")
+            secondary_label = section.get("secondary_cta")
+            if primary_label:
+                section_parts.append(
+                    f"<p><strong>{_escape_html(primary_label)}</strong></p>"
+                )
+            if secondary_label:
+                section_parts.append(
+                    f"<p>{_escape_html(secondary_label)}</p>"
+                )
+
         if section_parts:
             sections_html.append("".join(section_parts))
 

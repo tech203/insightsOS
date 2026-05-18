@@ -2519,6 +2519,40 @@ def test_webflow_export_faq_tolerates_malformed_items():
     assert "Real A." in html
 
 
+def test_webflow_export_includes_cta_button_text():
+    """cta/cta_block CTA labels (button / primary_cta / secondary_cta)
+    must appear in the exported rich text. Previously only the
+    headline/body exported, so an exported call-to-action block had
+    no actual call to action."""
+    from webflow_integration import build_rich_text_page_content
+
+    # cta_block shape (AI generator): primary_cta + secondary_cta.
+    html = build_rich_text_page_content({
+        "sections": [
+            {
+                "type": "cta_block",
+                "headline": "Ready to grow?",
+                "subtext": "Let's talk.",
+                "primary_cta": "Get Started",
+                "secondary_cta": "Book a Call",
+            }
+        ]
+    })
+    assert "Ready to grow?" in html
+    assert "Let's talk." in html
+    assert "Get Started" in html
+    assert "Book a Call" in html
+
+    # legacy cta shape (rule-based generator): button only.
+    html = build_rich_text_page_content({
+        "sections": [
+            {"type": "cta", "headline": "Enquire today", "button": "Contact Us"}
+        ]
+    })
+    assert "Enquire today" in html
+    assert "Contact Us" in html
+
+
 def test_webflow_faq_schema_reads_items():
     """build_faq_schema was already correct (items-first) — pin it so
     a future refactor can't reintroduce the questions-only bug on the
