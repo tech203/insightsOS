@@ -17137,7 +17137,13 @@ html[data-theme="dark"] .workspace-more-divider {
 
 .website-card-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* auto-fit (not fixed repeat(3)): website_project_preview.html
+       feeds this a variable {% for row in score_rows %} list — with
+       1–2 rows a fixed 3-col grid stranded the cards at 1/3 width
+       (same lopsided bug fixed on .dashboard-clients-grid). Fixed
+       3-item uses (builder "how it works") still render 3-up since
+       the container is wide enough. */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
     margin-top: 18px;
 }
