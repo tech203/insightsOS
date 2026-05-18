@@ -22137,6 +22137,8 @@ html[data-theme="dark"] .workspace-logo-image {
      Accent → .dashboard-priority-main-card  (dashboard hero)
               .next-action-card              (action shortcuts)
               .workspace-module-card         (workspace feature tiles)
+              .surface-card--featured        (design-system featured card)
+              .brand-context-nudge           (brand-context CTA strip)
      Neutral (untouched, current grey border) → metric / ops / list
               rows / settings panels / queue items.
 
@@ -22146,13 +22148,17 @@ html[data-theme="dark"] .workspace-logo-image {
 
 .dashboard-priority-main-card,
 .next-action-card,
-.workspace-module-card {
+.workspace-module-card,
+.surface-card--featured,
+.brand-context-nudge {
     border-color: var(--brand-primary);
 }
 
 .dashboard-priority-main-card:hover,
 .next-action-card:hover,
-.workspace-module-card:hover {
+.workspace-module-card:hover,
+.surface-card--featured:hover,
+.brand-context-nudge:hover {
     border-color: var(--brand-primary);
     box-shadow:
         0 0 0 1px var(--brand-primary),
@@ -22169,13 +22175,17 @@ html[data-theme="dark"] {
    --theme-border-subtle. */
 html[data-theme="dark"] .dashboard-priority-main-card,
 html[data-theme="dark"] .next-action-card,
-html[data-theme="dark"] .workspace-module-card {
+html[data-theme="dark"] .workspace-module-card,
+html[data-theme="dark"] .surface-card--featured,
+html[data-theme="dark"] .brand-context-nudge {
     border-color: var(--brand-primary-neon) !important;
 }
 
 html[data-theme="dark"] .dashboard-priority-main-card:hover,
 html[data-theme="dark"] .next-action-card:hover,
-html[data-theme="dark"] .workspace-module-card:hover {
+html[data-theme="dark"] .workspace-module-card:hover,
+html[data-theme="dark"] .surface-card--featured:hover,
+html[data-theme="dark"] .brand-context-nudge:hover {
     border-color: var(--brand-primary-neon) !important;
     box-shadow:
         0 0 0 1px var(--brand-primary-neon),
