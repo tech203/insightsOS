@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 
@@ -788,58 +789,37 @@ def clean_opportunity_title(raw_title, fallback_query=None):
     if not title:
         return "Untitled content opportunity"
 
-    # Remove common source/site suffixes
-    remove_phrases = [
-        "| Eatbook.sg",
-        "| Time Out",
-        "| Ladyironchef",
-        "| Delcie's Desserts and Cakes",
-        "| Singapore",
-        "- Carrara",
-        "- Creamier",
-        "- White Rabbit",
-        "Updated May 2026",
-    ]
+    # Strip source/site attribution generically. Search-result titles
+    # commonly look like "Best CRMs for SMBs | TechRadar" or
+    # "Top payment APIs - G2" — drop everything after the last
+    # " | " / " - " / " — " separator so the opportunity title is the
+    # topic, not the publisher.
+    #
+    # (This block used to enumerate specific demo-client sites
+    # — Eatbook.sg, Ladyironchef, Creamier, White Rabbit — and then
+    # REWRITE any title containing "ice cream" / "party package" /
+    # "food gifts" into a hardcoded "… in Singapore" string. That
+    # mangled every non-ice-cream client's opportunities, e.g. a
+    # payments SaaS audit surfacing "Best Ice Cream Delivery in
+    # Singapore". Replaced with industry-agnostic cleaning.)
+    for sep in (" | ", " — ", " - "):
+        if sep in title:
+            title = title.split(sep)[0].strip()
 
-    for phrase in remove_phrases:
-        title = title.replace(phrase, "")
-
-    # Remove anything after pipe if still source-like
-    if "|" in title:
-        title = title.split("|")[0].strip()
+    # Drop a trailing "Updated <Month> <Year>" / "(2026)" style
+    # freshness suffix that some listicles append.
+    title = re.sub(
+        r"\s*[\-—|(]?\s*(updated\s+)?"
+        r"(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|"
+        r"aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)?\s*"
+        r"20\d{2}\s*\)?\s*$",
+        "",
+        title,
+        flags=re.IGNORECASE,
+    ).strip()
 
     title = " ".join(title.split())
-    lower_title = title.lower()
-
-    # Convert noisy result titles into clean opportunity topics
-    if "ice cream delivery" in lower_title:
-        return "Best Ice Cream Delivery in Singapore"
-
-    if "dessert box delivery" in lower_title:
-        return "Best Dessert Box Delivery Services in Singapore"
-
-    if "dessert delivery" in lower_title:
-        return "Best Dessert Delivery in Singapore"
-
-    if "ice cream catering" in lower_title:
-        return "Best Ice Cream Catering in Singapore"
-
-    if "ice cream party" in lower_title or "party package" in lower_title:
-        return "Ice Cream Party Packages in Singapore"
-
-    if "food gifts" in lower_title:
-        return "Best Food Gifts in Singapore"
-
-    if "nostalgic" in lower_title and ("snack" in lower_title or "candy" in lower_title):
-        return "Nostalgic Snacks and Candy Gifts in Singapore"
-
-    if "halal ice cream" in lower_title:
-        return "Halal Ice Cream in Singapore"
-
-    if "white rabbit ice cream" in lower_title:
-        return "Where to Buy White Rabbit Ice Cream in Singapore"
-
-    return title
+    return title or _clean_text(fallback_query) or "Untitled content opportunity"
 
 def build_content_opportunities(
     recommended_actions: List[Dict[str, Any]]
