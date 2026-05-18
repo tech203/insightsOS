@@ -339,25 +339,30 @@ def search_aeo_opportunities(industry, location=None, services=None, max_results
 
 def search_ai_discovery_prompts(industry, location=None, services=None, max_results=5):
     """
-    Simulates AI-style buyer discovery prompts.
-    Returns up to 5 results for each query.
+    Simulates AI-style buyer discovery prompts in the workspace's
+    own category. Returns up to 5 results for each query.
+
+    Was hardcoded to ice-cream / White Rabbit from an early demo
+    client — the same bug as search_competitors /
+    search_comparison_queries. PR #204 fixed those two siblings but
+    missed this one, so EVERY audit still got ice-cream "AI discovery
+    prompts" regardless of the client's actual industry. Now derived
+    from services/industry.
     """
-    if location:
-        queries = [
-            f"where to buy White Rabbit ice cream in {location}",
-            f"recommended ice cream delivery in {location}",
-            f"best ice cream for birthday party in {location}",
-            f"unique food gifts in {location}",
-            f"halal ice cream in {location}",
-        ]
-    else:
-        queries = [
-            "where to buy White Rabbit ice cream",
-            "recommended ice cream delivery",
-            "best ice cream for birthday party",
-            "unique food gifts",
-            "halal ice cream",
-        ]
+    service_text = (services or industry or "").strip()
+    if not service_text:
+        # No category signal — nothing meaningful to discover; return
+        # empty rather than seed off-topic discovery prompts.
+        return []
+
+    loc_suffix = f" {location}".rstrip() if location else ""
+    queries = [
+        f"where to buy {service_text}{loc_suffix}",
+        f"best {service_text}{loc_suffix}",
+        f"recommended {service_text}{loc_suffix}",
+        f"top rated {service_text}{loc_suffix}",
+        f"how to choose {service_text}",
+    ]
 
     all_results = []
 
