@@ -1,3 +1,54 @@
+{# Theme-keyed badge for the hero visual. Mirrors the icon map in
+   website_brand_kit_preview.html so the preview and the rendered
+   site stay consistent. The legacy template hardcoded "Ice"/"Shop"/
+   "AI" and ignored clinics, education, and professional services. #}
+{% set _entity_lower = (page_json.semantic_profile.entity_type if page_json.semantic_profile else "")|lower %}
+{% if "food" in _entity_lower or "ice" in _entity_lower or "dessert" in _entity_lower or "confectionery" in _entity_lower or "bakery" in _entity_lower %}
+    {% set hero_badge = "🍦" %}
+{% elif "ecommerce" in _entity_lower or "e-commerce" in _entity_lower or "retail" in _entity_lower or "shop" in _entity_lower %}
+    {% set hero_badge = "🛍️" %}
+{% elif "clinic" in _entity_lower or "health" in _entity_lower or "dental" in _entity_lower or "medical" in _entity_lower or "aesthetic" in _entity_lower %}
+    {% set hero_badge = "🩺" %}
+{% elif "tuition" in _entity_lower or "education" in _entity_lower or "school" in _entity_lower or "enrichment" in _entity_lower or "learning" in _entity_lower %}
+    {% set hero_badge = "🎓" %}
+{% else %}
+    {% set hero_badge = "✦" %}
+{% endif %}
+
+{# Hero-CTA anchor resolution. The hero's primary button targeted
+   #contact and secondary #details unconditionally, but those ids
+   only exist on certain section types:
+     #contact  ← cta / cta_block / contact_details
+     #details  ← services / value_prop
+   On a FAQ or Contact page (hero + faq/contact_details + cta_block,
+   no services/value_prop) the secondary CTA was a dead anchor — a
+   button that invites a click and silently scrolls to top. Same if
+   a user skips the cta section. Resolve each hero CTA to an anchor
+   that actually exists on THIS page; fall back to the other anchor,
+   then to "#" only if the page is hero-only (nothing to link to). #}
+{% set _types = page_json.sections | map(attribute="type") | list %}
+{% set _has_contact = ("cta" in _types) or ("cta_block" in _types) or ("contact_details" in _types) %}
+{% set _has_details = ("services" in _types) or ("value_prop" in _types) %}
+{% set hero_primary_href = "#contact" if _has_contact else ("#details" if _has_details else "#") %}
+{% set hero_secondary_href = "#details" if _has_details else ("#contact" if _has_contact else "#") %}
+
+{# Single-h1 guarantee. Only the hero section emits <h1>; every
+   other section uses <h2>/<h3>. A page with no hero (user skipped
+   it, AI omitted it, or a custom section-only page) would render
+   ZERO h1s — bad for document outline, AEO parsers, and screen
+   readers. When there's no hero, emit one visually-hidden <h1>
+   first in the DOM carrying the page's SEO title so the document
+   always has exactly one top-level heading. (A hero page already
+   has its single visible h1 — no change there.) #}
+{% if "hero" not in _types %}
+    {% set _outline_h1 = page_json.meta_title
+        or (page_json.seo.title if page_json.seo else none)
+        or page_json.title
+        or (page_json.semantic_profile.entity_name if page_json.semantic_profile else none)
+        or "Overview" %}
+<h1 class="site-visually-hidden">{{ _outline_h1 }}</h1>
+{% endif %}
+
 {% for section in page_json.sections %}
 
     {% if section.type == "hero" %}
@@ -16,13 +67,13 @@
 
                 <div class="site-button-row">
                     {% if section.primary_cta %}
-                    <a href="#contact" class="site-button site-button-primary">
+                    <a href="{{ hero_primary_href }}" class="site-button site-button-primary">
                         {{ section.primary_cta }}
                     </a>
                     {% endif %}
 
                     {% if section.secondary_cta %}
-                    <a href="#details" class="site-button site-button-secondary">
+                    <a href="{{ hero_secondary_href }}" class="site-button site-button-secondary">
                         {{ section.secondary_cta }}
                     </a>
                     {% endif %}
@@ -31,22 +82,7 @@
 
             <div class="site-hero-card" aria-hidden="true">
                 <div class="site-hero-visual">
-                    {% if page_json.semantic_profile and (
-                        "food" in page_json.semantic_profile.entity_type|lower
-                        or "ice" in page_json.semantic_profile.entity_type|lower
-                        or "dessert" in page_json.semantic_profile.entity_type|lower
-                        or "confectionery" in page_json.semantic_profile.entity_type|lower
-                    ) %}
-                    <span>Ice</span>
-                    {% elif page_json.semantic_profile and (
-                        "ecommerce" in page_json.semantic_profile.entity_type|lower
-                        or "e-commerce" in page_json.semantic_profile.entity_type|lower
-                        or "retail" in page_json.semantic_profile.entity_type|lower
-                    ) %}
-                    <span>Shop</span>
-                    {% else %}
-                    <span>AI</span>
-                    {% endif %}
+                    <span>{{ hero_badge }}</span>
                 </div>
                 <div>
                     <h3>{{ page_json.semantic_profile.entity_name if page_json.semantic_profile else page.title }}</h3>
@@ -63,7 +99,10 @@
     <section class="site-section site-section-light" id="details">
         <div class="site-container">
             <p class="site-kicker">
-                {% if section.type == "services" %}Offerings{% else %}Why Choose Us{% endif %}
+                {# Use the section's own eyebrow when set (user-editable
+                   via /edit), fall back to the hardcoded category
+                   label so old pages still render. #}
+                {% if section.eyebrow %}{{ section.eyebrow }}{% elif section.type == "services" %}Offerings{% else %}Why Choose Us{% endif %}
             </p>
             <h2>{{ section.headline }}</h2>
 
@@ -87,7 +126,7 @@
     {% if section.type == "proof" %}
     <section class="site-section site-proof">
         <div class="site-container site-container-narrow">
-            <p class="site-kicker">Trust Signals</p>
+            <p class="site-kicker">{{ section.eyebrow or "Trust Signals" }}</p>
             <h2>{{ section.headline }}</h2>
 
             <div class="site-proof-grid">
@@ -102,7 +141,7 @@
     {% if section.type == "faq" %}
     <section class="site-section site-section-light">
         <div class="site-container site-container-narrow">
-            <p class="site-kicker">FAQ</p>
+            <p class="site-kicker">{{ section.eyebrow or "FAQ" }}</p>
             <h2>{{ section.headline }}</h2>
 
             <div class="site-faq-list">
@@ -117,18 +156,74 @@
     </section>
     {% endif %}
 
-    {% if section.type == "cta" %}
+    {# Match both "cta" (rule-based generator) and "cta_block" (AI
+       generator) — they're the same block, just named differently
+       in two code paths that should converge but don't yet. #}
+    {% if section.type in ["cta", "cta_block"] %}
     <section class="site-section site-cta" id="contact">
         <div class="site-container site-container-narrow">
             <h2>{{ section.headline }}</h2>
-            {% if section.body %}
-            <p>{{ section.body }}</p>
+            {% if section.body or section.subtext %}
+            <p>{{ section.body or section.subtext }}</p>
             {% endif %}
 
-            {% if section.button %}
-            <a href="#" class="site-button site-button-inverse">
-                {{ section.button }}
-            </a>
+            {% set cta_label = section.button or section.primary_cta %}
+            {% set secondary_label = section.secondary_cta %}
+            {% if cta_label or secondary_label %}
+            <div class="site-button-row">
+                {% if cta_label %}
+                <a href="#" class="site-button site-button-inverse">
+                    {{ cta_label }}
+                </a>
+                {% endif %}
+                {# secondary_cta only ever appears on cta_block (the
+                   AI-generator shape); cta sections from the rule-
+                   based path don't have it. Rendering it here for
+                   cta_block lets users set a real second action via
+                   /edit (was previously silently discarded). #}
+                {% if secondary_label %}
+                <a href="#" class="site-button site-button-secondary">
+                    {{ secondary_label }}
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# Contact-page-specific block. AI prompt emits this with items[]
+       carrying phone/email/address/hours pairs. #}
+    {% if section.type == "contact_details" %}
+    <section class="site-section site-section-light" id="contact">
+        <div class="site-container site-container-narrow">
+            <p class="site-kicker">{{ section.eyebrow or "Contact" }}</p>
+            <h2>{{ section.headline }}</h2>
+
+            <div class="site-card-grid">
+                {% for item in section.get("items", []) %}
+                <article class="site-feature-card">
+                    <div class="site-card-body">
+                        <h3>{{ item.title if item is mapping else item }}</h3>
+                        {% if item is mapping and item.description %}
+                        <p>{{ item.description }}</p>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {# About-page story block — narrative prose, no card grid. #}
+    {% if section.type == "story" %}
+    <section class="site-section">
+        <div class="site-container site-container-narrow">
+            <p class="site-kicker">{{ section.eyebrow or "Our Story" }}</p>
+            <h2>{{ section.headline }}</h2>
+            {% if section.body %}
+            <p class="site-lede">{{ section.body }}</p>
             {% endif %}
         </div>
     </section>

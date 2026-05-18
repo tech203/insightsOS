@@ -28,8 +28,18 @@
                     {% if open_opportunities_count %}
                     <p class="muted" style="margin-top:8px;font-size:0.85rem;">
                         Will seed the brand kit with {{ open_opportunities_count }}
-                        open audit {% if open_opportunities_count == 1 %}opportunity{% else %}opportunities{% endif %}.
+                        open audit {% if open_opportunities_count == 1 %}opportunity{% else %}opportunities{% endif %}{% if opportunity_previews %}, including:{% else %}.{% endif %}
                     </p>
+                    {% if opportunity_previews %}
+                    <ul style="margin:6px 0 0 18px;font-size:0.85rem;opacity:0.8;">
+                        {% for preview in opportunity_previews %}
+                        <li>
+                            {{ preview.target_query }}
+                            {% if preview.priority == "high" %}<span style="font-size:0.75rem;opacity:0.7;">· high priority</span>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
                     {% else %}
                     <p class="muted" style="margin-top:8px;font-size:0.85rem;">
                         No open opportunities yet — generation will use generic AEO templates. Run an audit first for better results.
@@ -107,6 +117,20 @@
                         View Live Site
                     </a>
                     {% endif %}
+
+                    {# Inline confirm — destructive action, but cheap
+                       compared to a modal. Avoids users tripping over
+                       a Delete button next to Preview. #}
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_website_project', project_id=project.id) }}"
+                        onsubmit="return confirm('Delete this project and its {{ summary.page_count }} page(s)? This cannot be undone.');"
+                        style="display:inline;"
+                    >
+                        <button type="submit" class="btn btn-secondary" style="opacity:0.75;">
+                            Delete
+                        </button>
+                    </form>
                 </div>
             </article>
             {% endfor %}

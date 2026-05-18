@@ -2,9 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ page_json.seo.title if page_json.seo else page.title }}</title>
-    <meta name="description" content="{{ page_json.seo.description if page_json.seo else '' }}">
+    {# Same SEO-key reconciliation as generated_full_site.html — AI
+       emits seo.meta_description + meta_title, rule-based emits
+       seo.title + seo.description. Read all known keys so the meta
+       description is never empty on AI-generated pages. #}
+    {% set _seo = page_json.seo or {} %}
+    {% set _meta_title = _seo.title or page_json.meta_title or _seo.og_title or page.title %}
+    {% set _meta_desc = _seo.description or _seo.meta_description or page_json.meta_description or "" %}
+    {% set _og_title = _seo.og_title or _meta_title %}
+    {% set _og_desc = _seo.og_description or _meta_desc %}
+    <title>{{ _meta_title }}</title>
+    <meta name="description" content="{{ _meta_desc }}">
+    {% if _seo.keywords %}
+    <meta name="keywords" content="{{ _seo.keywords|join(', ') if _seo.keywords is iterable and _seo.keywords is not string else _seo.keywords }}">
+    {% endif %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {# Canonical + og:url from canonical_url (url_for _external=True),
+       consistent with the sitemap + Stripe URLs. Same rationale as
+       generated_full_site.html. #}
+    {% set _canonical = canonical_url or request.base_url %}
+    <link rel="canonical" href="{{ _canonical }}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ _canonical }}">
+    <meta property="og:title" content="{{ _og_title }}">
+    <meta property="og:description" content="{{ _og_desc }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ _og_title }}">
+    <meta name="twitter:description" content="{{ _og_desc }}">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='generated-site.css') }}">

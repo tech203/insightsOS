@@ -5,23 +5,76 @@
 {% endblock %}
 
 {% block content %}
+{# The public site template (generated_full_site.html) sets these CSS
+   variables on <body>, but this in-dashboard preview was missing them.
+   Without them, .site-feature-card h3 { color: var(--site-text); }
+   resolves to nothing and inherits the dashboard's dark-theme grey,
+   making titles like "Phone or WhatsApp" or the hero entity_name
+   barely visible against the white card background. #}
+{% set blueprint = blueprint or {} %}
 <div class="workspace-page-shell">
 
+    {% set reviewed_at = (page.page_json or {}).get("reviewed_at") %}
     <section class="panel">
         <div class="section-header">
             <div>
                 <p class="section-kicker">Website Engine</p>
                 <h1>{{ page.title }}</h1>
-                <p class="muted">Draft preview generated from structured page JSON.</p>
+                <p class="muted">
+                    Draft preview generated from structured page JSON.
+                    {% if reviewed_at %}
+                    · <span style="color:#10b981;font-weight:600;">✓ Reviewed {{ reviewed_at[:10] }}</span>
+                    {% else %}
+                    · <span class="muted" style="font-style:italic;">Not yet reviewed</span>
+                    {% endif %}
+                </p>
             </div>
 
-            <form method="POST" action="{{ url_for('publish_generated_page', page_id=page.id) }}">
-                <button class="btn btn-primary" type="submit">Publish Page</button>
-            </form>
+            <div style="display:flex;gap:8px;">
+                {% if not reviewed_at %}
+                {# Only show "Mark Reviewed" when the page isn't yet
+                   reviewed — once it is, Edit Content + the implicit
+                   review-on-save covers the loop. #}
+                <form method="POST" action="{{ url_for('mark_generated_page_reviewed', page_id=page.id) }}">
+                    <button class="btn btn-secondary" type="submit">Mark Reviewed</button>
+                </form>
+                {% endif %}
+                <a class="btn btn-secondary" href="{{ url_for('edit_generated_page', page_id=page.id) }}">
+                    Edit Content
+                </a>
+                {# Re-run AI for this single page using the project's
+                   existing blueprint. Slug, page_type, and webflow
+                   export state are preserved so URLs don't change
+                   under the user's feet. #}
+                <form
+                    method="POST"
+                    action="{{ url_for('regenerate_generated_page', page_id=page.id) }}"
+                    onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Regenerating…';"
+                >
+                    <button class="btn btn-secondary" type="submit">
+                        Regenerate Page
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('publish_generated_page', page_id=page.id) }}">
+                    <button class="btn btn-primary" type="submit">Publish Page</button>
+                </form>
+            </div>
         </div>
     </section>
 
-    {% include "website_engine_render.html" %}
+    <div
+        class="generated-site-preview style-{{ blueprint.visual_style or 'modern_ecommerce' }} theme-{{ blueprint.theme or 'professional_services' }}"
+        style="
+            --site-primary: {{ blueprint.primary_color or '#f97316' }};
+            --site-primary-dark: color-mix(in srgb, {{ blueprint.primary_color or '#f97316' }}, black 18%);
+            --site-primary-soft: {{ blueprint.secondary_color or '#fff7ed' }};
+            --site-accent-soft: {{ blueprint.accent_color or '#ffedd5' }};
+            --site-text: {{ blueprint.text_color or '#0f172a' }};
+            --site-muted: #64748b;
+        "
+    >
+        {% include "website_engine_render.html" %}
+    </div>
 
 </div>
 {% endblock %}

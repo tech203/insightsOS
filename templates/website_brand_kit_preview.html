@@ -31,8 +31,28 @@
 {% endblock %}
 
 {% block content %}
+{# Re-declare here too — Jinja {% set %} inside block head doesn't leak
+   into block content, so every inline `style="...{{ primary_color }}..."`
+   below this point would render as empty string without these. #}
+{% set primary_color = blueprint.primary_color or '#4f46e5' %}
+{% set secondary_color = blueprint.secondary_color or '#eef2ff' %}
+{% set accent_color = blueprint.accent_color or '#c7d2fe' %}
+{% set text_color = blueprint.text_color or '#0f172a' %}
+{% set theme_icons = {
+    'restaurant_cafe': '🍦',
+    'ecommerce_store': '🛍️',
+    'clinic_wellness': '🩺',
+    'education_centre': '🎓',
+    'professional_services': '✦'
+} %}
+{% set hero_icon = theme_icons.get(blueprint.theme, '✦') %}
+{# logo_url resolution: prefer the blueprint copy (latest upload
+   propagated by the upload route), fall back to the client's
+   persisted workspace logo so existing dashboard logos appear
+   automatically without a re-upload. #}
+{% set logo_url = blueprint.logo_url or client.logo_url %}
 <div class="brand-kit-page-shell">
-<form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}">
+<form method="POST" action="{{ url_for('approve_website_brand_kit', client_id=client.id) }}" enctype="multipart/form-data">
 
     <!-- HERO -->
     <section class="card brand-kit-hero">
@@ -44,14 +64,38 @@
                 <p class="eyebrow">Brand Kit Studio</p>
 
                 <div class="brand-kit-avatar-row">
-                    <div class="brand-kit-avatar" style="background: {{ primary_color }};">
+                    <div class="brand-kit-avatar" style="background: {{ primary_color }};{% if logo_url %}background-image: url('{{ logo_url }}');background-size: cover;background-position: center;{% endif %}">
+                        {% if not logo_url %}
                         {{ blueprint.client_name[:1] }}
+                        {% endif %}
                     </div>
 
-                    <div>
-                        <button class="btn btn-secondary" type="button">
-                            Upload Logo
-                        </button>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        {# File input + submit live inside the parent
+                           form. enctype was added at the form tag so
+                           multipart works. formaction routes this
+                           specific submit to the upload route while
+                           the rest of the form keeps targeting
+                           approve-brand-kit. #}
+                        <label
+                            class="btn btn-secondary"
+                            style="cursor:pointer;text-align:center;"
+                        >
+                            {% if logo_url %}Replace Logo{% else %}Upload Logo{% endif %}
+                            <input
+                                type="file"
+                                name="logo"
+                                accept="image/png,image/jpeg,image/webp"
+                                style="display:none;"
+                                onchange="this.form.querySelector('button[name=upload_logo_submit]').click();"
+                            >
+                        </label>
+                        <button
+                            type="submit"
+                            name="upload_logo_submit"
+                            formaction="{{ url_for('upload_brand_kit_logo', client_id=client.id) }}"
+                            style="display:none;"
+                        ></button>
                     </div>
                 </div>
 
@@ -167,7 +211,15 @@
                     <h2>Editable palette</h2>
                 </div>
 
-                <button class="btn btn-secondary" type="button">
+                {# formaction overrides the parent form's action just
+                   for this button — posts current edits to a route
+                   that cycles the palette variant and redirects back
+                   to this same brand-kit preview page. #}
+                <button
+                    class="btn btn-secondary"
+                    type="submit"
+                    formaction="{{ url_for('regenerate_brand_kit_palette', client_id=client.id) }}"
+                >
                     Regenerate Palette
                 </button>
             </div>
@@ -208,17 +260,53 @@
             </h2>
 
             <div class="brand-kit-style-grid">
+                {# Per-style hints — each card shows a mini-preview that
+                   actually previews the rendered look (radius, font,
+                   button shape) so the user can pick by sight, not
+                   by name alone. #}
                 {% set styles = [
-                    'Modern Ecommerce',
-                    'Premium Minimal',
-                    'Editorial Lifestyle',
-                    'Playful Brand'
+                    {
+                        'label': 'Modern Ecommerce',
+                        'value': 'modern_ecommerce',
+                        'description': 'Bold sans-serif, brand-color CTAs, rounded cards.',
+                        'mock_radius': '12px',
+                        'mock_btn_radius': '8px',
+                        'mock_font': 'inherit',
+                        'mock_btn_text': 'Shop',
+                    },
+                    {
+                        'label': 'Premium Minimal',
+                        'value': 'premium_minimal',
+                        'description': 'Loose spacing, light weight, refined buttons.',
+                        'mock_radius': '4px',
+                        'mock_btn_radius': '2px',
+                        'mock_font': 'inherit',
+                        'mock_btn_text': 'Discover',
+                    },
+                    {
+                        'label': 'Editorial Lifestyle',
+                        'value': 'editorial_lifestyle',
+                        'description': 'Serif headlines, generous line-height, uppercase buttons.',
+                        'mock_radius': '8px',
+                        'mock_btn_radius': '0',
+                        'mock_font': 'Playfair Display, Georgia, serif',
+                        'mock_btn_text': 'READ MORE',
+                    },
+                    {
+                        'label': 'Playful Brand',
+                        'value': 'playful_brand',
+                        'description': 'Rounded edges, pill buttons, generous shadows.',
+                        'mock_radius': '24px',
+                        'mock_btn_radius': '999px',
+                        'mock_font': 'inherit',
+                        'mock_btn_text': 'Tap in',
+                    }
                 ] %}
 
                 {% for style in styles %}
-                {% set style_value = style|lower|replace(" ", "_") %}
-                <div class="brand-kit-style-option{% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %} selected{% endif %}" style="
-                    {% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %}
+                {% set is_selected = blueprint.visual_style == style.value or (not blueprint.visual_style and loop.first) %}
+                <div class="brand-kit-style-option{% if is_selected %} selected{% endif %}" style="
+                    {% if is_selected %}
                     border: 2px solid {{ primary_color }};
                     background: {{ secondary_color }};
                     {% endif %}
@@ -226,17 +314,55 @@
                     <input
                         type="radio"
                         name="visual_style"
-                        value="{{ style_value }}"
-                        {% if blueprint.visual_style == style_value or (not blueprint.visual_style and loop.first) %}checked{% endif %}
+                        value="{{ style.value }}"
+                        {% if is_selected %}checked{% endif %}
                         style="margin-bottom:12px;"
                     >
 
-                    <div class="brand-kit-style-preview"></div>
+                    {# Mini-preview reflecting the actual style — uses
+                       the brand's primary color so the user sees how
+                       their colour interacts with each style. #}
+                    <div
+                        class="brand-kit-style-preview"
+                        style="
+                            background: linear-gradient(135deg, {{ secondary_color }} 0%, #ffffff 100%);
+                            border-radius: {{ style.mock_radius }};
+                            font-family: {{ style.mock_font }};
+                            padding: 14px;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            min-height: 90px;
+                            margin-bottom: 10px;
+                        "
+                    >
+                        <div style="
+                            font-weight: {% if style.value == 'premium_minimal' %}500{% else %}700{% endif %};
+                            font-size: 0.8rem;
+                            color: {{ text_color }};
+                            line-height: 1.2;
+                        ">
+                            {{ blueprint.client_name or 'Your brand' }}
+                        </div>
+                        <div style="
+                            display: inline-block;
+                            align-self: flex-start;
+                            background: {{ primary_color }};
+                            color: #ffffff;
+                            border-radius: {{ style.mock_btn_radius }};
+                            padding: 4px 10px;
+                            font-size: 0.7rem;
+                            font-weight: 600;
+                            {% if style.value == 'editorial_lifestyle' %}letter-spacing: 0.08em;{% endif %}
+                        ">
+                            {{ style.mock_btn_text }}
+                        </div>
+                    </div>
 
-                    <strong>{{ style }}</strong>
+                    <strong>{{ style.label }}</strong>
 
                     <p class="muted brand-kit-style-description">
-                        AI-generated layout and visual direction.
+                        {{ style.description }}
                     </p>
                 </div>
                 {% endfor %}
@@ -254,10 +380,10 @@
                 <p class="eyebrow">Website Structure</p>
                 <h2>Generated pages</h2>
             </div>
-
-            <button class="btn btn-secondary" type="button">
-                Add Page
-            </button>
+            {# The "Add Page" button used to be a non-functional stub.
+               Pages are now added by filling in any of the empty
+               slots below the existing cards — no JS or extra route
+               needed. #}
         </div>
 
         <div class="brand-kit-pages-grid">
@@ -284,6 +410,54 @@
                 >
 
                 <textarea name="page_goal_{{ loop.index0 }}" class="brand-kit-page-goal">{{ page.goal }}</textarea>
+
+                {# Skip this page at generation time — useful for
+                   clients that don't need an FAQ or About. Server
+                   filters by name in apply_brand_kit_form_edits. #}
+                <label
+                    class="muted"
+                    style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.8rem;cursor:pointer;"
+                >
+                    <input
+                        type="checkbox"
+                        name="page_remove_{{ loop.index0 }}"
+                        value="1"
+                    >
+                    Skip this page
+                </label>
+            </div>
+            {% endfor %}
+
+            {# 3 empty "Add a page" slots. Any with a non-empty title
+               gets appended at server side (apply_brand_kit_form_edits).
+               Three is enough for the common case (Pricing / Process /
+               Testimonials) without making the form feel overwhelming. #}
+            {% for i in range(3) %}
+            <div class="brand-kit-page-card" style="opacity:0.85;border-style:dashed;">
+                <div class="brand-kit-page-icon" style="background: {{ secondary_color }};">
+                    +
+                </div>
+                <input
+                    name="new_page_title_{{ i }}"
+                    value=""
+                    placeholder="Add a page (e.g. Pricing)"
+                    class="brand-kit-page-title"
+                >
+                <p class="muted brand-kit-page-slug">
+                    /optional — leave blank to skip
+                </p>
+                <input
+                    name="new_page_slug_{{ i }}"
+                    value=""
+                    placeholder="auto-generated"
+                    aria-label="Page slug"
+                    class="brand-kit-page-slug-input"
+                >
+                <textarea
+                    name="new_page_goal_{{ i }}"
+                    placeholder="What should this page accomplish?"
+                    class="brand-kit-page-goal"
+                ></textarea>
             </div>
             {% endfor %}
         </div>
@@ -299,7 +473,11 @@
                 <h2>Questions people may ask AI</h2>
             </div>
 
-            <button class="btn btn-secondary" type="button">
+            <button
+                class="btn btn-secondary"
+                type="submit"
+                formaction="{{ url_for('regenerate_brand_kit_aeo_ideas', client_id=client.id) }}"
+            >
                 Regenerate Ideas
             </button>
         </div>
@@ -333,8 +511,43 @@
             </p>
 
             <div class="brand-kit-cta-buttons">
-                <button class="brand-kit-cta-primary-btn" type="submit" style="background: white; color: {{ primary_color }};">
+                {# Approve fires 5 sequential AI calls (one per page) so
+                   the request can take 15-25 seconds. Without this
+                   disabled+relabel handler the user sees a frozen page
+                   and is likely to double-submit. The setTimeout-wrapped
+                   form.submit() is a tiny workaround: setting disabled
+                   on the clicked button in onclick would normally
+                   prevent the form submit because disabled inputs don't
+                   POST — by yielding to the event loop, the form
+                   submits, *then* the button disables. #}
+                <button
+                    class="brand-kit-cta-primary-btn"
+                    type="submit"
+                    id="approve-website-btn"
+                    style="background: white; color: {{ primary_color }};"
+                    onclick="
+                        var b = this;
+                        setTimeout(function() {
+                            b.disabled = true;
+                            b.textContent = 'Generating 5 pages — about 20 seconds…';
+                            b.style.opacity = '0.7';
+                            b.style.cursor = 'wait';
+                        }, 50);
+                    "
+                >
                     Approve & Generate Website
+                </button>
+
+                {# Save without generating — same form, formaction
+                   routes this specific submit to the save-only route.
+                   No AI calls, no project created. Mirrors the
+                   Regenerate Palette / Ideas pattern. #}
+                <button
+                    class="brand-kit-cta-secondary-btn"
+                    type="submit"
+                    formaction="{{ url_for('save_website_brand_kit', client_id=client.id) }}"
+                >
+                    Save Brand Kit
                 </button>
 
                 <a
