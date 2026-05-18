@@ -20,10 +20,19 @@
     {% endif %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    {# Canonical + og:url. request.base_url is scheme+host+path with
+       NO query string — exactly what a canonical wants, and it's
+       route-agnostic so the same line works for /site/<id>,
+       /site/<id>/<slug> and /p/<id>/<slug>. Answer-engine and
+       search crawlers use canonical for de-duplication; its absence
+       on an AEO product's own output was a gap. #}
+    <link rel="canonical" href="{{ request.base_url }}">
+
     {# Open Graph — the AI already generates og_title/og_description
        but they were being discarded. Matters for social unfurls and
        some answer-engine crawlers. #}
     <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.base_url }}">
     <meta property="og:title" content="{{ _og_title }}">
     <meta property="og:description" content="{{ _og_desc }}">
     <meta name="twitter:card" content="summary">

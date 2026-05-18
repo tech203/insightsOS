@@ -604,9 +604,10 @@ def test_preview_wrapper_carries_visual_style_class():
         )
 
 
-def _render_public_site(page_json):
+def _render_public_site(page_json, path="/site/1"):
     """Render generated_full_site.html with a minimal project/page
-    and return the <head> HTML for SEO assertions."""
+    and return the <head> HTML for SEO assertions. `path` drives
+    request.base_url so canonical / og:url can be asserted."""
     import re
     from flask import render_template
     from app import app as flask_app
@@ -624,7 +625,7 @@ def _render_public_site(page_json):
          "page_type": "home", "status": "published", "page_json": page_json},
     )()
     with flask_app.app_context():
-        with flask_app.test_request_context():
+        with flask_app.test_request_context(path):
             html = render_template(
                 "generated_full_site.html",
                 project=project,
@@ -634,6 +635,26 @@ def _render_public_site(page_json):
                 blueprint=project.blueprint_json,
             )
     return re.search(r"<head>.*?</head>", html, re.DOTALL).group(0)
+
+
+def test_public_site_has_canonical_and_og_url():
+    """Published pages must carry <link rel=canonical> and og:url
+    pointing at the query-free request URL — crawlers (incl.
+    answer engines) use canonical for de-duplication. Was missing
+    entirely before."""
+    head = _render_public_site(
+        {"seo": {"title": "T", "description": "D"}, "sections": []},
+        path="/site/1/about",
+    )
+    assert '<link rel="canonical" href="http://localhost/site/1/about">' in head
+    assert '<meta property="og:url" content="http://localhost/site/1/about">' in head
+    # Canonical must be query-free even if the request had one.
+    head_q = _render_public_site(
+        {"seo": {"title": "T", "description": "D"}, "sections": []},
+        path="/site/1/about?utm_source=x",
+    )
+    assert "utm_source" not in head_q
+    assert '<link rel="canonical" href="http://localhost/site/1/about">' in head_q
 
 
 def test_ai_shape_seo_produces_nonempty_meta_and_og():
