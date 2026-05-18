@@ -613,7 +613,9 @@
                    posts to /verify-email/resend; rate-limited server-
                    side to 60s between resends. #}
                 {% if user_email_unverified %}
-                    <div class="alert-banner alert-banner--info" role="status">
+                    <div class="alert-banner alert-banner--info alert-banner--dismissible"
+                         role="status" id="email-verify-banner"
+                         data-dismiss-key="emailVerifyBannerDismissed">
                         <div class="alert-banner__icon" aria-hidden="true">✉</div>
                         <div class="alert-banner__body">
                             <strong>Verify your email to enable billing.</strong>
@@ -624,6 +626,8 @@
                                 <button type="submit" class="alert-banner__inline-btn">Resend email</button>
                             </form>
                         </div>
+                        <button type="button" class="alert-banner__dismiss"
+                                data-dismiss-banner aria-label="Dismiss for this session">✕</button>
                     </div>
                 {% endif %}
 
@@ -1124,6 +1128,32 @@
             }
             return _fetch.call(this, input, init);
         };
+    }());
+    </script>
+
+    {# Email-verification banner dismiss — session-scoped only.
+       The banner is a soft reminder, not the billing gate (that
+       fires independently at Stripe checkout), so hiding it for
+       the session doesn't weaken verification enforcement. Uses
+       sessionStorage so it reappears on the next fresh session
+       (≈ next login), keeping the nudge without the per-page nag. #}
+    <script>
+    (function () {
+        var banner = document.getElementById('email-verify-banner');
+        if (!banner) return;
+        var key = banner.getAttribute('data-dismiss-key') || 'emailVerifyBannerDismissed';
+        try {
+            if (sessionStorage.getItem(key) === '1') {
+                banner.parentNode && banner.parentNode.removeChild(banner);
+                return;
+            }
+        } catch (_) {}
+        var btn = banner.querySelector('[data-dismiss-banner]');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            try { sessionStorage.setItem(key, '1'); } catch (_) {}
+            banner.style.display = 'none';
+        });
     }());
     </script>
 </body>

@@ -1193,11 +1193,40 @@ textarea {
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    padding: 14px 16px;
+    padding: 12px 16px;
     border-radius: 12px;
     border: 1px solid var(--line);
     background: #ffffff;
     margin: 0 0 20px;
+    position: relative;
+}
+
+/* Leave room so the dismiss ✕ never overlaps the body text. */
+.alert-banner--dismissible {
+    padding-right: 40px;
+}
+
+.alert-banner__dismiss {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    line-height: 1;
+    font-size: 13px;
+    cursor: pointer;
+    color: currentColor;
+    opacity: 0.5;
+    border-radius: 6px;
+    transition: opacity var(--transition-fast, 0.15s ease),
+                background-color var(--transition-fast, 0.15s ease);
+}
+
+.alert-banner__dismiss:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.06);
 }
 
 .alert-banner__icon {
@@ -1235,15 +1264,42 @@ textarea {
 /* Informational variant — brand-toned for educational notices that
    aren't blocking and aren't billing-critical: "verify your email",
    "this is a paid feature", "your data is preserved on downgrade". */
+/* Lighter than before: this is a non-blocking reminder, so it
+   should read as a quiet notice, not a heavy callout. Softer
+   border + fainter tint + a tinted (not solid-filled) icon. */
 .alert-banner--info {
-    border-color: var(--brand-border, rgba(124, 92, 255, 0.25));
-    background: var(--brand-soft, rgba(124, 92, 255, 0.08));
-    color: var(--brand, #7c5cff);
+    border-color: var(--brand-border, rgba(124, 92, 255, 0.18));
+    background: var(--brand-soft, rgba(124, 92, 255, 0.06));
+    color: var(--brand, #6d4aff);
 }
 
 .alert-banner--info .alert-banner__icon {
-    background: var(--brand, #7c5cff);
-    color: #ffffff;
+    background: rgba(124, 92, 255, 0.14);
+    color: var(--brand, #6d4aff);
+}
+
+/* Dark mode: the banner had NO dark override — it kept the light
+   purple-on-white tint and read muddy on the dark canvas (the
+   same dullness fixed elsewhere this cycle). Give it a tuned
+   translucent surface with readable light text. */
+html[data-theme="dark"] .alert-banner--info {
+    border-color: rgba(157, 124, 227, 0.32);
+    background: rgba(157, 124, 227, 0.12);
+    color: #C7B0F3;
+}
+
+html[data-theme="dark"] .alert-banner--info .alert-banner__icon {
+    background: rgba(157, 124, 227, 0.22);
+    color: #C7B0F3;
+}
+
+html[data-theme="dark"] .alert-banner--info .alert-banner__body strong,
+html[data-theme="dark"] .alert-banner--info .alert-banner__body code {
+    color: var(--theme-text-primary, #F4F6FB);
+}
+
+html[data-theme="dark"] .alert-banner__dismiss:hover {
+    background: rgba(255, 255, 255, 0.10);
 }
 
 /* Inline-form button inside an alert-banner. Used by the email
