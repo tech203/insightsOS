@@ -4878,6 +4878,15 @@ def delete_client_and_related_queue(client_slug, user_id):
     if not row:
         return False
 
+    # QueueItem.client_id holds the workspace slug (plain String, no
+    # FK/cascade), so the rows must be deleted explicitly. Scope by
+    # user_id to mirror get_client_row_by_slug's ownership check —
+    # without it a slug shared across users would delete the wrong
+    # rows. Same transaction as the Client delete so an orphan can't
+    # survive a half-committed delete.
+    QueueItem.query.filter_by(
+        client_id=client_slug, user_id=user_id
+    ).delete(synchronize_session=False)
     db.session.delete(row)
     db.session.commit()
     return True
