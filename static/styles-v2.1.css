@@ -6481,7 +6481,12 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
    currentColor + the inherited theme text colour, then knocks
    opacity down so it reads as decoration rather than competing
    with the big metric value. */
-.dashboard-metric-icon {
+/* Shared by the dashboard metric tiles and the .stat-card tiles on
+   audit_summary.html / client_presentation.html. Single source of
+   truth — these two templates previously each carried an identical
+   copy in their scoped <style> blocks. */
+.dashboard-metric-icon,
+.stat-card-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
