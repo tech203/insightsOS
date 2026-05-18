@@ -609,6 +609,39 @@
     html[data-theme="dark"] .audit-form-header-clean p {
         color: var(--theme-text-secondary);
     }
+
+    /* === Featured-card accent ===
+       Mirrors the global accent system (see styles-v2.1.css
+       "Featured-card accent treatment"). Only .audit-form-card-clean
+       gets it — it's the focal CTA (URL input + Run Audit). The
+       grouped .audit-side-card and the helper/visual cards stay
+       neutral so the action surface stands out. Rules live here,
+       last in the inline block, so source order beats the base rule
+       (line ~262) and the dark-mode override (line ~554) without
+       needing !important in light mode. Shared brand tokens are
+       global so they resolve here. */
+    .audit-form-card-clean {
+        border-color: var(--brand-primary);
+        transition: border-color var(--transition-normal, 0.2s ease),
+                    box-shadow var(--transition-normal, 0.2s ease),
+                    transform var(--transition-normal, 0.2s ease);
+    }
+    .audit-form-card-clean:hover {
+        border-color: var(--brand-primary);
+        box-shadow:
+            0 0 0 1px var(--brand-primary),
+            0 10px 32px var(--brand-primary-shadow);
+    }
+    html[data-theme="dark"] .audit-form-card-clean {
+        border-color: var(--brand-primary-neon) !important;
+    }
+    html[data-theme="dark"] .audit-form-card-clean:hover {
+        border-color: var(--brand-primary-neon) !important;
+        box-shadow:
+            0 0 0 1px var(--brand-primary-neon),
+            0 0 28px var(--brand-primary-neon-glow),
+            0 10px 28px rgba(0, 0, 0, 0.45) !important;
+    }
 </style>
 
 <script>
