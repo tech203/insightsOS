@@ -604,6 +604,100 @@ def test_preview_wrapper_carries_visual_style_class():
         )
 
 
+def _render_public_site(page_json):
+    """Render generated_full_site.html with a minimal project/page
+    and return the <head> HTML for SEO assertions."""
+    import re
+    from flask import render_template
+    from app import app as flask_app
+
+    project = type(
+        "Proj",
+        (),
+        {"id": 1, "theme": "professional_services", "status": "published",
+         "blueprint_json": {"client_name": "Test"}},
+    )()
+    page = type(
+        "Pg",
+        (),
+        {"id": 1, "title": "Brand | Home", "slug": "home",
+         "page_type": "home", "status": "published", "page_json": page_json},
+    )()
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            html = render_template(
+                "generated_full_site.html",
+                project=project,
+                pages=[page],
+                page=page,
+                page_json=page_json,
+                blueprint=project.blueprint_json,
+            )
+    return re.search(r"<head>.*?</head>", html, re.DOTALL).group(0)
+
+
+def test_ai_shape_seo_produces_nonempty_meta_and_og():
+    """Regression: the AI generator emits seo.meta_description +
+    top-level meta_title, but the public templates only read
+    seo.title/seo.description — so every AI-generated published
+    page shipped an empty <meta description> and the raw
+    "Brand | Home" page title. Confirm the reconciled keys now
+    render the real SEO values + OG tags."""
+    head = _render_public_site({
+        "title": "Acme Home",
+        "meta_title": "Acme — Growth Marketing in Singapore",
+        "meta_description": "Acme helps Singapore startups grow via AEO.",
+        "seo": {
+            "meta_description": "Acme helps Singapore startups grow via AEO.",
+            "keywords": ["Acme", "AEO", "Singapore"],
+            "og_title": "Acme — Growth Marketing",
+            "og_description": "Grow your startup with Acme.",
+        },
+        "sections": [],
+    })
+    # Real SEO title, not the raw "Brand | Home" page row title.
+    assert "Acme — Growth Marketing in Singapore" in head
+    assert "Brand | Home" not in head
+    # Meta description is NOT empty.
+    assert 'content="Acme helps Singapore startups grow via AEO."' in head
+    assert 'name="description" content=""' not in head
+    # OG tags now emitted from the AI's og_* fields.
+    assert 'property="og:title" content="Acme — Growth Marketing"' in head
+    assert 'property="og:description" content="Grow your startup with Acme."' in head
+    assert 'name="twitter:card"' in head
+    # Keywords surfaced (AI generates them; were discarded before).
+    assert "Acme, AEO, Singapore" in head
+
+
+def test_rule_based_shape_seo_still_renders():
+    """Backwards compat: the rule-based generator emits
+    seo.title + seo.description. Those must still render after the
+    key reconciliation (no regression for non-AI pages)."""
+    head = _render_public_site({
+        "title": "Home",
+        "seo": {
+            "title": "Test Co — Services in Singapore",
+            "description": "What Test Co offers.",
+        },
+        "sections": [],
+    })
+    assert "Test Co — Services in Singapore" in head
+    assert 'content="What Test Co offers."' in head
+    # OG falls back to the resolved title/description when the AI's
+    # og_* fields are absent (rule-based path).
+    assert 'property="og:title" content="Test Co — Services in Singapore"' in head
+
+
+def test_seo_falls_back_to_page_title_when_no_seo_block():
+    """A page_json with no seo block at all must still produce a
+    title (the page row's title) rather than a blank <title>."""
+    head = _render_public_site({"sections": []})
+    assert "<title>Brand | Home</title>" in head
+    # Empty description is acceptable here (nothing to populate it),
+    # but the tag should still be present and well-formed.
+    assert 'name="description" content=""' in head
+
+
 def test_public_site_nav_label_handles_user_added_pages():
     """User-added pages get page_type="landing_page" (the default in
     apply_brand_kit_form_edits), so the nav previously labelled them
