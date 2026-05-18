@@ -27,6 +27,13 @@
        search crawlers use canonical for de-duplication; its absence
        on an AEO product's own output was a gap. #}
     <link rel="canonical" href="{{ request.base_url }}">
+    {# Surfaces the per-project sitemap. A root /robots.txt isn't
+       possible here (shared host), so this <link> + direct
+       submission is how the sitemap gets discovered. #}
+    {% if project and project.id %}
+    <link rel="sitemap" type="application/xml"
+          href="{{ url_for('public_website_sitemap', project_id=project.id) }}">
+    {% endif %}
 
     {# Open Graph — the AI already generates og_title/og_description
        but they were being discarded. Matters for social unfurls and

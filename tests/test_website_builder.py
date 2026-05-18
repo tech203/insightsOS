@@ -637,6 +637,117 @@ def _render_public_site(page_json, path="/site/1"):
     return re.search(r"<head>.*?</head>", html, re.DOTALL).group(0)
 
 
+def _published_project_with_pages(app_ctx_db):
+    """Create a published project + home/about pages owned by a
+    fresh user. Returns (client, project_id, user)."""
+    from werkzeug.security import generate_password_hash
+    from app import (
+        db,
+        User,
+        Wallet,
+        Client,
+        GeneratedWebsiteProject,
+        GeneratedWebsitePage,
+        app as flask_app,
+    )
+    from datetime import datetime, timezone
+
+    u = User(
+        email=f"sm{datetime.now().microsecond}@test.com",
+        password_hash=generate_password_hash("xx"),
+        name="SM",
+        plan="growth",
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db.session.add(u)
+    db.session.flush()
+    db.session.add(Wallet(user_id=u.id, balance=10))
+    ws = Client(
+        slug=f"sm-co-{u.id}",
+        user_id=u.id,
+        name="SM Co",
+        website="https://sm.example.com",
+        website_normalized="sm.example.com",
+        industry="Marketing agency",
+        location="Singapore",
+    )
+    db.session.add(ws)
+    db.session.flush()
+    project = GeneratedWebsiteProject(
+        user_id=u.id,
+        client_id=ws.id,
+        title="SM Site",
+        theme="professional_services",
+        status="published",
+        blueprint_json={"client_name": "SM Co"},
+    )
+    db.session.add(project)
+    db.session.flush()
+    db.session.add_all([
+        GeneratedWebsitePage(
+            project_id=project.id, user_id=u.id, client_id=ws.id,
+            title="Home", slug="home", page_type="home",
+            status="published",
+            page_json={"sections": [], "seo": {"title": "H", "description": "d"}},
+        ),
+        GeneratedWebsitePage(
+            project_id=project.id, user_id=u.id, client_id=ws.id,
+            title="About", slug="about", page_type="about",
+            status="published",
+            page_json={"sections": [], "seo": {"title": "A", "description": "d"}},
+        ),
+    ])
+    db.session.commit()
+    return flask_app.test_client(), project.id
+
+
+def test_sitemap_lists_published_pages_with_canonical_home(app_ctx):
+    """sitemap.xml must list every published page, with the home
+    page at the canonical /site/<id> URL (not /site/<id>/home) so
+    it matches the page's own canonical tag."""
+    c, project_id = _published_project_with_pages(app_ctx)
+    resp = c.get(f"/site/{project_id}/sitemap.xml")
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/xml"
+    body = resp.data.decode()
+    assert "<urlset" in body and "</urlset>" in body
+    # Home at canonical /site/<id>, NOT /site/<id>/home.
+    assert f"<loc>http://localhost/site/{project_id}</loc>" in body
+    assert f"/site/{project_id}/home<" not in body
+    # Other page at its slug URL.
+    assert f"<loc>http://localhost/site/{project_id}/about</loc>" in body
+    # lastmod present (pages have updated_at).
+    assert "<lastmod>" in body
+
+
+def test_sitemap_404s_for_unpublished_project(app_ctx):
+    """Drafts must not be enumerable via the sitemap."""
+    from app import db, GeneratedWebsiteProject
+
+    c, project_id = _published_project_with_pages(app_ctx)
+    # Flip the project back to draft.
+    proj = GeneratedWebsiteProject.query.get(project_id)
+    proj.status = "draft"
+    db.session.commit()
+
+    assert c.get(f"/site/{project_id}/sitemap.xml").status_code == 404
+    # robots.txt route deliberately doesn't exist (host-root spec
+    # limitation) — confirm it's not silently 200.
+    assert c.get(f"/site/{project_id}/robots.txt").status_code == 404
+
+
+def test_public_site_head_links_sitemap(app_ctx):
+    """The published page <head> must reference the project sitemap
+    so it's discoverable without a host-root robots.txt."""
+    c, project_id = _published_project_with_pages(app_ctx)
+    body = c.get(f"/site/{project_id}").data.decode()
+    assert (
+        f'rel="sitemap" type="application/xml"'
+        in body
+    )
+    assert f"/site/{project_id}/sitemap.xml" in body
+
+
 def test_public_site_has_canonical_and_og_url():
     """Published pages must carry <link rel=canonical> and og:url
     pointing at the query-free request URL — crawlers (incl.

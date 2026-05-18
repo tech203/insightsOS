@@ -70,7 +70,9 @@ from flask import (
     flash,
     session,
     make_response,
+    Response,
 )
+from markupsafe import escape
 from datetime import datetime, timedelta
 
 # Drop-in replacement for the deprecated utcnow() — returns
@@ -3226,6 +3228,71 @@ def public_website_page(project_id, slug):
         page_json=page.page_json,
         blueprint=project.blueprint_json,
     )
+
+
+@app.route("/site/<int:project_id>/sitemap.xml")
+def public_website_sitemap(project_id):
+    """XML sitemap for a published project. Crawler discovery is the
+    whole point of an AEO product — a multi-page generated site with
+    no sitemap leaves answer engines to find pages by luck. 404s for
+    unpublished projects (same gate as the page routes) so drafts
+    aren't enumerable.
+
+    Home is emitted at /site/<id> (the canonical home URL the page
+    template also uses), other pages at /site/<id>/<slug>. lastmod
+    comes from each page's updated_at."""
+    project = GeneratedWebsiteProject.query.get_or_404(project_id)
+    if project.status != "published":
+        abort(404)
+
+    pages = (
+        GeneratedWebsitePage.query.filter_by(
+            project_id=project.id, status="published"
+        )
+        .order_by(GeneratedWebsitePage.id.asc())
+        .all()
+    )
+
+    urls = []
+    for p in pages:
+        if p.slug == "home":
+            loc = url_for(
+                "public_website_project", project_id=project.id, _external=True
+            )
+        else:
+            loc = url_for(
+                "public_website_page",
+                project_id=project.id,
+                slug=p.slug,
+                _external=True,
+            )
+        lastmod = ""
+        if p.updated_at:
+            lastmod = f"<lastmod>{p.updated_at.strftime('%Y-%m-%d')}</lastmod>"
+        # escape() guards against a slug or URL that somehow carries
+        # an XML metacharacter — defensive, slugs are slugified but
+        # the loc is still user-influenced via the slug.
+        urls.append(
+            f"  <url><loc>{escape(loc)}</loc>{lastmod}</url>"
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>\n"
+    )
+    return Response(xml, mimetype="application/xml")
+
+
+# NOTE: deliberately NOT serving a per-project robots.txt. The
+# robots.txt spec only honours the file at the HOST root
+# (/robots.txt), and every generated site shares one host under
+# /site/<id>/, so a /site/<id>/robots.txt would never be fetched
+# by a crawler — shipping it would imply discovery behaviour that
+# doesn't actually work. The sitemap is instead surfaced via a
+# <link rel="sitemap"> in the page <head> (added in
+# generated_full_site.html) and is submittable directly.
 
 
 def build_demo_website_blueprint(client, opportunities=None):
