@@ -22139,8 +22139,10 @@ html[data-theme="dark"] .workspace-logo-image {
               .workspace-module-card         (workspace feature tiles)
               .surface-card--featured        (design-system featured card)
               .brand-context-nudge           (brand-context CTA strip)
+              .visibility-score-card         (Visibility page hero score)
      Neutral (untouched, current grey border) → metric / ops / list
-              rows / settings panels / queue items.
+              rows / settings panels / queue items / pillar + blocker
+              + summary cards (passive data, not focal points).
 
    Light mode → mint outline (#3EDFCB) + mint glow.
    Dark mode  → brighter neon variant (#4FFFE5) so the outline
@@ -22150,7 +22152,8 @@ html[data-theme="dark"] .workspace-logo-image {
 .next-action-card,
 .workspace-module-card,
 .surface-card--featured,
-.brand-context-nudge {
+.brand-context-nudge,
+.visibility-score-card {
     border-color: var(--brand-primary);
 }
 
@@ -22158,7 +22161,8 @@ html[data-theme="dark"] .workspace-logo-image {
 .next-action-card:hover,
 .workspace-module-card:hover,
 .surface-card--featured:hover,
-.brand-context-nudge:hover {
+.brand-context-nudge:hover,
+.visibility-score-card:hover {
     border-color: var(--brand-primary);
     box-shadow:
         0 0 0 1px var(--brand-primary),
@@ -22177,7 +22181,8 @@ html[data-theme="dark"] .dashboard-priority-main-card,
 html[data-theme="dark"] .next-action-card,
 html[data-theme="dark"] .workspace-module-card,
 html[data-theme="dark"] .surface-card--featured,
-html[data-theme="dark"] .brand-context-nudge {
+html[data-theme="dark"] .brand-context-nudge,
+html[data-theme="dark"] .visibility-score-card {
     border-color: var(--brand-primary-neon) !important;
 }
 
@@ -22185,7 +22190,8 @@ html[data-theme="dark"] .dashboard-priority-main-card:hover,
 html[data-theme="dark"] .next-action-card:hover,
 html[data-theme="dark"] .workspace-module-card:hover,
 html[data-theme="dark"] .surface-card--featured:hover,
-html[data-theme="dark"] .brand-context-nudge:hover {
+html[data-theme="dark"] .brand-context-nudge:hover,
+html[data-theme="dark"] .visibility-score-card:hover {
     border-color: var(--brand-primary-neon) !important;
     box-shadow:
         0 0 0 1px var(--brand-primary-neon),
