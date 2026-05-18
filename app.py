@@ -61,6 +61,7 @@ from webflow_integration import (
 from webflow_crypto import decrypt_token, encrypt_token
 import os
 import csv
+import unicodedata
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -2791,13 +2792,18 @@ def slugify(text):
     if not text:
         return ""
 
-    text = text.strip().lower()
+    # Fold accented Latin to ASCII (café -> cafe) then keep only URL-safe
+    # ASCII chars. Webflow rejects slugs with non-ASCII or symbol chars, so
+    # anything else is dropped or turned into a separator.
+    text = unicodedata.normalize("NFKD", text.strip().lower())
     cleaned = []
 
     for ch in text:
-        if ch.isalnum():
+        if unicodedata.combining(ch):
+            continue
+        if ("a" <= ch <= "z") or ("0" <= ch <= "9"):
             cleaned.append(ch)
-        elif ch in [" ", "-", "_"]:
+        elif ch in (" ", "-", "_"):
             cleaned.append("-")
 
     slug = "".join(cleaned)
