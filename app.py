@@ -3198,6 +3198,15 @@ def public_website_project(project_id):
         pages=pages,
         page_json=page.page_json,
         blueprint=project.blueprint_json,
+        # Canonical/og:url built via url_for(_external=True) — the
+        # same external-URL mechanism the Stripe success/cancel URLs
+        # rely on, so scheme/host stay consistent with the sitemap
+        # (which also uses _external=True). request.base_url would
+        # derive the scheme from the WSGI environ instead and could
+        # diverge behind a TLS-terminating proxy.
+        canonical_url=url_for(
+            "public_website_project", project_id=project.id, _external=True
+        ),
     )
 
 
@@ -3227,6 +3236,12 @@ def public_website_page(project_id, slug):
         pages=pages,
         page_json=page.page_json,
         blueprint=project.blueprint_json,
+        canonical_url=url_for(
+            "public_website_page",
+            project_id=project.id,
+            slug=page.slug,
+            _external=True,
+        ),
     )
 
 
@@ -4680,7 +4695,15 @@ def public_generated_page(page_id, slug):
         abort(404)
 
     return render_template(
-        "website_engine_public.html", page=page, page_json=page.page_json
+        "website_engine_public.html",
+        page=page,
+        page_json=page.page_json,
+        canonical_url=url_for(
+            "public_generated_page",
+            page_id=page.id,
+            slug=page.slug,
+            _external=True,
+        ),
     )
 
 

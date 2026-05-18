@@ -20,13 +20,15 @@
     {% endif %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    {# Canonical + og:url. request.base_url is scheme+host+path with
-       NO query string — exactly what a canonical wants, and it's
-       route-agnostic so the same line works for /site/<id>,
-       /site/<id>/<slug> and /p/<id>/<slug>. Answer-engine and
-       search crawlers use canonical for de-duplication; its absence
-       on an AEO product's own output was a gap. #}
-    <link rel="canonical" href="{{ request.base_url }}">
+    {# Canonical + og:url come from the route as canonical_url, built
+       with url_for(_external=True) — the same external-URL mechanism
+       the Stripe URLs and the sitemap use, so scheme/host stay
+       consistent across all three (request.base_url derives the
+       scheme from the WSGI environ and could diverge behind a
+       TLS-terminating proxy). Falls back to request.base_url only if
+       a future caller renders this template without canonical_url. #}
+    {% set _canonical = canonical_url or request.base_url %}
+    <link rel="canonical" href="{{ _canonical }}">
     {# Surfaces the per-project sitemap. A root /robots.txt isn't
        possible here (shared host), so this <link> + direct
        submission is how the sitemap gets discovered. #}
@@ -39,7 +41,7 @@
        but they were being discarded. Matters for social unfurls and
        some answer-engine crawlers. #}
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.base_url }}">
+    <meta property="og:url" content="{{ _canonical }}">
     <meta property="og:title" content="{{ _og_title }}">
     <meta property="og:description" content="{{ _og_desc }}">
     <meta name="twitter:card" content="summary">

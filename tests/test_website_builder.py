@@ -736,6 +736,33 @@ def test_sitemap_404s_for_unpublished_project(app_ctx):
     assert c.get(f"/site/{project_id}/robots.txt").status_code == 404
 
 
+def test_canonical_is_route_supplied_not_request_base_url(app_ctx):
+    """Canonical/og:url must come from the route's url_for(_external)
+    value, not request.base_url — so it's consistent with the
+    sitemap + Stripe URLs and always the canonical form. The home
+    page accessed at /site/<id> must canonicalise to /site/<id>
+    (no trailing /home); a sub-page to its own slug URL."""
+    c, project_id = _published_project_with_pages(app_ctx)
+
+    home = c.get(f"/site/{project_id}").data.decode()
+    assert (
+        f'<link rel="canonical" href="http://localhost/site/{project_id}">'
+        in home
+    )
+    assert (
+        f'<meta property="og:url" content="http://localhost/site/{project_id}">'
+        in home
+    )
+    # Must NOT canonicalise the home page to the /home slug URL.
+    assert f"/site/{project_id}/home" not in home
+
+    about = c.get(f"/site/{project_id}/about").data.decode()
+    assert (
+        f'<link rel="canonical" href="http://localhost/site/{project_id}/about">'
+        in about
+    )
+
+
 def test_public_site_head_links_sitemap(app_ctx):
     """The published page <head> must reference the project sitemap
     so it's discoverable without a host-root robots.txt."""

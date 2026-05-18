@@ -18,12 +18,14 @@
     {% endif %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    {# Canonical + og:url — request.base_url is query-free and
-       route-agnostic. Same rationale as generated_full_site.html. #}
-    <link rel="canonical" href="{{ request.base_url }}">
+    {# Canonical + og:url from canonical_url (url_for _external=True),
+       consistent with the sitemap + Stripe URLs. Same rationale as
+       generated_full_site.html. #}
+    {% set _canonical = canonical_url or request.base_url %}
+    <link rel="canonical" href="{{ _canonical }}">
 
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.base_url }}">
+    <meta property="og:url" content="{{ _canonical }}">
     <meta property="og:title" content="{{ _og_title }}">
     <meta property="og:description" content="{{ _og_desc }}">
     <meta name="twitter:card" content="summary">
