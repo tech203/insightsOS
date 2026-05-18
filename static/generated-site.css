@@ -491,3 +491,22 @@
 .generated-site-preview.theme-professional_services .site-section-light {
     background: color-mix(in srgb, var(--site-primary-soft) 45%, white);
 }
+
+
+/* Visually-hidden but in the accessibility tree + document outline.
+   Used for the fallback <h1> emitted on hero-less pages so the
+   document always has exactly one top-level heading without
+   showing a redundant title above the first visible section.
+   Standard clip pattern (not display:none, which would remove it
+   from the outline and defeat the purpose). */
+.site-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

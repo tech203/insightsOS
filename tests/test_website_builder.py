@@ -2321,6 +2321,56 @@ def _render_engine(sections):
             )
 
 
+def test_page_always_has_exactly_one_h1():
+    """Document-outline guarantee. Only the hero emits a visible
+    <h1>; every other section uses <h2>/<h3>. A hero page must have
+    exactly one (visible) h1; a hero-less page must still have
+    exactly one h1 — a visually-hidden fallback carrying the SEO
+    title — never zero (bad for AEO parsers / screen readers) and
+    never two."""
+    import re
+
+    # Hero page → one visible h1, no fallback.
+    html = _render_engine([
+        {"type": "hero", "headline": "Visible Hero", "primary_cta": "Go"},
+        {"type": "services", "headline": "S", "items": []},
+    ])
+    assert len(re.findall(r"<h1", html)) == 1
+    assert "Visible Hero" in html
+    assert "site-visually-hidden" not in html
+
+    # Hero-less page → exactly one h1, and it's the hidden fallback
+    # carrying the SEO title, emitted before the first section.
+    html = _render_engine_with_meta(
+        [
+            {"type": "faq", "headline": "FAQ", "items": []},
+            {"type": "cta_block", "headline": "C", "primary_cta": "Go"},
+        ],
+        meta_title="Acme — FAQ",
+    )
+    assert len(re.findall(r"<h1", html)) == 1
+    assert 'class="site-visually-hidden">Acme — FAQ</h1>' in html
+    # Fallback h1 must precede the first section in the DOM.
+    assert html.index("<h1") < html.index("site-section")
+
+
+def _render_engine_with_meta(sections, meta_title=None):
+    from flask import render_template
+    from app import app as flask_app
+    pj = {
+        "sections": sections,
+        "semantic_profile": {"entity_name": "Acme", "entity_type": "agency"},
+    }
+    if meta_title:
+        pj["meta_title"] = meta_title
+    page = type("P", (), {"id": 1, "title": "Acme | FAQ", "page_json": pj})()
+    with flask_app.app_context():
+        with flask_app.test_request_context():
+            return render_template(
+                "website_engine_render.html", page=page, page_json=pj
+            )
+
+
 def test_hero_ctas_resolve_to_existing_anchors_per_page_shape():
     """The hero primary/secondary CTAs must point at an anchor that
     actually exists on the page. Regression: #details was hardcoded

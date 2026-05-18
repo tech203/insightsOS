@@ -32,6 +32,23 @@
 {% set hero_primary_href = "#contact" if _has_contact else ("#details" if _has_details else "#") %}
 {% set hero_secondary_href = "#details" if _has_details else ("#contact" if _has_contact else "#") %}
 
+{# Single-h1 guarantee. Only the hero section emits <h1>; every
+   other section uses <h2>/<h3>. A page with no hero (user skipped
+   it, AI omitted it, or a custom section-only page) would render
+   ZERO h1s — bad for document outline, AEO parsers, and screen
+   readers. When there's no hero, emit one visually-hidden <h1>
+   first in the DOM carrying the page's SEO title so the document
+   always has exactly one top-level heading. (A hero page already
+   has its single visible h1 — no change there.) #}
+{% if "hero" not in _types %}
+    {% set _outline_h1 = page_json.meta_title
+        or (page_json.seo.title if page_json.seo else none)
+        or page_json.title
+        or (page_json.semantic_profile.entity_name if page_json.semantic_profile else none)
+        or "Overview" %}
+<h1 class="site-visually-hidden">{{ _outline_h1 }}</h1>
+{% endif %}
+
 {% for section in page_json.sections %}
 
     {% if section.type == "hero" %}
