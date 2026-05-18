@@ -214,6 +214,9 @@
                 {{ audit_illustration() }}
                 <h4>No action plan yet</h4>
                 <p>Run an audit first to generate a prioritised action list.</p>
+                <div class="empty-actions centered">
+                    <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run an audit</a>
+                </div>
             </div>
             {% endif %}
         </div>

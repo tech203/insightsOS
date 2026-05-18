@@ -348,6 +348,9 @@
             {{ prompts_illustration() }}
             <h3>No query comparison data yet</h3>
             <p>Run and save another audit later to unlock stronger query-level comparison and movement tracking.</p>
+            <div class="empty-actions centered">
+                <a href="{{ url_for('run_client_audit', client_id=client.id) }}" class="btn btn-primary">Run an audit</a>
+            </div>
         </div>
         {% endif %}
     </section>
