@@ -1,0 +1,59 @@
+{# Shared SEO + social-share meta for the standalone auth pages
+   (login / signup / forgot-password / reset-password). These don't
+   extend marketing_base.html so they were missing OG tags, a
+   canonical link, and a favicon entirely — a shared login URL
+   pasted into Slack unfurled as bare text and browser tabs were
+   blank.
+
+   Usage — set the two vars before the include:
+     {% set auth_meta_title = "Sign Up | DarInsights" %}
+     {% set auth_meta_description = "Create your free account…" %}
+     {% include "partials/auth_meta.html" %}
+
+   Both have safe fallbacks so an include without them still works.
+
+   No JSON-LD here on purpose: the SoftwareApplication entity shape
+   belongs on the marketing pages, not on a login form (same
+   reasoning as the legal pages). #}
+
+{% set _am_title = auth_meta_title if auth_meta_title is defined else 'DarInsights — AI Visibility Operating System' %}
+{% set _am_desc = auth_meta_description if auth_meta_description is defined else 'Audit how your brand appears in AI-generated answers across Google AI, ChatGPT, Perplexity, and Gemini.' %}
+{% set _am_canonical = request.url_root.rstrip('/') ~ request.path %}
+{# Default to noindex (safest for auth forms + token URLs). /signup
+   opts into indexing by setting auth_meta_robots='index, follow'
+   before the include — it's in sitemap.xml as an acquisition page. #}
+{% set _am_robots = auth_meta_robots if auth_meta_robots is defined else 'noindex, follow' %}
+
+<meta name="description" content="{{ _am_desc }}">
+<link rel="canonical" href="{{ _am_canonical }}">
+<meta name="theme-color" content="#0A0A12">
+<meta name="robots" content="{{ _am_robots }}">
+
+{# Open Graph — login/signup links DO get pasted into Slack /
+   onboarding emails, so the unfurl should at least show the
+   product name + description rather than a naked URL. #}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DarInsights">
+<meta property="og:title" content="{{ _am_title }}">
+<meta property="og:description" content="{{ _am_desc }}">
+<meta property="og:url" content="{{ _am_canonical }}">
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ _am_title }}">
+<meta name="twitter:description" content="{{ _am_desc }}">
+
+{# Inline-SVG favicon — identical to the one in marketing_base.html
+   so tabs are consistent across marketing + auth surfaces. #}
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
+        <defs>
+            <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+                <stop offset='0' stop-color='%233EDFCB'/>
+                <stop offset='1' stop-color='%239D7CE3'/>
+            </linearGradient>
+        </defs>
+        <rect width='64' height='64' rx='14' fill='url(%23g)'/>
+        <text x='50%25' y='52%25' text-anchor='middle' dominant-baseline='middle'
+              font-family='ui-sans-serif,system-ui,-apple-system,sans-serif'
+              font-size='38' font-weight='800' fill='%2315161e'>A</text>
+    </svg>">

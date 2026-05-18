@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Log In | DarInsights</title>
+    {% set auth_meta_title = "Sign in to DarInsights" %}
+    {% set auth_meta_description = "Sign in to your DarInsights workspace to run AI visibility audits and track your brand across AI answers." %}
+    {% include "partials/auth_meta.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
     <script>
