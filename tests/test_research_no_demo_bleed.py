@@ -155,3 +155,75 @@ def test_clean_opportunity_title_does_not_rewrite_to_singapore(raw):
 def test_clean_opportunity_title_empty_falls_back():
     assert clean_opportunity_title("", fallback_query="Pricing page audit") == "Pricing page audit"
     assert clean_opportunity_title("") == "Untitled content opportunity"
+
+
+# ---------------------------------------------------------------------------
+# search_ai_discovery_prompts — brand-intent fallback + module-wide guard
+# ---------------------------------------------------------------------------
+# #204 fixed search_competitors + search_comparison_queries; #214 then
+# fixed search_ai_discovery_prompts' core query list. This block adds the
+# brand-intent fallback coverage and a belt-and-braces static scan of the
+# whole module so a demo string can't creep back via a docstring/example.
+
+_DEMO_TOKENS_AI = _DEMO_TOKENS + ("halal", "nostalgic", "milk candy")
+
+
+def test_ai_discovery_prompts_use_client_industry(captured_queries):
+    research_engine.search_ai_discovery_prompts(
+        business_name="Stripe",
+        industry="Payments / Fintech SaaS",
+        location="Global",
+        services="payment processing API",
+    )
+    assert captured_queries, "search_ai_discovery_prompts made no queries"
+    for cat, q in captured_queries:
+        low = q.lower()
+        for tok in _DEMO_TOKENS_AI:
+            assert tok not in low, (
+                f"Demo-data bleed: {cat} query {q!r} contains {tok!r}. "
+                f"search_ai_discovery_prompts still hardcodes the "
+                f"ice-cream demo client (PR #204 missed this function)."
+            )
+    assert any("payment processing api" in q.lower()
+               for _, q in captured_queries)
+
+
+def test_ai_discovery_prompts_brand_fallback_no_industry(captured_queries):
+    """No industry/services → brand-intent prompts, not a hardcoded
+    unrelated vertical."""
+    research_engine.search_ai_discovery_prompts(
+        business_name="Acme Corp", industry="", location=None, services=None,
+    )
+    for _, q in captured_queries:
+        for tok in _DEMO_TOKENS_AI:
+            assert tok not in q.lower(), f"demo bleed in {q!r}"
+    assert all("acme corp" in q.lower() for _, q in captured_queries), (
+        f"Expected brand-relative prompts, got {captured_queries}"
+    )
+
+
+def test_ai_discovery_prompts_empty_inputs_no_api_calls(captured_queries):
+    """Nothing to go on → [] with ZERO Tavily calls (don't fabricate
+    off-topic discovery prompts)."""
+    r = research_engine.search_ai_discovery_prompts(
+        business_name="", industry="", location=None, services=None,
+    )
+    assert r == []
+    assert captured_queries == [], (
+        f"Expected no API calls on empty input, got {captured_queries}"
+    )
+
+
+def test_research_engine_has_no_hardcoded_demo_strings():
+    """Belt-and-braces: the whole module must not reintroduce the
+    demo client's vocabulary in query-building code OR docstring/URL
+    examples. Guards against a future copy-paste from the old demo
+    branch."""
+    import inspect
+    src = inspect.getsource(research_engine)
+    for tok in ("ice cream", "White Rabbit", "whiterabbit",
+                "halal ice cream", "milk candy", "nostalgic candy"):
+        assert tok not in src, (
+            f"research_engine.py source still contains {tok!r} — "
+            f"a demo-client string crept back in."
+        )
