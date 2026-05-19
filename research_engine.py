@@ -40,7 +40,7 @@ def clean_domain(url):
     """
     Extracts a clean domain from a URL.
     Example:
-    https://www.whiterabbit.sg/shop -> whiterabbit.sg
+    https://www.example.com/shop -> example.com
     """
     try:
         return urlparse(url).netloc.replace("www.", "")
@@ -53,7 +53,7 @@ def clean_website_for_site_search(website):
     Converts website URL into a domain suitable for site: search.
 
     Example:
-    https://whiterabbit.sg/ -> whiterabbit.sg
+    https://example.com/ -> example.com
     """
     if not website:
         return None
@@ -337,32 +337,50 @@ def search_aeo_opportunities(industry, location=None, services=None, max_results
     return tavily_search(query, category="aeo_opportunities", max_results=max_results)
 
 
-def search_ai_discovery_prompts(industry, location=None, services=None, max_results=5):
+def search_ai_discovery_prompts(business_name=None, industry=None, location=None, services=None, max_results=5):
     """
     Simulates AI-style buyer discovery prompts in the workspace's
-    own category. Returns up to 5 results for each query.
+    own category — the natural-language questions a buyer would
+    actually type into an AI assistant.
 
-    Was hardcoded to ice-cream / White Rabbit from an early demo
-    client — the same bug as search_competitors /
-    search_comparison_queries. PR #204 fixed those two siblings but
-    missed this one, so EVERY audit still got ice-cream "AI discovery
-    prompts" regardless of the client's actual industry. Now derived
-    from services/industry.
+    Was hardcoded to the original ice-cream demo client (same bug
+    class as search_competitors / search_comparison_queries, fixed
+    in #204 — this function was missed in that pass and fixed in a
+    follow-up). Now derived from services/industry with a
+    brand-intent fallback and an empty-input guard, so EVERY audit
+    no longer gets off-topic discovery prompts regardless of the
+    client's actual industry.
+
+    `business_name` is now accepted (it wasn't before) so the
+    brand-intent fallback works. The only caller (run_research_pack)
+    passes by keyword, so the new leading optional keyword is
+    back-compatible.
     """
     service_text = (services or industry or "").strip()
-    if not service_text:
-        # No category signal — nothing meaningful to discover; return
-        # empty rather than seed off-topic discovery prompts.
-        return []
-
     loc_suffix = f" {location}".rstrip() if location else ""
-    queries = [
-        f"where to buy {service_text}{loc_suffix}",
-        f"best {service_text}{loc_suffix}",
-        f"recommended {service_text}{loc_suffix}",
-        f"top rated {service_text}{loc_suffix}",
-        f"how to choose {service_text}",
-    ]
+
+    if service_text:
+        queries = [
+            f"where to buy {service_text}{loc_suffix}",
+            f"best {service_text}{loc_suffix}",
+            f"recommended {service_text}{loc_suffix}",
+            f"top rated {service_text}{loc_suffix}",
+            f"how to choose {service_text}",
+        ]
+        if business_name:
+            queries.append(f"is {business_name} any good")
+    elif business_name:
+        # No category signal — brand-intent discovery rather than an
+        # unrelated hardcoded vertical.
+        queries = [
+            f"is {business_name} any good",
+            f"{business_name} reviews",
+            f"what does {business_name} sell",
+        ]
+    else:
+        # Nothing to go on — return empty rather than fabricate
+        # off-topic discovery prompts.
+        return []
 
     all_results = []
 
@@ -396,11 +414,11 @@ def run_research_pack(
     Example:
 
     data = run_research_pack(
-        business_name="White Rabbit Singapore",
-        industry="ice cream and confectionery e-commerce",
-        location="Singapore",
-        services="White Rabbit ice cream, milk candy, party packages, merchandise, gift bundles",
-        website="https://whiterabbit.sg"
+        business_name="Acme Analytics",
+        industry="B2B SaaS analytics",
+        location="Global",
+        services="product analytics, dashboards, funnel reporting",
+        website="https://acme.example.com"
     )
     """
 
@@ -500,6 +518,7 @@ def run_research_pack(
 
     # 10. What AI-style discovery prompts surface this category?
     research_pack["results"]["ai_discovery_prompts"] = search_ai_discovery_prompts(
+        business_name=business_name,
         industry=industry,
         location=location,
         services=services,
