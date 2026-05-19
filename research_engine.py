@@ -339,22 +339,23 @@ def search_aeo_opportunities(industry, location=None, services=None, max_results
 
 def search_ai_discovery_prompts(business_name=None, industry=None, location=None, services=None, max_results=5):
     """
-    Simulates AI-style buyer discovery prompts in the workspace's
-    own category — the natural-language questions a buyer would
-    actually type into an AI assistant.
+    Simulates AI-style buyer discovery prompts in the workspace's own
+    category — the natural-language questions a buyer would actually
+    type into an AI assistant.
 
-    Was hardcoded to the original ice-cream demo client (same bug
-    class as search_competitors / search_comparison_queries, fixed
-    in #204 — this function was missed in that pass and fixed in a
-    follow-up). Now derived from services/industry with a
-    brand-intent fallback and an empty-input guard, so EVERY audit
-    no longer gets off-topic discovery prompts regardless of the
+    Was hardcoded to White-Rabbit-ice-cream/Singapore from an early
+    demo client (same bug class as search_competitors /
+    search_comparison_queries, fixed in #204 — this function was
+    missed in that pass). Now derived from services/industry with a
+    brand-relative fallback and an empty-input guard so EVERY audit
+    no longer gets ice-cream discovery prompts regardless of the
     client's actual industry.
 
     `business_name` is now accepted (it wasn't before) so the
-    brand-intent fallback works. The only caller (run_research_pack)
-    passes by keyword, so the new leading optional keyword is
-    back-compatible.
+    brand-intent fallback works; callers that pass positionally were
+    only ever passing industry first, so the new leading optional
+    keyword is back-compatible for the run_research_pack call site
+    (updated to pass by keyword).
     """
     service_text = (services or industry or "").strip()
     loc_suffix = f" {location}".rstrip() if location else ""
@@ -362,10 +363,9 @@ def search_ai_discovery_prompts(business_name=None, industry=None, location=None
     if service_text:
         queries = [
             f"where to buy {service_text}{loc_suffix}",
-            f"best {service_text}{loc_suffix}",
             f"recommended {service_text}{loc_suffix}",
-            f"top rated {service_text}{loc_suffix}",
-            f"how to choose {service_text}",
+            f"best {service_text}{loc_suffix}",
+            f"is {service_text} worth it",
         ]
         if business_name:
             queries.append(f"is {business_name} any good")
@@ -378,8 +378,7 @@ def search_ai_discovery_prompts(business_name=None, industry=None, location=None
             f"what does {business_name} sell",
         ]
     else:
-        # Nothing to go on — return empty rather than fabricate
-        # off-topic discovery prompts.
+        # Nothing to go on — don't fabricate off-topic prompts.
         return []
 
     all_results = []

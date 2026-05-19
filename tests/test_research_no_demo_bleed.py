@@ -158,12 +158,13 @@ def test_clean_opportunity_title_empty_falls_back():
 
 
 # ---------------------------------------------------------------------------
-# search_ai_discovery_prompts — brand-intent fallback + module-wide guard
+# search_ai_discovery_prompts — the function PR #204 MISSED
 # ---------------------------------------------------------------------------
-# #204 fixed search_competitors + search_comparison_queries; #214 then
-# fixed search_ai_discovery_prompts' core query list. This block adds the
-# brand-intent fallback coverage and a belt-and-braces static scan of the
-# whole module so a demo string can't creep back via a docstring/example.
+# #204 fixed search_competitors + search_comparison_queries but left
+# search_ai_discovery_prompts hardcoded to White-Rabbit-ice-cream
+# discovery prompts ("where to buy White Rabbit ice cream", "halal
+# ice cream in {location}", ...) ignoring industry/services entirely.
+# Same demo-bleed class, separate function.
 
 _DEMO_TOKENS_AI = _DEMO_TOKENS + ("halal", "nostalgic", "milk candy")
 
@@ -216,9 +217,10 @@ def test_ai_discovery_prompts_empty_inputs_no_api_calls(captured_queries):
 
 def test_research_engine_has_no_hardcoded_demo_strings():
     """Belt-and-braces: the whole module must not reintroduce the
-    demo client's vocabulary in query-building code OR docstring/URL
-    examples. Guards against a future copy-paste from the old demo
-    branch."""
+    demo client's vocabulary in query-building code. Guards against
+    a future copy-paste from the old demo branch. (Docstring/URL
+    examples were genericised; this scans the source for the
+    contamination tokens that mattered.)"""
     import inspect
     src = inspect.getsource(research_engine)
     for tok in ("ice cream", "White Rabbit", "whiterabbit",
