@@ -5892,15 +5892,42 @@ def read_full_audit_data(summary_filename):
     """Return the full audit payload for a given filename identifier.
 
     Migrated from `outputs/<filename>` lookup to a SQL row fetch on
-    the audits table. Returns None for unknown filenames (matches the
-    legacy "file not found" return shape).
+    the audits table. DB-first; falls back to the legacy on-disk
+    `outputs/<file>` for pre-migration audits that were never written
+    to SQL. Returns None for unknown filenames (matches the legacy
+    "file not found" return shape).
     """
     if not summary_filename:
         return None
     row = db.session.get(Audit, summary_filename)
-    if row is None:
+    if row is not None and row.full_payload is not None:
+        return row.full_payload
+    # Legacy fallback: audits saved before the SQL migration only
+    # exist as on-disk JSON. Without this, every post-migration audit
+    # 404s on the /audit/<file>/full views because new audits are
+    # DB-only (save_audit_results writes the row, not a file).
+    full_path = get_full_path(summary_filename)
+    return load_json_file(full_path) if full_path else None
+
+
+def read_summary_audit_data(summary_filename):
+    """Return the summary audit payload for a filename identifier.
+
+    Counterpart to read_full_audit_data. The /audit/<file> summary
+    view + PDF export historically read `outputs/<file>` from disk via
+    get_summary_path(); after the SQL migration new audits are DB-only
+    (no on-disk file), so that path 404'd every freshly-run audit.
+    DB-first, with the same legacy on-disk fallback for pre-migration
+    audits.
+    """
+    summary_filename = get_matching_summary_filename(summary_filename)
+    if not summary_filename:
         return None
-    return row.full_payload
+    row = db.session.get(Audit, summary_filename)
+    if row is not None and row.summary_payload is not None:
+        return row.summary_payload
+    summary_path = get_summary_path(summary_filename)
+    return load_json_file(summary_path) if summary_path else None
 
 
 def get_saved_audits(user_id=None):
@@ -13474,12 +13501,10 @@ def generate_client_content_draft(client_id):
 @app.route("/audit/<summary_filename>")
 @login_required
 def audit_summary(summary_filename):
-    summary_path = get_summary_path(summary_filename)
-    if not summary_path:
-        abort(404)
-
     summary_filename = get_matching_summary_filename(summary_filename)
-    summary_data = load_json_file(summary_path)
+    summary_data = read_summary_audit_data(summary_filename)
+    if not summary_data:
+        abort(404)
     # Ownership check — filenames are guessable (slug-based) so
     # @login_required alone isn't enough to keep Bob out of Alice's
     # audit. 404 (not 403) so we don't confirm the file exists.
@@ -13497,12 +13522,10 @@ def audit_summary(summary_filename):
 @app.route("/audit/<summary_filename>/pdf")
 @login_required
 def audit_summary_pdf(summary_filename):
-    summary_path = get_summary_path(summary_filename)
-    if not summary_path:
-        abort(404)
-
     summary_filename = get_matching_summary_filename(summary_filename)
-    summary_data = load_json_file(summary_path)
+    summary_data = read_summary_audit_data(summary_filename)
+    if not summary_data:
+        abort(404)
     # Same ownership check as the HTML view above — the PDF contains
     # the same strategic data and was reachable via direct URL.
     if not _audit_belongs_to_current_user(summary_data):
@@ -13549,12 +13572,10 @@ def audit_full(summary_filename):
     # _audit_belongs_to_current_user; see PR #120.
     require_internal_access()
 
-    full_path = get_full_path(summary_filename)
-    if not full_path:
-        abort(404)
-
     summary_filename = get_matching_summary_filename(summary_filename)
-    full_data = load_json_file(full_path)
+    full_data = read_full_audit_data(summary_filename)
+    if not full_data:
+        abort(404)
     full_filename = get_matching_full_filename(summary_filename)
     return render_template(
         "audit_full.html",
@@ -16361,11 +16382,10 @@ def new_audit():
 def api_audit_full(summary_filename):
     require_internal_access()
 
-    full_path = get_full_path(summary_filename)
-    if not full_path:
+    full_data = read_full_audit_data(summary_filename)
+    if not full_data:
         return jsonify({"error": "Full file not found"}), 404
 
-    full_data = load_json_file(full_path)
     full_filename = get_matching_full_filename(summary_filename)
     return jsonify(
         {
