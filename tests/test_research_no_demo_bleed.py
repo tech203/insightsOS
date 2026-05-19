@@ -75,6 +75,21 @@ def test_search_comparison_queries_uses_client_industry(captured_queries):
                for _, q in captured_queries)
 
 
+def test_search_ai_discovery_prompts_uses_client_industry(captured_queries):
+    """PR #204 fixed search_competitors / search_comparison_queries but
+    missed search_ai_discovery_prompts — it still ran hardcoded
+    'White Rabbit ice cream' discovery prompts for every client."""
+    research_engine.search_ai_discovery_prompts(
+        industry="Payments / Fintech SaaS",
+        location="Global",
+        services="payment processing API",
+    )
+    assert captured_queries, "search_ai_discovery_prompts made no queries"
+    _assert_no_demo_bleed(captured_queries)
+    assert any("payment processing api" in q.lower()
+               for _, q in captured_queries)
+
+
 def test_search_competitors_falls_back_to_brand_when_no_industry(captured_queries):
     """No industry/services → brand-relative discovery, NOT a
     hardcoded unrelated vertical."""
@@ -96,7 +111,10 @@ def test_research_empty_inputs_return_empty_no_api_calls(captured_queries):
     r2 = research_engine.search_comparison_queries(
         industry="", location=None, services=None,
     )
-    assert r1 == [] and r2 == []
+    r3 = research_engine.search_ai_discovery_prompts(
+        industry="", location=None, services=None,
+    )
+    assert r1 == [] and r2 == [] and r3 == []
     assert captured_queries == [], (
         f"Expected no API calls on empty input, got {captured_queries}"
     )

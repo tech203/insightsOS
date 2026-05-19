@@ -5436,6 +5436,84 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
 }
 
 /* =========================
+   MOBILE "BEST ON DESKTOP" NUDGE
+   =========================
+   Heavy workflow pages render their dense UI inside an element with
+   class .desktop-only-content and drop in the desktop_nudge() macro
+   (partials/desktop_nudge.html). Below 768px the dense UI is hidden
+   and the nudge shows; at/above 769px the reverse. Pure CSS — no JS,
+   no user-agent sniffing. Pattern decided with the user: phones get
+   read + one CTA, desktop does the heavy work. */
+.desktop-nudge { display: none; }
+
+@media (max-width: 768px) {
+    .desktop-only-content { display: none !important; }
+
+    .desktop-nudge {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        margin: 16px;
+        padding: 24px 20px;
+        border-radius: 18px;
+        background: var(--shell-surface, #ffffff);
+        border: 1px solid var(--shell-line-soft, #eef2f7);
+    }
+    .desktop-nudge-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: rgba(157, 124, 227, 0.12);
+        color: var(--brand-secondary, #9D7CE3);
+    }
+    .desktop-nudge-title {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.25;
+        color: var(--shell-text, #16243c);
+    }
+    .desktop-nudge-stat {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .desktop-nudge-stat strong {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--shell-text, #16243c);
+    }
+    .desktop-nudge-stat span {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--shell-text-soft, #64748b);
+    }
+    .desktop-nudge-copy {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--shell-text-soft, #64748b);
+    }
+    .desktop-nudge-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+    }
+    .desktop-nudge-actions .btn {
+        flex: 1 1 auto;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* =========================
    NEW AUDIT PAGE UPGRADE
    ========================= */
 
@@ -6642,7 +6720,11 @@ html[data-sidebar-collapsed~="account"] .nav-group[data-group="account"] .nav-la
 
 .dashboard-clients-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* auto-fit (not a fixed 3-col) so a single workspace card fills
+       the row to match the full-width "Recommended next step" card
+       above it, instead of sitting at 1/3 width with dead space.
+       2 cards → split evenly; 3+ → wrap at a sensible min width. */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
 }
 
@@ -17133,7 +17215,13 @@ html[data-theme="dark"] .workspace-more-divider {
 
 .website-card-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* auto-fit (not fixed repeat(3)): website_project_preview.html
+       feeds this a variable {% for row in score_rows %} list — with
+       1–2 rows a fixed 3-col grid stranded the cards at 1/3 width
+       (same lopsided bug fixed on .dashboard-clients-grid). Fixed
+       3-item uses (builder "how it works") still render 3-up since
+       the container is wide enough. */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
     margin-top: 18px;
 }
@@ -17858,8 +17946,15 @@ html[data-theme="dark"] .workspace-logo-remove-btn {
     html[data-sidebar-rail] .nav-group-items {
         gap: 4px;
     }
+    /* Group headers are display:none in the rail, so without a real
+       separator ~24 icons read as one undifferentiated stack ("too
+       many icons"). Tight within-group gap (4px above) + a clear
+       divider and generous space between groups makes the 5 clusters
+       legible via proximity alone — no labels, no nav removed. */
     html[data-sidebar-rail] .nav-group + .nav-group {
-        margin-top: 14px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
     }
 
     /* Active-state left bar would float off the edge of the rail; tuck it. */
