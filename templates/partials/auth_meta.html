@@ -42,18 +42,4 @@
 <meta name="twitter:title" content="{{ _am_title }}">
 <meta name="twitter:description" content="{{ _am_desc }}">
 
-{# Inline-SVG favicon — identical to the one in marketing_base.html
-   so tabs are consistent across marketing + auth surfaces. #}
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,
-    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
-        <defs>
-            <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-                <stop offset='0' stop-color='%233EDFCB'/>
-                <stop offset='1' stop-color='%239D7CE3'/>
-            </linearGradient>
-        </defs>
-        <rect width='64' height='64' rx='14' fill='url(%23g)'/>
-        <text x='50%25' y='52%25' text-anchor='middle' dominant-baseline='middle'
-              font-family='ui-sans-serif,system-ui,-apple-system,sans-serif'
-              font-size='38' font-weight='800' fill='%2315161e'>A</text>
-    </svg>">
+{% include "partials/favicon.html" %}

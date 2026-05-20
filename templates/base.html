@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}DarInsights{% endblock %}</title>
+    {% include "partials/favicon.html" %}
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-v2.1.css') }}?v={{ static_css_version }}">
     <script>

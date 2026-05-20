@@ -15705,6 +15705,10 @@ def recover_interrupted_jobs() -> int:
 
     Returns the count swept (for logging / metrics).
     """
+    if not db.inspect(db.engine).has_table(JobRun.__tablename__):
+        logger.info("Skipping job recovery; job_runs table does not exist yet.")
+        return 0
+
     stuck = JobRun.query.filter(
         JobRun.status.in_(("pending", "running"))
     ).all()
@@ -20912,6 +20916,125 @@ def internal_server_error(error):
         pass
     logger.exception("Unhandled 500 error: %s", error)
     return render_template("errors/500.html"), 500
+
+
+def _truthy_env(name: str) -> bool:
+    return (os.getenv(name) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _falsey_env(name: str) -> bool:
+    return (os.getenv(name) or "").strip().lower() in {"0", "false", "no", "off"}
+
+
+def _startup_bootstrap_requested() -> bool:
+    if _truthy_env("RENDER_BOOTSTRAP_ON_START"):
+        return True
+    if _falsey_env("RENDER_BOOTSTRAP_ON_START"):
+        return False
+    return bool((os.getenv("ADMIN_EMAIL") or "").strip() and os.getenv("ADMIN_PASSWORD"))
+
+
+def _create_or_update_bootstrap_admin() -> None:
+    email = (os.getenv("ADMIN_EMAIL") or "").strip().lower()
+    password = os.getenv("ADMIN_PASSWORD") or ""
+    if not email or not password:
+        logger.info("Startup admin bootstrap skipped: ADMIN_EMAIL or ADMIN_PASSWORD missing.")
+        return
+
+    admin_name = (os.getenv("ADMIN_NAME") or "Admin").strip() or "Admin"
+    try:
+        admin_credits = int(os.getenv("ADMIN_CREDITS") or "999")
+    except ValueError:
+        admin_credits = 999
+
+    user = User.query.filter_by(email=email).first()
+    created = user is None
+
+    if user is None:
+        user = User(
+            email=email,
+            name=admin_name,
+            password_hash=generate_password_hash(password),
+            role="admin",
+            plan="dev_unlimited",
+        )
+        db.session.add(user)
+        db.session.flush()
+    else:
+        user.name = admin_name
+        user.password_hash = generate_password_hash(password)
+        user.role = "admin"
+        user.plan = "dev_unlimited"
+
+    if getattr(user, "email_verified_at", None) is None:
+        user.email_verified_at = utcnow()
+
+    if not user.wallet:
+        db.session.add(Wallet(user_id=user.id, balance=admin_credits))
+    else:
+        user.wallet.balance = max(user.wallet.balance or 0, admin_credits)
+
+    db.session.commit()
+    logger.info("%s startup admin user: %s", "Created" if created else "Updated", email)
+
+
+def _run_startup_bootstrap_if_enabled() -> None:
+    """Render free tier has no Shell, so allow DB setup at boot."""
+    if not _startup_bootstrap_requested():
+        return
+
+    with app.app_context():
+        logger.info("Running startup database bootstrap.")
+        existing_tables = set(db.inspect(db.engine).get_table_names())
+        has_app_schema = "users" in existing_tables
+        has_migration_state = "alembic_version" in existing_tables
+
+        if has_app_schema:
+            if has_migration_state:
+                try:
+                    from flask_migrate import upgrade
+
+                    upgrade()
+                except Exception:
+                    logger.exception("Database migration bootstrap failed.")
+                    raise
+            else:
+                try:
+                    from flask_migrate import stamp
+
+                    stamp(revision="head")
+                except Exception:
+                    logger.exception("Database migration stamp failed.")
+                    raise
+        else:
+            logger.info("No app tables found; creating current schema.")
+            db.create_all()
+            try:
+                from flask_migrate import stamp
+
+                stamp(revision="head", purge=True)
+            except Exception:
+                logger.exception("Database migration stamp failed.")
+                raise
+
+        db.create_all()
+        _create_or_update_bootstrap_admin()
+
+
+def _create_missing_tables_on_start() -> None:
+    """Create any missing tables before request hooks run."""
+    if _falsey_env("DB_CREATE_MISSING_TABLES_ON_START"):
+        return
+    try:
+        with app.app_context():
+            db.create_all()
+    except Exception:
+        logger.exception("Startup create_all failed.")
+        raise
+
+
+_create_missing_tables_on_start()
+_run_startup_bootstrap_if_enabled()
 
 
 if __name__ == "__main__":
